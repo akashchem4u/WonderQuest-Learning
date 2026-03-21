@@ -130,6 +130,27 @@ export default async function OwnerPage() {
                 ))}
               </ul>
             </ShellCard>
+
+            <ShellCard eyebrow="Feedback mix" title="Recent triage categories">
+              <div className="summary-chip-row">
+                {overview.feedbackByCategory.map((item) => (
+                  <span className="summary-chip" key={item.category}>
+                    {item.category}: {item.count}
+                  </span>
+                ))}
+              </div>
+            </ShellCard>
+
+            <ShellCard eyebrow="Feedback queue" title="Latest product feedback">
+              <ul className="route-list">
+                {overview.recentFeedback.map((item) => (
+                  <li key={item.id}>
+                    {item.category} · {item.urgency} · {item.routingTarget} ·{" "}
+                    {item.summary}
+                  </li>
+                ))}
+              </ul>
+            </ShellCard>
           </section>
         </>
       ) : null}

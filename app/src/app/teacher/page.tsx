@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FeedbackForm } from "@/components/feedback-form";
 import { ShellCard, StatTile } from "@/components/ui";
 import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
 import { getTeacherOverview } from "@/lib/prototype-service";
@@ -129,6 +130,15 @@ export default async function TeacherPage() {
                   </li>
                 ))}
               </ul>
+            </ShellCard>
+
+            <ShellCard eyebrow="Feedback" title="Teacher and school feedback">
+              <FeedbackForm
+                helper="Capture teacher-side product gaps, content issues, or classroom workflow ideas."
+                sourceChannel="teacher-dashboard"
+                submittedByRole="teacher"
+                title="Send teacher feedback"
+              />
             </ShellCard>
           </section>
         </>

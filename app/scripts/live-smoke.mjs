@@ -70,6 +70,20 @@ async function main() {
     notifyMilestones: true,
   });
 
+  const feedback = await postJson("/api/feedback", {
+    submittedByRole: "parent",
+    guardianId: parent.guardian.id,
+    studentId: child.student.id,
+    sourceChannel: "parent-dashboard",
+    reportedType: "bug",
+    message: "The parent dashboard should make the latest child summary easier to scan.",
+    context: {
+      screen: "parent-dashboard",
+      deviceType: "desktop",
+      browser: "chrome",
+    },
+  });
+
   console.log(
     JSON.stringify(
       {
@@ -79,6 +93,7 @@ async function main() {
         retryNeedsExplainer: retry.needsRetry,
         recoveryPoints: recovery.pointsEarned,
         linkedChildren: parent.linkedChildren.length,
+        feedbackCategory: feedback.triage.category,
       },
       null,
       2,

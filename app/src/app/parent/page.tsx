@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { FeedbackForm } from "@/components/feedback-form";
 import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
 
 type ParentAccessResponse = {
@@ -227,6 +228,17 @@ export default function ParentAccessPage() {
               Owner view
             </Link>
           </div>
+        </ShellCard>
+
+        <ShellCard eyebrow="Feedback" title="Parent product feedback">
+          <FeedbackForm
+            guardianId={result?.guardian.id}
+            helper="Report bugs, confusing flows, content issues, or ideas from the parent side."
+            sourceChannel="parent-dashboard"
+            studentId={result?.linkedChild?.id ?? result?.linkedChildren[0]?.id}
+            submittedByRole="parent"
+            title="Help improve the parent experience"
+          />
         </ShellCard>
       </form>
     </main>

@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
+import { readdir } from "node:fs/promises";
 
 const { Client } = pg;
 
@@ -17,11 +18,19 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const repoRoot = path.resolve(__dirname, "..", "..");
 
-const sqlFiles = [
-  path.join(repoRoot, "supabase", "migrations", "20260320_000001_initial_wonderquest_schema.sql"),
-  path.join(repoRoot, "supabase", "seed", "launch_seed.sql"),
-  path.join(repoRoot, "supabase", "seed", "content_seed.sql"),
-];
+async function getSqlFiles() {
+  const migrationDir = path.join(repoRoot, "supabase", "migrations");
+  const migrationFiles = (await readdir(migrationDir))
+    .filter((fileName) => fileName.endsWith(".sql"))
+    .sort()
+    .map((fileName) => path.join(migrationDir, fileName));
+
+  return [
+    ...migrationFiles,
+    path.join(repoRoot, "supabase", "seed", "launch_seed.sql"),
+    path.join(repoRoot, "supabase", "seed", "content_seed.sql"),
+  ];
+}
 
 const client = new Client({
   host: requireEnv("SUPABASE_DB_HOST"),
@@ -43,6 +52,7 @@ async function applySqlFile(filePath) {
 async function main() {
   await client.connect();
   try {
+    const sqlFiles = await getSqlFiles();
     for (const filePath of sqlFiles) {
       await applySqlFile(filePath);
     }

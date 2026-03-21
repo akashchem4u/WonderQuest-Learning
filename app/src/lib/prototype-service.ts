@@ -5,6 +5,7 @@ import {
   getQuestionByKey,
   sampleQuestions,
 } from "@/lib/launch-data";
+import { triageFeedback } from "@/lib/feedback-triage";
 import { launchBands } from "@/lib/launch-plan";
 import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
 
@@ -39,6 +40,16 @@ type AnswerInput = {
   attempt?: number;
 };
 
+type FeedbackInput = {
+  submittedByRole: string;
+  guardianId?: string;
+  studentId?: string;
+  sourceChannel: string;
+  reportedType?: string;
+  message: string;
+  context?: Record<string, unknown>;
+};
+
 type ProgressionSnapshot = {
   totalPoints: number;
   currentLevel: number;
@@ -52,6 +63,12 @@ function ensureText(value: unknown) {
 
 function ensureBoolean(value: unknown) {
   return Boolean(value);
+}
+
+function normalizeContext(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function ensureLaunchBandCode(launchBandCode: string) {
@@ -753,11 +770,22 @@ export async function getOwnerOverview() {
   const counts = await db.query(
     `
       select
-        (select count(*) from public.student_profiles) as student_count,
-        (select count(*) from public.guardian_profiles) as guardian_count,
-        (select count(*) from public.challenge_sessions) as session_count,
-        (select count(*) from public.feedback_items) as feedback_count,
-        (select coalesce(sum(total_points), 0) from public.progression_states) as total_points,
+        (select count(*) from public.student_profiles where tester_flag = false) as student_count,
+        (select count(*) from public.guardian_profiles where tester_flag = false) as guardian_count,
+        (select count(*) from public.challenge_sessions cs join public.student_profiles sp on sp.id = cs.student_id where sp.tester_flag = false) as session_count,
+        (
+          select count(*)
+          from public.feedback_items fi
+          left join public.guardian_profiles gp on gp.id = fi.guardian_id
+          left join public.student_profiles sp on sp.id = fi.student_id
+          where coalesce(gp.tester_flag, false) = false and coalesce(sp.tester_flag, false) = false
+        ) as feedback_count,
+        (
+          select coalesce(sum(ps.total_points), 0)
+          from public.progression_states ps
+          join public.student_profiles sp on sp.id = ps.student_id
+          where sp.tester_flag = false
+        ) as total_points,
         (select count(*) from public.example_items) as example_count,
         (select count(*) from public.explainer_assets) as explainer_count
     `,
@@ -772,6 +800,7 @@ export async function getOwnerOverview() {
       from public.launch_bands lb
       left join public.student_profiles sp
         on sp.launch_band_code = lb.code
+       and sp.tester_flag = false
       group by lb.code, lb.display_name, lb.sort_order
       order by lb.sort_order asc
     `,
@@ -789,6 +818,7 @@ export async function getOwnerOverview() {
       from public.progression_states ps
       join public.student_profiles sp
         on sp.id = ps.student_id
+      where sp.tester_flag = false
       order by ps.total_points desc, sp.display_name asc
       limit 8
     `,
@@ -806,7 +836,53 @@ export async function getOwnerOverview() {
       from public.challenge_sessions cs
       join public.student_profiles sp
         on sp.id = cs.student_id
+      where sp.tester_flag = false
       order by cs.started_at desc
+      limit 8
+    `,
+  );
+
+  const feedbackSummary = await db.query(
+    `
+      select
+        ft.ai_category,
+        count(*) as feedback_count
+      from public.feedback_items fi
+      join public.feedback_triage ft
+        on ft.feedback_id = fi.id
+      left join public.guardian_profiles gp
+        on gp.id = fi.guardian_id
+      left join public.student_profiles sp
+        on sp.id = fi.student_id
+      where coalesce(gp.tester_flag, false) = false
+        and coalesce(sp.tester_flag, false) = false
+      group by ft.ai_category
+      order by feedback_count desc, ft.ai_category asc
+    `,
+  );
+
+  const recentFeedback = await db.query(
+    `
+      select
+        fi.id,
+        fi.submitted_by_role,
+        fi.source_channel,
+        fi.message,
+        fi.created_at,
+        ft.ai_category,
+        ft.urgency,
+        ft.routing_target,
+        ft.summary
+      from public.feedback_items fi
+      join public.feedback_triage ft
+        on ft.feedback_id = fi.id
+      left join public.guardian_profiles gp
+        on gp.id = fi.guardian_id
+      left join public.student_profiles sp
+        on sp.id = fi.student_id
+      where coalesce(gp.tester_flag, false) = false
+        and coalesce(sp.tester_flag, false) = false
+      order by fi.created_at desc
       limit 8
     `,
   );
@@ -845,6 +921,21 @@ export async function getOwnerOverview() {
           ? null
           : Number(row.effectiveness_score),
     })),
+    feedbackByCategory: feedbackSummary.rows.map((row) => ({
+      category: row.ai_category as string,
+      count: Number(row.feedback_count ?? 0),
+    })),
+    recentFeedback: recentFeedback.rows.map((row) => ({
+      id: row.id as string,
+      submittedByRole: row.submitted_by_role as string,
+      sourceChannel: row.source_channel as string,
+      message: row.message as string,
+      createdAt: row.created_at as string,
+      category: row.ai_category as string,
+      urgency: row.urgency as string,
+      routingTarget: row.routing_target as string,
+      summary: row.summary as string,
+    })),
   };
 }
 
@@ -852,9 +943,9 @@ export async function getTeacherOverview() {
   const counts = await db.query(
     `
       select
-        (select count(*) from public.student_profiles) as student_count,
-        (select count(*) from public.challenge_sessions) as session_count,
-        (select count(*) from public.challenge_sessions where ended_at is not null) as completed_session_count
+        (select count(*) from public.student_profiles where tester_flag = false) as student_count,
+        (select count(*) from public.challenge_sessions cs join public.student_profiles sp on sp.id = cs.student_id where sp.tester_flag = false) as session_count,
+        (select count(*) from public.challenge_sessions cs join public.student_profiles sp on sp.id = cs.student_id where sp.tester_flag = false and cs.ended_at is not null) as completed_session_count
     `,
   );
 
@@ -867,6 +958,7 @@ export async function getTeacherOverview() {
       from public.launch_bands lb
       left join public.student_profiles sp
         on sp.launch_band_code = lb.code
+       and sp.tester_flag = false
       group by lb.code, lb.display_name, lb.sort_order
       order by lb.sort_order asc
     `,
@@ -887,6 +979,11 @@ export async function getTeacherOverview() {
       from public.session_results sr
       join public.skills sk
         on sk.id = sr.skill_id
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.student_profiles sp
+        on sp.id = cs.student_id
+      where sp.tester_flag = false
       group by sk.code, sk.display_name, sk.launch_band_code
       having count(sr.id) > 0
       order by mastery_rate asc, attempts desc
@@ -904,6 +1001,7 @@ export async function getTeacherOverview() {
       from public.challenge_sessions cs
       join public.student_profiles sp
         on sp.id = cs.student_id
+      where sp.tester_flag = false
       order by cs.started_at desc
       limit 10
     `,
@@ -943,5 +1041,86 @@ export async function getTeacherOverview() {
           ? null
           : Number(row.effectiveness_score),
     })),
+  };
+}
+
+export async function createFeedback(input: FeedbackInput) {
+  const submittedByRole = ensureText(input.submittedByRole) || "parent";
+  const sourceChannel = ensureText(input.sourceChannel) || "unknown";
+  const message = ensureText(input.message);
+
+  if (!message) {
+    throw new Error("Feedback message is required.");
+  }
+
+  const context = {
+    ...normalizeContext(input.context),
+    reportedType: ensureText(input.reportedType) || "general",
+  };
+
+  const triage = triageFeedback({
+    message,
+    reportedType: ensureText(input.reportedType),
+    sourceChannel,
+  });
+
+  const inserted = await db.query(
+    `
+      insert into public.feedback_items (
+        submitted_by_role,
+        guardian_id,
+        student_id,
+        source_channel,
+        message,
+        context
+      )
+      values ($1, $2, $3, $4, $5, $6::jsonb)
+      returning id
+    `,
+    [
+      submittedByRole,
+      input.guardianId || null,
+      input.studentId || null,
+      sourceChannel,
+      message,
+      JSON.stringify(context),
+    ],
+  );
+
+  await db.query(
+    `
+      insert into public.feedback_triage (
+        feedback_id,
+        ai_category,
+        confidence,
+        urgency,
+        impacted_area,
+        duplicate_cluster_id,
+        summary,
+        routing_target,
+        review_status
+      )
+      values ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
+    `,
+    [
+      inserted.rows[0].id,
+      triage.category,
+      triage.confidence,
+      triage.urgency,
+      triage.impactedArea,
+      triage.duplicateClusterId,
+      triage.summary,
+      triage.routingTarget,
+    ],
+  );
+
+  return {
+    feedbackId: inserted.rows[0].id as string,
+    triage: {
+      category: triage.category,
+      confidence: triage.confidence,
+      urgency: triage.urgency,
+      routingTarget: triage.routingTarget,
+    },
   };
 }
