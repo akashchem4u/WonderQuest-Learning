@@ -3,8 +3,11 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
 import { readdir } from "node:fs/promises";
+import { loadEnvLocal } from "./load-env-local.mjs";
 
 const { Client } = pg;
+
+loadEnvLocal();
 
 function requireEnv(name) {
   const value = process.env[name];

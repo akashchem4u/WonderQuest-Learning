@@ -2,15 +2,57 @@ import process from "node:process";
 
 const baseUrl = process.env.WONDERQUEST_SMOKE_BASE_URL ?? "http://127.0.0.1:3000";
 const runKey = `qa-${Date.now()}`;
+const cookieJar = new Map();
+
+function mergeCookies(response) {
+  const rawCookies =
+    typeof response.headers.getSetCookie === "function"
+      ? response.headers.getSetCookie()
+      : response.headers.get("set-cookie")
+        ? [response.headers.get("set-cookie")]
+        : [];
+
+  for (const rawCookie of rawCookies) {
+    const pair = rawCookie.split(";", 1)[0];
+
+    if (!pair) {
+      continue;
+    }
+
+    const separatorIndex = pair.indexOf("=");
+
+    if (separatorIndex === -1) {
+      continue;
+    }
+
+    const key = pair.slice(0, separatorIndex);
+    const value = pair.slice(separatorIndex + 1);
+    cookieJar.set(key, value);
+  }
+}
+
+function buildCookieHeader() {
+  return [...cookieJar.entries()]
+    .map(([key, value]) => `${key}=${value}`)
+    .join("; ");
+}
 
 async function postJson(path, body) {
+  const headers = {
+    "Content-Type": "application/json",
+  };
+  const cookieHeader = buildCookieHeader();
+
+  if (cookieHeader) {
+    headers.Cookie = cookieHeader;
+  }
+
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
+    headers,
     body: JSON.stringify(body),
   });
+  mergeCookies(response);
 
   const payload = await response.json();
 
@@ -34,7 +76,6 @@ async function main() {
   });
 
   const session = await postJson("/api/play/session", {
-    studentId: child.student.id,
     sessionMode: "guided-quest",
   });
 
@@ -46,7 +87,6 @@ async function main() {
 
   const retry = await postJson("/api/play/answer", {
     sessionId: session.sessionId,
-    studentId: child.student.id,
     questionKey: firstQuestion.questionKey,
     answer: wrongAnswer,
     attempt: 1,
@@ -55,7 +95,6 @@ async function main() {
 
   const recovery = await postJson("/api/play/answer", {
     sessionId: session.sessionId,
-    studentId: child.student.id,
     questionKey: firstQuestion.questionKey,
     answer: "10",
     attempt: 999,

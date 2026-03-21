@@ -5,6 +5,11 @@ import {
   getQuestionByKey,
   sampleQuestions,
 } from "@/lib/launch-data";
+import {
+  assertChildAccessAllowed,
+  clearChildAccessFailures,
+  recordChildAccessAttempt,
+} from "@/lib/child-access";
 import { triageFeedback } from "@/lib/feedback-triage";
 import { launchBands } from "@/lib/launch-plan";
 import { hashPin, normalizeUsername, validatePin, verifyPin } from "@/lib/pin";
@@ -15,6 +20,11 @@ type ChildAccessInput = {
   displayName?: string;
   avatarKey?: string;
   launchBandCode?: string;
+};
+
+type ChildAccessContext = {
+  ipAddress?: string | null;
+  userAgent?: string | null;
 };
 
 type ParentAccessInput = {
@@ -306,7 +316,10 @@ function buildQuestionCard(questionKey: string) {
   };
 }
 
-export async function accessChild(input: ChildAccessInput) {
+export async function accessChild(
+  input: ChildAccessInput,
+  context: ChildAccessContext = {},
+) {
   const username = normalizeUsername(ensureText(input.username));
   const pin = ensureText(input.pin);
   const displayName = ensureText(input.displayName);
@@ -322,6 +335,8 @@ export async function accessChild(input: ChildAccessInput) {
   if (!validatePin(pin)) {
     throw new Error("PIN must be exactly 4 digits.");
   }
+
+  await assertChildAccessAllowed(username, context.ipAddress ?? null);
 
   const existing = await db.query(
     `
@@ -350,10 +365,25 @@ export async function accessChild(input: ChildAccessInput) {
     const row = existing.rows[0];
 
     if (!verifyPin(pin, username, row.pin_hash as string)) {
+      await recordChildAccessAttempt({
+        identifier: username,
+        ipAddress: context.ipAddress ?? null,
+        userAgent: context.userAgent ?? null,
+        succeeded: false,
+        failureReason: "wrong-pin",
+      });
       throw new Error("Wrong username or PIN.");
     }
 
     await ensureProgressionState(row.id as string);
+    await clearChildAccessFailures(username, context.ipAddress ?? null);
+    await recordChildAccessAttempt({
+      identifier: username,
+      ipAddress: context.ipAddress ?? null,
+      userAgent: context.userAgent ?? null,
+      succeeded: true,
+      failureReason: null,
+    });
 
     return {
       created: false,
@@ -407,6 +437,14 @@ export async function accessChild(input: ChildAccessInput) {
   );
 
   await ensureProgressionState(inserted.rows[0].id as string);
+  await clearChildAccessFailures(username, context.ipAddress ?? null);
+  await recordChildAccessAttempt({
+    identifier: username,
+    ipAddress: context.ipAddress ?? null,
+    userAgent: context.userAgent ?? null,
+    succeeded: true,
+    failureReason: null,
+  });
 
   return {
     created: true,

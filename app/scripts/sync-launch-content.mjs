@@ -2,8 +2,11 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import pg from "pg";
+import { loadEnvLocal } from "./load-env-local.mjs";
 
 const { Pool } = pg;
+
+loadEnvLocal();
 
 function requireEnv(name) {
   const value = process.env[name];

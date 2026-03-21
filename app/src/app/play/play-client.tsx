@@ -59,9 +59,125 @@ type AnswerPayload = {
   };
 };
 
+type QuestionVisualScene = {
+  title: string;
+  helper: string;
+  tokens?: string[];
+};
+
+function isEarlyLearnerBand(launchBandCode: string) {
+  return launchBandCode === "PREK" || launchBandCode === "K1";
+}
+
+function buildQuestionVisualScene(question: SessionQuestion) {
+  switch (question.questionKey) {
+    case "prek_count_ducks_3":
+      return {
+        title: "Count the ducks",
+        helper: "Point and count each duck one time.",
+        tokens: ["🦆", "🦆", "🦆"],
+      } satisfies QuestionVisualScene;
+    case "prek_letter_b_ball":
+      return {
+        title: "Find the big letter B",
+        helper: "Listen, then tap the matching letter.",
+      } satisfies QuestionVisualScene;
+    case "prek_shape_circle":
+      return {
+        title: "Find the circle",
+        helper: "Look for the round shape with no corners.",
+      } satisfies QuestionVisualScene;
+    default:
+      return null;
+  }
+}
+
+function buildQuestionTags(question: SessionQuestion, launchBandCode: string) {
+  if (!isEarlyLearnerBand(launchBandCode)) {
+    return [
+      question.subject,
+      question.skill,
+      `difficulty ${question.difficulty}`,
+      question.theme,
+    ];
+  }
+
+  const tags = [];
+
+  if (question.subject === "math" && question.skill.includes("count")) {
+    tags.push("count together");
+  } else if (question.subject === "early-literacy") {
+    tags.push("letter time");
+  } else {
+    tags.push(question.subject.replace("-", " "));
+  }
+
+  if (question.theme === "animal-adventure") {
+    tags.push("animal adventure");
+  }
+
+  tags.push(question.difficulty <= 1 ? "gentle start" : "next challenge");
+
+  return tags;
+}
+
+function buildReadAloudText(question: SessionQuestion, scene: QuestionVisualScene | null) {
+  const sceneLead = scene ? `${scene.title}. ${scene.helper}.` : "";
+  const answers = question.answers.join(", ");
+  return `${sceneLead} ${question.prompt} Choices are ${answers}.`;
+}
+
+function renderAnswerContent(question: SessionQuestion, answer: string) {
+  if (question.questionKey === "prek_shape_circle") {
+    return (
+      <>
+        <div className="answer-visual-stack">
+          <span className={`shape-preview shape-${answer}`} aria-hidden="true" />
+          <strong>{answer}</strong>
+        </div>
+        <small>Tap the shape you hear.</small>
+      </>
+    );
+  }
+
+  if (question.questionKey === "prek_letter_b_ball") {
+    return (
+      <>
+        <div className="answer-visual-stack">
+          <span className="letter-preview" aria-hidden="true">
+            {answer}
+          </span>
+          <strong>{answer}</strong>
+        </div>
+        <small>Tap the letter you hear.</small>
+      </>
+    );
+  }
+
+  if (/^\d+$/.test(answer)) {
+    return (
+      <>
+        <div className="answer-visual-stack">
+          <span className="number-preview" aria-hidden="true">
+            {answer}
+          </span>
+          <strong>{answer}</strong>
+        </div>
+        <small>Tap to lock in this answer.</small>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <strong>{answer}</strong>
+      <small>Tap to lock in this answer.</small>
+    </>
+  );
+}
+
 export default function PlayClient() {
   const searchParams = useSearchParams();
-  const studentId = searchParams.get("studentId");
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
 
   const [session, setSession] = useState<SessionPayload | null>(null);
@@ -75,17 +191,20 @@ export default function PlayClient() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+
+  useEffect(() => {
+    setVoiceEnabled(
+      typeof window !== "undefined" &&
+        "speechSynthesis" in window &&
+        typeof window.SpeechSynthesisUtterance !== "undefined",
+    );
+  }, []);
 
   useEffect(() => {
     let active = true;
 
     async function bootstrapSession() {
-      if (!studentId) {
-        setError("A child profile is required before play can start.");
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       setError("");
 
@@ -96,7 +215,6 @@ export default function PlayClient() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            studentId,
             sessionMode,
           }),
         });
@@ -138,12 +256,61 @@ export default function PlayClient() {
     return () => {
       active = false;
     };
-  }, [sessionMode, studentId]);
+  }, [sessionMode]);
 
   const currentQuestion = useMemo(
     () => session?.questions[currentIndex] ?? null,
     [currentIndex, session],
   );
+
+  const currentScene = useMemo(
+    () => (currentQuestion ? buildQuestionVisualScene(currentQuestion) : null),
+    [currentQuestion],
+  );
+
+  function speakText(text: string) {
+    if (!voiceEnabled || typeof window === "undefined") {
+      return;
+    }
+
+    window.speechSynthesis.cancel();
+    const utterance = new window.SpeechSynthesisUtterance(text);
+    utterance.rate = 0.92;
+    utterance.pitch = 1.04;
+    utterance.lang = "en-US";
+    window.speechSynthesis.speak(utterance);
+  }
+
+  useEffect(() => {
+    if (!session || !currentQuestion || !voiceEnabled) {
+      return;
+    }
+
+    if (!isEarlyLearnerBand(session.student.launchBandCode)) {
+      return;
+    }
+
+    speakText(buildReadAloudText(currentQuestion, currentScene));
+
+    return () => {
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, [
+    currentQuestion,
+    currentScene,
+    session,
+    voiceEnabled,
+  ]);
+
+  useEffect(() => {
+    if (!answerState?.needsRetry || !answerState.explainer || !voiceEnabled) {
+      return;
+    }
+
+    speakText(answerState.explainer.script);
+  }, [answerState, voiceEnabled]);
 
   async function submitAnswer(answer: string) {
     if (!session || !currentQuestion) {
@@ -161,7 +328,6 @@ export default function PlayClient() {
         },
         body: JSON.stringify({
           sessionId: session.sessionId,
-          studentId: session.student.id,
           questionKey: currentQuestion.questionKey,
           answer,
           attempt,
@@ -258,6 +424,11 @@ export default function PlayClient() {
   const progressPercent = Math.round(
     (questionNumber / Math.max(session.questions.length, 1)) * 100,
   );
+  const questionTags = buildQuestionTags(
+    currentQuestion,
+    session.student.launchBandCode,
+  );
+  const earlyLearnerMode = isEarlyLearnerBand(session.student.launchBandCode);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -317,19 +488,73 @@ export default function PlayClient() {
             ) : (
               <>
                 <div className="summary-chip-row">
-                  <span className="summary-chip">{currentQuestion.subject}</span>
-                  <span className="summary-chip">{currentQuestion.skill}</span>
-                  <span className="summary-chip">
-                    difficulty {currentQuestion.difficulty}
-                  </span>
-                  <span className="summary-chip">{currentQuestion.theme}</span>
+                  {questionTags.map((tag) => (
+                    <span className="summary-chip" key={tag}>
+                      {tag}
+                    </span>
+                  ))}
                 </div>
+                {earlyLearnerMode ? (
+                  <div className="question-support-row">
+                    <div className="support-copy">
+                      <strong>Listen first</strong>
+                      <p>
+                        Younger learners can hear the prompt and then answer by
+                        looking at the visuals.
+                      </p>
+                    </div>
+                    {voiceEnabled ? (
+                      <button
+                        className="listen-button"
+                        onClick={() =>
+                          speakText(buildReadAloudText(currentQuestion, currentScene))
+                        }
+                        type="button"
+                      >
+                        Hear the question
+                      </button>
+                    ) : (
+                      <span className="listen-note">
+                        Voice read-aloud is not available in this browser.
+                      </span>
+                    )}
+                  </div>
+                ) : null}
                 <div className="progress-rail" aria-hidden="true">
                   <span style={{ width: `${progressPercent}%` }} />
                 </div>
                 <p className="soft-copy progress-copy">
                   Quest progress: {progressPercent}% complete
                 </p>
+                {currentScene ? (
+                  <div className="visual-scene" aria-label={currentScene.title}>
+                    <div className="visual-scene-copy">
+                      <strong>{currentScene.title}</strong>
+                      <p>{currentScene.helper}</p>
+                    </div>
+                    {currentScene.tokens?.length ? (
+                      <div className="visual-token-grid">
+                        {currentScene.tokens.map((token, index) => (
+                          <span
+                            className="visual-token"
+                            key={`${currentQuestion.questionKey}-${index}`}
+                            aria-hidden="true"
+                          >
+                            {token}
+                          </span>
+                        ))}
+                      </div>
+                    ) : questionTags.includes("letter time") ? (
+                      <div className="letter-scene" aria-hidden="true">
+                        <span>B</span>
+                      </div>
+                    ) : currentQuestion.questionKey === "prek_shape_circle" ? (
+                      <div className="shape-scene" aria-hidden="true">
+                        <span className="shape-preview shape-circle" />
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
                 <div className="answer-grid">
                   {currentQuestion.answers.map((answer, index) => (
                     <button
@@ -342,8 +567,7 @@ export default function PlayClient() {
                       <span className="answer-index">
                         {String.fromCharCode(65 + index)}
                       </span>
-                      <strong>{answer}</strong>
-                      <small>Tap to lock in this answer.</small>
+                      {renderAnswerContent(currentQuestion, answer)}
                     </button>
                   ))}
                 </div>
@@ -415,6 +639,17 @@ export default function PlayClient() {
                     Retry the same question after the explanation. Second-attempt
                     wins still earn recovery points.
                   </p>
+                  {voiceEnabled && earlyLearnerMode ? (
+                    <div className="form-actions">
+                      <button
+                        className="secondary-link button-link"
+                        onClick={() => speakText(answerState.explainer?.script ?? "")}
+                        type="button"
+                      >
+                        Hear the helper again
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               ) : (
                 <ul className="route-list">

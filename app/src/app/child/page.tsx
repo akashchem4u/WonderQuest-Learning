@@ -76,9 +76,7 @@ export default function ChildAccessPage() {
 
       setResult(payload);
 
-      router.push(
-        `/play?studentId=${payload.student.id}&sessionMode=${selectedMode}`,
-      );
+      router.push(`/play?sessionMode=${selectedMode}`);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
