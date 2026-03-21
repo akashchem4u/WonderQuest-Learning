@@ -15,6 +15,7 @@ Current scripts:
 - `npm run build`
 - `npm run db:apply`
 - `npm run db:sync-launch`
+- `npm run smoke:local`
 
 Deployment target:
 
