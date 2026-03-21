@@ -6,6 +6,40 @@ import { AppFrame } from "@/components/app-frame";
 import { FeedbackForm } from "@/components/feedback-form";
 import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
 
+type ChildDashboard = {
+  studentId: string;
+  sessionCount: number;
+  completedSessions: number;
+  totalTimeSpentMs: number;
+  effectiveTimeSpentMs: number;
+  averageEffectiveness: number | null;
+  completionRate: number | null;
+  effectiveRatio: number | null;
+  lastSessionAt: string | null;
+  recommendedFocus: string;
+  readinessLabel: string;
+  strengths: {
+    skillCode: string;
+    displayName: string;
+    masteryRate: number;
+    attempts: number;
+  }[];
+  supportAreas: {
+    skillCode: string;
+    displayName: string;
+    masteryRate: number;
+    attempts: number;
+  }[];
+  recentSessions: {
+    id: string;
+    sessionMode: string;
+    startedAt: string;
+    endedAt: string | null;
+    effectivenessScore: number | null;
+    totalQuestions: number;
+  }[];
+};
+
 type ParentAccessResponse = {
   guardian: {
     id: string;
@@ -34,39 +68,8 @@ type ParentAccessResponse = {
     badgeCount: number;
     trophyCount: number;
   }[];
-  childDashboard: {
-    studentId: string;
-    sessionCount: number;
-    completedSessions: number;
-    totalTimeSpentMs: number;
-    effectiveTimeSpentMs: number;
-    averageEffectiveness: number | null;
-    completionRate: number | null;
-    effectiveRatio: number | null;
-    lastSessionAt: string | null;
-    recommendedFocus: string;
-    readinessLabel: string;
-    strengths: {
-      skillCode: string;
-      displayName: string;
-      masteryRate: number;
-      attempts: number;
-    }[];
-    supportAreas: {
-      skillCode: string;
-      displayName: string;
-      masteryRate: number;
-      attempts: number;
-    }[];
-    recentSessions: {
-      id: string;
-      sessionMode: string;
-      startedAt: string;
-      endedAt: string | null;
-      effectivenessScore: number | null;
-      totalQuestions: number;
-    }[];
-  } | null;
+  childDashboards: ChildDashboard[];
+  childDashboard: ChildDashboard | null;
 };
 
 function formatMinutes(totalTimeSpentMs: number) {
@@ -105,8 +108,21 @@ export default function ParentAccessPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
-  const primaryChild = result?.linkedChild ?? result?.linkedChildren[0] ?? null;
-  const childDashboard = result?.childDashboard ?? null;
+  const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const activeChildId =
+    selectedChildId ??
+    result?.linkedChild?.id ??
+    result?.linkedChildren[0]?.id ??
+    null;
+  const activeChild =
+    result?.linkedChildren.find((child) => child.id === activeChildId) ??
+    result?.linkedChild ??
+    result?.linkedChildren[0] ??
+    null;
+  const activeChildDashboard =
+    result?.childDashboards.find((dashboard) => dashboard.studentId === activeChildId) ??
+    result?.childDashboard ??
+    null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -138,6 +154,9 @@ export default function ParentAccessPage() {
         throw new Error(payload.error ?? "Parent access failed.");
       }
 
+      setSelectedChildId(
+        payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
+      );
       setResult(payload);
     } catch (caughtError) {
       setError(
@@ -299,23 +318,24 @@ export default function ParentAccessPage() {
                     <ChoiceChip
                       key={child.id}
                       label={`${child.displayName} · L${child.currentLevel} · ${child.totalPoints} pts`}
-                      selected={result.linkedChild?.id === child.id}
+                      onClick={() => setSelectedChildId(child.id)}
+                      selected={activeChildId === child.id}
                       accent="#3e6cff"
                     />
                   ))}
                 </div>
-                {primaryChild && childDashboard ? (
+                {activeChild && activeChildDashboard ? (
                   <div className="parent-insight-grid">
                     <article className="parent-insight-card">
                       <span className="parent-insight-label">Readiness</span>
-                      <strong>{childDashboard.readinessLabel}</strong>
+                      <strong>{activeChildDashboard.readinessLabel}</strong>
                       <p>
-                        Last session: {formatLastSeen(childDashboard.lastSessionAt)}
+                        Last session: {formatLastSeen(activeChildDashboard.lastSessionAt)}
                       </p>
                     </article>
                     <article className="parent-insight-card">
                       <span className="parent-insight-label">Focus next</span>
-                      <strong>{childDashboard.recommendedFocus}</strong>
+                      <strong>{activeChildDashboard.recommendedFocus}</strong>
                       <p>
                         Best next support area based on the latest answered
                         questions.
@@ -344,7 +364,7 @@ export default function ParentAccessPage() {
               guardianId={result?.guardian.id}
               helper="Report bugs, confusing flows, content issues, or ideas from the parent side."
               sourceChannel="parent-dashboard"
-              studentId={result?.linkedChild?.id ?? result?.linkedChildren[0]?.id}
+              studentId={activeChildId ?? undefined}
               submittedByRole="parent"
               title="Help improve the parent experience"
             />
@@ -355,39 +375,39 @@ export default function ParentAccessPage() {
             eyebrow="Dashboard"
             title="Child learning snapshot"
           >
-            {childDashboard && primaryChild ? (
+            {activeChildDashboard && activeChild ? (
               <>
                 <div className="summary-chip-row">
-                  <span className="summary-chip">{primaryChild.displayName}</span>
+                  <span className="summary-chip">{activeChild.displayName}</span>
                   <span className="summary-chip">
-                    Level {primaryChild.currentLevel}
+                    Level {activeChild.currentLevel}
                   </span>
                   <span className="summary-chip">
-                    {primaryChild.totalPoints} points
+                    {activeChild.totalPoints} points
                   </span>
                   <span className="summary-chip">
-                    {primaryChild.badgeCount} badges · {primaryChild.trophyCount} trophies
+                    {activeChild.badgeCount} badges · {activeChild.trophyCount} trophies
                   </span>
                 </div>
                 <div className="parent-stat-grid">
                   <StatTile
                     label="Sessions"
-                    value={`${childDashboard.sessionCount}`}
-                    detail={`${childDashboard.completedSessions} completed`}
+                    value={`${activeChildDashboard.sessionCount}`}
+                    detail={`${activeChildDashboard.completedSessions} completed`}
                   />
                   <StatTile
                     label="Time spent"
-                    value={formatMinutes(childDashboard.totalTimeSpentMs)}
-                    detail={`${formatMinutes(childDashboard.effectiveTimeSpentMs)} effective`}
+                    value={formatMinutes(activeChildDashboard.totalTimeSpentMs)}
+                    detail={`${formatMinutes(activeChildDashboard.effectiveTimeSpentMs)} effective`}
                   />
                   <StatTile
                     label="Effectiveness"
-                    value={formatPercent(childDashboard.averageEffectiveness)}
-                    detail={`Completion ${formatPercent(childDashboard.completionRate)}`}
+                    value={formatPercent(activeChildDashboard.averageEffectiveness)}
+                    detail={`Completion ${formatPercent(activeChildDashboard.completionRate)}`}
                   />
                   <StatTile
                     label="Focus quality"
-                    value={formatPercent(childDashboard.effectiveRatio)}
+                    value={formatPercent(activeChildDashboard.effectiveRatio)}
                     detail="Share of time that counted as effective learning"
                   />
                 </div>
@@ -395,7 +415,7 @@ export default function ParentAccessPage() {
                   <div className="parent-skill-card">
                     <strong>Strengths</strong>
                     <div className="skill-list">
-                      {childDashboard.strengths.map((item) => (
+                      {activeChildDashboard.strengths.map((item) => (
                         <article className="skill-meter" key={item.skillCode}>
                           <div className="skill-meter-row">
                             <strong>{item.displayName}</strong>
@@ -412,7 +432,7 @@ export default function ParentAccessPage() {
                   <div className="parent-skill-card">
                     <strong>Support areas</strong>
                     <div className="skill-list">
-                      {childDashboard.supportAreas.map((item) => (
+                      {activeChildDashboard.supportAreas.map((item) => (
                         <article className="skill-meter" key={item.skillCode}>
                           <div className="skill-meter-row">
                             <strong>{item.displayName}</strong>
@@ -437,9 +457,9 @@ export default function ParentAccessPage() {
           </ShellCard>
 
           <ShellCard className="shell-card-soft" eyebrow="Recent activity" title="Latest learning activity">
-            {childDashboard?.recentSessions.length ? (
+            {activeChildDashboard?.recentSessions.length ? (
               <div className="activity-list">
-                {childDashboard.recentSessions.map((session) => (
+                {activeChildDashboard.recentSessions.map((session) => (
                   <article className="activity-card" key={session.id}>
                     <div className="activity-card-row">
                       <strong>{formatSessionMode(session.sessionMode)}</strong>

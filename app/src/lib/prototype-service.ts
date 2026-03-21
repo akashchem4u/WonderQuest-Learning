@@ -663,8 +663,14 @@ export async function accessParent(input: ParentAccessInput) {
   const linkedChildren = await getLinkedChildren(guardianRow.id as string);
   const dashboardStudentId =
     (linkedChild?.id as string | undefined) ?? linkedChildren[0]?.id;
+  const childDashboards = (
+    await Promise.all(
+      linkedChildren.map((child) => getChildDashboard(child.id)),
+    )
+  ).filter((dashboard): dashboard is NonNullable<typeof dashboard> => Boolean(dashboard));
   const childDashboard = dashboardStudentId
-    ? await getChildDashboard(dashboardStudentId)
+    ? childDashboards.find((dashboard) => dashboard.studentId === dashboardStudentId) ??
+      null
     : null;
 
   return {
@@ -687,6 +693,7 @@ export async function accessParent(input: ParentAccessInput) {
         }
       : null,
     linkedChildren,
+    childDashboards,
     childDashboard,
   };
 }

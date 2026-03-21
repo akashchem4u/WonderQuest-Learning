@@ -94,6 +94,36 @@ export default async function TeacherPage() {
         {overview ? (
           <>
             <section className="tracks owner-grid">
+              <ShellCard className="shell-card-spotlight" eyebrow="Action lane" title="Where to focus next">
+                <div className="parent-insight-grid">
+                  <article className="parent-insight-card">
+                    <span className="parent-insight-label">Primary support lane</span>
+                    <strong>
+                      {overview.supportAreas[0]?.displayName ?? "No support pattern yet"}
+                    </strong>
+                    <p>
+                      {overview.supportAreas[0]
+                        ? `${overview.supportAreas[0].launchBandCode} band · ${overview.supportAreas[0].masteryRate}% mastery · ${overview.supportAreas[0].attempts} attempts`
+                        : "More learner sessions are needed before a clear support lane appears."}
+                    </p>
+                  </article>
+                  <article className="parent-insight-card">
+                    <span className="parent-insight-label">Suggested teacher move</span>
+                    <strong>
+                      {overview.supportAreas[0]
+                        ? `Run a short guided practice block for ${overview.supportAreas[0].displayName}`
+                        : "Keep reviewing class sessions"}
+                    </strong>
+                    <p>
+                      Use the lowest-mastery skill as the next classroom support target,
+                      then review the next session set for movement.
+                    </p>
+                  </article>
+                </div>
+              </ShellCard>
+            </section>
+
+            <section className="tracks owner-grid">
               <ShellCard className="shell-card-soft" eyebrow="Band mix" title="Learners by launch band">
                 <div className="summary-chip-row">
                   {overview.byBand.map((band) => (
@@ -105,40 +135,65 @@ export default async function TeacherPage() {
               </ShellCard>
 
               <ShellCard className="shell-card-emphasis" eyebrow="Support areas" title="Skills needing attention">
-                <ul className="route-list">
+                <div className="skill-list">
                   {overview.supportAreas.map((skill) => (
-                    <li key={`${skill.skillCode}-${skill.launchBandCode}`}>
-                      {skill.displayName} · {skill.launchBandCode} · {skill.masteryRate}%
-                      mastery
-                    </li>
+                    <article className="skill-meter" key={`${skill.skillCode}-${skill.launchBandCode}`}>
+                      <div className="skill-meter-row">
+                        <strong>{skill.displayName}</strong>
+                        <span>{skill.masteryRate}%</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">{skill.launchBandCode}</span>
+                        <span className="summary-chip">{skill.attempts} attempts</span>
+                      </div>
+                      <div className="progress-rail" aria-hidden="true">
+                        <span style={{ width: `${skill.masteryRate}%` }} />
+                      </div>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
 
               <ShellCard className="shell-card-soft" eyebrow="Strength areas" title="Skills showing confidence">
-                <ul className="route-list">
+                <div className="skill-list">
                   {overview.strengthAreas.map((skill) => (
-                    <li key={`${skill.skillCode}-${skill.launchBandCode}`}>
-                      {skill.displayName} · {skill.launchBandCode} · {skill.masteryRate}%
-                      mastery
-                    </li>
+                    <article className="skill-meter" key={`${skill.skillCode}-${skill.launchBandCode}`}>
+                      <div className="skill-meter-row">
+                        <strong>{skill.displayName}</strong>
+                        <span>{skill.masteryRate}%</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">{skill.launchBandCode}</span>
+                        <span className="summary-chip">{skill.attempts} attempts</span>
+                      </div>
+                      <div className="progress-rail" aria-hidden="true">
+                        <span style={{ width: `${skill.masteryRate}%` }} />
+                      </div>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
             </section>
 
             <section className="tracks owner-grid">
               <ShellCard className="shell-card-soft" eyebrow="Recent activity" title="Latest practice movement">
-                <ul className="route-list">
+                <div className="activity-list">
                   {overview.latestSessions.map((session) => (
-                    <li key={session.id}>
-                      {session.launchBandCode} · {session.sessionMode} ·{" "}
-                      {session.effectivenessScore === null
-                        ? "in progress"
-                        : `${session.effectivenessScore}% effective`}
-                    </li>
+                    <article className="activity-card" key={session.id}>
+                      <div className="activity-card-row">
+                        <strong>{session.launchBandCode}</strong>
+                        <span>{session.sessionMode}</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">
+                          {session.effectivenessScore === null
+                            ? "in progress"
+                            : `${session.effectivenessScore}% effective`}
+                        </span>
+                      </div>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
 
               <ShellCard className="shell-card-spotlight" eyebrow="Feedback" title="Teacher and school feedback">

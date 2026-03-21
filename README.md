@@ -23,6 +23,7 @@ This project started as a simple soccer learning prototype and is now being refr
 - [docs/PRODUCT_BACKLOG.md](./docs/PRODUCT_BACKLOG.md): prioritized backlog for MVP, adaptive features, teacher / school capabilities, platform work, and recommended enhancements
 - [docs/QUESTION_FACTORY_STRATEGY.md](./docs/QUESTION_FACTORY_STRATEGY.md): scalable 1M+ question, explainer, image, and grading architecture
 - [docs/RENDER_SETUP.md](./docs/RENDER_SETUP.md): deployment checklist and environment wiring for Render
+- [docs/TEST_READY_ALPHA_PLAN.md](./docs/TEST_READY_ALPHA_PLAN.md): explicit go / no-go gates, scenario coverage, and the milestone definition for serious owner-led testing
 
 ## Legacy Prototype
 

@@ -93,6 +93,36 @@ export default async function OwnerPage() {
         {overview ? (
           <>
             <section className="tracks owner-grid">
+              <ShellCard className="shell-card-spotlight" eyebrow="Owner queue" title="What needs owner attention next">
+                <div className="parent-insight-grid">
+                  <article className="parent-insight-card">
+                    <span className="parent-insight-label">Priority category</span>
+                    <strong>
+                      {overview.feedbackByCategory[0]?.category ?? "No feedback yet"}
+                    </strong>
+                    <p>
+                      {overview.feedbackByCategory[0]
+                        ? `${overview.feedbackByCategory[0].count} recent items in this queue`
+                        : "The feedback queue is still empty."}
+                    </p>
+                  </article>
+                  <article className="parent-insight-card">
+                    <span className="parent-insight-label">Suggested owner move</span>
+                    <strong>
+                      {overview.recentFeedback[0]?.routingTarget
+                        ? `Route next to ${overview.recentFeedback[0].routingTarget}`
+                        : "Watch the next feedback cycle"}
+                    </strong>
+                    <p>
+                      Use the most common feedback category and the latest routing
+                      target as the first product triage step.
+                    </p>
+                  </article>
+                </div>
+              </ShellCard>
+            </section>
+
+            <section className="tracks owner-grid">
               <ShellCard className="shell-card-emphasis" eyebrow="Counts" title="Platform totals">
                 <ul className="route-list">
                   <li>{overview.counts.students} students</li>
@@ -115,29 +145,48 @@ export default async function OwnerPage() {
               </ShellCard>
 
               <ShellCard className="shell-card-soft" eyebrow="Leaders" title="Top learners">
-                <ul className="route-list">
+                <div className="activity-list">
                   {overview.topLearners.map((learner) => (
-                    <li key={`${learner.displayName}-${learner.launchBandCode}`}>
-                      {learner.displayName} · {learner.launchBandCode} · L
-                      {learner.currentLevel} · {learner.totalPoints} pts
-                    </li>
+                    <article
+                      className="activity-card"
+                      key={`${learner.displayName}-${learner.launchBandCode}`}
+                    >
+                      <div className="activity-card-row">
+                        <strong>{learner.displayName}</strong>
+                        <span>{learner.launchBandCode}</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">L{learner.currentLevel}</span>
+                        <span className="summary-chip">{learner.totalPoints} pts</span>
+                        <span className="summary-chip">
+                          {learner.badgeCount} badges · {learner.trophyCount} trophies
+                        </span>
+                      </div>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
             </section>
 
             <section className="tracks owner-grid">
               <ShellCard className="shell-card-soft" eyebrow="Recent sessions" title="Latest play activity">
-                <ul className="route-list">
+                <div className="activity-list">
                   {overview.latestSessions.map((session) => (
-                    <li key={session.id}>
-                      {session.displayName} · {session.sessionMode} ·{" "}
-                      {session.effectivenessScore === null
-                        ? "in progress"
-                        : `${session.effectivenessScore}% effective`}
-                    </li>
+                    <article className="activity-card" key={session.id}>
+                      <div className="activity-card-row">
+                        <strong>{session.displayName}</strong>
+                        <span>{session.sessionMode}</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">
+                          {session.effectivenessScore === null
+                            ? "in progress"
+                            : `${session.effectivenessScore}% effective`}
+                        </span>
+                      </div>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
 
               <ShellCard className="shell-card-soft" eyebrow="Feedback mix" title="Recent triage categories">
@@ -151,14 +200,21 @@ export default async function OwnerPage() {
               </ShellCard>
 
               <ShellCard className="shell-card-spotlight" eyebrow="Feedback queue" title="Latest product feedback">
-                <ul className="route-list">
+                <div className="activity-list">
                   {overview.recentFeedback.map((item) => (
-                    <li key={item.id}>
-                      {item.category} · {item.urgency} · {item.routingTarget} ·{" "}
-                      {item.summary}
-                    </li>
+                    <article className="activity-card" key={item.id}>
+                      <div className="activity-card-row">
+                        <strong>{item.category}</strong>
+                        <span>{item.urgency}</span>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">{item.routingTarget}</span>
+                        <span className="summary-chip">{item.sourceChannel}</span>
+                      </div>
+                      <p>{item.summary}</p>
+                    </article>
                   ))}
-                </ul>
+                </div>
               </ShellCard>
             </section>
           </>
