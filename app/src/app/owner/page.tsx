@@ -54,11 +54,16 @@ export default async function OwnerPage() {
         <section className="page-hero">
           <div>
             <span className="eyebrow">Owner route</span>
-            <h1>Owner console for the prototype build.</h1>
+            <h1>Product health and launch readiness in one owner console.</h1>
             <p>
               Separate owner-facing visibility for launch bands, learner growth,
               content coverage, and recent play activity.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">Adoption by band</span>
+              <span className="summary-chip">Feedback triage</span>
+              <span className="summary-chip">Content + growth pulse</span>
+            </div>
           </div>
           <div className="hero-route-summary">
             <StatTile

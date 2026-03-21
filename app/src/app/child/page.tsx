@@ -96,13 +96,18 @@ export default function ChildAccessPage() {
         <section className="page-hero child-hero">
           <div>
             <span className="eyebrow">Child journey</span>
-            <h1>Start fast, choose a world, and jump into play.</h1>
+            <h1>Pick your hero, press start, and jump into your next quest.</h1>
             <p>
               Lightweight access for children, but with enough structure to keep
               progress, badges, and challenge history intact across devices.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">1 minute setup</span>
+              <span className="summary-chip">Saved progression</span>
+              <span className="summary-chip">Explainers on misses</span>
+            </div>
           </div>
-          <div className="hero-route-summary">
+          <div className="hero-route-summary hero-route-summary-kid">
             <StatTile label="Access" value="Quick" detail="Username + 4-digit PIN" />
             <StatTile
               label="Progress"
@@ -117,12 +122,13 @@ export default function ChildAccessPage() {
           </div>
         </section>
 
-        <form className="route-grid" onSubmit={handleSubmit}>
+        <form className="route-grid route-grid-child" onSubmit={handleSubmit}>
           <ShellCard
             className="shell-card-soft"
             eyebrow="Band"
             title="Choose your age or grade band"
           >
+            <span className="step-chip">Step 1 · Band</span>
             <div className="choice-row">
               {launchBands.map((band) => (
                 <ChoiceChip
@@ -144,6 +150,7 @@ export default function ChildAccessPage() {
             eyebrow="Identity"
             title="Set up the child profile"
           >
+            <span className="step-chip">Step 2 · Identity</span>
             <div className="field-grid">
               <FieldBlock
                 autoComplete="username"
@@ -181,6 +188,7 @@ export default function ChildAccessPage() {
             eyebrow="Avatar"
             title="Pick your guide"
           >
+            <span className="step-chip">Step 3 · Avatar</span>
             <div className="choice-row">
               {avatars.map((avatar) => (
                 <ChoiceChip
@@ -195,6 +203,10 @@ export default function ChildAccessPage() {
             <p className="soft-copy">
               Avatars make it easy for younger kids to recognize their profile.
             </p>
+            <div className="status-banner">
+              <strong>Quest tip:</strong> choose the same avatar each time so younger
+              learners can find their account faster.
+            </div>
           </ShellCard>
 
           <ShellCard
@@ -202,6 +214,7 @@ export default function ChildAccessPage() {
             eyebrow="Mode"
             title="Choose how the next session feels"
           >
+            <span className="step-chip">Step 4 · Session mode</span>
             <div className="choice-column">
               <button
                 className={`mode-card ${
@@ -233,6 +246,7 @@ export default function ChildAccessPage() {
             eyebrow="Launch"
             title="Start the next adventure"
           >
+            <span className="step-chip">Step 5 · Launch</span>
             <ul className="route-list">
               <li>Points, badges, trophies, and progress stay attached to the profile.</li>
               <li>Wrong answers lead to quick explainers instead of dead ends.</li>

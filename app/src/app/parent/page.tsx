@@ -120,11 +120,16 @@ export default function ParentAccessPage() {
         <section className="page-hero parent-hero">
           <div>
             <span className="eyebrow">Parent journey</span>
-            <h1>Parent quick access and child linkage.</h1>
+            <h1>Family learning snapshot with calm, actionable signals.</h1>
             <p>
               Use the same lightweight access model, connect to a child profile,
               and choose the notifications that matter.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">Quiet-hour friendly updates</span>
+              <span className="summary-chip">Strength + support split</span>
+              <span className="summary-chip">Feedback built in</span>
+            </div>
           </div>
           <div className="hero-route-summary">
             <StatTile
@@ -145,12 +150,13 @@ export default function ParentAccessPage() {
           </div>
         </section>
 
-        <form className="route-grid" onSubmit={handleSubmit}>
+        <form className="route-grid route-grid-parent" onSubmit={handleSubmit}>
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Step 1"
             title="Parent access"
           >
+            <span className="step-chip">Step 1 · Parent account</span>
             <div className="field-grid">
               <FieldBlock
                 autoComplete="username"
@@ -184,6 +190,7 @@ export default function ParentAccessPage() {
             eyebrow="Step 2"
             title="Link a child profile"
           >
+            <span className="step-chip">Step 2 · Child link</span>
             <div className="field-grid">
               <FieldBlock
                 helper="Use the child username already created in the app."
@@ -210,6 +217,7 @@ export default function ParentAccessPage() {
             eyebrow="Step 3"
             title="Notification preferences"
           >
+            <span className="step-chip">Step 3 · Alerts</span>
             <div className="choice-column">
               <button
                 className={`mode-card ${notifyWeekly ? "is-selected" : ""}`}
