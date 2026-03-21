@@ -124,7 +124,77 @@ function buildQuestionTags(question: SessionQuestion, launchBandCode: string) {
 function buildReadAloudText(question: SessionQuestion, scene: QuestionVisualScene | null) {
   const sceneLead = scene ? `${scene.title}. ${scene.helper}.` : "";
   const answers = question.answers.join(", ");
-  return `${sceneLead} ${question.prompt} Choices are ${answers}.`;
+  return `${sceneLead} ${question.prompt} Let us go one step at a time. Choices are ${answers}.`;
+}
+
+function pickChildVoice(
+  voices: SpeechSynthesisVoice[],
+  launchBandCode: string,
+) {
+  const soothingMatches = [
+    "samantha",
+    "ava",
+    "allison",
+    "serena",
+    "karen",
+    "moira",
+    "fiona",
+    "tessa",
+    "ellie",
+    "jenny",
+    "aria",
+    "salli",
+  ];
+  const roboticHints = ["google", "fred", "junior", "news"];
+
+  return [...voices].sort((left, right) => {
+    function scoreVoice(voice: SpeechSynthesisVoice) {
+      let score = /^en/i.test(voice.lang) ? 24 : 0;
+      const lowerName = voice.name.toLowerCase();
+
+      if (voice.localService) {
+        score += 8;
+      }
+
+      if (voice.default) {
+        score += 2;
+      }
+
+      if (soothingMatches.some((item) => lowerName.includes(item))) {
+        score += 30;
+      }
+
+      if (roboticHints.some((item) => lowerName.includes(item))) {
+        score -= 12;
+      }
+
+      if (launchBandCode === "PREK" && lowerName.includes("samantha")) {
+        score += 6;
+      }
+
+      return score;
+    }
+
+    return scoreVoice(right) - scoreVoice(left);
+  })[0];
+}
+
+function getVoiceSettings(launchBandCode: string, intent: "prompt" | "support") {
+  if (launchBandCode === "PREK") {
+    return intent === "prompt"
+      ? { rate: 0.78, pitch: 1.02 }
+      : { rate: 0.74, pitch: 1.0 };
+  }
+
+  if (launchBandCode === "K1") {
+    return intent === "prompt"
+      ? { rate: 0.86, pitch: 1.0 }
+      : { rate: 0.82, pitch: 0.98 };
+  }
+
+  return intent === "prompt"
+    ? { rate: 0.92, pitch: 1.0 }
+    : { rate: 0.88, pitch: 0.98 };
 }
 
 function renderAnswerContent(question: SessionQuestion, answer: string) {
@@ -192,13 +262,30 @@ export default function PlayClient() {
   const [error, setError] = useState("");
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
 
   useEffect(() => {
-    setVoiceEnabled(
+    const voiceSupported =
       typeof window !== "undefined" &&
-        "speechSynthesis" in window &&
-        typeof window.SpeechSynthesisUtterance !== "undefined",
-    );
+      "speechSynthesis" in window &&
+      typeof window.SpeechSynthesisUtterance !== "undefined";
+
+    setVoiceEnabled(voiceSupported);
+
+    if (!voiceSupported || typeof window === "undefined") {
+      return;
+    }
+
+    const syncVoices = () => {
+      setAvailableVoices(window.speechSynthesis.getVoices());
+    };
+
+    syncVoices();
+    window.speechSynthesis.addEventListener("voiceschanged", syncVoices);
+
+    return () => {
+      window.speechSynthesis.removeEventListener("voiceschanged", syncVoices);
+    };
   }, []);
 
   useEffect(() => {
@@ -268,15 +355,23 @@ export default function PlayClient() {
     [currentQuestion],
   );
 
-  function speakText(text: string) {
-    if (!voiceEnabled || typeof window === "undefined") {
+  function speakText(text: string, intent: "prompt" | "support" = "prompt") {
+    if (!voiceEnabled || !session || typeof window === "undefined") {
       return;
     }
 
     window.speechSynthesis.cancel();
     const utterance = new window.SpeechSynthesisUtterance(text);
-    utterance.rate = 0.92;
-    utterance.pitch = 1.04;
+    const voice = pickChildVoice(availableVoices, session.student.launchBandCode);
+    const settings = getVoiceSettings(session.student.launchBandCode, intent);
+
+    if (voice) {
+      utterance.voice = voice;
+    }
+
+    utterance.rate = settings.rate;
+    utterance.pitch = settings.pitch;
+    utterance.volume = 0.92;
     utterance.lang = "en-US";
     window.speechSynthesis.speak(utterance);
   }
@@ -290,27 +385,22 @@ export default function PlayClient() {
       return;
     }
 
-    speakText(buildReadAloudText(currentQuestion, currentScene));
+    speakText(buildReadAloudText(currentQuestion, currentScene), "prompt");
 
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [
-    currentQuestion,
-    currentScene,
-    session,
-    voiceEnabled,
-  ]);
+  }, [currentQuestion, currentScene, session, voiceEnabled, availableVoices]);
 
   useEffect(() => {
     if (!answerState?.needsRetry || !answerState.explainer || !voiceEnabled) {
       return;
     }
 
-    speakText(answerState.explainer.script);
-  }, [answerState, voiceEnabled]);
+    speakText(answerState.explainer.script, "support");
+  }, [answerState, voiceEnabled, availableVoices]);
 
   async function submitAnswer(answer: string) {
     if (!session || !currentQuestion) {
@@ -507,11 +597,14 @@ export default function PlayClient() {
                       <button
                         className="listen-button"
                         onClick={() =>
-                          speakText(buildReadAloudText(currentQuestion, currentScene))
+                          speakText(
+                            buildReadAloudText(currentQuestion, currentScene),
+                            "prompt",
+                          )
                         }
                         type="button"
                       >
-                        Hear the question
+                        Hear it slowly
                       </button>
                     ) : (
                       <span className="listen-note">
@@ -543,6 +636,17 @@ export default function PlayClient() {
                             {token}
                           </span>
                         ))}
+                      </div>
+                    ) : currentQuestion.questionKey === "prek_letter_b_ball" ? (
+                      <div className="visual-token-grid letter-word-scene" aria-hidden="true">
+                        <div className="visual-token visual-token-word">
+                          <span className="letter-scene-token">B</span>
+                          <small>starts like ball</small>
+                        </div>
+                        <div className="visual-token visual-token-word">
+                          <span className="emoji-scene-token">⚽</span>
+                          <small>ball</small>
+                        </div>
                       </div>
                     ) : questionTags.includes("letter time") ? (
                       <div className="letter-scene" aria-hidden="true">
@@ -643,7 +747,9 @@ export default function PlayClient() {
                     <div className="form-actions">
                       <button
                         className="secondary-link button-link"
-                        onClick={() => speakText(answerState.explainer?.script ?? "")}
+                        onClick={() =>
+                          speakText(answerState.explainer?.script ?? "", "support")
+                        }
                         type="button"
                       >
                         Hear the helper again
