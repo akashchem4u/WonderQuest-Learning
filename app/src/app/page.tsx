@@ -1,8 +1,11 @@
 import { SectionCard } from "@/components/section-card";
 import { buildTracks, launchBands } from "@/lib/launch-plan";
+import { getLaunchStatus } from "@/lib/server-launch-status";
 import Link from "next/link";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const launchStatus = await getLaunchStatus();
+
   return (
     <main className="page-shell">
       <section className="hero">
@@ -15,30 +18,34 @@ export default function HomePage() {
           </p>
         </div>
         <div className="hero-panel">
-          <h2>Launch rules</h2>
+          <h2>Launch status</h2>
           <ul>
-            <li>One primary theme family per launch band</li>
-            <li>Username + 4-digit PIN + avatar access model</li>
-            <li>No tester progress resets</li>
-            <li>Voice and video explainers before text-heavy correction</li>
+            <li>Source: {launchStatus.source === "supabase" ? "Supabase live" : "Fallback plan"}</li>
+            <li>Launch bands: {launchStatus.launchBandCount}</li>
+            <li>Skills: {launchStatus.skillCount}</li>
+            <li>Templates: {launchStatus.templateCount}</li>
           </ul>
         </div>
       </section>
 
       <section className="band-grid">
-        {launchBands.map((band) => (
-          <article className="band-card" key={band.code}>
-            <span className="band-code">{band.code}</span>
-            <h2>{band.label}</h2>
-            <p>{band.audience}</p>
-            <strong>{band.primaryTheme}</strong>
-            <ul>
-              {band.focus.map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </article>
-        ))}
+        {launchBands.map((band) => {
+          const liveBand = launchStatus.bands.find((item) => item.code === band.code);
+
+          return (
+            <article className="band-card" key={band.code}>
+              <span className="band-code">{band.code}</span>
+              <h2>{band.label}</h2>
+              <p>{band.audience}</p>
+              <strong>{liveBand?.theme ?? band.primaryTheme}</strong>
+              <ul>
+                {band.focus.map((item) => (
+                  <li key={item}>{item}</li>
+                ))}
+              </ul>
+            </article>
+          );
+        })}
       </section>
 
       <section className="tracks">
