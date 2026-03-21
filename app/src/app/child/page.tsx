@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
-import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
+import { FieldBlock, ShellCard, StatTile } from "@/components/ui";
 import { getAvatarsForBand } from "@/lib/launch-data";
 import { launchBands } from "@/lib/launch-plan";
 
@@ -25,6 +25,31 @@ type ChildAccessResponse = {
     trophyCount: number;
   };
 };
+
+function getBandSymbol(bandCode: string) {
+  switch (bandCode) {
+    case "PREK":
+      return "🌈";
+    case "K1":
+      return "⚽";
+    case "G23":
+      return "🚀";
+    case "G45":
+      return "🧱";
+    default:
+      return "⭐";
+  }
+}
+
+function getAvatarSymbol(avatarKey: string) {
+  if (avatarKey.includes("bunny")) return "🐰";
+  if (avatarKey.includes("bear")) return "🐻";
+  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("fox")) return "🦊";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("owl")) return "🦉";
+  return "✨";
+}
 
 export default function ChildAccessPage() {
   const router = useRouter();
@@ -137,15 +162,22 @@ export default function ChildAccessPage() {
             title="Choose your age or grade band"
           >
             <span className="step-chip">Step 1 · Band</span>
-            <div className="choice-row">
+            <div className="selection-card-grid">
               {launchBands.map((band) => (
-                <ChoiceChip
+                <button
                   key={band.code}
-                  label={band.label}
-                  selected={selectedBand === band.code}
-                  accent="#1f8f6a"
+                  className={`selection-card ${selectedBand === band.code ? "is-selected" : ""}`}
                   onClick={() => setSelectedBand(band.code)}
-                />
+                  type="button"
+                >
+                  <span className="selection-card-icon" aria-hidden="true">
+                    {getBandSymbol(band.code)}
+                  </span>
+                  <span className="selection-card-copy">
+                    <strong>{band.label}</strong>
+                    <small>{band.primaryTheme}</small>
+                  </span>
+                </button>
               ))}
             </div>
             <p className="soft-copy">
@@ -199,15 +231,22 @@ export default function ChildAccessPage() {
             title="Pick your guide"
           >
             <span className="step-chip">Step 3 · Avatar</span>
-            <div className="choice-row">
+            <div className="selection-card-grid selection-card-grid-avatars">
               {avatars.map((avatar) => (
-                <ChoiceChip
+                <button
                   key={avatar.avatar_key}
-                  label={avatar.display_name}
-                  selected={selectedAvatar === avatar.avatar_key}
-                  accent="#f39c33"
+                  className={`selection-card ${selectedAvatar === avatar.avatar_key ? "is-selected" : ""}`}
                   onClick={() => setSelectedAvatar(avatar.avatar_key)}
-                />
+                  type="button"
+                >
+                  <span className="selection-card-icon" aria-hidden="true">
+                    {getAvatarSymbol(avatar.avatar_key)}
+                  </span>
+                  <span className="selection-card-copy">
+                    <strong>{avatar.display_name}</strong>
+                    <small>{avatar.theme.replace("-", " ")}</small>
+                  </span>
+                </button>
               ))}
             </div>
             <p className="soft-copy">
