@@ -847,3 +847,101 @@ export async function getOwnerOverview() {
     })),
   };
 }
+
+export async function getTeacherOverview() {
+  const counts = await db.query(
+    `
+      select
+        (select count(*) from public.student_profiles) as student_count,
+        (select count(*) from public.challenge_sessions) as session_count,
+        (select count(*) from public.challenge_sessions where ended_at is not null) as completed_session_count
+    `,
+  );
+
+  const byBand = await db.query(
+    `
+      select
+        lb.code,
+        lb.display_name,
+        count(sp.id) as student_count
+      from public.launch_bands lb
+      left join public.student_profiles sp
+        on sp.launch_band_code = lb.code
+      group by lb.code, lb.display_name, lb.sort_order
+      order by lb.sort_order asc
+    `,
+  );
+
+  const masterySummary = await db.query(
+    `
+      select
+        sk.code as skill_code,
+        sk.display_name,
+        sk.launch_band_code,
+        count(sr.id) as attempts,
+        count(*) filter (where sr.correct) as correct_attempts,
+        round(
+          100.0 * count(*) filter (where sr.correct) / nullif(count(sr.id), 0),
+          1
+        ) as mastery_rate
+      from public.session_results sr
+      join public.skills sk
+        on sk.id = sr.skill_id
+      group by sk.code, sk.display_name, sk.launch_band_code
+      having count(sr.id) > 0
+      order by mastery_rate asc, attempts desc
+    `,
+  );
+
+  const latestSessions = await db.query(
+    `
+      select
+        cs.id,
+        cs.session_mode,
+        cs.started_at,
+        cs.effectiveness_score,
+        sp.launch_band_code
+      from public.challenge_sessions cs
+      join public.student_profiles sp
+        on sp.id = cs.student_id
+      order by cs.started_at desc
+      limit 10
+    `,
+  );
+
+  const mappedSummary = masterySummary.rows.map((row) => ({
+    skillCode: row.skill_code as string,
+    displayName: row.display_name as string,
+    launchBandCode: row.launch_band_code as string,
+    attempts: Number(row.attempts ?? 0),
+    correctAttempts: Number(row.correct_attempts ?? 0),
+    masteryRate: Number(row.mastery_rate ?? 0),
+  }));
+
+  return {
+    counts: {
+      students: Number(counts.rows[0]?.student_count ?? 0),
+      sessions: Number(counts.rows[0]?.session_count ?? 0),
+      completedSessions: Number(counts.rows[0]?.completed_session_count ?? 0),
+    },
+    byBand: byBand.rows.map((row) => ({
+      code: row.code as string,
+      displayName: row.display_name as string,
+      studentCount: Number(row.student_count ?? 0),
+    })),
+    supportAreas: mappedSummary.slice(0, 6),
+    strengthAreas: [...mappedSummary]
+      .sort((left, right) => right.masteryRate - left.masteryRate)
+      .slice(0, 6),
+    latestSessions: latestSessions.rows.map((row) => ({
+      id: row.id as string,
+      sessionMode: row.session_mode as string,
+      launchBandCode: row.launch_band_code as string,
+      startedAt: row.started_at as string,
+      effectivenessScore:
+        row.effectiveness_score === null
+          ? null
+          : Number(row.effectiveness_score),
+    })),
+  };
+}

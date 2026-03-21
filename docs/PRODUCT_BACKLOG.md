@@ -37,6 +37,10 @@ Priority meaning:
 - P0-21: define designed-difficulty scoring rules and observed-difficulty recalibration rules
 - P0-22: define theme-pack restrictions so theme rendering never changes academic hardness
 - P0-23: define safe image-scene and asset-pack rules for visual questions
+- P0-24: define the monetization model for family, premium, teacher, and school use
+- P0-25: define the owner operating model for support, releases, billing, abuse review, and content operations
+- P0-26: define the household identity state machine for sibling switching, duplicate child records, wrong links, and recovery
+- P0-27: define activation, retention, conversion, and reactivation event taxonomy before instrumentation expands
 
 ## P1: MVP Product Build
 
@@ -66,6 +70,10 @@ Priority meaning:
 - P1-18: theme-aware image and scene renderer for visual-first items
 - P1-19: generated-item review queue for child-facing content approval
 - P1-20: misconception-linked explainer library with reinforcement items
+- P1-21: owner console v1 for prototype support, content sync visibility, and release readiness
+- P1-22: sibling and shared-device household switching flow
+- P1-23: structured feedback capture with screen, role, session, and device context
+- P1-24: teacher and school dashboard v1 with aggregate-only patterns and support areas
 
 ## P2: Adaptive Intelligence and Reporting
 
@@ -86,6 +94,10 @@ Priority meaning:
 - P2-14: item-performance analytics by skill, difficulty, and theme pack
 - P2-15: question-factory expansion into enrichment and stretch content
 - P2-16: learner skill-state model that separates mastery from engagement
+- P2-17: dormant-user reactivation engine with streak recovery and return-session logic
+- P2-18: AI-enriched feedback triage with duplicate clustering, severity, and SLA routing
+- P2-19: trial, conversion, and subscription instrumentation for family and school packages
+- P2-20: owner dashboard for entitlements, pilot cohorts, and operational health
 
 ## P3: Content and Engagement Expansion
 
@@ -163,6 +175,9 @@ These are not all day-one features, but they are strong backlog candidates.
 - ops-09: define content-authoring review roles and approval stages
 - ops-10: define item retirement, rework, and calibration review cadence
 - ops-11: define theme-asset licensing and trademark review rules
+- ops-12: define support SLA, escalation, and bug triage operating rules
+- ops-13: define owner release checklist and rollback workflow
+- ops-14: define household-account correction and data-recovery procedures
 
 ## Recommended Design Backlog
 
@@ -177,6 +192,8 @@ These are not all day-one features, but they are strong backlog candidates.
 - design-09: explainer video and voice pattern library by age band
 - design-10: visual scene-template system for low-text and visual-first questions
 - design-11: theme-asset equivalence rules so the same skill renders consistently across themes
+- design-12: family and sibling switching UX for shared devices
+- design-13: teacher dashboard patterns for aggregate class insight without child shaming
 
 ## Recommended AI Backlog
 
@@ -193,6 +210,8 @@ These are not all day-one features, but they are strong backlog candidates.
 - ai-11: generate draft item variations from approved blueprints for internal review only
 - ai-12: detect weak distractors, duplicate items, and likely item leakage
 - ai-13: recommend recalibration when observed item difficulty drifts from designed difficulty
+- ai-14: detect dormant-user reactivation opportunities and recommend the right return path
+- ai-15: route support feedback by product area, urgency, and likely owner
 
 ## Explicitly Out of Scope For Early Releases
 

@@ -67,6 +67,9 @@ export default async function HomePage() {
         <Link className="secondary-link" href="/parent">
           Parent setup
         </Link>
+        <Link className="secondary-link" href="/teacher">
+          Teacher view
+        </Link>
         <Link className="secondary-link" href="/owner">
           Owner view
         </Link>

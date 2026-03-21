@@ -42,6 +42,7 @@ Render service shape:
 ### Owner Access
 
 - `OWNER_ACCESS_CODE`
+- `TEACHER_ACCESS_CODE`
 
 ## Render Dashboard Steps
 
@@ -59,7 +60,7 @@ Render service shape:
 - `SUPABASE_DB_USER=postgres`
 - `SUPABASE_DB_SSLMODE=require`
 
-Everything else should come from the real Supabase project and your private owner code.
+Everything else should come from the real Supabase project and your private access codes.
 
 ## Post-Deploy Checks
 
@@ -71,11 +72,13 @@ After the first deploy, verify:
 4. `/play` starts a session from a real child profile
 5. `/owner` shows the owner gate first
 6. owner access code unlocks the dashboard
+7. `/teacher` shows the teacher gate first
+8. teacher access code unlocks the aggregate dashboard
 
 ## Important Notes
 
-- The deployed app uses server-side Postgres access for live counts and owner data, so DB env vars are required on Render.
-- The owner route is now gated with `OWNER_ACCESS_CODE`; do not leave that blank in production.
+- The deployed app uses server-side Postgres access for live counts and dashboard data, so DB env vars are required on Render.
+- The owner route is gated with `OWNER_ACCESS_CODE`, and the teacher route is gated with `TEACHER_ACCESS_CODE`; do not leave either blank in production.
 - The first launch questions and explainers were already synced to Supabase locally. If you later refresh them, run:
 
 ```bash
