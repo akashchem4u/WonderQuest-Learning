@@ -128,6 +128,7 @@ export default function ChildAccessPage() {
             eyebrow="Band"
             title="Choose your age or grade band"
           >
+            <span className="step-chip">Step 1 · Band</span>
             <div className="choice-row">
               {launchBands.map((band) => (
                 <ChoiceChip
@@ -149,6 +150,7 @@ export default function ChildAccessPage() {
             eyebrow="Identity"
             title="Set up the child profile"
           >
+            <span className="step-chip">Step 2 · Identity</span>
             <div className="field-grid">
               <FieldBlock
                 autoComplete="username"
@@ -186,6 +188,7 @@ export default function ChildAccessPage() {
             eyebrow="Avatar"
             title="Pick your guide"
           >
+            <span className="step-chip">Step 3 · Avatar</span>
             <div className="choice-row">
               {avatars.map((avatar) => (
                 <ChoiceChip
@@ -211,6 +214,7 @@ export default function ChildAccessPage() {
             eyebrow="Mode"
             title="Choose how the next session feels"
           >
+            <span className="step-chip">Step 4 · Session mode</span>
             <div className="choice-column">
               <button
                 className={`mode-card ${
@@ -242,6 +246,7 @@ export default function ChildAccessPage() {
             eyebrow="Launch"
             title="Start the next adventure"
           >
+            <span className="step-chip">Step 5 · Launch</span>
             <ul className="route-list">
               <li>Points, badges, trophies, and progress stay attached to the profile.</li>
               <li>Wrong answers lead to quick explainers instead of dead ends.</li>

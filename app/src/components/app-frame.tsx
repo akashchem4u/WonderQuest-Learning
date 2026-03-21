@@ -42,6 +42,34 @@ const audienceMeta = {
   },
 } as const;
 
+const audienceRoutes = {
+  home: [
+    { href: "/child", label: "Start child" },
+    { href: "/parent", label: "Parent setup" },
+    { href: "/teacher", label: "Teacher view" },
+  ],
+  kid: [
+    { href: "/child", label: "Child setup" },
+    { href: "/play", label: "Play loop" },
+    { href: "/parent", label: "Parent link" },
+  ],
+  parent: [
+    { href: "/parent", label: "Parent setup" },
+    { href: "/child", label: "Child access" },
+    { href: "/owner", label: "Owner route" },
+  ],
+  teacher: [
+    { href: "/teacher", label: "Teacher dashboard" },
+    { href: "/child", label: "Child path" },
+    { href: "/owner", label: "Owner route" },
+  ],
+  owner: [
+    { href: "/owner", label: "Owner console" },
+    { href: "/teacher", label: "Teacher route" },
+    { href: "/parent", label: "Parent path" },
+  ],
+} as const;
+
 type AppFrameProps = {
   children: ReactNode;
   currentPath?: string;
@@ -54,6 +82,7 @@ export function AppFrame({
   audience = "home",
 }: AppFrameProps) {
   const meta = audienceMeta[audience];
+  const routeHints = audienceRoutes[audience];
 
   return (
     <div className={`app-frame theme-${audience}`}>
@@ -100,6 +129,23 @@ export function AppFrame({
           </nav>
         </div>
       </header>
+
+      <div className="app-context-bar">
+        {routeHints.map((item) => {
+          const isCurrent = currentPath === item.href;
+
+          return (
+            <Link
+              aria-current={isCurrent ? "page" : undefined}
+              className={`app-context-link ${isCurrent ? "is-current" : ""}`}
+              href={item.href}
+              key={`${audience}-${item.href}`}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
 
       {children}
     </div>

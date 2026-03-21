@@ -327,6 +327,9 @@ export default function PlayClient() {
                 <div className="progress-rail" aria-hidden="true">
                   <span style={{ width: `${progressPercent}%` }} />
                 </div>
+                <p className="soft-copy progress-copy">
+                  Quest progress: {progressPercent}% complete
+                </p>
                 <div className="answer-grid">
                   {currentQuestion.answers.map((answer, index) => (
                     <button
