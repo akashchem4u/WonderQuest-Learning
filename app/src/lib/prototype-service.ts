@@ -38,6 +38,7 @@ type AnswerInput = {
   questionKey: string;
   answer: string;
   attempt?: number;
+  timeSpentMs?: number;
 };
 
 type FeedbackInput = {
@@ -69,6 +70,19 @@ function normalizeContext(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
+}
+
+function normalizeTimeSpentMs(value: unknown) {
+  const parsed =
+    typeof value === "number" && Number.isFinite(value)
+      ? value
+      : Number(value ?? 0);
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return 0;
+  }
+
+  return Math.min(Math.round(parsed), 300000);
 }
 
 function ensureLaunchBandCode(launchBandCode: string) {
@@ -195,6 +209,81 @@ async function getQuestionMetadata(questionKey: string) {
   return {
     exampleItemId: (result.rows[0]?.id as string | undefined) ?? null,
     skillId: (result.rows[0]?.skill_id as string | undefined) ?? null,
+  };
+}
+
+async function getChildDashboard(studentId: string) {
+  const summary = await db.query(
+    `
+      select
+        (select count(*) from public.challenge_sessions where student_id = $1) as session_count,
+        (select count(*) from public.challenge_sessions where student_id = $1 and ended_at is not null) as completed_session_count,
+        (
+          select coalesce(sum(sr.time_spent_ms), 0)
+          from public.session_results sr
+          join public.challenge_sessions cs
+            on cs.id = sr.session_id
+          where cs.student_id = $1
+        ) as total_time_spent_ms,
+        (
+          select round(avg(effectiveness_score), 1)
+          from public.challenge_sessions
+          where student_id = $1 and effectiveness_score is not null
+        ) as average_effectiveness,
+        (
+          select max(started_at)
+          from public.challenge_sessions
+          where student_id = $1
+        ) as last_session_at
+    `,
+    [studentId],
+  );
+
+  const mastery = await db.query(
+    `
+      select
+        sk.code as skill_code,
+        sk.display_name,
+        round(
+          100.0 * count(*) filter (where sr.correct) / nullif(count(sr.id), 0),
+          1
+        ) as mastery_rate,
+        count(sr.id) as attempts
+      from public.session_results sr
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.skills sk
+        on sk.id = sr.skill_id
+      where cs.student_id = $1
+      group by sk.code, sk.display_name
+      having count(sr.id) > 0
+    `,
+    [studentId],
+  );
+
+  const mappedMastery = mastery.rows.map((row) => ({
+    skillCode: row.skill_code as string,
+    displayName: row.display_name as string,
+    masteryRate: Number(row.mastery_rate ?? 0),
+    attempts: Number(row.attempts ?? 0),
+  }));
+
+  return {
+    studentId,
+    sessionCount: Number(summary.rows[0]?.session_count ?? 0),
+    completedSessions: Number(summary.rows[0]?.completed_session_count ?? 0),
+    totalTimeSpentMs: Number(summary.rows[0]?.total_time_spent_ms ?? 0),
+    averageEffectiveness:
+      summary.rows[0]?.average_effectiveness === null
+        ? null
+        : Number(summary.rows[0]?.average_effectiveness),
+    lastSessionAt: (summary.rows[0]?.last_session_at as string | undefined) ?? null,
+    strengths: [...mappedMastery]
+      .sort((left, right) => right.masteryRate - left.masteryRate)
+      .slice(0, 3),
+    supportAreas: [...mappedMastery]
+      .sort((left, right) => left.masteryRate - right.masteryRate)
+      .slice(0, 3),
   };
 }
 
@@ -466,6 +555,11 @@ export async function accessParent(input: ParentAccessInput) {
   }
 
   const linkedChildren = await getLinkedChildren(guardianRow.id as string);
+  const dashboardStudentId =
+    (linkedChild?.id as string | undefined) ?? linkedChildren[0]?.id;
+  const childDashboard = dashboardStudentId
+    ? await getChildDashboard(dashboardStudentId)
+    : null;
 
   return {
     guardian: {
@@ -487,6 +581,7 @@ export async function accessParent(input: ParentAccessInput) {
         }
       : null,
     linkedChildren,
+    childDashboard,
   };
 }
 
@@ -618,6 +713,7 @@ export async function answerQuestion(input: AnswerInput) {
 
   const isCorrect = ensureText(input.answer) === question.correct_answer;
   const metadata = await getQuestionMetadata(input.questionKey);
+  const timeSpentMs = normalizeTimeSpentMs(input.timeSpentMs);
 
   if (!metadata.exampleItemId || !metadata.skillId) {
     throw new Error("Question content is not synced yet. Run the launch content sync.");
@@ -654,7 +750,7 @@ export async function answerQuestion(input: AnswerInput) {
         remediation_triggered,
         points_earned
       )
-      values ($1, $2, $3, $4, $5, 0, 0, $6, $7)
+      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
     `,
     [
       input.sessionId,
@@ -662,6 +758,8 @@ export async function answerQuestion(input: AnswerInput) {
       metadata.skillId,
       isCorrect,
       serverAttempt === 1,
+      timeSpentMs,
+      isCorrect ? timeSpentMs : 0,
       !isCorrect,
       pointsEarned,
     ],

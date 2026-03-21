@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppFrame } from "@/components/app-frame";
 import { ShellCard, StatTile } from "@/components/ui";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import { getOwnerOverview } from "@/lib/prototype-service";
@@ -12,22 +13,24 @@ export default async function OwnerPage() {
 
   if (!unlocked) {
     return (
-      <main className="page-shell page-shell-split">
-        <section className="page-hero">
-          <div>
-            <span className="eyebrow">WonderQuest Learning</span>
-            <h1>Owner console access.</h1>
-            <p>
-              This route is gated separately from child and parent access so the
-              owner dashboard is not openly exposed.
-            </p>
-          </div>
-        </section>
+      <AppFrame audience="owner" currentPath="/owner">
+        <main className="page-shell page-shell-split">
+          <section className="page-hero">
+            <div>
+              <span className="eyebrow">Owner route</span>
+              <h1>Owner console access.</h1>
+              <p>
+                This route is gated separately from child and parent access so the
+                owner dashboard is not openly exposed.
+              </p>
+            </div>
+          </section>
 
-        <ShellCard eyebrow="Owner" title="Unlock owner console">
-          <OwnerGate configured={configured} />
-        </ShellCard>
-      </main>
+          <ShellCard className="shell-card-emphasis" eyebrow="Owner" title="Unlock owner console">
+            <OwnerGate configured={configured} />
+          </ShellCard>
+        </main>
+      </AppFrame>
     );
   }
 
@@ -46,123 +49,125 @@ export default async function OwnerPage() {
   }
 
   return (
-    <main className="page-shell">
-      <section className="page-hero">
-        <div>
-          <span className="eyebrow">WonderQuest Learning</span>
-          <h1>Owner console for the prototype build.</h1>
-          <p>
-            Separate owner-facing visibility for launch bands, learner growth,
-            content coverage, and recent play activity.
-          </p>
-        </div>
-        <div className="hero-route-summary">
-          <StatTile
-            label="Students"
-            value={`${overview?.counts.students ?? 0}`}
-            detail="Live child profiles"
-          />
-          <StatTile
-            label="Sessions"
-            value={`${overview?.counts.sessions ?? 0}`}
-            detail="Challenge sessions started"
-          />
-          <StatTile
-            label="Content"
-            value={`${overview?.counts.exampleItems ?? 0}`}
-            detail="Example items synced"
-          />
-        </div>
-      </section>
+    <AppFrame audience="owner" currentPath="/owner">
+      <main className="page-shell">
+        <section className="page-hero">
+          <div>
+            <span className="eyebrow">Owner route</span>
+            <h1>Owner console for the prototype build.</h1>
+            <p>
+              Separate owner-facing visibility for launch bands, learner growth,
+              content coverage, and recent play activity.
+            </p>
+          </div>
+          <div className="hero-route-summary">
+            <StatTile
+              detail="Live child profiles"
+              label="Students"
+              value={`${overview?.counts.students ?? 0}`}
+            />
+            <StatTile
+              detail="Challenge sessions started"
+              label="Sessions"
+              value={`${overview?.counts.sessions ?? 0}`}
+            />
+            <StatTile
+              detail="Example items synced"
+              label="Content"
+              value={`${overview?.counts.exampleItems ?? 0}`}
+            />
+          </div>
+        </section>
 
-      {error ? (
-        <ShellCard eyebrow="Owner" title="Owner data is not available yet">
-          <p>{error}</p>
-        </ShellCard>
-      ) : null}
+        {error ? (
+          <ShellCard eyebrow="Owner" title="Owner data is not available yet">
+            <p>{error}</p>
+          </ShellCard>
+        ) : null}
 
-      {overview ? (
-        <>
-          <section className="tracks owner-grid">
-            <ShellCard eyebrow="Counts" title="Platform totals">
-              <ul className="route-list">
-                <li>{overview.counts.students} students</li>
-                <li>{overview.counts.guardians} guardians</li>
-                <li>{overview.counts.sessions} sessions</li>
-                <li>{overview.counts.feedbackItems} feedback items</li>
-                <li>{overview.counts.totalPoints} total learner points</li>
-                <li>{overview.counts.explainers} explainers synced</li>
-              </ul>
-            </ShellCard>
+        {overview ? (
+          <>
+            <section className="tracks owner-grid">
+              <ShellCard className="shell-card-emphasis" eyebrow="Counts" title="Platform totals">
+                <ul className="route-list">
+                  <li>{overview.counts.students} students</li>
+                  <li>{overview.counts.guardians} guardians</li>
+                  <li>{overview.counts.sessions} sessions</li>
+                  <li>{overview.counts.feedbackItems} feedback items</li>
+                  <li>{overview.counts.totalPoints} total learner points</li>
+                  <li>{overview.counts.explainers} explainers synced</li>
+                </ul>
+              </ShellCard>
 
-            <ShellCard eyebrow="Launch bands" title="Adoption by band">
-              <div className="summary-chip-row">
-                {overview.byBand.map((band) => (
-                  <span className="summary-chip" key={band.code}>
-                    {band.displayName}: {band.studentCount}
-                  </span>
-                ))}
-              </div>
-            </ShellCard>
+              <ShellCard className="shell-card-soft" eyebrow="Launch bands" title="Adoption by band">
+                <div className="summary-chip-row">
+                  {overview.byBand.map((band) => (
+                    <span className="summary-chip" key={band.code}>
+                      {band.displayName}: {band.studentCount}
+                    </span>
+                  ))}
+                </div>
+              </ShellCard>
 
-            <ShellCard eyebrow="Leaders" title="Top learners">
-              <ul className="route-list">
-                {overview.topLearners.map((learner) => (
-                  <li key={`${learner.displayName}-${learner.launchBandCode}`}>
-                    {learner.displayName} · {learner.launchBandCode} · L
-                    {learner.currentLevel} · {learner.totalPoints} pts
-                  </li>
-                ))}
-              </ul>
-            </ShellCard>
-          </section>
+              <ShellCard className="shell-card-soft" eyebrow="Leaders" title="Top learners">
+                <ul className="route-list">
+                  {overview.topLearners.map((learner) => (
+                    <li key={`${learner.displayName}-${learner.launchBandCode}`}>
+                      {learner.displayName} · {learner.launchBandCode} · L
+                      {learner.currentLevel} · {learner.totalPoints} pts
+                    </li>
+                  ))}
+                </ul>
+              </ShellCard>
+            </section>
 
-          <section className="tracks owner-grid">
-            <ShellCard eyebrow="Recent sessions" title="Latest play activity">
-              <ul className="route-list">
-                {overview.latestSessions.map((session) => (
-                  <li key={session.id}>
-                    {session.displayName} · {session.sessionMode} ·{" "}
-                    {session.effectivenessScore === null
-                      ? "in progress"
-                      : `${session.effectivenessScore}% effective`}
-                  </li>
-                ))}
-              </ul>
-            </ShellCard>
+            <section className="tracks owner-grid">
+              <ShellCard className="shell-card-soft" eyebrow="Recent sessions" title="Latest play activity">
+                <ul className="route-list">
+                  {overview.latestSessions.map((session) => (
+                    <li key={session.id}>
+                      {session.displayName} · {session.sessionMode} ·{" "}
+                      {session.effectivenessScore === null
+                        ? "in progress"
+                        : `${session.effectivenessScore}% effective`}
+                    </li>
+                  ))}
+                </ul>
+              </ShellCard>
 
-            <ShellCard eyebrow="Feedback mix" title="Recent triage categories">
-              <div className="summary-chip-row">
-                {overview.feedbackByCategory.map((item) => (
-                  <span className="summary-chip" key={item.category}>
-                    {item.category}: {item.count}
-                  </span>
-                ))}
-              </div>
-            </ShellCard>
+              <ShellCard className="shell-card-soft" eyebrow="Feedback mix" title="Recent triage categories">
+                <div className="summary-chip-row">
+                  {overview.feedbackByCategory.map((item) => (
+                    <span className="summary-chip" key={item.category}>
+                      {item.category}: {item.count}
+                    </span>
+                  ))}
+                </div>
+              </ShellCard>
 
-            <ShellCard eyebrow="Feedback queue" title="Latest product feedback">
-              <ul className="route-list">
-                {overview.recentFeedback.map((item) => (
-                  <li key={item.id}>
-                    {item.category} · {item.urgency} · {item.routingTarget} ·{" "}
-                    {item.summary}
-                  </li>
-                ))}
-              </ul>
-            </ShellCard>
-          </section>
-        </>
-      ) : null}
+              <ShellCard className="shell-card-spotlight" eyebrow="Feedback queue" title="Latest product feedback">
+                <ul className="route-list">
+                  {overview.recentFeedback.map((item) => (
+                    <li key={item.id}>
+                      {item.category} · {item.urgency} · {item.routingTarget} ·{" "}
+                      {item.summary}
+                    </li>
+                  ))}
+                </ul>
+              </ShellCard>
+            </section>
+          </>
+        ) : null}
 
-      <section className="entry-links">
-        <Link className="primary-link" href="/child">
-          Child access
-        </Link>
-        <Link className="secondary-link" href="/parent">
-          Parent setup
-        </Link>
-      </section>
-    </main>
+        <section className="entry-links">
+          <Link className="primary-link" href="/child">
+            Child access
+          </Link>
+          <Link className="secondary-link" href="/parent">
+            Parent setup
+          </Link>
+        </section>
+      </main>
+    </AppFrame>
   );
 }

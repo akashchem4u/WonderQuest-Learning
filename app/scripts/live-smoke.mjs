@@ -50,6 +50,7 @@ async function main() {
     questionKey: firstQuestion.questionKey,
     answer: wrongAnswer,
     attempt: 1,
+    timeSpentMs: 3200,
   });
 
   const recovery = await postJson("/api/play/answer", {
@@ -58,6 +59,7 @@ async function main() {
     questionKey: firstQuestion.questionKey,
     answer: "10",
     attempt: 999,
+    timeSpentMs: 1800,
   });
 
   const parent = await postJson("/api/parent/access", {
@@ -93,6 +95,9 @@ async function main() {
         retryNeedsExplainer: retry.needsRetry,
         recoveryPoints: recovery.pointsEarned,
         linkedChildren: parent.linkedChildren.length,
+        childDashboardTimeSpentMs: parent.childDashboard?.totalTimeSpentMs ?? null,
+        childDashboardAverageEffectiveness:
+          parent.childDashboard?.averageEffectiveness ?? null,
         feedbackCategory: feedback.triage.category,
       },
       null,

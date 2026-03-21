@@ -4,11 +4,12 @@ type CardProps = {
   title: string;
   eyebrow?: string;
   children: ReactNode;
+  className?: string;
 };
 
-export function ShellCard({ title, eyebrow, children }: CardProps) {
+export function ShellCard({ title, eyebrow, children, className }: CardProps) {
   return (
-    <section className="shell-card">
+    <section className={`shell-card ${className ?? ""}`.trim()}>
       {eyebrow ? <span className="shell-eyebrow">{eyebrow}</span> : null}
       <h2>{title}</h2>
       {children}
@@ -20,11 +21,12 @@ type StatProps = {
   label: string;
   value: string;
   detail?: string;
+  className?: string;
 };
 
-export function StatTile({ label, value, detail }: StatProps) {
+export function StatTile({ label, value, detail, className }: StatProps) {
   return (
-    <article className="stat-tile">
+    <article className={`stat-tile ${className ?? ""}`.trim()}>
       <span>{label}</span>
       <strong>{value}</strong>
       {detail ? <p>{detail}</p> : null}
