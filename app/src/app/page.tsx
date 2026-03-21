@@ -13,10 +13,10 @@ export default async function HomePage() {
   return (
     <AppFrame audience="home" currentPath="/">
       <main className="page-shell">
-        <section className="hero hero-home">
+        <section className="hero hero-home hero-home-cohesive">
           <div className="hero-copy hero-home-copy">
             <span className="eyebrow">WonderQuest Learning</span>
-            <h1>Adaptive learning that feels like play, not worksheets.</h1>
+            <h1>One learning platform, tuned for child play and adult clarity.</h1>
             <p>
               WonderQuest blends lightweight child access, fast explainers,
               game-style progression, and separate parent, teacher, and owner

@@ -12,26 +12,31 @@ const navItems = [
 const audienceMeta = {
   home: {
     label: "Platform home",
+    shortLabel: "Home",
     title: "Adaptive learning that feels like a favorite game.",
     detail: "Multi-device prototype with separate child, parent, teacher, and owner paths.",
   },
   kid: {
     label: "Kid journey",
+    shortLabel: "Child",
     title: "Play-first learning with quick rewards and fast recovery loops.",
     detail: "Designed to feel energetic, visual, and easy to re-enter on any device.",
   },
   parent: {
     label: "Parent view",
+    shortLabel: "Parent",
     title: "Calmer household visibility with time, effectiveness, and next-step signals.",
     detail: "Fast access now, stronger family account controls later.",
   },
   teacher: {
     label: "Teacher view",
+    shortLabel: "Teacher",
     title: "Aggregate instructional visibility without exposing peer-to-peer child interactions.",
     detail: "Built for classroom and school insight, not public comparison.",
   },
   owner: {
     label: "Owner view",
+    shortLabel: "Owner",
     title: "Prototype command center for traction, content coverage, and product signal quality.",
     detail: "Operational visibility for launch, testing, and backlog shaping.",
   },
@@ -65,6 +70,11 @@ export function AppFrame({
             </div>
             <span>{meta.detail}</span>
           </div>
+          <div className="app-signal-row">
+            <span className="app-signal-pill">Audience mode: {meta.shortLabel}</span>
+            <span className="app-signal-pill">Mobile-first UI</span>
+            <span className="app-signal-pill">Supabase live flows</span>
+          </div>
         </div>
 
         <div className="app-utility">
@@ -83,7 +93,7 @@ export function AppFrame({
                   href={item.href}
                   key={item.href}
                 >
-                  {item.label}
+                  <span>{item.label}</span>
                 </Link>
               );
             })}

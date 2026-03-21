@@ -55,11 +55,16 @@ export default async function TeacherPage() {
         <section className="page-hero">
           <div>
             <span className="eyebrow">Teacher route</span>
-            <h1>Teacher and school dashboard.</h1>
+            <h1>Classwide progress, support signals, and recent momentum.</h1>
             <p>
               Aggregate-only instructional visibility across launch bands, recent
               sessions, and support areas.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">Aggregate only</span>
+              <span className="summary-chip">No peer comparison</span>
+              <span className="summary-chip">Classroom-ready signals</span>
+            </div>
           </div>
           <div className="hero-route-summary">
             <StatTile

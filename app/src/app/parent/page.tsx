@@ -120,11 +120,16 @@ export default function ParentAccessPage() {
         <section className="page-hero parent-hero">
           <div>
             <span className="eyebrow">Parent journey</span>
-            <h1>Parent quick access and child linkage.</h1>
+            <h1>Family learning snapshot with calm, actionable signals.</h1>
             <p>
               Use the same lightweight access model, connect to a child profile,
               and choose the notifications that matter.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">Quiet-hour friendly updates</span>
+              <span className="summary-chip">Strength + support split</span>
+              <span className="summary-chip">Feedback built in</span>
+            </div>
           </div>
           <div className="hero-route-summary">
             <StatTile
@@ -145,7 +150,7 @@ export default function ParentAccessPage() {
           </div>
         </section>
 
-        <form className="route-grid" onSubmit={handleSubmit}>
+        <form className="route-grid route-grid-parent" onSubmit={handleSubmit}>
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Step 1"

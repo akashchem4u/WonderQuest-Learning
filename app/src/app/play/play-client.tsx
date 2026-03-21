@@ -270,6 +270,15 @@ export default function PlayClient() {
               This is the first playable Supabase-backed session flow with retries,
               explainers, and persistent progression.
             </p>
+            <div className="summary-chip-row">
+              <span className="summary-chip">{session.student.launchBandCode} band</span>
+              <span className="summary-chip">
+                Attempt {attempt} on current question
+              </span>
+              <span className="summary-chip">
+                {session.questions.length} total prompts
+              </span>
+            </div>
           </div>
           <div className="hero-route-summary">
             <StatTile
@@ -345,6 +354,18 @@ export default function PlayClient() {
                   +{answerState.pointsEarned} points. Correct answer locked in for
                   this question.
                 </p>
+                <div className="summary-chip-row">
+                  <span className="summary-chip">
+                    Total points: {progression?.totalPoints ?? 0}
+                  </span>
+                  <span className="summary-chip">
+                    Level {progression?.currentLevel ?? 1}
+                  </span>
+                  <span className="summary-chip">
+                    {progression?.badgeCount ?? 0} badges ·{" "}
+                    {progression?.trophyCount ?? 0} trophies
+                  </span>
+                </div>
                 <div className="form-actions">
                   <button
                     className="primary-link button-link"
