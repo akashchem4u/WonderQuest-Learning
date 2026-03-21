@@ -1,7 +1,5 @@
-import pg from "pg";
+import { db, hasDatabaseConfig } from "@/lib/db";
 import { launchBands } from "@/lib/launch-plan";
-
-const { Client } = pg;
 
 export type LaunchStatus = {
   source: "supabase" | "fallback";
@@ -27,43 +25,20 @@ function fallbackStatus(): LaunchStatus {
   };
 }
 
-function hasDatabaseEnv() {
-  return Boolean(
-    process.env.SUPABASE_DB_HOST &&
-      process.env.SUPABASE_DB_PORT &&
-      process.env.SUPABASE_DB_NAME &&
-      process.env.SUPABASE_DB_USER &&
-      process.env.SUPABASE_DB_PASSWORD,
-  );
-}
-
 export async function getLaunchStatus(): Promise<LaunchStatus> {
-  if (!hasDatabaseEnv()) {
+  if (!hasDatabaseConfig()) {
     return fallbackStatus();
   }
 
-  const client = new Client({
-    host: process.env.SUPABASE_DB_HOST,
-    port: Number(process.env.SUPABASE_DB_PORT),
-    database: process.env.SUPABASE_DB_NAME,
-    user: process.env.SUPABASE_DB_USER,
-    password: process.env.SUPABASE_DB_PASSWORD,
-    ssl: {
-      rejectUnauthorized: false,
-    },
-  });
-
   try {
-    await client.connect();
-
-    const counts = await client.query(`
+    const counts = await db.query(`
       select
         (select count(*) from public.launch_bands) as launch_bands,
         (select count(*) from public.skills) as skills,
         (select count(*) from public.content_templates) as templates
     `);
 
-    const bands = await client.query(`
+    const bands = await db.query(`
       select
         lb.code,
         tf.display_name as theme_name
@@ -83,9 +58,8 @@ export async function getLaunchStatus(): Promise<LaunchStatus> {
         theme: row.theme_name,
       })),
     };
-  } catch {
+  } catch (error) {
+    console.error("WonderQuest launch status fallback", error);
     return fallbackStatus();
-  } finally {
-    await client.end().catch(() => undefined);
   }
 }

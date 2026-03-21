@@ -19,7 +19,7 @@ Render service shape:
 - type: `web`
 - runtime: `node`
 - rootDir: `app`
-- build command: `npm install && npm run build`
+- build command: `npm ci && npm run build`
 - start command: `npm run start`
 
 ## Environment Variables Required
@@ -57,10 +57,32 @@ Render service shape:
 - `NEXT_PUBLIC_APP_NAME=WonderQuest Learning`
 - `SUPABASE_DB_PORT=5432`
 - `SUPABASE_DB_NAME=postgres`
-- `SUPABASE_DB_USER=postgres`
 - `SUPABASE_DB_SSLMODE=require`
 
-Everything else should come from the real Supabase project and your private access codes.
+Everything else should come from the real Supabase project and your private
+access codes.
+
+## Supabase Session Pooler Values
+
+Render should use the Supabase `Session pooler` connection values, not the
+direct database host.
+
+For this project, the correct shape is:
+
+- `SUPABASE_DB_HOST=aws-1-us-east-2.pooler.supabase.com`
+- `SUPABASE_DB_PORT=5432`
+- `SUPABASE_DB_NAME=postgres`
+- `SUPABASE_DB_USER=postgres.cbgevfhusngqqsojifyd`
+- `SUPABASE_DB_PASSWORD=<your database password>`
+- `SUPABASE_DB_SSLMODE=require`
+
+Do not use:
+
+- `db.cbgevfhusngqqsojifyd.supabase.co`
+- `SUPABASE_DB_USER=postgres`
+
+Those direct-connection defaults caused the earlier Render outage because Render
+could not reach the IPv6-only direct host.
 
 ## Post-Deploy Checks
 

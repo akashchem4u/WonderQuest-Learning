@@ -49,6 +49,12 @@ export default async function HomePage() {
                 <p>Real persistence, linked flows, and feedback capture already wired.</p>
               </article>
             </div>
+            {launchStatus.source === "fallback" ? (
+              <p className="status-banner status-error">
+                Live launch counts are currently unavailable, so this page is
+                showing fallback plan data.
+              </p>
+            ) : null}
           </div>
           <div className="hero-panel launch-command">
             <span className="panel-label">Prototype readiness</span>
