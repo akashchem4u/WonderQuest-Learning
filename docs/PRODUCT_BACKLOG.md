@@ -32,6 +32,11 @@ Priority meaning:
 - P0-16: define parent-child linkage verification and wrong-link correction flow
 - P0-17: define explainer fallback rules for skip, replay, audio-off, and video-failure cases
 - P0-18: define minimum feedback context fields for bug, enhancement, and content reports
+- P0-19: define the curriculum graph for age band, grade band, subject, domain, subskill, prerequisites, and misconceptions
+- P0-20: define the item blueprint schema for scalable question generation
+- P0-21: define designed-difficulty scoring rules and observed-difficulty recalibration rules
+- P0-22: define theme-pack restrictions so theme rendering never changes academic hardness
+- P0-23: define safe image-scene and asset-pack rules for visual questions
 
 ## P1: MVP Product Build
 
@@ -57,6 +62,10 @@ Priority meaning:
 - P1-14: parent summary after session
 - P1-15: feedback capture for parents and teachers
 - P1-16: baseline analytics dashboard for internal use
+- P1-17: blueprint-driven question factory v1
+- P1-18: theme-aware image and scene renderer for visual-first items
+- P1-19: generated-item review queue for child-facing content approval
+- P1-20: misconception-linked explainer library with reinforcement items
 
 ## P2: Adaptive Intelligence and Reporting
 
@@ -73,6 +82,10 @@ Priority meaning:
 - P2-10: AI feedback triage into bug, enhancement, content issue, safety, and product insight
 - P2-11: teacher / school dashboard v1
 - P2-12: intervention and enrichment grouping suggestions
+- P2-13: observed item calibration and low-quality item retirement rules
+- P2-14: item-performance analytics by skill, difficulty, and theme pack
+- P2-15: question-factory expansion into enrichment and stretch content
+- P2-16: learner skill-state model that separates mastery from engagement
 
 ## P3: Content and Engagement Expansion
 
@@ -89,6 +102,8 @@ Priority meaning:
 - P3-11: self-paced assignment mode for parent and teacher assigned play
 - P3-12: teacher-hosted live challenge mode with safe join flow
 - P3-13: challenge recap and question review reports
+- P3-14: large-scale theme-pack expansion across sports, arts, animals, building, and other approved families
+- P3-15: multi-subject question factory expansion for science, social studies, logic, and world knowledge
 
 ## P4: Platform Maturity and Growth
 
@@ -102,6 +117,8 @@ Priority meaning:
 - P4-08: advanced observability and alerting
 - P4-09: seasonal content operations workflow
 - P4-10: native app packaging if later justified
+- P4-11: advanced content operations console for blueprint, item, asset, and explainer review
+- P4-12: psychometric and benchmark calibration improvements if later justified by scale and data
 
 ## Recommended Enhancements
 
@@ -128,6 +145,10 @@ These are not all day-one features, but they are strong backlog candidates.
 - enhancement-15: guided challenge sets for competition-ready students
 - enhancement-19: quiz-show round formats such as lightning round, review round, and final challenge
 - enhancement-20: teacher or parent hosted family challenge sessions
+- enhancement-22: theme-personalized render packs that preserve academic equivalence
+- enhancement-23: content freshness engine that rotates equivalent question variants instead of repeating identical items
+- enhancement-24: stretch-path content for learners consistently performing above their current band
+- enhancement-25: misconception-specific reinforcement ladders across subjects
 
 ## Recommended Operating Backlog
 
@@ -139,6 +160,9 @@ These are not all day-one features, but they are strong backlog candidates.
 - ops-06: define release train and environment strategy
 - ops-07: define dashboard ownership and reporting cadence
 - ops-08: define data retention and privacy rules
+- ops-09: define content-authoring review roles and approval stages
+- ops-10: define item retirement, rework, and calibration review cadence
+- ops-11: define theme-asset licensing and trademark review rules
 
 ## Recommended Design Backlog
 
@@ -151,6 +175,8 @@ These are not all day-one features, but they are strong backlog candidates.
 - design-07: resume-session experience after inactivity
 - design-08: child challenge-choice UI patterns
 - design-09: explainer video and voice pattern library by age band
+- design-10: visual scene-template system for low-text and visual-first questions
+- design-11: theme-asset equivalence rules so the same skill renders consistently across themes
 
 ## Recommended AI Backlog
 
@@ -164,6 +190,9 @@ These are not all day-one features, but they are strong backlog candidates.
 - ai-08: recommend the next best content block for each learner
 - ai-09: interpret child challenge requests into safe age-appropriate challenge paths
 - ai-10: choose the best explainer modality for a child based on history
+- ai-11: generate draft item variations from approved blueprints for internal review only
+- ai-12: detect weak distractors, duplicate items, and likely item leakage
+- ai-13: recommend recalibration when observed item difficulty drifts from designed difficulty
 
 ## Explicitly Out of Scope For Early Releases
 

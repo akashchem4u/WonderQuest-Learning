@@ -3,6 +3,8 @@ import { buildTracks, launchBands } from "@/lib/launch-plan";
 import { getLaunchStatus } from "@/lib/server-launch-status";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const launchStatus = await getLaunchStatus();
 
@@ -64,6 +66,9 @@ export default async function HomePage() {
         </Link>
         <Link className="secondary-link" href="/parent">
           Parent setup
+        </Link>
+        <Link className="secondary-link" href="/owner">
+          Owner view
         </Link>
       </section>
     </main>

@@ -4,16 +4,89 @@ import Link from "next/link";
 import { useState } from "react";
 import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
 
-const children = [
-  "Ava - Animal Adventure",
-  "Noah - Sports World",
-  "Mia - Space Explorer",
-];
+type ParentAccessResponse = {
+  guardian: {
+    id: string;
+    username: string;
+    displayName: string;
+  };
+  linkedChild: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarKey: string;
+    launchBandCode: string;
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  } | null;
+  linkedChildren: {
+    id: string;
+    username: string;
+    displayName: string;
+    avatarKey: string;
+    launchBandCode: string;
+    totalPoints: number;
+    currentLevel: number;
+    badgeCount: number;
+    trophyCount: number;
+  }[];
+};
 
 export default function ParentAccessPage() {
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
-  const [selectedChild, setSelectedChild] = useState(children[0]);
+  const [username, setUsername] = useState("");
+  const [pin, setPin] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [childUsername, setChildUsername] = useState("");
+  const [relationship, setRelationship] = useState("parent");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [result, setResult] = useState<ParentAccessResponse | null>(null);
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSubmitting(true);
+    setError("");
+
+    try {
+      const response = await fetch("/api/parent/access", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username,
+          pin,
+          displayName,
+          childUsername,
+          relationship,
+          notifyWeekly,
+          notifyMilestones,
+        }),
+      });
+
+      const payload = (await response.json()) as ParentAccessResponse & {
+        error?: string;
+      };
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Parent access failed.");
+      }
+
+      setResult(payload);
+    } catch (caughtError) {
+      setError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Parent access failed.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <main className="page-shell page-shell-split">
@@ -22,73 +95,140 @@ export default function ParentAccessPage() {
           <span className="eyebrow">WonderQuest Learning</span>
           <h1>Parent quick access and child linkage.</h1>
           <p>
-            Use the same lightweight access model, connect to your child, and
-            choose the notifications you actually want.
+            Use the same lightweight access model, connect to a child profile,
+            and choose the notifications that matter.
           </p>
         </div>
         <div className="hero-route-summary">
-          <StatTile label="Parent view" value="Linked" detail="Child-aware reporting" />
-          <StatTile label="Notifications" value="Opt-in" detail="Quiet hours friendly" />
-          <StatTile label="Signals" value="Time + effectiveness" detail="Not just points" />
+          <StatTile
+            label="Parent view"
+            value="Linked"
+            detail="Child-aware reporting"
+          />
+          <StatTile
+            label="Notifications"
+            value="Opt-in"
+            detail="Quiet-hours friendly"
+          />
+          <StatTile
+            label="Signals"
+            value="Effectiveness"
+            detail="Time plus learning quality"
+          />
         </div>
       </section>
 
-      <section className="route-grid">
+      <form className="route-grid" onSubmit={handleSubmit}>
         <ShellCard eyebrow="Step 1" title="Parent access">
           <div className="field-grid">
-            <FieldBlock label="Username" placeholder="parent username" />
-            <FieldBlock label="4-digit PIN" placeholder="0000" type="password" helper="Quick access for setup and review." />
-            <FieldBlock label="Display name" placeholder="Parent name" helper="Shown in summary views." />
+            <FieldBlock
+              autoComplete="username"
+              label="Username"
+              onChange={(event) => setUsername(event.target.value)}
+              placeholder="parent username"
+              value={username}
+            />
+            <FieldBlock
+              autoComplete="current-password"
+              helper="Quick access for the prototype."
+              label="4-digit PIN"
+              maxLength={4}
+              onChange={(event) => setPin(event.target.value)}
+              placeholder="0000"
+              type="password"
+              value={pin}
+            />
+            <FieldBlock
+              helper="Shown in summaries and notifications."
+              label="Display name"
+              onChange={(event) => setDisplayName(event.target.value)}
+              placeholder="Parent name"
+              value={displayName}
+            />
           </div>
         </ShellCard>
 
-        <ShellCard eyebrow="Step 2" title="Link your child">
+        <ShellCard eyebrow="Step 2" title="Link a child profile">
           <div className="field-grid">
-            <FieldBlock label="Child username" placeholder="child quest name" />
-            <FieldBlock label="Child display name" placeholder="what you call them" />
-            <FieldBlock label="Relationship" placeholder="parent, guardian, etc." />
-          </div>
-          <div className="choice-row">
-            {children.map((child) => (
-              <ChoiceChip
-                key={child}
-                label={child}
-                selected={selectedChild === child}
-                accent="#1f8f6a"
-                onClick={() => setSelectedChild(child)}
-              />
-            ))}
+            <FieldBlock
+              helper="Use the child username already created in the app."
+              label="Child username"
+              onChange={(event) => setChildUsername(event.target.value)}
+              placeholder="child quest name"
+              value={childUsername}
+            />
+            <FieldBlock
+              label="Relationship"
+              onChange={(event) => setRelationship(event.target.value)}
+              placeholder="parent, guardian, etc."
+              value={relationship}
+            />
           </div>
           <p className="soft-copy">
-            Link the right child profile so points and progress stay connected.
+            You can sign in without linking right away, or connect a child in the
+            same step.
           </p>
         </ShellCard>
 
         <ShellCard eyebrow="Step 3" title="Notification preferences">
           <div className="choice-column">
-            <button className={`mode-card ${notifyWeekly ? "is-selected" : ""}`} onClick={() => setNotifyWeekly((value) => !value)} type="button">
+            <button
+              className={`mode-card ${notifyWeekly ? "is-selected" : ""}`}
+              onClick={() => setNotifyWeekly((value) => !value)}
+              type="button"
+            >
               Weekly summary
-              <span>Time spent, effectiveness, and next focus.</span>
+              <span>Time spent, effectiveness, and next focus areas.</span>
             </button>
-            <button className={`mode-card ${notifyMilestones ? "is-selected" : ""}`} onClick={() => setNotifyMilestones((value) => !value)} type="button">
+            <button
+              className={`mode-card ${notifyMilestones ? "is-selected" : ""}`}
+              onClick={() => setNotifyMilestones((value) => !value)}
+              type="button"
+            >
               Milestones and badges
               <span>Celebrate progress without noisy reminders.</span>
             </button>
           </div>
         </ShellCard>
 
-        <ShellCard eyebrow="Preview" title="What you will see">
+        <ShellCard eyebrow="Result" title="Parent summary preview">
           <ul className="route-list">
             <li>Subject and domain progress charts.</li>
             <li>Time spent versus learning effectiveness.</li>
             <li>Strengths, support areas, and challenge readiness.</li>
-            <li>Feedback on bugs, enhancements, and content issues later.</li>
+            <li>Feedback capture for bugs, enhancements, and content issues.</li>
           </ul>
-          <Link className="primary-link" href="/">
-            Home
-          </Link>
+          {error ? <p className="status-banner status-error">{error}</p> : null}
+          {result ? (
+            <div className="status-panel">
+              <strong>{result.guardian.displayName} is linked.</strong>
+              <p>
+                {result.linkedChildren.length} child profile
+                {result.linkedChildren.length === 1 ? "" : "s"} available in
+                this parent view.
+              </p>
+              <div className="summary-chip-row">
+                {result.linkedChildren.map((child) => (
+                  <ChoiceChip
+                    key={child.id}
+                    label={`${child.displayName} · L${child.currentLevel} · ${child.totalPoints} pts`}
+                    selected={result.linkedChild?.id === child.id}
+                    accent="#1f8f6a"
+                  />
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="form-actions">
+            <button className="primary-link button-link" disabled={submitting} type="submit">
+              {submitting ? "Saving..." : "Save parent access"}
+            </button>
+            <Link className="secondary-link" href="/owner">
+              Owner view
+            </Link>
+          </div>
         </ShellCard>
-      </section>
+      </form>
     </main>
   );
 }

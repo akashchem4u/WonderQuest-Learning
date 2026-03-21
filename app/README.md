@@ -10,4 +10,13 @@ Current intent:
 - web-first responsive experience
 - local-first development before deployment
 
-Deployment will be handled later.
+Current scripts:
+
+- `npm run build`
+- `npm run db:apply`
+- `npm run db:sync-launch`
+
+Deployment target:
+
+- Render for the first hosted prototype
+- Supabase for data and persistence

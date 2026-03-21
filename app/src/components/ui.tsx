@@ -1,7 +1,9 @@
+import type { ChangeEventHandler, ReactNode } from "react";
+
 type CardProps = {
   title: string;
   eyebrow?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 };
 
 export function ShellCard({ title, eyebrow, children }: CardProps) {
@@ -54,16 +56,42 @@ export function ChoiceChip({ label, selected, accent, onClick }: ChoiceProps) {
 
 type FieldProps = {
   label: string;
+  name?: string;
   placeholder?: string;
   helper?: string;
   type?: string;
+  value?: string;
+  onChange?: ChangeEventHandler<HTMLInputElement>;
+  autoComplete?: string;
+  maxLength?: number;
+  disabled?: boolean;
 };
 
-export function FieldBlock({ label, placeholder, helper, type = "text" }: FieldProps) {
+export function FieldBlock({
+  label,
+  name,
+  placeholder,
+  helper,
+  type = "text",
+  value,
+  onChange,
+  autoComplete,
+  maxLength,
+  disabled,
+}: FieldProps) {
   return (
     <label className="field-block">
       <span>{label}</span>
-      <input type={type} placeholder={placeholder} />
+      <input
+        autoComplete={autoComplete}
+        disabled={disabled}
+        maxLength={maxLength}
+        name={name}
+        onChange={onChange}
+        placeholder={placeholder}
+        type={type}
+        value={value}
+      />
       {helper ? <small>{helper}</small> : null}
     </label>
   );

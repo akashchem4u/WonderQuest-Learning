@@ -21,6 +21,8 @@ This project started as a simple soccer learning prototype and is now being refr
 - [docs/PRODUCT_STRATEGY.md](./docs/PRODUCT_STRATEGY.md): product vision, audience model, AI direction, safety guardrails, data model, and long-term product shape
 - [docs/EXECUTION_STRATEGY.md](./docs/EXECUTION_STRATEGY.md): delivery strategy, technology recommendation, phased roadmap, risks, success metrics, and immediate next steps
 - [docs/PRODUCT_BACKLOG.md](./docs/PRODUCT_BACKLOG.md): prioritized backlog for MVP, adaptive features, teacher / school capabilities, platform work, and recommended enhancements
+- [docs/QUESTION_FACTORY_STRATEGY.md](./docs/QUESTION_FACTORY_STRATEGY.md): scalable 1M+ question, explainer, image, and grading architecture
+- [docs/RENDER_SETUP.md](./docs/RENDER_SETUP.md): deployment checklist and environment wiring for Render
 
 ## Legacy Prototype
 
