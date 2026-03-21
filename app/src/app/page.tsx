@@ -1,5 +1,6 @@
 import { SectionCard } from "@/components/section-card";
 import { buildTracks, launchBands } from "@/lib/launch-plan";
+import Link from "next/link";
 
 export default function HomePage() {
   return (
@@ -48,6 +49,15 @@ export default function HomePage() {
             items={track.items}
           />
         ))}
+      </section>
+
+      <section className="entry-links">
+        <Link className="primary-link" href="/child">
+          Child access
+        </Link>
+        <Link className="secondary-link" href="/parent">
+          Parent setup
+        </Link>
       </section>
     </main>
   );
