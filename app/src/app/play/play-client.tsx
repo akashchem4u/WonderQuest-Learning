@@ -127,6 +127,52 @@ function buildReadAloudText(question: SessionQuestion, scene: QuestionVisualScen
   return `${sceneLead} ${question.prompt} Let us go one step at a time. Choices are ${answers}.`;
 }
 
+function buildPromptCue(question: SessionQuestion, scene: QuestionVisualScene | null) {
+  if (scene) {
+    return scene.helper;
+  }
+
+  if (question.subject === "math") {
+    return "Look carefully and tap the answer you see.";
+  }
+
+  if (question.subject === "early-literacy") {
+    return "Listen first, then tap the right letter or word.";
+  }
+
+  return "Listen, look, and tap your choice.";
+}
+
+function buildCelebrationCopy(question: SessionQuestion) {
+  if (question.subject === "math") {
+    return {
+      title: "Great counting!",
+      body: "You found the right answer and kept your quest moving.",
+    };
+  }
+
+  if (question.subject === "early-literacy") {
+    return {
+      title: "Great listening!",
+      body: "You heard the clue and tapped the right answer.",
+    };
+  }
+
+  return {
+    title: "Great job!",
+    body: "You got this one right and earned more quest points.",
+  };
+}
+
+function buildShortSupportLine(script: string) {
+  const firstSentence = script
+    .split(/[.!?]/)
+    .map((part) => part.trim())
+    .find(Boolean);
+
+  return firstSentence ? `${firstSentence}.` : script;
+}
+
 function pickChildVoice(
   voices: SpeechSynthesisVoice[],
   launchBandCode: string,
@@ -519,6 +565,11 @@ export default function PlayClient() {
     session.student.launchBandCode,
   );
   const earlyLearnerMode = isEarlyLearnerBand(session.student.launchBandCode);
+  const visibleQuestionTags = earlyLearnerMode
+    ? questionTags.slice(0, 2)
+    : questionTags;
+  const celebrationCopy = buildCelebrationCopy(currentQuestion);
+  const promptCue = buildPromptCue(currentQuestion, currentScene);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -526,37 +577,58 @@ export default function PlayClient() {
         <section className="page-hero play-hero">
           <div>
             <span className="eyebrow">Live challenge</span>
-            <h1>{session.student.displayName}&apos;s active quest loop.</h1>
+            <h1>
+              {earlyLearnerMode
+                ? `${session.student.displayName}&apos;s quick quest is ready.`
+                : `${session.student.displayName}&apos;s active quest loop.`}
+            </h1>
             <p>
-              This is the first playable Supabase-backed session flow with retries,
-              explainers, and persistent progression.
+              {earlyLearnerMode
+                ? "Short, guided questions with voice support, visuals, and fast wins."
+                : "This is the first playable Supabase-backed session flow with retries, explainers, and persistent progression."}
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">{session.student.launchBandCode} band</span>
               <span className="summary-chip">
-                Attempt {attempt} on current question
+                {earlyLearnerMode
+                  ? `Question ${questionNumber} of ${session.questions.length}`
+                  : `Attempt ${attempt} on current question`}
               </span>
               <span className="summary-chip">
-                {session.questions.length} total prompts
+                {earlyLearnerMode ? "Listen, look, tap" : `${session.questions.length} total prompts`}
               </span>
             </div>
           </div>
-          <div className="hero-route-summary">
+          <div className={`hero-route-summary ${earlyLearnerMode ? "hero-route-summary-kid" : ""}`}>
             <StatTile
-              label="Session mode"
-              value={sessionMode === "guided-quest" ? "Guided" : "Challenge"}
-              detail={`Question ${questionNumber} of ${session.questions.length}`}
+              label={earlyLearnerMode ? "Quest step" : "Session mode"}
+              value={
+                earlyLearnerMode
+                  ? `${questionNumber}/${session.questions.length}`
+                  : sessionMode === "guided-quest"
+                    ? "Guided"
+                    : "Challenge"
+              }
+              detail={
+                earlyLearnerMode
+                  ? "One tap answer at a time"
+                  : `Question ${questionNumber} of ${session.questions.length}`
+              }
             />
-            <StatTile
-              label="Level"
-              value={`L${progression?.currentLevel ?? 1}`}
-              detail={`${progression?.totalPoints ?? 0} points`}
-            />
-            <StatTile
-              label="Rewards"
-              value={`${progression?.badgeCount ?? 0} badges`}
-              detail={`${progression?.trophyCount ?? 0} trophies`}
-            />
+            {!earlyLearnerMode ? (
+              <>
+                <StatTile
+                  label="Level"
+                  value={`L${progression?.currentLevel ?? 1}`}
+                  detail={`${progression?.totalPoints ?? 0} points`}
+                />
+                <StatTile
+                  label="Rewards"
+                  value={`${progression?.badgeCount ?? 0} badges`}
+                  detail={`${progression?.trophyCount ?? 0} trophies`}
+                />
+              </>
+            ) : null}
           </div>
         </section>
 
@@ -564,34 +636,66 @@ export default function PlayClient() {
           <ShellCard
             className="shell-card-spotlight question-stage"
             eyebrow="Question"
-            title={finished ? "Session complete" : currentQuestion.prompt}
+            title={
+              finished
+                ? earlyLearnerMode
+                  ? "Quest complete"
+                  : "Session complete"
+                : earlyLearnerMode && currentScene
+                  ? currentScene.title
+                  : currentQuestion.prompt
+            }
           >
             {finished ? (
-              <div className="status-panel">
-                <strong>Session complete.</strong>
+              <div className="status-panel status-success celebration-panel">
+                {earlyLearnerMode ? (
+                  <div className="celebration-burst" aria-hidden="true">
+                    <span>✨</span>
+                    <span>🏆</span>
+                    <span>✨</span>
+                  </div>
+                ) : null}
+                <strong>{earlyLearnerMode ? "Quest complete!" : "Session complete."}</strong>
                 <p>
-                  {session.student.displayName} finished the current loop with{" "}
-                  {progression?.totalPoints ?? 0} total points and level{" "}
-                  {progression?.currentLevel ?? 1}.
+                  {earlyLearnerMode
+                    ? `${session.student.displayName} finished all ${session.questions.length} quick challenge steps.`
+                    : `${session.student.displayName} finished the current loop with ${progression?.totalPoints ?? 0} total points and level ${progression?.currentLevel ?? 1}.`}
                 </p>
+                <div className="summary-chip-row">
+                  <span className="summary-chip">
+                    Level {progression?.currentLevel ?? 1}
+                  </span>
+                  <span className="summary-chip">
+                    {progression?.totalPoints ?? 0} points
+                  </span>
+                  <span className="summary-chip">
+                    {progression?.badgeCount ?? 0} badges ·{" "}
+                    {progression?.trophyCount ?? 0} trophies
+                  </span>
+                </div>
+                <div className="form-actions">
+                  <Link className="primary-link" href="/child">
+                    Play again
+                  </Link>
+                  <Link className="secondary-link" href="/parent">
+                    Parent view
+                  </Link>
+                </div>
               </div>
             ) : (
               <>
                 <div className="summary-chip-row">
-                  {questionTags.map((tag) => (
+                  {visibleQuestionTags.map((tag) => (
                     <span className="summary-chip" key={tag}>
                       {tag}
                     </span>
                   ))}
                 </div>
                 {earlyLearnerMode ? (
-                  <div className="question-support-row">
+                  <div className="question-support-row question-support-row-early">
                     <div className="support-copy">
-                      <strong>Listen first</strong>
-                      <p>
-                        Younger learners can hear the prompt and then answer by
-                        looking at the visuals.
-                      </p>
+                      <strong>Listen, look, then tap</strong>
+                      <p>{promptCue}</p>
                     </div>
                     {voiceEnabled ? (
                       <button
@@ -616,9 +720,17 @@ export default function PlayClient() {
                 <div className="progress-rail" aria-hidden="true">
                   <span style={{ width: `${progressPercent}%` }} />
                 </div>
-                <p className="soft-copy progress-copy">
-                  Quest progress: {progressPercent}% complete
+                <p className={`soft-copy progress-copy ${earlyLearnerMode ? "progress-copy-early" : ""}`}>
+                  {earlyLearnerMode
+                    ? `Step ${questionNumber} of ${session.questions.length}`
+                    : `Quest progress: ${progressPercent}% complete`}
                 </p>
+                {earlyLearnerMode ? (
+                  <div className="kid-prompt-bubble">
+                    <span className="kid-prompt-label">Say it simply</span>
+                    <strong>{currentQuestion.prompt}</strong>
+                  </div>
+                ) : null}
                 {currentScene ? (
                   <div className="visual-scene" aria-label={currentScene.title}>
                     <div className="visual-scene-copy">
@@ -662,7 +774,7 @@ export default function PlayClient() {
                 <div className="answer-grid">
                   {currentQuestion.answers.map((answer, index) => (
                     <button
-                      className="answer-card"
+                      className={`answer-card ${earlyLearnerMode ? "answer-card-early" : ""}`}
                       disabled={submitting || Boolean(answerState?.correct)}
                       key={answer}
                       onClick={() => void submitAnswer(answer)}
@@ -679,11 +791,19 @@ export default function PlayClient() {
             )}
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {answerState?.correct && !finished ? (
-              <div className="status-panel status-success">
-                <strong>Nice work.</strong>
+              <div className={`status-panel status-success ${earlyLearnerMode ? "celebration-panel" : ""}`}>
+                {earlyLearnerMode ? (
+                  <div className="celebration-burst" aria-hidden="true">
+                    <span>✨</span>
+                    <span>⭐</span>
+                    <span>✨</span>
+                  </div>
+                ) : null}
+                <strong>{earlyLearnerMode ? celebrationCopy.title : "Nice work."}</strong>
                 <p>
-                  +{answerState.pointsEarned} points. Correct answer locked in for
-                  this question.
+                  {earlyLearnerMode
+                    ? celebrationCopy.body
+                    : `+${answerState.pointsEarned} points. Correct answer locked in for this question.`}
                 </p>
                 <div className="summary-chip-row">
                   <span className="summary-chip">
@@ -718,31 +838,51 @@ export default function PlayClient() {
             >
               <div className="reward-strip">
                 <StatTile
-                  label="Question"
+                  label={earlyLearnerMode ? "Quest step" : "Question"}
                   value={`${questionNumber}/${session.questions.length}`}
-                  detail={`${progressPercent}% through this loop`}
+                  detail={
+                    earlyLearnerMode
+                      ? "Short guided challenge"
+                      : `${progressPercent}% through this loop`
+                  }
                 />
-                <StatTile
-                  label="Points"
-                  value={`${progression?.totalPoints ?? 0}`}
-                  detail={`Level ${progression?.currentLevel ?? 1}`}
-                />
+                {!earlyLearnerMode ? (
+                  <StatTile
+                    label="Points"
+                    value={`${progression?.totalPoints ?? 0}`}
+                    detail={`Level ${progression?.currentLevel ?? 1}`}
+                  />
+                ) : null}
               </div>
             </ShellCard>
 
             <ShellCard eyebrow="Support" title="Adaptive help and recovery">
               {answerState?.needsRetry && answerState.explainer ? (
-                <div className="status-panel">
-                  <strong>Quick explainer ready.</strong>
-                  <p>{answerState.explainer.script}</p>
-                  <p className="soft-copy">
-                    Format: {answerState.explainer.format} · Media hint:{" "}
-                    {answerState.explainer.mediaHint}
-                  </p>
-                  <p className="soft-copy">
-                    Retry the same question after the explanation. Second-attempt
-                    wins still earn recovery points.
-                  </p>
+                <div className={`status-panel ${earlyLearnerMode ? "guide-panel" : ""}`}>
+                  {earlyLearnerMode ? (
+                    <div className="guide-row">
+                      <span className="guide-mascot" aria-hidden="true">
+                        🦉
+                      </span>
+                      <div>
+                        <strong>Let&apos;s try together.</strong>
+                        <p>{buildShortSupportLine(answerState.explainer.script)}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <strong>Quick explainer ready.</strong>
+                      <p>{answerState.explainer.script}</p>
+                      <p className="soft-copy">
+                        Format: {answerState.explainer.format} · Media hint:{" "}
+                        {answerState.explainer.mediaHint}
+                      </p>
+                      <p className="soft-copy">
+                        Retry the same question after the explanation. Second-attempt
+                        wins still earn recovery points.
+                      </p>
+                    </>
+                  )}
                   {voiceEnabled && earlyLearnerMode ? (
                     <div className="form-actions">
                       <button
@@ -758,11 +898,27 @@ export default function PlayClient() {
                   ) : null}
                 </div>
               ) : (
-                <ul className="route-list">
-                  <li>Wrong answers trigger explainers instead of dead ends.</li>
-                  <li>Correct retries still earn points and keep motivation up.</li>
-                  <li>Progression updates immediately after each correct answer.</li>
-                </ul>
+                <>
+                  {earlyLearnerMode ? (
+                    <div className="status-panel guide-panel">
+                      <div className="guide-row">
+                        <span className="guide-mascot" aria-hidden="true">
+                          🌈
+                        </span>
+                        <div>
+                          <strong>We help, then we try again.</strong>
+                          <p>Misses are okay here. The next help step stays short and calm.</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <ul className="route-list">
+                      <li>Wrong answers trigger explainers instead of dead ends.</li>
+                      <li>Correct retries still earn points and keep motivation up.</li>
+                      <li>Progression updates immediately after each correct answer.</li>
+                    </ul>
+                  )}
+                </>
               )}
               {answerState?.milestones.leveledUp ? (
                 <p className="status-banner status-success">Level up unlocked.</p>

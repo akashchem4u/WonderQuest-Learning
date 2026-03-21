@@ -39,6 +39,7 @@ export default function ChildAccessPage() {
   const [result, setResult] = useState<ChildAccessResponse | null>(null);
 
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
+  const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
 
   useEffect(() => {
     if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
@@ -94,15 +95,24 @@ export default function ChildAccessPage() {
         <section className="page-hero child-hero">
           <div>
             <span className="eyebrow">Child journey</span>
-            <h1>Pick your hero, press start, and jump into your next quest.</h1>
+            <h1>
+              {earlyLearnerBand
+                ? "Pick a picture, tap start, and let the quest guide the child."
+                : "Pick your hero, press start, and jump into your next quest."}
+            </h1>
             <p>
-              Lightweight access for children, but with enough structure to keep
-              progress, badges, and challenge history intact across devices.
+              {earlyLearnerBand
+                ? "For younger learners, keep this setup calm and quick. After that, the play flow should do the teaching."
+                : "Lightweight access for children, but with enough structure to keep progress, badges, and challenge history intact across devices."}
             </p>
             <div className="summary-chip-row">
-              <span className="summary-chip">1 minute setup</span>
+              <span className="summary-chip">
+                {earlyLearnerBand ? "Quick grown-up setup" : "1 minute setup"}
+              </span>
               <span className="summary-chip">Saved progression</span>
-              <span className="summary-chip">Explainers on misses</span>
+              <span className="summary-chip">
+                {earlyLearnerBand ? "Voice + visual help" : "Explainers on misses"}
+              </span>
             </div>
           </div>
           <div className="hero-route-summary hero-route-summary-kid">
@@ -139,7 +149,9 @@ export default function ChildAccessPage() {
               ))}
             </div>
             <p className="soft-copy">
-              This shapes question language, support level, and explainer style.
+              {earlyLearnerBand
+                ? "This sets the voice pace, support level, and visual style."
+                : "This shapes question language, support level, and explainer style."}
             </p>
           </ShellCard>
 
@@ -199,11 +211,15 @@ export default function ChildAccessPage() {
               ))}
             </div>
             <p className="soft-copy">
-              Avatars make it easy for younger kids to recognize their profile.
+              {earlyLearnerBand
+                ? "Use the same picture each time so the child can spot the right profile fast."
+                : "Avatars make it easy for younger kids to recognize their profile."}
             </p>
             <div className="status-banner">
-              <strong>Quest tip:</strong> choose the same avatar each time so younger
-              learners can find their account faster.
+              <strong>Quest tip:</strong>{" "}
+              {earlyLearnerBand
+                ? "little learners do best when the picture and PIN stay the same."
+                : "choose the same avatar each time so younger learners can find their account faster."}
             </div>
           </ShellCard>
 
@@ -246,9 +262,21 @@ export default function ChildAccessPage() {
           >
             <span className="step-chip">Step 5 · Launch</span>
             <ul className="route-list">
-              <li>Points, badges, trophies, and progress stay attached to the profile.</li>
-              <li>Wrong answers lead to quick explainers instead of dead ends.</li>
-              <li>Parents can link later and review time spent and effectiveness.</li>
+              <li>
+                {earlyLearnerBand
+                  ? "The child should get short, guided questions right away."
+                  : "Points, badges, trophies, and progress stay attached to the profile."}
+              </li>
+              <li>
+                {earlyLearnerBand
+                  ? "Misses should lead to quick voice and visual help."
+                  : "Wrong answers lead to quick explainers instead of dead ends."}
+              </li>
+              <li>
+                {earlyLearnerBand
+                  ? "Parents can come back later to review progress."
+                  : "Parents can link later and review time spent and effectiveness."}
+              </li>
             </ul>
             {error ? <p className="status-banner status-error">{error}</p> : null}
             {result ? (
