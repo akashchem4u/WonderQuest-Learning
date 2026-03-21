@@ -7,6 +7,7 @@
 
 ## Current implementation mode
 - Single-agent implementation (not multi-agent mode in this run).
+- Multi-track delivery approach: UI shell, route UX, and QA are being iterated in fast sequential batches.
 
 ## Estimated remaining effort
 - UI/product polish pass + consistency fixes: **4-6 hours**

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -111,6 +112,7 @@ export function AppFrame({
             <span>Web-first prototype</span>
             <strong>Ready across phone, tablet, and laptop screens.</strong>
           </div>
+          <DisplayModeToggle />
           <nav aria-label="Primary" className="app-nav">
             {navItems.map((item) => {
               const isActive = currentPath === item.href;
