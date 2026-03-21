@@ -236,6 +236,13 @@ async function getChildDashboard(studentId: string) {
           where cs.student_id = $1
         ) as total_time_spent_ms,
         (
+          select coalesce(sum(sr.effective_time_ms), 0)
+          from public.session_results sr
+          join public.challenge_sessions cs
+            on cs.id = sr.session_id
+          where cs.student_id = $1
+        ) as effective_time_spent_ms,
+        (
           select round(avg(effectiveness_score), 1)
           from public.challenge_sessions
           where student_id = $1 and effectiveness_score is not null
@@ -245,6 +252,23 @@ async function getChildDashboard(studentId: string) {
           from public.challenge_sessions
           where student_id = $1
         ) as last_session_at
+    `,
+    [studentId],
+  );
+
+  const recentSessions = await db.query(
+    `
+      select
+        id,
+        session_mode,
+        started_at,
+        ended_at,
+        effectiveness_score,
+        total_questions
+      from public.challenge_sessions
+      where student_id = $1
+      order by started_at desc
+      limit 4
     `,
     [studentId],
   );
@@ -278,22 +302,66 @@ async function getChildDashboard(studentId: string) {
     attempts: Number(row.attempts ?? 0),
   }));
 
+  const sessionCount = Number(summary.rows[0]?.session_count ?? 0);
+  const completedSessions = Number(summary.rows[0]?.completed_session_count ?? 0);
+  const totalTimeSpentMs = Number(summary.rows[0]?.total_time_spent_ms ?? 0);
+  const effectiveTimeSpentMs = Number(
+    summary.rows[0]?.effective_time_spent_ms ?? 0,
+  );
+  const averageEffectiveness =
+    summary.rows[0]?.average_effectiveness === null
+      ? null
+      : Number(summary.rows[0]?.average_effectiveness);
+  const strengths = [...mappedMastery]
+    .sort((left, right) => right.masteryRate - left.masteryRate)
+    .slice(0, 3);
+  const supportAreas = [...mappedMastery]
+    .sort((left, right) => left.masteryRate - right.masteryRate)
+    .slice(0, 3);
+  const completionRate =
+    sessionCount > 0 ? Math.round((completedSessions / sessionCount) * 100) : null;
+  const effectiveRatio =
+    totalTimeSpentMs > 0
+      ? Math.round((effectiveTimeSpentMs / totalTimeSpentMs) * 100)
+      : null;
+  const recommendedFocus =
+    supportAreas[0]?.displayName ??
+    strengths[0]?.displayName ??
+    "Keep playing to unlock clearer patterns";
+  const readinessLabel =
+    averageEffectiveness === null
+      ? "Building baseline"
+      : averageEffectiveness >= 85
+        ? "Ready for harder content"
+        : averageEffectiveness >= 65
+          ? "On track with support"
+          : "Needs guided practice";
+
   return {
     studentId,
-    sessionCount: Number(summary.rows[0]?.session_count ?? 0),
-    completedSessions: Number(summary.rows[0]?.completed_session_count ?? 0),
-    totalTimeSpentMs: Number(summary.rows[0]?.total_time_spent_ms ?? 0),
-    averageEffectiveness:
-      summary.rows[0]?.average_effectiveness === null
-        ? null
-        : Number(summary.rows[0]?.average_effectiveness),
+    sessionCount,
+    completedSessions,
+    totalTimeSpentMs,
+    effectiveTimeSpentMs,
+    averageEffectiveness,
+    completionRate,
+    effectiveRatio,
     lastSessionAt: (summary.rows[0]?.last_session_at as string | undefined) ?? null,
-    strengths: [...mappedMastery]
-      .sort((left, right) => right.masteryRate - left.masteryRate)
-      .slice(0, 3),
-    supportAreas: [...mappedMastery]
-      .sort((left, right) => left.masteryRate - right.masteryRate)
-      .slice(0, 3),
+    strengths,
+    supportAreas,
+    recommendedFocus,
+    readinessLabel,
+    recentSessions: recentSessions.rows.map((row) => ({
+      id: row.id as string,
+      sessionMode: row.session_mode as string,
+      startedAt: row.started_at as string,
+      endedAt: (row.ended_at as string | undefined) ?? null,
+      effectivenessScore:
+        row.effectiveness_score === null
+          ? null
+          : Number(row.effectiveness_score),
+      totalQuestions: Number(row.total_questions ?? 0),
+    })),
   };
 }
 

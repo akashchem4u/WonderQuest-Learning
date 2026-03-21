@@ -39,8 +39,13 @@ type ParentAccessResponse = {
     sessionCount: number;
     completedSessions: number;
     totalTimeSpentMs: number;
+    effectiveTimeSpentMs: number;
     averageEffectiveness: number | null;
+    completionRate: number | null;
+    effectiveRatio: number | null;
     lastSessionAt: string | null;
+    recommendedFocus: string;
+    readinessLabel: string;
     strengths: {
       skillCode: string;
       displayName: string;
@@ -53,11 +58,40 @@ type ParentAccessResponse = {
       masteryRate: number;
       attempts: number;
     }[];
+    recentSessions: {
+      id: string;
+      sessionMode: string;
+      startedAt: string;
+      endedAt: string | null;
+      effectivenessScore: number | null;
+      totalQuestions: number;
+    }[];
   } | null;
 };
 
 function formatMinutes(totalTimeSpentMs: number) {
   return `${Math.round((totalTimeSpentMs / 60000) * 10) / 10} min`;
+}
+
+function formatPercent(value: number | null) {
+  return value === null ? "n/a" : `${value}%`;
+}
+
+function formatSessionMode(value: string) {
+  return value === "self-directed-challenge" ? "Self-directed" : "Guided";
+}
+
+function formatLastSeen(value: string | null) {
+  if (!value) {
+    return "Not yet started";
+  }
+
+  return new Date(value).toLocaleString([], {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
 
 export default function ParentAccessPage() {
@@ -71,6 +105,8 @@ export default function ParentAccessPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
+  const primaryChild = result?.linkedChild ?? result?.linkedChildren[0] ?? null;
+  const childDashboard = result?.childDashboard ?? null;
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -241,7 +277,7 @@ export default function ParentAccessPage() {
           <ShellCard
             className="shell-card-spotlight"
             eyebrow="Result"
-            title="Parent summary preview"
+            title="Parent dashboard"
           >
             <ul className="route-list">
               <li>Subject and domain progress charts.</li>
@@ -268,6 +304,25 @@ export default function ParentAccessPage() {
                     />
                   ))}
                 </div>
+                {primaryChild && childDashboard ? (
+                  <div className="parent-insight-grid">
+                    <article className="parent-insight-card">
+                      <span className="parent-insight-label">Readiness</span>
+                      <strong>{childDashboard.readinessLabel}</strong>
+                      <p>
+                        Last session: {formatLastSeen(childDashboard.lastSessionAt)}
+                      </p>
+                    </article>
+                    <article className="parent-insight-card">
+                      <span className="parent-insight-label">Focus next</span>
+                      <strong>{childDashboard.recommendedFocus}</strong>
+                      <p>
+                        Best next support area based on the latest answered
+                        questions.
+                      </p>
+                    </article>
+                  </div>
+                ) : null}
               </div>
             ) : null}
             <div className="form-actions">
@@ -300,45 +355,76 @@ export default function ParentAccessPage() {
             eyebrow="Dashboard"
             title="Child learning snapshot"
           >
-            {result?.childDashboard ? (
+            {childDashboard && primaryChild ? (
               <>
                 <div className="summary-chip-row">
+                  <span className="summary-chip">{primaryChild.displayName}</span>
                   <span className="summary-chip">
-                    Sessions: {result.childDashboard.sessionCount}
+                    Level {primaryChild.currentLevel}
                   </span>
                   <span className="summary-chip">
-                    Completed: {result.childDashboard.completedSessions}
+                    {primaryChild.totalPoints} points
                   </span>
                   <span className="summary-chip">
-                    Time: {formatMinutes(result.childDashboard.totalTimeSpentMs)}
-                  </span>
-                  <span className="summary-chip">
-                    Effectiveness:{" "}
-                    {result.childDashboard.averageEffectiveness === null
-                      ? "n/a"
-                      : `${result.childDashboard.averageEffectiveness}%`}
+                    {primaryChild.badgeCount} badges · {primaryChild.trophyCount} trophies
                   </span>
                 </div>
+                <div className="parent-stat-grid">
+                  <StatTile
+                    label="Sessions"
+                    value={`${childDashboard.sessionCount}`}
+                    detail={`${childDashboard.completedSessions} completed`}
+                  />
+                  <StatTile
+                    label="Time spent"
+                    value={formatMinutes(childDashboard.totalTimeSpentMs)}
+                    detail={`${formatMinutes(childDashboard.effectiveTimeSpentMs)} effective`}
+                  />
+                  <StatTile
+                    label="Effectiveness"
+                    value={formatPercent(childDashboard.averageEffectiveness)}
+                    detail={`Completion ${formatPercent(childDashboard.completionRate)}`}
+                  />
+                  <StatTile
+                    label="Focus quality"
+                    value={formatPercent(childDashboard.effectiveRatio)}
+                    detail="Share of time that counted as effective learning"
+                  />
+                </div>
                 <div className="mini-grid">
-                  <div>
+                  <div className="parent-skill-card">
                     <strong>Strengths</strong>
-                    <ul className="route-list">
-                      {result.childDashboard.strengths.map((item) => (
-                        <li key={item.skillCode}>
-                          {item.displayName} · {item.masteryRate}%
-                        </li>
+                    <div className="skill-list">
+                      {childDashboard.strengths.map((item) => (
+                        <article className="skill-meter" key={item.skillCode}>
+                          <div className="skill-meter-row">
+                            <strong>{item.displayName}</strong>
+                            <span>{item.masteryRate}%</span>
+                          </div>
+                          <div className="progress-rail" aria-hidden="true">
+                            <span style={{ width: `${item.masteryRate}%` }} />
+                          </div>
+                          <small>{item.attempts} answered prompts</small>
+                        </article>
                       ))}
-                    </ul>
+                    </div>
                   </div>
-                  <div>
+                  <div className="parent-skill-card">
                     <strong>Support areas</strong>
-                    <ul className="route-list">
-                      {result.childDashboard.supportAreas.map((item) => (
-                        <li key={item.skillCode}>
-                          {item.displayName} · {item.masteryRate}%
-                        </li>
+                    <div className="skill-list">
+                      {childDashboard.supportAreas.map((item) => (
+                        <article className="skill-meter" key={item.skillCode}>
+                          <div className="skill-meter-row">
+                            <strong>{item.displayName}</strong>
+                            <span>{item.masteryRate}%</span>
+                          </div>
+                          <div className="progress-rail" aria-hidden="true">
+                            <span style={{ width: `${item.masteryRate}%` }} />
+                          </div>
+                          <small>{item.attempts} answered prompts</small>
+                        </article>
                       ))}
-                    </ul>
+                    </div>
                   </div>
                 </div>
               </>
@@ -346,6 +432,37 @@ export default function ParentAccessPage() {
               <p className="soft-copy">
                 Link a child and complete a few sessions to start seeing progress
                 patterns here.
+              </p>
+            )}
+          </ShellCard>
+
+          <ShellCard className="shell-card-soft" eyebrow="Recent activity" title="Latest learning activity">
+            {childDashboard?.recentSessions.length ? (
+              <div className="activity-list">
+                {childDashboard.recentSessions.map((session) => (
+                  <article className="activity-card" key={session.id}>
+                    <div className="activity-card-row">
+                      <strong>{formatSessionMode(session.sessionMode)}</strong>
+                      <span>{formatLastSeen(session.startedAt)}</span>
+                    </div>
+                    <div className="summary-chip-row">
+                      <span className="summary-chip">
+                        {session.totalQuestions} questions
+                      </span>
+                      <span className="summary-chip">
+                        Score {formatPercent(session.effectivenessScore)}
+                      </span>
+                      <span className="summary-chip">
+                        {session.endedAt ? "Finished" : "In progress"}
+                      </span>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p className="soft-copy">
+                Recent activity will appear here once the child completes more than
+                one session.
               </p>
             )}
           </ShellCard>
