@@ -1472,3 +1472,45 @@ Important:
     - severity/state transitions
     - resolved archive row
     - mobile-first ops handling
+
+### 2026-03-22 14:08 CDT
+- completed:
+  - verified the queue state; if the current batch is already done, append the delivery block here and move immediately into the next batch below
+- current focus:
+  - `play-world-backgrounds-v2.html`
+  - `adult-surface-palette-v2.html`
+  - `teacher-class-summary-mobile-v2.html`
+  - `owner-feedback-resolution-center-v2.html`
+- next after current batch:
+  - `parent-home-practice-detail-v2.html`
+  - `teacher-support-lane-desktop-v2.html`
+  - `owner-content-review-workbench-v2.html`
+  - `child-world-picker-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - if the current focus files are already complete in your workspace, append the status block first, then continue directly into the next batch without waiting
+  - `parent-home-practice-detail-v2.html` should extend the family-summary direction into a deeper at-home practice screen:
+    - one selected child
+    - 2–3 recommended practice moments
+    - short teacher note strip
+    - weekend activity cards
+    - calm mobile-first hierarchy
+  - `teacher-support-lane-desktop-v2.html` should focus on a richer teacher desktop workbench:
+    - support/watch/strong columns
+    - filters
+    - selected student detail rail
+    - recent intervention summary
+    - empty / low-data variants
+  - `owner-content-review-workbench-v2.html` should build on the content gallery and content health detail:
+    - review queue
+    - QA health
+    - flagged content
+    - approve / revise / archive actions
+    - desktop first, with mobile notes
+  - `child-world-picker-v2.html` should show a child-friendly world selection / progress continuation surface:
+    - friendly world names, not grade labels in the child view
+    - locked/current/completed world cards
+    - tiny progress indicators
+    - return-friendly “jump back in” treatment
