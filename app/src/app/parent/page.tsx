@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { FeedbackForm } from "@/components/feedback-form";
 import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
+import { launchBands } from "@/lib/launch-plan";
 
 type ChildDashboard = {
   studentId: string;
@@ -95,6 +96,20 @@ function formatLastSeen(value: string | null) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function getAvatarSymbol(avatarKey: string) {
+  if (avatarKey.includes("bunny")) return "🐰";
+  if (avatarKey.includes("bear")) return "🐻";
+  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("fox")) return "🦊";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("owl")) return "🦉";
+  return "✨";
+}
+
+function getBandLabel(bandCode: string) {
+  return launchBands.find((band) => band.code === bandCode)?.label ?? bandCode;
 }
 
 export default function ParentAccessPage() {
@@ -205,7 +220,11 @@ export default function ParentAccessPage() {
           </div>
         </section>
 
-        <form className="route-grid route-grid-parent" onSubmit={handleSubmit}>
+        <form
+          className="route-grid route-grid-parent"
+          id="parent-access-form"
+          onSubmit={handleSubmit}
+        >
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Step 1"
@@ -317,7 +336,7 @@ export default function ParentAccessPage() {
                   {result.linkedChildren.map((child) => (
                     <ChoiceChip
                       key={child.id}
-                      label={`${child.displayName} · L${child.currentLevel} · ${child.totalPoints} pts`}
+                      label={`${child.displayName} · ${getBandLabel(child.launchBandCode)}`}
                       onClick={() => setSelectedChildId(child.id)}
                       selected={activeChildId === child.id}
                       accent="#3e6cff"
@@ -354,62 +373,104 @@ export default function ParentAccessPage() {
               </Link>
             </div>
           </ShellCard>
+        </form>
 
-          <ShellCard
-            className="shell-card-soft"
-            eyebrow="Feedback"
-            title="Parent product feedback"
-          >
-            <FeedbackForm
-              guardianId={result?.guardian.id}
-              helper="Report bugs, confusing flows, content issues, or ideas from the parent side."
-              sourceChannel="parent-dashboard"
-              studentId={activeChildId ?? undefined}
-              submittedByRole="parent"
-              title="Help improve the parent experience"
-            />
-          </ShellCard>
+        {result && activeChild && activeChildDashboard ? (
+          <section className="parent-hub-layout">
+            <div className="parent-hub-main">
+              <div className="parent-hub-topbar">
+                <div className="parent-hub-greeting">
+                  <span className="eyebrow">Family hub</span>
+                  <h2>
+                    {result.guardian.displayName}, here is what {activeChild.displayName}
+                    {" "}needs next.
+                  </h2>
+                  <p>
+                    A calmer family view with child switching, recent learning,
+                    and the clearest next action we can provide from current
+                    session data.
+                  </p>
+                </div>
+                <div className="parent-hub-actions">
+                  <a className="secondary-link" href="#parent-access-form">
+                    Manage access
+                  </a>
+                  <a className="secondary-link" href="#parent-feedback">
+                    Send feedback
+                  </a>
+                </div>
+              </div>
 
-          <ShellCard
-            className="shell-card-emphasis"
-            eyebrow="Dashboard"
-            title="Child learning snapshot"
-          >
-            {activeChildDashboard && activeChild ? (
-              <>
+              <div className="parent-linked-grid">
+                {result.linkedChildren.map((child) => {
+                  const dashboard = result.childDashboards.find(
+                    (item) => item.studentId === child.id,
+                  );
+
+                  return (
+                    <button
+                      className={`parent-linked-card ${activeChildId === child.id ? "is-active" : ""}`}
+                      key={child.id}
+                      onClick={() => setSelectedChildId(child.id)}
+                      type="button"
+                    >
+                      <span className="parent-linked-avatar" aria-hidden="true">
+                        {getAvatarSymbol(child.avatarKey)}
+                      </span>
+                      <div className="parent-linked-copy">
+                        <strong>{child.displayName}</strong>
+                        <span>{getBandLabel(child.launchBandCode)}</span>
+                        <small>
+                          {child.totalPoints} pts · Level {child.currentLevel} ·{" "}
+                          {dashboard
+                            ? `${dashboard.completedSessions} completed sessions`
+                            : "No sessions yet"}
+                        </small>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="parent-kpi-row">
+                <StatTile
+                  label="Current level"
+                  value={`${activeChild.currentLevel}`}
+                  detail={`${activeChild.totalPoints} total points`}
+                />
+                <StatTile
+                  label="This child"
+                  value={`${activeChildDashboard.completedSessions}`}
+                  detail="Completed sessions"
+                />
+                <StatTile
+                  label="Effective time"
+                  value={formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}
+                  detail={`${formatMinutes(activeChildDashboard.totalTimeSpentMs)} total`}
+                />
+                <StatTile
+                  label="Learning quality"
+                  value={formatPercent(activeChildDashboard.averageEffectiveness)}
+                  detail={`Completion ${formatPercent(activeChildDashboard.completionRate)}`}
+                />
+              </div>
+
+              <ShellCard
+                className="shell-card-emphasis"
+                eyebrow="Dashboard"
+                title="Child learning snapshot"
+              >
                 <div className="summary-chip-row">
                   <span className="summary-chip">{activeChild.displayName}</span>
                   <span className="summary-chip">
-                    Level {activeChild.currentLevel}
+                    {activeChild.badgeCount} badges
                   </span>
                   <span className="summary-chip">
-                    {activeChild.totalPoints} points
+                    {activeChild.trophyCount} trophies
                   </span>
                   <span className="summary-chip">
-                    {activeChild.badgeCount} badges · {activeChild.trophyCount} trophies
+                    Last seen {formatLastSeen(activeChildDashboard.lastSessionAt)}
                   </span>
-                </div>
-                <div className="parent-stat-grid">
-                  <StatTile
-                    label="Sessions"
-                    value={`${activeChildDashboard.sessionCount}`}
-                    detail={`${activeChildDashboard.completedSessions} completed`}
-                  />
-                  <StatTile
-                    label="Time spent"
-                    value={formatMinutes(activeChildDashboard.totalTimeSpentMs)}
-                    detail={`${formatMinutes(activeChildDashboard.effectiveTimeSpentMs)} effective`}
-                  />
-                  <StatTile
-                    label="Effectiveness"
-                    value={formatPercent(activeChildDashboard.averageEffectiveness)}
-                    detail={`Completion ${formatPercent(activeChildDashboard.completionRate)}`}
-                  />
-                  <StatTile
-                    label="Focus quality"
-                    value={formatPercent(activeChildDashboard.effectiveRatio)}
-                    detail="Share of time that counted as effective learning"
-                  />
                 </div>
                 <div className="mini-grid">
                   <div className="parent-skill-card">
@@ -447,46 +508,115 @@ export default function ParentAccessPage() {
                     </div>
                   </div>
                 </div>
-              </>
-            ) : (
-              <p className="soft-copy">
-                Link a child and complete a few sessions to start seeing progress
-                patterns here.
-              </p>
-            )}
-          </ShellCard>
+              </ShellCard>
 
-          <ShellCard className="shell-card-soft" eyebrow="Recent activity" title="Latest learning activity">
-            {activeChildDashboard?.recentSessions.length ? (
-              <div className="activity-list">
-                {activeChildDashboard.recentSessions.map((session) => (
-                  <article className="activity-card" key={session.id}>
-                    <div className="activity-card-row">
-                      <strong>{formatSessionMode(session.sessionMode)}</strong>
-                      <span>{formatLastSeen(session.startedAt)}</span>
-                    </div>
-                    <div className="summary-chip-row">
-                      <span className="summary-chip">
-                        {session.totalQuestions} questions
-                      </span>
-                      <span className="summary-chip">
-                        Score {formatPercent(session.effectivenessScore)}
-                      </span>
-                      <span className="summary-chip">
-                        {session.endedAt ? "Finished" : "In progress"}
-                      </span>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="soft-copy">
-                Recent activity will appear here once the child completes more than
-                one session.
-              </p>
-            )}
+              <ShellCard
+                className="shell-card-soft"
+                eyebrow="Recent activity"
+                title="Latest learning activity"
+              >
+                {activeChildDashboard.recentSessions.length ? (
+                  <div className="activity-list">
+                    {activeChildDashboard.recentSessions.map((session) => (
+                      <article className="activity-card" key={session.id}>
+                        <div className="activity-card-row">
+                          <strong>{formatSessionMode(session.sessionMode)}</strong>
+                          <span>{formatLastSeen(session.startedAt)}</span>
+                        </div>
+                        <div className="summary-chip-row">
+                          <span className="summary-chip">
+                            {session.totalQuestions} questions
+                          </span>
+                          <span className="summary-chip">
+                            Score {formatPercent(session.effectivenessScore)}
+                          </span>
+                          <span className="summary-chip">
+                            {session.endedAt ? "Finished" : "In progress"}
+                          </span>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="soft-copy">
+                    Recent activity will appear here once the child completes
+                    more than one session.
+                  </p>
+                )}
+              </ShellCard>
+            </div>
+
+            <aside className="parent-hub-side">
+              <article className="parent-weekly-card">
+                <span className="parent-weekly-label">Weekly snapshot</span>
+                <strong>{activeChild.displayName}</strong>
+                <p>
+                  {activeChildDashboard.completedSessions} finished sessions,
+                  {" "}
+                  {formatMinutes(activeChildDashboard.totalTimeSpentMs)} of total
+                  time, and {formatPercent(activeChildDashboard.averageEffectiveness)}
+                  {" "}average effectiveness so far.
+                </p>
+                <div className="parent-weekly-stats">
+                  <div>
+                    <span>Points</span>
+                    <strong>{activeChild.totalPoints}</strong>
+                  </div>
+                  <div>
+                    <span>Badges</span>
+                    <strong>{activeChild.badgeCount}</strong>
+                  </div>
+                  <div>
+                    <span>Trophies</span>
+                    <strong>{activeChild.trophyCount}</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article className="parent-next-step-card">
+                <span className="parent-insight-label">What to do next</span>
+                <strong>{activeChildDashboard.recommendedFocus}</strong>
+                <p>
+                  Based on the latest answered prompts, this is the clearest next
+                  support area to reinforce at home.
+                </p>
+                <div className="parent-action-list">
+                  <div>
+                    <span>Readiness</span>
+                    <strong>{activeChildDashboard.readinessLabel}</strong>
+                  </div>
+                  <div>
+                    <span>Quiet summary</span>
+                    <strong>{notifyWeekly ? "On" : "Off"}</strong>
+                  </div>
+                  <div>
+                    <span>Milestones</span>
+                    <strong>{notifyMilestones ? "On" : "Off"}</strong>
+                  </div>
+                </div>
+              </article>
+            </aside>
+          </section>
+        ) : null}
+
+        <section className="route-grid route-grid-parent">
+          <ShellCard
+            className="shell-card-soft"
+            eyebrow="Feedback"
+            title="Parent product feedback"
+          >
+            <div id="parent-feedback">
+              <FeedbackForm
+                guardianId={result?.guardian.id}
+                helper="Report bugs, confusing flows, content issues, or ideas from the parent side."
+                sourceChannel="parent-dashboard"
+                studentId={activeChildId ?? undefined}
+                submittedByRole="parent"
+                title="Help improve the parent experience"
+              />
+            </div>
           </ShellCard>
-        </form>
+        </section>
       </main>
     </AppFrame>
   );
