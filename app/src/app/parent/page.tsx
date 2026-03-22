@@ -73,6 +73,8 @@ type ParentAccessResponse = {
   childDashboard: ChildDashboard | null;
 };
 
+type AccessSection = "profile" | "notifications" | "relink";
+
 function formatMinutes(totalTimeSpentMs: number) {
   return `${Math.round((totalTimeSpentMs / 60000) * 10) / 10} min`;
 }
@@ -215,6 +217,7 @@ export default function ParentAccessPage() {
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
   const [showAccessManager, setShowAccessManager] = useState(true);
+  const [openAccessSection, setOpenAccessSection] = useState<AccessSection | null>(null);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
   const [selectedSkillCode, setSelectedSkillCode] = useState<string | null>(null);
   const activeChildId =
@@ -299,6 +302,16 @@ export default function ParentAccessPage() {
     }
   }, [activeChildDashboard, activeSkillOptions, selectedSkillCode]);
 
+  function openAccessManager(section: AccessSection = "profile") {
+    setShowAccessManager(true);
+    setOpenAccessSection(section);
+  }
+
+  function closeAccessManager() {
+    setShowAccessManager(false);
+    setOpenAccessSection(null);
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSubmitting(true);
@@ -333,7 +346,7 @@ export default function ParentAccessPage() {
         payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
       );
       setResult(payload);
-      setShowAccessManager(false);
+      closeAccessManager();
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -384,45 +397,236 @@ export default function ParentAccessPage() {
         {result ? (
           <section className="route-grid route-grid-parent">
             <ShellCard
-              className="shell-card-soft"
+              className="shell-card-soft parent-access-ready-card"
               eyebrow="Access manager"
               title="Family access is ready"
             >
-              <div className="status-panel">
-                <strong>{result.guardian.displayName} can see the family view.</strong>
-                <p>
-                  {result.linkedChildren.length} linked child
-                  {result.linkedChildren.length === 1 ? "" : "ren"} with calm
-                  updates for weekly summaries and milestones.
-                </p>
-                <div className="summary-chip-row">
-                  {activeChild ? (
-                    <span className="summary-chip">
-                      Active child: {activeChild.displayName}
-                    </span>
-                  ) : null}
-                  <span className="summary-chip">
-                    Weekly summary {notifyWeekly ? "on" : "off"}
-                  </span>
-                  <span className="summary-chip">
-                    Milestones {notifyMilestones ? "on" : "off"}
-                  </span>
+              <div className="parent-access-ready-banner">
+                <span className="parent-access-ready-icon" aria-hidden="true">
+                  ✓
+                </span>
+                <div className="parent-access-ready-copy">
+                  <strong>{result.guardian.displayName} can see the family view.</strong>
+                  <p>
+                    {result.linkedChildren.length} linked child
+                    {result.linkedChildren.length === 1 ? "" : "ren"} with calm
+                    weekly summaries and milestone updates.
+                  </p>
                 </div>
               </div>
-              <div className="form-actions">
-                <button
-                  className="secondary-link button-link"
-                  onClick={() => setShowAccessManager((value) => !value)}
-                  type="button"
-                >
-                  {showAccessManager ? "Hide family access form" : "Manage family access"}
-                </button>
+
+              <div className="parent-access-ready-grid">
+                <article className="parent-access-identity-card">
+                  {activeChild ? (
+                    <div className="parent-access-person-row">
+                      <span className="parent-access-avatar" aria-hidden="true">
+                        {getAvatarSymbol(activeChild.avatarKey)}
+                      </span>
+                      <div>
+                        <strong>{activeChild.displayName}</strong>
+                        <span>{getBandLabel(activeChild.launchBandCode)}</span>
+                      </div>
+                      <em>Linked child</em>
+                    </div>
+                  ) : null}
+
+                  <div className="parent-access-person-row">
+                    <span className="parent-access-avatar parent-access-avatar-parent" aria-hidden="true">
+                      👤
+                    </span>
+                    <div>
+                      <strong>{result.guardian.displayName}</strong>
+                      <span>@{result.guardian.username}</span>
+                    </div>
+                    <em>{relationship}</em>
+                  </div>
+                </article>
+
+                <article className="parent-access-status-card">
+                  <div className="parent-access-status-row">
+                    <div className="parent-access-status-cell">
+                      <strong>{notifyWeekly ? "On" : "Off"}</strong>
+                      <span>Weekly summary</span>
+                    </div>
+                    <div className="parent-access-status-cell">
+                      <strong>{notifyMilestones ? "On" : "Off"}</strong>
+                      <span>Milestones</span>
+                    </div>
+                    <div className="parent-access-status-cell">
+                      <strong>{result.linkedChildren.length}</strong>
+                      <span>Linked children</span>
+                    </div>
+                  </div>
+
+                  <div className="parent-access-cta-row">
+                    <button
+                      className="secondary-link button-link"
+                      onClick={() =>
+                        showAccessManager
+                          ? closeAccessManager()
+                          : openAccessManager("profile")
+                      }
+                      type="button"
+                    >
+                      {showAccessManager ? "Hide family access" : "Manage family access"}
+                    </button>
+                    <a className="primary-link" href="#parent-family-hub">
+                      View family hub
+                    </a>
+                  </div>
+                </article>
               </div>
+
+              {showAccessManager ? (
+                <form className="parent-access-inline-card" onSubmit={handleSubmit}>
+                  <div className="parent-access-inline-tabs" role="tablist" aria-label="Family access sections">
+                    <button
+                      aria-pressed={openAccessSection === "profile"}
+                      className={`parent-access-inline-tab ${openAccessSection === "profile" ? "is-current" : ""}`}
+                      onClick={() =>
+                        setOpenAccessSection((current) =>
+                          current === "profile" ? null : "profile",
+                        )
+                      }
+                      type="button"
+                    >
+                      Edit info
+                    </button>
+                    <button
+                      aria-pressed={openAccessSection === "notifications"}
+                      className={`parent-access-inline-tab ${openAccessSection === "notifications" ? "is-current" : ""}`}
+                      onClick={() =>
+                        setOpenAccessSection((current) =>
+                          current === "notifications" ? null : "notifications",
+                        )
+                      }
+                      type="button"
+                    >
+                      Notifications
+                    </button>
+                    <button
+                      aria-pressed={openAccessSection === "relink"}
+                      className={`parent-access-inline-tab ${openAccessSection === "relink" ? "is-current" : ""}`}
+                      onClick={() =>
+                        setOpenAccessSection((current) =>
+                          current === "relink" ? null : "relink",
+                        )
+                      }
+                      type="button"
+                    >
+                      Relink child
+                    </button>
+                  </div>
+
+                  {openAccessSection === "profile" ? (
+                    <div className="parent-access-inline-panel">
+                      <div className="field-grid">
+                        <FieldBlock
+                          helper="Shown in family summaries and notifications."
+                          label="Display name"
+                          onChange={(event) => setDisplayName(event.target.value)}
+                          placeholder="Parent name"
+                          value={displayName}
+                        />
+                        <label className="field-block">
+                          <span>Relationship</span>
+                          <div className="summary-chip-row">
+                            {["parent", "guardian", "grandparent", "other"].map((option) => (
+                              <button
+                                className={`summary-chip parent-access-chip ${relationship === option ? "is-current" : ""}`}
+                                key={option}
+                                onClick={() => setRelationship(option)}
+                                type="button"
+                              >
+                                {option}
+                              </button>
+                            ))}
+                          </div>
+                          <small>
+                            Use a calm, plain relationship label. This only affects how the family view is described.
+                          </small>
+                        </label>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {openAccessSection === "notifications" ? (
+                    <div className="parent-access-inline-panel">
+                      <div className="parent-toggle-list">
+                        <button
+                          className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
+                          onClick={() => setNotifyWeekly((value) => !value)}
+                          type="button"
+                        >
+                          <div>
+                            <strong>Weekly summary</strong>
+                            <span>Time spent, productive time, and next support areas.</span>
+                          </div>
+                          <b>{notifyWeekly ? "On" : "Off"}</b>
+                        </button>
+                        <button
+                          className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
+                          onClick={() => setNotifyMilestones((value) => !value)}
+                          type="button"
+                        >
+                          <div>
+                            <strong>Milestones and badges</strong>
+                            <span>Celebrate progress without a noisy stream of alerts.</span>
+                          </div>
+                          <b>{notifyMilestones ? "On" : "Off"}</b>
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {openAccessSection === "relink" ? (
+                    <div className="parent-access-inline-panel">
+                      <div className="parent-inline-warning">
+                        <strong>Relinking is uncommon.</strong>
+                        <p>
+                          Use it only when the wrong child is connected or the family setup changed.
+                        </p>
+                      </div>
+                      <FieldBlock
+                        helper="Use the child username already created in the app."
+                        label="Child username"
+                        onChange={(event) => setChildUsername(event.target.value)}
+                        placeholder="child quest name"
+                        value={childUsername}
+                      />
+                      {activeChild ? (
+                        <div className="parent-current-link-row">
+                          <div>
+                            <strong>Currently linked</strong>
+                            <span>{activeChild.displayName}</span>
+                          </div>
+                          <em>{getBandLabel(activeChild.launchBandCode)}</em>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {error ? <p className="status-banner status-error">{error}</p> : null}
+
+                  <div className="form-actions">
+                    <button className="primary-link button-link" disabled={submitting} type="submit">
+                      {submitting ? "Saving..." : "Save family changes"}
+                    </button>
+                    <button
+                      className="secondary-link button-link"
+                      onClick={closeAccessManager}
+                      type="button"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </form>
+              ) : null}
             </ShellCard>
           </section>
         ) : null}
 
-        {!result || showAccessManager ? (
+        {!result ? (
           <form
             className="route-grid route-grid-parent"
             id="parent-access-form"
@@ -527,34 +731,13 @@ export default function ParentAccessPage() {
                 <li>How do I report a confusing flow or bug?</li>
               </ul>
               {error ? <p className="status-banner status-error">{error}</p> : null}
-              {result ? (
-                <div className="status-panel">
-                  <strong>{result.guardian.displayName} is linked.</strong>
-                  <p>
-                    {result.linkedChildren.length} child profile
-                    {result.linkedChildren.length === 1 ? "" : "s"} available in
-                    this family view.
-                  </p>
-                  {activeChild && activeChildDashboard ? (
-                    <div className="parent-insight-grid">
-                      <article className="parent-insight-card">
-                        <span className="parent-insight-label">Child in focus</span>
-                        <strong>{activeChild.displayName}</strong>
-                        <p>
-                          Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}
-                        </p>
-                      </article>
-                      <article className="parent-insight-card">
-                        <span className="parent-insight-label">Try next at home</span>
-                        <strong>{activeChildDashboard.recommendedFocus}</strong>
-                        <p>
-                          The clearest next support area based on the latest play.
-                        </p>
-                      </article>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
+              <div className="status-panel">
+                <strong>The calmer family dashboard appears right after access is saved.</strong>
+                <p>
+                  Once linked, the route switches into the family hub with child switching, recent activity,
+                  and home practice guidance.
+                </p>
+              </div>
               <div className="form-actions">
                 <button className="primary-link button-link" disabled={submitting} type="submit">
                   {submitting ? "Saving..." : "Save parent access"}
@@ -568,79 +751,84 @@ export default function ParentAccessPage() {
         ) : null}
 
         {result && activeChild && activeChildDashboard ? (
-          <section className="parent-hub-layout">
+          <section className="parent-hub-layout" id="parent-family-hub">
             <div className="parent-hub-main">
-              <div className="parent-hub-topbar">
-                <div className="parent-hub-greeting">
-                  <span className="eyebrow">Family hub</span>
-                  <h2>
-                    {result.guardian.displayName}, here is what {activeChild.displayName}
-                    {" "}needs next.
-                  </h2>
-                  <p>
-                    A calmer family view with child switching, recent learning,
-                    and the clearest next action we can provide from current
-                    session data.
-                  </p>
+              <article className="parent-summary-rail">
+                <div className="parent-summary-hero">
+                  <div className="parent-hub-greeting">
+                    <span className="eyebrow">Family hub</span>
+                    <h2>
+                      {result.guardian.displayName}, here is what {activeChild.displayName} needs next.
+                    </h2>
+                    <p>
+                      A calmer family view with child switching, recent learning,
+                      and one clear next action before the deeper cards.
+                    </p>
+                  </div>
+                  <div className="parent-summary-actions">
+                    <button
+                      className="secondary-link button-link"
+                      onClick={() => openAccessManager("profile")}
+                      type="button"
+                    >
+                      Manage access
+                    </button>
+                    <a className="secondary-link" href="#parent-feedback">
+                      Send feedback
+                    </a>
+                  </div>
                 </div>
-                <div className="parent-hub-actions">
-                  <button
-                    className="secondary-link button-link"
-                    onClick={() => setShowAccessManager(true)}
-                    type="button"
-                  >
-                    Manage access
-                  </button>
-                  <a className="secondary-link" href="#parent-feedback">
-                    Send feedback
-                  </a>
-                </div>
-              </div>
 
-              <article className="parent-answer-box">
-                <span className="parent-answer-eyebrow">
-                  Answers for you right now
-                </span>
-                <div className="parent-answer-list">
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      📊
-                    </span>
-                    <div className="parent-answer-copy">
-                        <strong>How is {activeChild.displayName} doing?</strong>
-                        <p>
-                          {activeChildDashboard.readinessLabel} with{" "}
-                          {formatPercent(activeChildDashboard.averageEffectiveness)} productive
-                          play and {formatPercent(activeChildDashboard.completionRate)}
-                          {" "}finished sessions in recent activity.
-                        </p>
-                      </div>
-                    </div>
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      ✨
-                    </span>
-                    <div className="parent-answer-copy">
-                      <strong>What changed recently?</strong>
-                      <p>
-                        Last active {formatLastSeen(activeChildDashboard.lastSessionAt)} with{" "}
-                        {activeChild.badgeCount} badges, {activeChild.trophyCount} trophies,
-                        and {activeChildDashboard.completedSessions} completed sessions.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="parent-answer-row">
-                    <span className="parent-answer-icon" aria-hidden="true">
-                      🎯
-                    </span>
-                    <div className="parent-answer-copy">
-                        <strong>What should we do next?</strong>
-                        <p>
-                          Spend a short session on {activeChildDashboard.recommendedFocus} and
-                        keep the next practice calm and focused.
-                      </p>
-                    </div>
-                  </div>
+                <div className="parent-summary-switcher" role="tablist" aria-label="Linked children">
+                  {result.linkedChildren.map((child) => (
+                    <button
+                      aria-selected={activeChildId === child.id}
+                      className={`parent-summary-switch ${activeChildId === child.id ? "is-active" : ""}`}
+                      key={child.id}
+                      onClick={() => setSelectedChildId(child.id)}
+                      role="tab"
+                      type="button"
+                    >
+                      <span aria-hidden="true">{getAvatarSymbol(child.avatarKey)}</span>
+                      {child.displayName}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="parent-summary-grid">
+                  <article className="parent-summary-card">
+                    <span>How is {activeChild.displayName} doing?</span>
+                    <strong>{activeChildDashboard.readinessLabel}</strong>
+                    <p>
+                      {formatPercent(activeChildDashboard.averageEffectiveness)} productive play and{" "}
+                      {formatPercent(activeChildDashboard.completionRate)} finished sessions recently.
+                    </p>
+                  </article>
+                  <article className="parent-summary-card">
+                    <span>What changed recently?</span>
+                    <strong>Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}</strong>
+                    <p>
+                      {activeChild.badgeCount} badges, {activeChild.trophyCount} trophies, and{" "}
+                      {activeChildDashboard.completedSessions} completed sessions so far.
+                    </p>
+                  </article>
+                  <article className="parent-summary-card">
+                    <span>What should we try next?</span>
+                    <strong>{activeChildDashboard.recommendedFocus}</strong>
+                    <p>Keep the next practice short, calm, and focused on one support area.</p>
+                  </article>
+                </div>
+
+                <div className="parent-summary-signal-row">
+                  <span className="summary-chip">
+                    Weekly summary {notifyWeekly ? "on" : "off"}
+                  </span>
+                  <span className="summary-chip">
+                    Milestones {notifyMilestones ? "on" : "off"}
+                  </span>
+                  <span className="summary-chip">
+                    Productive time {formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}
+                  </span>
                 </div>
               </article>
 

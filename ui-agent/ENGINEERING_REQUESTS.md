@@ -822,3 +822,76 @@ Important:
 - keep new deliverables at the top level of `ui-agent/`
 - do not reopen generic component work unless engineering asks
 - focus on the shortest path to visible route improvement
+
+## After Priorities 17–19
+
+Once `child-quickstart-v2.html`, `parent-summary-rail.html`, and
+`mobile-route-shells.html` are delivered, move directly into this next batch.
+Do not wait for a separate prompt if the current batch is complete.
+
+### Priority 20: Child Return + Reward Moments
+
+The live child route now has returning-entry support and reward overlays, but
+the visual states still need a cleaner reference pass so the route feels more
+motivating and less prototype-like.
+
+Please design:
+
+- returning child welcome-back state
+- reward overlay / badge-earned / level-up / trophy-earned moments
+- session-complete celebration with one clear replay or continue action
+- mobile version
+
+Suggested deliverable:
+
+- `child-return-rewards-v2.html`
+
+Important:
+
+- low reading burden
+- celebration should be warm and reassuring, not overstimulating
+- make the next action obvious
+
+### Priority 21: Teacher Intervention Queue
+
+The teacher route has a drilldown, but it still needs one sharper visual for
+what to do next in a classroom context.
+
+Please design:
+
+- teacher intervention queue / support-lane card stack
+- class-level watch/support/progress summary
+- one selected skill drilldown state connected to the queue
+- mobile version
+
+Suggested deliverable:
+
+- `teacher-intervention-queue.html`
+
+Important:
+
+- do not redesign the full teacher dashboard
+- focus on the decision layer: who needs support, what skill, what next
+
+### Priority 22: Owner Alert + Queue Depth
+
+The owner route needs one more implementation-ready state for triage and ops
+confidence before alpha closes.
+
+Please design:
+
+- alert banner system for owner route
+- compact triage queue row states
+- one expanded triage item detail state
+- route health / content health snapshot strip
+- mobile version
+
+Suggested deliverable:
+
+- `owner-alert-queue-v2.html`
+
+Important:
+
+- keep owner dark and operational
+- emphasize severity, action, and status
+- do not reopen generic shell work
