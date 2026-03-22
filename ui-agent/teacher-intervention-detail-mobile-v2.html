@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Teacher Intervention Detail Mobile v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --steel:   #f0f4f8;
+      --blue:    #2a6ab4;
+      --blue-bg: rgba(42,106,180,.08);
+      --ink:     #1c1c1e;
+      --mid:     #4b5563;
+      --faint:   #9ca3af;
+      --white:   #ffffff;
+      --mint:    #58e8c1;
+      --coral:   #ff7b6b;
+      --amber:   #f59e0b;
+      --violet:  #9b72ff;
+      --gold:    #ffd166;
+      --teal:    #2c7a6e;
+    }
+    body { font-family: 'Sora', sans-serif; background: #dce4ed; min-height: 100vh; }
+
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff; border-bottom: 1.5px solid #d1dae4;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 14px 20px; font-family: 'Sora', sans-serif; font-size: 13px;
+      font-weight: 500; color: var(--faint); background: transparent; border: none;
+      border-bottom: 3px solid transparent; cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+    .panel { display: none; } .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #92670e; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* Phone frame */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; gap: 32px; flex-wrap: wrap; }
+    .phone-frame {
+      width: 390px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); border: 1px solid #d1dae4; position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #fff; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--steel); min-height: 844px; position: relative; overflow: hidden; }
+
+    /* Push nav topbar */
+    .push-topbar {
+      background: #fff; border-bottom: 1px solid #d1dae4;
+      display: flex; align-items: center; gap: 12px; padding: 46px 16px 12px;
+    }
+    .push-back { font-size: 18px; color: var(--blue); cursor: pointer; font-weight: 600; }
+    .push-title { font-size: 15px; font-weight: 700; color: var(--ink); flex: 1; }
+    .push-action { font-size: 13px; color: var(--blue); font-weight: 600; cursor: pointer; }
+
+    /* Student header card */
+    .student-hdr {
+      background: #fff; border-bottom: 1px solid #d1dae4;
+      display: flex; align-items: center; gap: 14px; padding: 14px 16px;
+    }
+    .student-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .student-info { flex: 1; }
+    .student-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+    .student-meta { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .student-tier { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; }
+    .tier-support { background: rgba(255,123,107,.1); color: #b84a3e; }
+    .tier-watch { background: rgba(245,158,11,.1); color: #92580a; }
+    .tier-strong { background: rgba(88,232,193,.1); color: var(--teal); }
+
+    /* Scroll body */
+    .detail-body { padding: 14px; padding-bottom: 88px; display: flex; flex-direction: column; gap: 12px; overflow-y: auto; max-height: calc(844px - 120px - 68px); }
+
+    /* Section card */
+    .section-card { background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 1px 8px rgba(0,0,0,.06); }
+    .sc-title { font-size: 11px; font-weight: 700; color: var(--faint); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+
+    /* Skill context row */
+    .skill-context { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #f0f4f8; }
+    .skill-context:last-child { border-bottom: none; padding-bottom: 0; }
+    .skill-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .skill-label { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+    .skill-detail { font-size: 11px; color: var(--mid); margin-top: 1px; }
+    .skill-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+
+    /* 5-week mini bar chart */
+    .mini-chart { display: flex; align-items: flex-end; gap: 6px; height: 48px; margin: 10px 0 4px; }
+    .mini-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+    .mini-bar { width: 100%; border-radius: 4px 4px 0 0; background: var(--blue); opacity: .5; }
+    .mini-bar.current { opacity: 1; }
+    .mini-bar.support { background: var(--coral); opacity: .7; }
+    .mini-bar.watch { background: var(--amber); opacity: .7; }
+    .mini-bar.strong { background: var(--mint); opacity: .9; }
+    .mini-label { font-size: 9px; color: var(--faint); }
+
+    /* Note card */
+    .note-card { background: #faf8f5; border: 1px solid #ede7d9; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+    .note-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+    .note-author { font-size: 11px; font-weight: 600; color: var(--ink); }
+    .note-time { font-size: 10px; color: var(--faint); }
+    .note-text { font-size: 12px; color: var(--mid); line-height: 1.6; }
+
+    /* Next action cards */
+    .next-actions { display: flex; flex-direction: column; gap: 8px; }
+    .na-row { background: var(--steel); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; border: 1px solid #d1dae4; }
+    .na-icon { font-size: 20px; flex-shrink: 0; }
+    .na-body { flex: 1; }
+    .na-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .na-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .na-arrow { color: var(--faint); font-size: 16px; }
+
+    /* Bottom sheet */
+    .bottom-sheet {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; border-radius: 20px 20px 0 0;
+      border-top: 1px solid #d1dae4; padding: 16px 16px 32px;
+      box-shadow: 0 -8px 32px rgba(0,0,0,.1);
+    }
+    .bs-handle { width: 40px; height: 4px; border-radius: 2px; background: #ddd8ce; margin: 0 auto 16px; }
+    .bs-title { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 12px; }
+    .note-input {
+      width: 100%; min-height: 80px; padding: 12px; border-radius: 10px;
+      border: 1.5px solid #d1dae4; font-family: 'Sora', sans-serif; font-size: 13px;
+      color: var(--ink); resize: none; outline: none;
+    }
+    .note-input:focus { border-color: var(--blue); }
+    .bs-actions { display: flex; gap: 8px; margin-top: 10px; }
+    .bs-save { flex: 1; padding: 12px; background: var(--blue); color: #fff; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
+    .bs-cancel { padding: 12px 18px; background: transparent; color: var(--mid); font-family: 'Sora', sans-serif; font-size: 14px; border: 1px solid #d1dae4; border-radius: 12px; cursor: pointer; }
+
+    /* Action footer */
+    .action-footer {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #d1dae4;
+      padding: 12px 16px 28px; display: flex; gap: 8px;
+    }
+    .af-primary { flex: 1; padding: 13px; background: var(--blue); color: #fff; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 700; border-radius: 12px; border: none; cursor: pointer; }
+    .af-secondary { padding: 13px 18px; background: var(--steel); color: var(--ink); font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; border-radius: 12px; border: 1px solid #d1dae4; cursor: pointer; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; background: var(--steel); min-height: 100vh; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-row-desc { font-size: 12px; color: var(--mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #f0f4f8; }
+    .spec-table th { color: var(--faint); font-weight: 600; background: #f8fafc; }
+    .spec-table td { color: var(--ink); }
+    .spec-table td code { background: var(--blue-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Student Detail Screen</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Skill Trend + Context</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Note Stack + Add Note</button>
+  <button class="tab-btn" onclick="show('tab4',this)">What To Do Next</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Spec Notes</button>
+</div>
+
+<!-- TAB 1: STUDENT DETAIL SCREEN -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>👨‍🏫 Teacher Intervention Detail — Student Detail Push Screen</strong>
+    Full-screen push nav from queue row tap. Top: push back + student avatar/name/meta/tier. Body: skill context card, 5-week mini chart, note cards, next actions. Bottom: "Add note" primary + "Message parent" secondary. Designed for mobile use between class periods.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="push-topbar">
+          <div class="push-back">‹ Queue</div>
+          <div class="push-title">Marcus T.</div>
+          <div class="push-action">Edit</div>
+        </div>
+
+        <div class="student-hdr">
+          <div class="student-avatar" style="background:rgba(255,123,107,.12);">🐯</div>
+          <div class="student-info">
+            <div class="student-name">Marcus T.</div>
+            <div class="student-meta">Grade K · P0 Gold · Last active 2h ago</div>
+          </div>
+          <div class="student-tier tier-support">Support</div>
+        </div>
+
+        <div class="detail-body">
+          <!-- Skill context -->
+          <div class="section-card">
+            <div class="sc-title">Current skill focus</div>
+            <div class="skill-context">
+              <div class="skill-dot" style="background:var(--coral);"></div>
+              <div>
+                <div class="skill-label">Letter Sounds (B, D, P)</div>
+                <div class="skill-detail">3 sessions on this skill · still in support tier</div>
+              </div>
+              <div class="skill-badge tier-support">Support</div>
+            </div>
+            <div class="skill-context">
+              <div class="skill-dot" style="background:var(--mint);"></div>
+              <div>
+                <div class="skill-label">Counting to 10</div>
+                <div class="skill-detail">Moved to Strong · 3 days ago</div>
+              </div>
+              <div class="skill-badge tier-strong">Strong</div>
+            </div>
+          </div>
+
+          <!-- 5-week trend -->
+          <div class="section-card">
+            <div class="sc-title">5-week engagement trend</div>
+            <div class="mini-chart">
+              <div class="mini-bar-wrap"><div class="mini-bar strong" style="height:32px;"></div><div class="mini-label">W1</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar watch" style="height:24px;"></div><div class="mini-label">W2</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar support" style="height:18px;"></div><div class="mini-label">W3</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar support" style="height:20px;"></div><div class="mini-label">W4</div></div>
+              <div class="mini-bar-wrap current"><div class="mini-bar support current" style="height:16px;"></div><div class="mini-label" style="color:var(--blue);font-weight:600;">W5</div></div>
+            </div>
+            <div style="font-size:10px;color:var(--faint);">Bar color = tier that week. No accuracy shown.</div>
+          </div>
+
+          <!-- Notes -->
+          <div class="section-card">
+            <div class="sc-title">Intervention notes (2)</div>
+            <div class="note-card">
+              <div class="note-header">
+                <div class="note-author">Ms. Rivera</div>
+                <div class="note-time">Yesterday · 2:30pm</div>
+              </div>
+              <div class="note-text">"Confusing B and D — very common at this stage. Will monitor for 2 more sessions before adjusting."</div>
+            </div>
+            <div class="note-card">
+              <div class="note-header">
+                <div class="note-author">Ms. Rivera</div>
+                <div class="note-time">5 days ago</div>
+              </div>
+              <div class="note-text">"Marcus seems engaged but keeps choosing D for B. Tried pointing to a picture chart — helped a little."</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action footer -->
+        <div class="action-footer">
+          <button class="af-primary">📝 Add note</button>
+          <button class="af-secondary">💬 Message parent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: SKILL TREND + CONTEXT -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>📊 Skill Trend + Context</strong>
+    5-week mini bar chart shows tier per week (support/watch/strong) — not accuracy. Context rows below show current skill + recent skill changes. Tapping a bar in the chart shows that week's session count as tooltip (not score).
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:600px;">
+        <div class="push-topbar">
+          <div class="push-back">‹ Marcus T.</div>
+          <div class="push-title">Letter Sounds</div>
+        </div>
+
+        <div class="detail-body" style="max-height:none;padding-bottom:20px;">
+          <!-- Trend card -->
+          <div class="section-card">
+            <div class="sc-title">Tier trend — 5 weeks</div>
+            <div class="mini-chart">
+              <div class="mini-bar-wrap"><div class="mini-bar strong" style="height:40px;"></div><div class="mini-label">W1</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar watch" style="height:30px;"></div><div class="mini-label">W2</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar support" style="height:22px;"></div><div class="mini-label">W3</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar support" style="height:24px;"></div><div class="mini-label">W4</div></div>
+              <div class="mini-bar-wrap"><div class="mini-bar support" style="height:20px;"></div><div class="mini-label" style="color:var(--blue);font-weight:600;">Now</div></div>
+            </div>
+            <div style="display:flex;gap:12px;margin-top:8px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mid);"><div style="width:8px;height:8px;border-radius:2px;background:var(--mint);"></div>Strong</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mid);"><div style="width:8px;height:8px;border-radius:2px;background:var(--amber);"></div>Watch</div>
+              <div style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--mid);"><div style="width:8px;height:8px;border-radius:2px;background:var(--coral);"></div>Support</div>
+            </div>
+          </div>
+
+          <!-- Week 1 tooltip demo -->
+          <div class="section-card" style="border:1.5px solid var(--blue);">
+            <div style="font-size:11px;font-weight:700;color:var(--blue);margin-bottom:6px;">Week 1 — tapped</div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink);">Letter Sounds · W1</div>
+            <div style="font-size:11px;color:var(--mid);margin-top:4px;">4 sessions · Tier: Strong</div>
+            <div style="font-size:10px;color:var(--faint);margin-top:2px;">No accuracy % shown — tier based on engagement signal</div>
+          </div>
+
+          <!-- Class distribution for this skill -->
+          <div class="section-card">
+            <div class="sc-title">Class distribution — Letter Sounds</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <div style="text-align:center;background:rgba(255,123,107,.07);border-radius:10px;padding:10px 8px;">
+                <div style="font-size:22px;font-weight:700;color:#b84a3e;">6</div>
+                <div style="font-size:9px;color:var(--mid);">⚑ Support</div>
+              </div>
+              <div style="text-align:center;background:rgba(245,158,11,.07);border-radius:10px;padding:10px 8px;">
+                <div style="font-size:22px;font-weight:700;color:#92580a;">9</div>
+                <div style="font-size:9px;color:var(--mid);">👁 Watch</div>
+              </div>
+              <div style="text-align:center;background:rgba(88,232,193,.07);border-radius:10px;padding:10px 8px;">
+                <div style="font-size:22px;font-weight:700;color:var(--teal);">9</div>
+                <div style="font-size:9px;color:var(--mid);">✓ Strong</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: NOTE STACK + ADD NOTE -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>📝 Note Stack + Add Note Bottom Sheet</strong>
+    Notes newest first. Each note: author + timestamp + text. Tap "Add note" → bottom sheet slides up: handle, title, text field (max 200 chars), Save/Cancel. Note saved = auto-tagged with teacher name + timestamp + skill context.
+  </div>
+
+  <div class="mobile-wrap">
+    <!-- Note stack view -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div style="font-size:11px;color:#666;font-family:'Sora',sans-serif;">Note stack (no bottom sheet)</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-inner" style="min-height:680px;">
+          <div class="push-topbar">
+            <div class="push-back">‹ Marcus T.</div>
+            <div class="push-title">Notes (2)</div>
+          </div>
+          <div style="padding:14px;display:flex;flex-direction:column;gap:10px;padding-bottom:88px;">
+            <div class="note-card">
+              <div class="note-header">
+                <div class="note-author">Ms. Rivera</div>
+                <div class="note-time">Yesterday · 2:30pm</div>
+              </div>
+              <div class="note-text">"Confusing B and D — very common at this stage. Will monitor for 2 more sessions before adjusting."</div>
+            </div>
+            <div class="note-card">
+              <div class="note-header">
+                <div class="note-author">Ms. Rivera</div>
+                <div class="note-time">5 days ago</div>
+              </div>
+              <div class="note-text">"Marcus seems engaged but keeps choosing D for B. Tried pointing to a picture chart — helped a little."</div>
+            </div>
+          </div>
+          <div class="action-footer">
+            <button class="af-primary">📝 Add note</button>
+            <button class="af-secondary">💬 Message parent</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Add note bottom sheet open -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+      <div style="font-size:11px;color:#666;font-family:'Sora',sans-serif;">Add note bottom sheet open</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-inner" style="min-height:680px;">
+          <div class="push-topbar">
+            <div class="push-back">‹ Marcus T.</div>
+            <div class="push-title">Notes (2)</div>
+          </div>
+          <!-- Dimmed body -->
+          <div style="background:rgba(0,0,0,.25);position:absolute;inset:0;z-index:10;top:120px;border-radius:0;"></div>
+          <!-- Bottom sheet -->
+          <div class="bottom-sheet" style="z-index:20;position:absolute;">
+            <div class="bs-handle"></div>
+            <div class="bs-title">Add intervention note</div>
+            <textarea class="note-input" placeholder="What did you observe? What did you try?">Tried isolating B before introducing D — Marcus responded well to the bat/ball picture card.</textarea>
+            <div style="font-size:10px;color:var(--faint);text-align:right;margin-top:4px;">88 / 200</div>
+            <div class="bs-actions">
+              <button class="bs-cancel">Cancel</button>
+              <button class="bs-save">Save note</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: WHAT TO DO NEXT -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>🎯 What To Do Next + Action Footer</strong>
+    2–3 context-aware suggestion cards above the action footer. Cards based on current tier + skill + session history. Primary CTA: "Add note". Secondary: "Message parent". Never shows more than 3 suggestions — prioritize the most actionable one first.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="min-height:680px;">
+        <div class="push-topbar">
+          <div class="push-back">‹ Marcus T.</div>
+          <div class="push-title">What to do next</div>
+        </div>
+
+        <div style="padding:14px;padding-bottom:88px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;color:var(--faint);padding:4px 0;">Based on Marcus · Letter Sounds · 3rd session in Support</div>
+
+          <div class="next-actions">
+            <div class="na-row" style="border-color:rgba(42,106,180,.25);background:var(--blue-bg);">
+              <div class="na-icon">✍️</div>
+              <div class="na-body">
+                <div class="na-title">Add a note about today</div>
+                <div class="na-sub">Document what you tried. Context helps track progress.</div>
+              </div>
+              <div class="na-arrow">›</div>
+            </div>
+            <div class="na-row">
+              <div class="na-icon">🎯</div>
+              <div class="na-body">
+                <div class="na-title">Isolate B before D</div>
+                <div class="na-sub">Reduce the mix — let Marcus build confidence with B alone first.</div>
+              </div>
+              <div class="na-arrow">›</div>
+            </div>
+            <div class="na-row">
+              <div class="na-icon">💬</div>
+              <div class="na-body">
+                <div class="na-title">Message family</div>
+                <div class="na-sub">Suggest a try-at-home: "bat" vs "dog" picture matching.</div>
+              </div>
+              <div class="na-arrow">›</div>
+            </div>
+          </div>
+
+          <div style="font-size:11px;color:var(--faint);padding:4px 0;">Also in Support for this skill:</div>
+          <div style="background:#fff;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+            <div style="font-size:18px;">🐻</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--ink);">Priya K.</div>
+              <div style="font-size:11px;color:var(--mid);">Same gap · consider paired activity</div>
+            </div>
+            <div style="font-size:16px;color:var(--faint);margin-left:auto;">›</div>
+          </div>
+        </div>
+
+        <div class="action-footer">
+          <button class="af-primary">📝 Add note</button>
+          <button class="af-secondary">💬 Message parent</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: SPEC NOTES -->
+<div id="tab5" class="panel">
+  <div class="spec-panel">
+    <div class="spec-title">Teacher Intervention Detail Mobile — Spec</div>
+    <div class="spec-sub">Push screen from queue row tap. Route: <code>/teacher/student/:id</code></div>
+    <div class="spec-section">
+      <h3>Screen sections</h3>
+      <table class="spec-table">
+        <thead><tr><th>Section</th><th>Content</th></tr></thead>
+        <tbody>
+          <tr><td>Student header</td><td>Avatar + name + grade/band + last active + tier chip</td></tr>
+          <tr><td>Skill context</td><td>Current skill (support) + recent tier changes — no accuracy %</td></tr>
+          <tr><td>5-week trend</td><td>Mini bar chart, bar color = tier (coral/amber/mint), tap bar = week tooltip with session count only</td></tr>
+          <tr><td>Note stack</td><td>Newest first, author + time + text, max 200 chars each</td></tr>
+          <tr><td>What to do next</td><td>2–3 context-aware suggestion rows + peers in same tier</td></tr>
+          <tr><td>Action footer</td><td>Primary "Add note", secondary "Message parent"</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-row"><div class="spec-row-desc">❌ No accuracy % anywhere<br>❌ No attempt counts<br>✓ Tier based on engagement + skill signal<br>✓ Note entry: plain text, 200 chars max, auto-tagged teacher + time + skill<br>✓ "Message parent" opens compose — pre-fills skill context, teacher edits before sending</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

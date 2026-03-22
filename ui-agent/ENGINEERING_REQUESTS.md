@@ -1324,3 +1324,151 @@ Important:
   - `play-route-canonical-v2.html` — retry NO lockout; Tab 5 card state reference table; celebration auto-dismiss 3s or tap; no accuracy % anywhere
   - `teacher-route-canonical-v2.html` — tier based on engagement + skill signal, NOT correct/incorrect ratio; no accuracy % shown; queue sorted support→watch→strong
   - `owner-route-canonical-v2.html` — critical alert non-dismissible until triage resolved; 15 min unacknowledged → push notification; critical KPI cells pulse; alert banner slot hidden when no alerts
+
+### 2026-03-22 — child-progress-map-v2, family-onboarding-manager-v2, content-gallery-browser-v2 complete
+
+- completed: child-progress-map-v2.html, family-onboarding-manager-v2.html, content-gallery-browser-v2.html
+- added files:
+  - `child-progress-map-v2.html` — 5 tabs: node trail (done=mint ring+check+floatY / current=gold ring+glowPulse / locked=faint+lock badge, sticky CTA "Continue quest"), band section dividers (friendly world names P0–P3, not grade labels in child view), badge collection (4×N grid, earned=gold ring+glow, locked=greyscale+no name spoiler), trophy shelf (horizontal scroll, earned tap → quiet replay, locked show no name), spec (node states table, what is never shown, stars system, friendly name table)
+  - `family-onboarding-manager-v2.html` — 5 tabs: welcome screen (warm intro + trust badges + "Set up my child" CTA + teacher code entry), step 1 child name (text input + suggested name tiles + privacy note, CTA disabled until non-empty), step 2 band+avatar (4-tile band picker P0–P3 with emoji+age, 8-emoji char grid, defaults pre-selected so CTA always enabled), step 3 PIN+confirm (4-digit numpad, PIN dots, skip option; confirmation card with avatar+name+band, "Start first quest" + "Add another child"), add another child (dashboard with existing child cards + dashed "Add another" entry + connect teacher card + 4-tab bottom nav); flow spec table (5 steps, fields, CTAs)
+  - `content-gallery-browser-v2.html` — 5 tabs: desktop gallery (left filter sidebar band/subject/status/QA health + right card grid auto-fill 220px min, cards tinted by band, status badges, flagged=coral border), desktop detail drawer (380px slide-in from right, QA health bars, 3 question previews with correct answer marked, action row Edit/Preview/Flag/Delete), mobile gallery (390px search + horizontal chip strip + full-width content rows), filter+search spec (filter dimensions table, sort options), content health+spec (health score dimensions with weights, card anatomy, action permissions table)
+- current focus: polling for next engineering requests
+- blockers: none
+- notes for engineering:
+  - `child-progress-map-v2.html` — section dividers use friendly world names in child view, NOT grade labels (Pre-K etc.); Tab 5 has the mapping table; no accuracy %, no attempt counts, no score anywhere in child progress view
+  - `family-onboarding-manager-v2.html` — step 2 band picker defaults to P0 Pre-K so CTA is always enabled from load; PIN step has skip option; confirmation card shows avatar+name+band (no score, no accuracy); max 4 children in chip strip before "+N more" overflow
+  - `content-gallery-browser-v2.html` — health score = 40% image refs + 30% alt text + 30% answer keys; thresholds match owner route (≥95% green / 80–94% amber / <80% red+pulse); Delete action is owner-only with confirmation modal; all other actions available to content admin
+
+### 2026-03-22 12:03 CDT
+- completed:
+  - verified delivered design batch:
+    - `child-progress-map-v2.html`
+    - `family-onboarding-manager-v2.html`
+    - `content-gallery-browser-v2.html`
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `teacher-intervention-detail-mobile-v2.html`
+  - `owner-content-health-detail-v2.html`
+  - `parent-skill-detail-mobile-canonical-v2.html`
+- next after current batch:
+  - `teacher-intervention-timeline-v2.html`
+  - `owner-route-health-v2.html`
+  - `parent-family-summary-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - keep polling this same file, use the delivered child progress, family onboarding, and content gallery concepts as the source material, and continue directly into teacher intervention detail, owner content health detail, and parent skill detail so the UI agent always has the next route-level batch ready
+
+### 2026-03-22 12:18 CDT
+- completed:
+  - delivered current batch (all 3 files):
+    - `teacher-intervention-detail-mobile-v2.html` — 5 tabs: student detail push screen + 5-week tier mini bar chart + note stack + add-note bottom sheet + what-to-do-next cards + spec
+    - `owner-content-health-detail-v2.html` — 5 tabs: desktop full detail (QA health bars + issue list + question previews + edit timeline + action row) + QA health breakdown + issue/preview side-by-side + content timeline + spec
+    - `parent-skill-detail-mobile-canonical-v2.html` — 5 tabs: skill detail screen (3 tier states) + tier states × 3 variants + activities + teacher note + edge states (not-yet-attempted / multi-child / past-band) + full spec; route /parent/child/:childId/skill/:skillId; no accuracy %, no missed-day framing, growth language throughout
+- current focus:
+  - starting next batch now per prior instructions:
+    - `teacher-intervention-timeline-v2.html`
+    - `owner-route-health-v2.html`
+    - `parent-family-summary-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - all parent-facing screens strictly enforce: no accuracy %, no missed-day framing, tier labels only (support/strength/next), forward-looking growth language
+  - parent-skill-detail uses same push-nav topbar pattern as teacher-intervention-detail — engineers should extract shared component
+  - multi-child switcher in topbar (inline pills) is canonical pattern for all parent child-scoped screens
+
+### 2026-03-22 12:44 CDT
+- completed:
+  - delivered next batch (all 3 files):
+    - `teacher-intervention-timeline-v2.html` — 5 tabs: mobile full timeline (active + resolved states) + mobile filtered/cross-skill views + desktop 3-panel (student list / timeline / inline add-entry) + add-entry bottom sheet + resolve confirmation modal + spec; event types: flag/note/contact/progress/assign/system/resolve; sort newest-first; filter chips; TODAY gold divider
+    - `owner-route-health-v2.html` — 5 tabs: desktop route grid (KPI strip + 3-col cards with sparklines + critical alert bar) + desktop route detail (/play critical: p50/p95/p99 + latency histogram + error breakdown + incident log + action row) + mobile route list (sorted critical→warning→healthy + all-clear empty state) + alert states (critical non-dismissible / warning / info / multi-alert stacked max 3) + spec; thresholds per route table; auto-page on-call after 15min unacked critical
+    - `parent-family-summary-v2.html` — 5 tabs: mobile 1-child (week hero + SNS trio + skill highlights + teacher strip + activity suggestions + bottom nav) + mobile 2-children (expanded + collapsed card variants) + desktop 3-col (child list / selected child detail / messages+upcoming) + edge states (no children / child added no sessions) + spec; hero gradient varies by family size; activity suggestions: 2–3 max, support-tier first, rotate weekly; multi-child layout rules (1=full, 2=both expanded, 3+=collapsed default)
+- current focus:
+  - polling for next batch
+- blockers:
+  - none
+- notes for engineering:
+  - teacher-intervention-timeline TODAY divider (gold #ffd166) should only render for active interventions — hide on resolved timeline views
+  - owner-route-health sort order: critical first, then warning, then healthy; within same status sort by p95 descending
+  - parent-family-summary week hero gradient: 1 child = teal (#2c7a6e→#1a5c52), multi-child = violet (#5a3e90→#3d2870)
+  - all three files share push-nav topbar pattern — engineers should confirm shared component extraction
+
+### 2026-03-22 12:31 CDT
+- completed:
+  - verified delivered design batch:
+    - `teacher-intervention-detail-mobile-v2.html`
+    - `owner-content-health-detail-v2.html`
+    - `parent-skill-detail-mobile-canonical-v2.html`
+    - `teacher-intervention-timeline-v2.html`
+    - `owner-route-health-v2.html`
+    - `parent-family-summary-v2.html`
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `child-return-journey-v2.html`
+  - `child-session-complete-map-overlay-v2.html`
+  - `owner-feedback-queue-mobile-v2.html`
+- next after current batch:
+  - `parent-skill-compare-mobile-v2.html`
+  - `teacher-intervention-resolve-v2.html`
+  - `owner-feedback-detail-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - keep polling this same file, treat the delivered teacher, owner, and parent detail/timeline/summary screens as the source of truth for those routes, then continue directly into child return and session-complete experiences plus the mobile owner feedback queue so the UI agent stays busy
+
+### 2026-03-22 13:02 CDT
+- completed:
+  - delivered current batch (all 3 files):
+    - `child-return-journey-v2.html` — 5 tabs: short away 1–2 days (streak intact + resume CTA) + long away 7–14+ days (big celebration + fresh start vs resume choice + new content discoveries) + streak lost/reset state (🌱 new streak framing, NEVER shame language, day-1 progress dots) + new content unlocked while away (trophy claim + new zone teaser) + spec; return triggers table by days-away; streak rules (intact/broken/new); "while you were away" max 2–3 items, support-tier-first
+    - `child-session-complete-map-overlay-v2.html` — 5 tabs: mid-skill node complete (node trail with done/just-completed/current/locked states, so-close callout at node 4/5) + skill mastered (full 🏆 burst, badge earned card, horizontal mini-map) + band complete (max celebration, band trophy, next-band teaser) + overlay animation states (before/after, slide-up sequence table: 6 steps with timing) + spec; never show accuracy%/wrong counts/time-taken on overlay; node state color table
+    - `owner-feedback-queue-mobile-v2.html` — 5 tabs: queue list (KPI strip + filter chips All/Bug/Content/UX/Praise + rows sorted critical→bug→content→ux→praise→resolved, unread dots) + feedback detail (bug detail with metadata grid + related reports + action row; content issue with fix-in-editor deep-link) + triage flow (bottom sheet with 5 actions + post-resolve resolved row with ticket ID badge) + empty/all-clear + praise filter states + spec; dismissal rules (critical non-dismissible without triage); 5 feedback types with border/badge colors
+- current focus:
+  - polling for next batch
+- blockers:
+  - none
+- notes for engineering:
+  - child-return-journey: return screen triggers when last_session > 1 day; grace period for streak should be configurable server-side
+  - child-session-complete overlay: slides up from bottom (translateY 100%→0, 400ms ease-out), play screen blurs behind at 30% opacity during overlay
+  - owner-feedback: critical bugs cannot be dismissed without triage action — enforce at UI level, not just guideline
+  - next batch per engineering agent notes: parent-skill-compare-mobile-v2.html, teacher-intervention-resolve-v2.html, owner-feedback-detail-v2.html
+
+### 2026-03-22 13:28 CDT
+- completed:
+  - verified receipt of the newest batch now present in `ui-agent/`:
+    - `parent-skill-compare-mobile-v2.html`
+    - `teacher-intervention-resolve-v2.html`
+    - `owner-feedback-detail-v2.html`
+- current focus:
+  - `play-world-backgrounds-v2.html`
+  - `adult-surface-palette-v2.html`
+  - `teacher-class-summary-mobile-v2.html`
+  - `owner-feedback-resolution-center-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - use the existing `audience-backgrounds.html` and `design-system.css` as the baseline, but make this round more route-specific and more production-ready
+  - `play-world-backgrounds-v2.html` should define per-band/background systems for `/play` and `/child`:
+    - PREK = playful/friendly, low-noise visual worlds
+    - K1 = more energetic but still soft and readable
+    - G23 = stronger contrast and motion-ready surfaces
+    - G45 = more structured/strategic environments
+    - include: default, success, retry/support, session-complete overlay, and returning-journey backdrop variants
+  - `adult-surface-palette-v2.html` should define refined background/surface palettes for Home, Parent, Teacher, and Owner:
+    - stop everything from feeling like the same cream background
+    - give each audience a clearly distinct base atmosphere, card surface tone, border tone, and alert accent set
+    - include desktop and mobile notes plus token recommendations
+  - `teacher-class-summary-mobile-v2.html` should focus on the best compact mobile teacher snapshot:
+    - class summary hero
+    - support/watch/strong split
+    - recent interventions strip
+    - next actions
+    - empty / low-data states
+  - `owner-feedback-resolution-center-v2.html` should pick up after queue + detail:
+    - resolution workflow
+    - assignment/owner chips
+    - severity/state transitions
+    - resolved archive row
+    - mobile-first ops handling

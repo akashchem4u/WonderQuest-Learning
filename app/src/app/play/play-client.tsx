@@ -72,6 +72,15 @@ type RewardOverlay = {
   body: string;
 };
 
+type QuestNodeState = "done" | "just-completed" | "current" | "locked";
+
+type QuestNode = {
+  key: string;
+  label: string;
+  icon: string;
+  state: QuestNodeState;
+};
+
 type WordPreview = {
   icon: string;
   helper: string;
@@ -666,6 +675,149 @@ function buildAnswerTapCue(question: SessionQuestion) {
   return "Tap the answer that matches.";
 }
 
+function buildQuestNodeLabel(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") return "Count";
+  if (question.questionKey === "prek_letter_b_ball") return "Letter";
+  if (question.questionKey === "prek_shape_circle") return "Shape";
+  if (question.questionKey === "k1_short_a_cat") return "Sound";
+  if (question.questionKey === "k1_add_6_4") return "Add";
+  if (question.questionKey === "k1_first_word_goal") return "Read";
+
+  if (question.subject === "math") return "Math";
+  if (question.subject === "early-literacy") return "Word";
+  if (question.subject === "reading") return "Read";
+  return "Quest";
+}
+
+function buildQuestNodeIcon(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") return "🦆";
+  if (question.questionKey === "prek_letter_b_ball") return "🔤";
+  if (question.questionKey === "prek_shape_circle") return "⭕";
+  if (question.questionKey === "k1_short_a_cat") return "🐱";
+  if (question.questionKey === "k1_add_6_4") return "⚽";
+  if (question.questionKey === "k1_first_word_goal") return "🥅";
+
+  if (question.subject === "math") return "🔢";
+  if (question.subject === "early-literacy") return "📚";
+  if (question.subject === "reading") return "🪐";
+  return "⭐";
+}
+
+function formatQuestLabel(value: string | null | undefined) {
+  if (!value) {
+    return "Quest";
+  }
+
+  return value
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .join(" ");
+}
+
+function buildQuestWorldLabel(launchBandCode: string) {
+  switch (launchBandCode) {
+    case "PREK":
+      return "Animal Adventure";
+    case "K1":
+      return "Violet Trail";
+    case "G23":
+      return "Orbit Trail";
+    case "G45":
+      return "Builder Summit";
+    default:
+      return "WonderQuest";
+  }
+}
+
+function buildQuestNodes(
+  questions: SessionQuestion[],
+  currentIndex: number,
+  finished: boolean,
+) {
+  return questions.map((question, index) => {
+    let state: QuestNodeState = "locked";
+
+    if (finished) {
+      state = index === questions.length - 1 ? "just-completed" : "done";
+    } else if (index < currentIndex) {
+      state = "done";
+    } else if (index === currentIndex) {
+      state = "current";
+    }
+
+    return {
+      key: question.questionKey,
+      label: buildQuestNodeLabel(question),
+      icon: buildQuestNodeIcon(question),
+      state,
+    } satisfies QuestNode;
+  });
+}
+
+function buildNextQuestTeaser(launchBandCode: string) {
+  switch (launchBandCode) {
+    case "PREK":
+      return {
+        title: "Next quest: Number Garden",
+        body: "More tiny counting and letter adventures are waiting in the same friendly world.",
+      };
+    case "K1":
+      return {
+        title: "Next quest: Violet Trail",
+        body: "A new short challenge is ready with more words, numbers, and quick wins.",
+      };
+    case "G23":
+      return {
+        title: "Next quest: Orbit Trail",
+        body: "The next route opens with bigger reading and logic moments to explore.",
+      };
+    case "G45":
+      return {
+        title: "Next quest: Builder Summit",
+        body: "The next stretch adds stronger puzzles, strategy, and world-building challenges.",
+      };
+    default:
+      return {
+        title: "Next quest is ready",
+        body: "A fresh challenge is waiting whenever you want another short round.",
+      };
+  }
+}
+
+function buildCompletionMoment(
+  answerState: AnswerPayload | null,
+  earlyLearnerMode: boolean,
+) {
+  if (answerState?.milestones.trophyEarned) {
+    return {
+      title: earlyLearnerMode ? "Big trophy moment!" : "Trophy unlocked.",
+      body: earlyLearnerMode
+        ? "A shiny new trophy joined your shelf for finishing this quest."
+        : "A new trophy was added to the progression shelf.",
+      emoji: "🏆",
+    };
+  }
+
+  if (answerState?.milestones.badgeEarned) {
+    return {
+      title: earlyLearnerMode ? "Badge earned!" : "New badge earned.",
+      body: earlyLearnerMode
+        ? "A new badge joined your collection for this quest."
+        : "A new badge was earned from the current session.",
+      emoji: "🏅",
+    };
+  }
+
+  return {
+    title: earlyLearnerMode ? "Quest path complete!" : "Session path complete.",
+    body: earlyLearnerMode
+      ? "You finished every step in this short quest."
+      : "This loop is finished and the next route is ready when you are.",
+    emoji: "⭐",
+  };
+}
+
 export default function PlayClient() {
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
@@ -1019,6 +1171,55 @@ export default function PlayClient() {
   const coachSteps = buildCoachSteps(currentQuestion);
   const answerCardVariant = buildAnswerCardVariant(currentQuestion);
   const answerTapCue = buildAnswerTapCue(currentQuestion);
+  const questNodes = buildQuestNodes(
+    session.questions,
+    currentIndex,
+    finished,
+  );
+  const completionMoment = buildCompletionMoment(answerState, earlyLearnerMode);
+  const nextQuestTeaser = buildNextQuestTeaser(session.student.launchBandCode);
+  const questWorldLabel = buildQuestWorldLabel(session.student.launchBandCode);
+  const questSkillLabel = formatQuestLabel(currentQuestion?.skill);
+  const completedNodeCount = questNodes.filter(
+    (node) => node.state === "done" || node.state === "just-completed",
+  ).length;
+  const completionHighlight =
+    answerState?.milestones.trophyEarned
+      ? {
+          eyebrow: "Trophy unlocked",
+          title: "A new trophy just landed on the shelf!",
+          body: "This quest ended with a big celebration moment and a new trophy to replay later.",
+        }
+      : answerState?.milestones.badgeEarned
+        ? {
+            eyebrow: "Badge earned",
+            title: "New badge added to the collection.",
+            body: "This short quest added a fresh badge to the reward shelf for your next visit.",
+          }
+        : {
+            eyebrow: "Next path opened",
+            title: nextQuestTeaser.title,
+            body: nextQuestTeaser.body,
+          };
+  const returnHighlights = returningEntry
+    ? [
+        {
+          emoji: "⭐",
+          title: `${progression?.totalPoints ?? 0} stars saved`,
+          body: "Your progress stayed right here while you were away.",
+        },
+        {
+          emoji: "🧭",
+          title: "Saved quest spot",
+          body: `${questWorldLabel} · ${Math.min(currentIndex + 1, session.questions.length)} of ${session.questions.length} steps are ready to resume.`,
+        },
+        {
+          emoji: "🎁",
+          title: "Something new is waiting",
+          body: nextQuestTeaser.body,
+        },
+      ]
+    : [];
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -1114,22 +1315,105 @@ export default function PlayClient() {
             {finished ? (
               <div className="status-panel status-success celebration-panel">
                 {earlyLearnerMode ? (
-                  <div className="finished-quest-hero">
-                    <div className="finished-quest-mascot" aria-hidden="true">
-                      {getAvatarSymbol(session.student.avatarKey)}
+                  <>
+                    <div className="finished-quest-hero">
+                      <div className="finished-quest-mascot" aria-hidden="true">
+                        {completionMoment.emoji}
+                      </div>
+                      <div className="finished-quest-copy">
+                        <span className="kid-prompt-label">
+                          {returningEntry ? "Welcome back win" : "Quest complete"}
+                        </span>
+                        <strong>{session.student.displayName} finished the quest!</strong>
+                        <p>
+                          {returningEntry
+                            ? "You jumped back in, kept your saved progress, and finished the whole quest."
+                            : "That whole quest is done. Your stars and rewards are saved, and a new short adventure is ready next."}
+                        </p>
+                      </div>
                     </div>
-                    <div className="finished-quest-copy">
-                      <span className="kid-prompt-label">
-                        {returningEntry ? "Saved progress" : "Quest complete"}
-                      </span>
-                      <strong>{session.student.displayName} finished the quest!</strong>
-                      <p>
-                        {returningEntry
-                          ? "The stars, badges, and trophies stayed right where they were. You can come back for another short quest any time."
-                          : "That whole quest is done. The stars and rewards are saved, and you can do another short round whenever you are ready."}
-                      </p>
+
+                    {returningEntry ? (
+                      <div className="return-journey-card">
+                        <strong>{welcomeBackCopy.title}</strong>
+                        <p>{welcomeBackCopy.body}</p>
+                        <div className="return-journey-pillrow">
+                          <span className="return-journey-pill">
+                            ⭐ {progression?.totalPoints ?? 0} stars saved
+                          </span>
+                          <span className="return-journey-pill">
+                            🏅 {progression?.badgeCount ?? 0} badges
+                          </span>
+                          <span className="return-journey-pill">
+                            🏆 {progression?.trophyCount ?? 0} trophies
+                          </span>
+                        </div>
+                        <div className="return-journey-grid">
+                          {returnHighlights.map((highlight) => (
+                            <div className="return-journey-highlight" key={highlight.title}>
+                              <span aria-hidden="true">{highlight.emoji}</span>
+                              <div>
+                                <strong>{highlight.title}</strong>
+                                <p>{highlight.body}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    <div className="finished-map-overlay">
+                      <div className="finished-map-header">
+                        <span className="kid-prompt-label">Quest map</span>
+                        <strong>{completionMoment.title}</strong>
+                        <p>{completionMoment.body}</p>
+                      </div>
+                      <div className="finished-map-world">
+                        <span>{questWorldLabel}</span>
+                        <strong>{questSkillLabel}</strong>
+                        <small>
+                          {completedNodeCount} of {session.questions.length} steps complete
+                        </small>
+                      </div>
+
+                      <div className="finished-map-track" aria-hidden="true">
+                        {questNodes.map((node, index) => (
+                          <div className="finished-map-node-wrap" key={node.key}>
+                            <div className={`finished-map-node is-${node.state}`}>
+                              <span>{node.icon}</span>
+                              {node.state === "done" || node.state === "just-completed" ? (
+                                <em>{node.state === "just-completed" ? "★" : "✓"}</em>
+                              ) : null}
+                              {node.state === "just-completed" ? (
+                                <small className="finished-map-callout">Just done!</small>
+                              ) : null}
+                            </div>
+                            <small>{node.label}</small>
+                            {index < questNodes.length - 1 ? (
+                              <span
+                                className={`finished-map-connector ${
+                                  node.state === "done" || node.state === "just-completed"
+                                    ? "is-done"
+                                    : ""
+                                }`}
+                              />
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="finished-map-teaser">
+                        <div>
+                          <span className="kid-prompt-label">Up next</span>
+                          <strong>{completionHighlight.title}</strong>
+                          <p>{completionHighlight.body}</p>
+                        </div>
+                        <span className="finished-map-teaser-badge">
+                          {completionHighlight.eyebrow}
+                        </span>
+                      </div>
                     </div>
-                  </div>
+                  </>
                 ) : null}
                 <strong>{earlyLearnerMode ? "Quest complete!" : "Session complete."}</strong>
                 <p>
@@ -1171,7 +1455,7 @@ export default function PlayClient() {
                 {earlyLearnerMode ? (
                   <div className="finished-quest-note">
                     <strong>Next step</strong>
-                    <p>A grown-up can start one more short quest now or come back later with the same saved progress.</p>
+                    <p>{nextQuestTeaser.body}</p>
                   </div>
                 ) : null}
                 <div className="form-actions">
@@ -1216,13 +1500,45 @@ export default function PlayClient() {
                 </div>
                 {returningEntry ? (
                   <div className={`returning-quest-banner ${earlyLearnerMode ? "is-early" : ""}`}>
-                    <div className="returning-quest-copy">
-                      <span className="kid-prompt-label">
-                        {earlyLearnerMode ? "Welcome back" : "Saved progress"}
-                      </span>
-                      <strong>{welcomeBackCopy.title}</strong>
-                      <p>{welcomeBackCopy.body}</p>
+                    <div className="returning-quest-topline">
+                      <div className="returning-quest-icon" aria-hidden="true">
+                        {earlyLearnerMode ? "🌟" : "🧭"}
+                      </div>
+                      <div className="returning-quest-copy">
+                        <span className="kid-prompt-label">
+                          {earlyLearnerMode ? "Welcome back" : "Saved progress"}
+                        </span>
+                        <strong>{welcomeBackCopy.title}</strong>
+                        <p>{welcomeBackCopy.body}</p>
+                      </div>
+                      {earlyLearnerMode ? (
+                        <span className="returning-quest-pill">Saved spot</span>
+                      ) : null}
                     </div>
+                    {earlyLearnerMode ? (
+                      <div className="returning-resume-card">
+                        <span className="returning-resume-label">Continue this quest</span>
+                        <div className="returning-resume-row">
+                          <div>
+                            <strong>
+                              {questWorldLabel} · {questSkillLabel}
+                            </strong>
+                            <p>
+                              Step {questionNumber} of {session.questions.length} is ready to go.
+                            </p>
+                          </div>
+                          <span className="returning-resume-count">
+                            {Math.min(currentIndex + 1, session.questions.length)}/{session.questions.length}
+                          </span>
+                        </div>
+                        <div className="returning-resume-track" aria-hidden="true">
+                          <span
+                            className="returning-resume-fill"
+                            style={{ width: `${progressPercent}%` }}
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                     <div className="returning-quest-stats">
                       <span>{progression?.totalPoints ?? 0} pts</span>
                       <span>{progression?.badgeCount ?? 0} badges</span>

@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Content Gallery Browser v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ops:      #0d1117;
+      --ops2:     #161b22;
+      --ops3:     #21262d;
+      --ops4:     #30363d;
+      --ops-text: #e6edf3;
+      --ops-mid:  #8b949e;
+      --ops-faint:#484f58;
+      --blue:     #58a6ff;
+      --blue-bg:  rgba(88,166,255,.1);
+      --mint:     #58e8c1;
+      --coral:    #ff7b6b;
+      --amber:    #f59e0b;
+      --gold:     #ffd166;
+      --violet:   #9b72ff;
+    }
+    body { font-family: 'Sora', sans-serif; background: #080c10; color: var(--ops-text); min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,12,16,.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--ops4);
+      display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid var(--ops4); background: transparent;
+      color: var(--ops-mid); font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { background: var(--gold); color: #1a1a2e; font-weight: 700; border-color: transparent; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.05); color: var(--ops-text); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.07); border: 1px solid rgba(255,209,102,.2);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #fbbf24; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       DESKTOP GALLERY FRAME
+    ═══════════════════════════════════════ */
+    .desktop-frame { background: var(--ops); min-height: 100vh; }
+
+    .desktop-topbar {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+    }
+    .topbar-logo { font-size: 14px; font-weight: 700; color: var(--ops-text); }
+    .topbar-logo span { color: var(--blue); }
+    .topbar-breadcrumb { font-size: 12px; color: var(--ops-mid); }
+    .topbar-breadcrumb span { color: var(--ops-text); }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-btn { padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .topbar-btn.primary { background: var(--blue); color: #0d1117; border: none; }
+    .topbar-btn.ghost { background: transparent; color: var(--ops-mid); border: 1px solid var(--ops4); }
+
+    /* Gallery body */
+    .gallery-body { display: grid; grid-template-columns: 240px 1fr; min-height: calc(100vh - 56px); }
+
+    /* Left: filters sidebar */
+    .filter-sidebar {
+      background: var(--ops2); border-right: 1px solid var(--ops4);
+      padding: 20px 16px; display: flex; flex-direction: column; gap: 20px;
+    }
+    .filter-section-title { font-size: 10px; font-weight: 700; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+    .filter-option {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 8px; cursor: pointer;
+      transition: background .15s; font-size: 13px; color: var(--ops-mid);
+    }
+    .filter-option:hover { background: rgba(255,255,255,.04); color: var(--ops-text); }
+    .filter-option.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
+    .filter-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-p0 { background: var(--gold); }
+    .dot-p1 { background: var(--violet); }
+    .dot-p2 { background: var(--mint); }
+    .dot-p3 { background: var(--coral); }
+    .dot-all { background: var(--ops-mid); }
+    .filter-count { margin-left: auto; font-size: 10px; color: var(--ops-faint); }
+
+    .filter-check { display: flex; align-items: center; gap: 8px; padding: 5px 0; cursor: pointer; font-size: 12px; color: var(--ops-mid); }
+    .filter-check input { accent-color: var(--blue); }
+
+    /* Right: content grid */
+    .content-area { padding: 20px 24px; }
+
+    .content-toolbar {
+      display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .search-box {
+      flex: 1; min-width: 200px; height: 36px; background: var(--ops2); border: 1px solid var(--ops4);
+      border-radius: 10px; padding: 0 14px; font-family: 'Sora', sans-serif; font-size: 13px;
+      color: var(--ops-text); outline: none;
+    }
+    .search-box::placeholder { color: var(--ops-faint); }
+    .search-box:focus { border-color: var(--blue); }
+    .sort-select {
+      height: 36px; background: var(--ops2); border: 1px solid var(--ops4);
+      border-radius: 10px; padding: 0 12px; font-family: 'Sora', sans-serif; font-size: 12px;
+      color: var(--ops-mid); outline: none; cursor: pointer;
+    }
+    .results-count { font-size: 12px; color: var(--ops-faint); }
+
+    /* Content cards grid */
+    .cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+
+    .content-card {
+      background: var(--ops2); border: 1px solid var(--ops4); border-radius: 14px;
+      overflow: hidden; cursor: pointer; transition: border-color .2s, box-shadow .2s;
+    }
+    .content-card:hover { border-color: var(--blue); box-shadow: 0 4px 20px rgba(88,166,255,.15); }
+    .content-card.flagged { border-color: rgba(255,123,107,.4); }
+    .content-card.flagged:hover { border-color: var(--coral); }
+
+    .card-thumb {
+      height: 100px; display: flex; align-items: center; justify-content: center;
+      font-size: 44px; position: relative;
+    }
+    .card-thumb.p0 { background: linear-gradient(135deg, rgba(255,209,102,.15) 0%, rgba(255,209,102,.05) 100%); }
+    .card-thumb.p1 { background: linear-gradient(135deg, rgba(155,114,255,.15) 0%, rgba(155,114,255,.05) 100%); }
+    .card-thumb.p2 { background: linear-gradient(135deg, rgba(88,232,193,.12) 0%, rgba(88,232,193,.04) 100%); }
+    .card-thumb.p3 { background: linear-gradient(135deg, rgba(255,123,107,.12) 0%, rgba(255,123,107,.04) 100%); }
+
+    .card-status-badge {
+      position: absolute; top: 8px; right: 8px;
+      font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px;
+    }
+    .status-live { background: rgba(88,232,193,.15); color: var(--mint); }
+    .status-draft { background: rgba(88,166,255,.12); color: var(--blue); }
+    .status-review { background: rgba(245,158,11,.12); color: var(--amber); }
+    .status-flagged { background: rgba(255,123,107,.15); color: var(--coral); }
+
+    .card-body { padding: 12px 14px; }
+    .card-title { font-size: 13px; font-weight: 600; color: var(--ops-text); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .card-band { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 5px; }
+    .band-p0 { background: rgba(255,209,102,.12); color: var(--gold); }
+    .band-p1 { background: rgba(155,114,255,.12); color: var(--violet); }
+    .band-p2 { background: rgba(88,232,193,.1); color: var(--mint); }
+    .band-p3 { background: rgba(255,123,107,.1); color: var(--coral); }
+    .card-type { font-size: 10px; color: var(--ops-faint); }
+    .card-count { font-size: 10px; color: var(--ops-faint); margin-left: auto; }
+
+    /* ── DETAIL PANEL (drawer) ── */
+    .detail-drawer {
+      position: fixed; right: 0; top: 56px; bottom: 0; width: 380px;
+      background: var(--ops2); border-left: 1px solid var(--ops4);
+      z-index: 50; overflow-y: auto; padding: 24px;
+      box-shadow: -8px 0 32px rgba(0,0,0,.4);
+    }
+    .drawer-close { float: right; font-size: 18px; color: var(--ops-mid); cursor: pointer; }
+    .drawer-thumb {
+      height: 120px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+      font-size: 56px; margin-bottom: 16px;
+    }
+    .drawer-title { font-size: 16px; font-weight: 700; color: var(--ops-text); margin-bottom: 6px; }
+    .drawer-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+    .drawer-section-title { font-size: 10px; font-weight: 700; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; margin-top: 16px; }
+
+    .question-preview {
+      background: var(--ops3); border: 1px solid var(--ops4); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 6px;
+    }
+    .question-text { font-size: 12px; color: var(--ops-text); margin-bottom: 6px; }
+    .question-answers { display: flex; gap: 6px; flex-wrap: wrap; }
+    .q-answer { font-size: 10px; padding: 3px 8px; border-radius: 6px; background: var(--ops4); color: var(--ops-mid); }
+    .q-answer.correct { background: rgba(88,232,193,.12); color: var(--mint); }
+
+    .drawer-action-row { display: flex; gap: 8px; margin-top: 20px; flex-wrap: wrap; }
+    .d-btn { padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+    .d-btn.primary { background: var(--blue); color: #0d1117; }
+    .d-btn.ghost { background: rgba(255,255,255,.06); color: var(--ops-text); border: 1px solid var(--ops4); }
+    .d-btn.danger { background: rgba(255,123,107,.12); color: var(--coral); }
+
+    /* Health bar in drawer */
+    .health-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .health-label { font-size: 11px; color: var(--ops-mid); width: 80px; flex-shrink: 0; }
+    .health-track { flex: 1; height: 5px; background: var(--ops4); border-radius: 5px; overflow: hidden; }
+    .health-fill { height: 100%; border-radius: 5px; }
+    .hf-green { background: var(--mint); }
+    .hf-amber { background: var(--amber); }
+    .hf-red { background: var(--coral); }
+    .health-pct { font-size: 10px; font-weight: 700; width: 32px; text-align: right; flex-shrink: 0; }
+
+    /* Mobile wrap */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; }
+    .phone-frame {
+      width: 390px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); border: 1px solid var(--ops4);
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: var(--ops); border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--ops); min-height: 844px; position: relative; overflow: hidden; }
+
+    .mob-topbar {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 46px 14px 10px;
+    }
+    .mob-logo { font-size: 13px; font-weight: 700; color: var(--ops-text); }
+    .mob-logo span { color: var(--blue); }
+
+    .mob-search {
+      margin: 10px 12px 0; height: 36px; background: var(--ops2); border: 1px solid var(--ops4);
+      border-radius: 10px; padding: 0 14px; font-family: 'Sora', sans-serif; font-size: 13px;
+      color: var(--ops-text); outline: none; width: calc(100% - 24px);
+    }
+    .mob-search::placeholder { color: var(--ops-faint); }
+
+    .mob-filter-strip {
+      display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; scrollbar-width: none;
+    }
+    .mob-filter-strip::-webkit-scrollbar { display: none; }
+    .mob-filter-chip {
+      flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; border: 1.5px solid var(--ops4);
+      background: transparent; color: var(--ops-mid); cursor: pointer;
+    }
+    .mob-filter-chip.active { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+
+    .mob-cards { padding: 10px 12px 80px; display: flex; flex-direction: column; gap: 8px; }
+    .mob-content-row {
+      background: var(--ops2); border: 1px solid var(--ops4); border-radius: 12px;
+      display: flex; align-items: center; gap: 12px; padding: 12px;
+      cursor: pointer; transition: border-color .15s;
+    }
+    .mob-content-row:hover { border-color: var(--blue); }
+    .mob-content-row.flagged { border-color: rgba(255,123,107,.35); }
+    .mob-thumb { width: 52px; height: 52px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .mob-thumb.p0 { background: rgba(255,209,102,.12); }
+    .mob-thumb.p1 { background: rgba(155,114,255,.1); }
+    .mob-thumb.p2 { background: rgba(88,232,193,.1); }
+    .mob-thumb.p3 { background: rgba(255,123,107,.1); }
+    .mob-row-body { flex: 1; min-width: 0; }
+    .mob-row-title { font-size: 13px; font-weight: 600; color: var(--ops-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-row-meta { display: flex; gap: 6px; align-items: center; margin-top: 3px; flex-wrap: wrap; }
+    .mob-row-arrow { color: var(--ops-faint); font-size: 14px; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ops-text); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--ops-mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; }
+    .spec-row-desc { font-size: 12px; color: var(--ops-mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--ops4); }
+    .spec-table th { color: var(--ops-mid); font-weight: 600; }
+    .spec-table td { color: var(--ops-text); }
+    .spec-table td code { background: var(--blue-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — Gallery</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Desktop — Detail Drawer</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Mobile — Gallery</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Filter + Search</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Content Health + Spec</button>
+</div>
+
+<!-- TAB 1: DESKTOP GALLERY -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>📚 Content Gallery Browser — Desktop</strong>
+    Owner/admin view for browsing all content packs. Left sidebar: band filters + content-type filters. Right: card grid (220px min-width, auto-fill). Each card: thumb background tinted by band, emoji, status badge, title, band chip, type, question count. Flagged cards get coral border. Toolbar: search + sort + results count.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="topbar-logo">Wonder<span>Quest</span></div>
+      <div class="topbar-breadcrumb">Content <span>/ Gallery</span></div>
+      <div class="topbar-right">
+        <button class="topbar-btn ghost">Export CSV</button>
+        <button class="topbar-btn primary">+ New Pack</button>
+      </div>
+    </div>
+
+    <div class="gallery-body">
+      <!-- Sidebar -->
+      <div class="filter-sidebar">
+        <div>
+          <div class="filter-section-title">Band</div>
+          <div class="filter-option active">
+            <div class="filter-dot dot-all"></div>All bands
+            <span class="filter-count">142</span>
+          </div>
+          <div class="filter-option">
+            <div class="filter-dot dot-p0"></div>Pre-K
+            <span class="filter-count">38</span>
+          </div>
+          <div class="filter-option">
+            <div class="filter-dot dot-p1"></div>K–1
+            <span class="filter-count">44</span>
+          </div>
+          <div class="filter-option">
+            <div class="filter-dot dot-p2"></div>G2–3
+            <span class="filter-count">36</span>
+          </div>
+          <div class="filter-option">
+            <div class="filter-dot dot-p3"></div>G4–5
+            <span class="filter-count">24</span>
+          </div>
+        </div>
+
+        <div>
+          <div class="filter-section-title">Subject</div>
+          <div class="filter-option active"><span>🔢</span> Math<span class="filter-count">74</span></div>
+          <div class="filter-option"><span>📖</span> Reading<span class="filter-count">52</span></div>
+          <div class="filter-option"><span>🔤</span> Phonics<span class="filter-count">16</span></div>
+        </div>
+
+        <div>
+          <div class="filter-section-title">Status</div>
+          <div class="filter-check"><input type="checkbox" checked /> Live (98)</div>
+          <div class="filter-check"><input type="checkbox" checked /> Draft (22)</div>
+          <div class="filter-check"><input type="checkbox" checked /> In review (14)</div>
+          <div class="filter-check"><input type="checkbox" /> Flagged (8)</div>
+        </div>
+
+        <div>
+          <div class="filter-section-title">QA health</div>
+          <div class="filter-check"><input type="checkbox" /> Below 80% only</div>
+          <div class="filter-check"><input type="checkbox" /> Broken media</div>
+          <div class="filter-check"><input type="checkbox" /> Missing alt text</div>
+        </div>
+      </div>
+
+      <!-- Content grid -->
+      <div class="content-area">
+        <div class="content-toolbar">
+          <input class="search-box" type="search" placeholder="Search content packs…" />
+          <select class="sort-select">
+            <option>Sort: Last updated</option>
+            <option>Sort: Band</option>
+            <option>Sort: Status</option>
+            <option>Sort: Health</option>
+          </select>
+          <div class="results-count">142 packs</div>
+        </div>
+
+        <div class="cards-grid">
+          <!-- P0 cards -->
+          <div class="content-card">
+            <div class="card-thumb p0">🐣<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Counting to 5</div>
+              <div class="card-meta">
+                <span class="card-band band-p0">Pre-K</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">12 Qs</span>
+              </div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-thumb p0">🌈<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Colors &amp; Shapes</div>
+              <div class="card-meta">
+                <span class="card-band band-p0">Pre-K</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">10 Qs</span>
+              </div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-thumb p0">📖<span class="card-status-badge status-review">Review</span></div>
+            <div class="card-body">
+              <div class="card-title">First Letters A–E</div>
+              <div class="card-meta">
+                <span class="card-band band-p0">Pre-K</span>
+                <span class="card-type">Phonics</span>
+                <span class="card-count">8 Qs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- P1 cards -->
+          <div class="content-card">
+            <div class="card-thumb p1">🔮<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Adding Within 5</div>
+              <div class="card-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">16 Qs</span>
+              </div>
+            </div>
+          </div>
+          <div class="content-card flagged">
+            <div class="card-thumb p1">🌟<span class="card-status-badge status-flagged">Flagged</span></div>
+            <div class="card-body">
+              <div class="card-title">Adding Within 10</div>
+              <div class="card-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">18 Qs · ⚠️ 3 broken</span>
+              </div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-thumb p1">📚<span class="card-status-badge status-draft">Draft</span></div>
+            <div class="card-body">
+              <div class="card-title">Rhyming Words</div>
+              <div class="card-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Reading</span>
+                <span class="card-count">14 Qs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- P2 cards -->
+          <div class="content-card">
+            <div class="card-thumb p2">🌊<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Place Value</div>
+              <div class="card-meta">
+                <span class="card-band band-p2">G2–3</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">20 Qs</span>
+              </div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="card-thumb p2">🐬<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Multiplication ×2 ×5</div>
+              <div class="card-meta">
+                <span class="card-band band-p2">G2–3</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">24 Qs</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- P3 card -->
+          <div class="content-card">
+            <div class="card-thumb p3">🔥<span class="card-status-badge status-live">Live</span></div>
+            <div class="card-body">
+              <div class="card-title">Fractions Intro</div>
+              <div class="card-meta">
+                <span class="card-band band-p3">G4–5</span>
+                <span class="card-type">Math</span>
+                <span class="card-count">18 Qs</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: DETAIL DRAWER -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>🗂️ Content Detail Drawer — Desktop</strong>
+    Slides in from right when a card is clicked (380px fixed). Shows: thumb, title, meta chips, QA health bars, question previews (first 3), action row (Edit / Publish / Flag / Delete). Non-destructive actions available to any admin; destructive (Delete) requires confirmation modal.
+  </div>
+
+  <div class="desktop-frame" style="min-height:700px;position:relative;">
+    <div class="desktop-topbar">
+      <div class="topbar-logo">Wonder<span>Quest</span></div>
+      <div class="topbar-breadcrumb">Content <span>/ Gallery / Adding Within 10</span></div>
+    </div>
+
+    <!-- Dimmed gallery background -->
+    <div style="background:rgba(8,12,16,.6);min-height:640px;"></div>
+
+    <!-- Detail drawer -->
+    <div class="detail-drawer">
+      <div class="drawer-close">✕</div>
+      <div class="drawer-thumb p1" style="background:linear-gradient(135deg,rgba(155,114,255,.2),rgba(155,114,255,.06));">🌟</div>
+      <div class="drawer-title">Adding Within 10</div>
+      <div class="drawer-meta">
+        <span class="card-band band-p1">K–1</span>
+        <span class="card-status-badge status-flagged" style="position:static;">Flagged</span>
+        <span style="font-size:11px;color:var(--ops-mid);">18 questions · Math</span>
+      </div>
+
+      <div class="drawer-section-title">QA Health</div>
+      <div class="health-row">
+        <div class="health-label">Image refs</div>
+        <div class="health-track"><div class="health-fill hf-red" style="width:83%;"></div></div>
+        <div class="health-pct" style="color:var(--coral);">83%</div>
+      </div>
+      <div class="health-row">
+        <div class="health-label">Alt text</div>
+        <div class="health-track"><div class="health-fill hf-amber" style="width:89%;"></div></div>
+        <div class="health-pct" style="color:var(--amber);">89%</div>
+      </div>
+      <div class="health-row">
+        <div class="health-label">Answer keys</div>
+        <div class="health-track"><div class="health-fill hf-green" style="width:100%;"></div></div>
+        <div class="health-pct" style="color:var(--mint);">100%</div>
+      </div>
+
+      <div class="drawer-section-title">Question previews (3 of 18)</div>
+      <div class="question-preview">
+        <div class="question-text">🥚🥚🥚 + 🥚🥚 = ?</div>
+        <div class="question-answers">
+          <span class="q-answer">3</span>
+          <span class="q-answer correct">5 ✓</span>
+          <span class="q-answer">4</span>
+          <span class="q-answer">6</span>
+        </div>
+      </div>
+      <div class="question-preview">
+        <div class="question-text">🐠🐠🐠🐠 + 🐠🐠 = ?</div>
+        <div class="question-answers">
+          <span class="q-answer">5</span>
+          <span class="q-answer correct">6 ✓</span>
+          <span class="q-answer">7</span>
+          <span class="q-answer">4</span>
+        </div>
+      </div>
+      <div class="question-preview" style="border-color:rgba(255,123,107,.3);">
+        <div class="question-text" style="color:var(--coral);">⚠️ Q3 — broken image ref: /assets/eggs_broken.png</div>
+      </div>
+
+      <div class="drawer-section-title">Last updated</div>
+      <div style="font-size:12px;color:var(--ops-mid);">2 days ago by content-admin · v1.4</div>
+
+      <div class="drawer-action-row">
+        <button class="d-btn primary">Edit pack</button>
+        <button class="d-btn ghost">Preview</button>
+        <button class="d-btn danger">Unflag</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: MOBILE GALLERY -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>📱 Content Gallery — Mobile (390px)</strong>
+    Search bar at top. Horizontal filter chip strip (All / Pre-K / K–1 / G2–3 / G4–5 / Flagged). Content as full-width rows: thumb square + title + band chip + status badge + arrow. Tap row → push to detail screen.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="mob-topbar">
+          <div class="mob-logo">Wonder<span>Quest</span> — Content</div>
+          <div style="font-size:11px;color:var(--blue);font-weight:600;">142 packs</div>
+        </div>
+
+        <input class="mob-search" type="search" placeholder="Search content packs…" />
+
+        <div class="mob-filter-strip">
+          <div class="mob-filter-chip active">All (142)</div>
+          <div class="mob-filter-chip">Pre-K (38)</div>
+          <div class="mob-filter-chip">K–1 (44)</div>
+          <div class="mob-filter-chip">G2–3 (36)</div>
+          <div class="mob-filter-chip">G4–5 (24)</div>
+          <div class="mob-filter-chip" style="border-color:rgba(255,123,107,.4);color:var(--coral);">⚠️ Flagged (8)</div>
+        </div>
+
+        <div class="mob-cards">
+          <div class="mob-content-row">
+            <div class="mob-thumb p0">🐣</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">Counting to 5</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p0">Pre-K</span>
+                <span class="card-type">Math · 12 Qs</span>
+                <span class="card-status-badge status-live" style="position:static;">Live</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-content-row">
+            <div class="mob-thumb p1">🔮</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">Adding Within 5</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Math · 16 Qs</span>
+                <span class="card-status-badge status-live" style="position:static;">Live</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-content-row flagged">
+            <div class="mob-thumb p1">🌟</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">Adding Within 10</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Math · 18 Qs</span>
+                <span class="card-status-badge status-flagged" style="position:static;">Flagged</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-content-row">
+            <div class="mob-thumb p0">📖</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">First Letters A–E</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p0">Pre-K</span>
+                <span class="card-type">Phonics · 8 Qs</span>
+                <span class="card-status-badge status-review" style="position:static;">Review</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-content-row">
+            <div class="mob-thumb p2">🌊</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">Place Value</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p2">G2–3</span>
+                <span class="card-type">Math · 20 Qs</span>
+                <span class="card-status-badge status-live" style="position:static;">Live</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-content-row">
+            <div class="mob-thumb p1">📚</div>
+            <div class="mob-row-body">
+              <div class="mob-row-title">Rhyming Words</div>
+              <div class="mob-row-meta">
+                <span class="card-band band-p1">K–1</span>
+                <span class="card-type">Reading · 14 Qs</span>
+                <span class="card-status-badge status-draft" style="position:static;">Draft</span>
+              </div>
+            </div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: FILTER + SEARCH -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>🔍 Filter + Search — Spec</strong>
+    Desktop: persistent left sidebar with band / subject / status / QA health filters. Mobile: horizontal chip strip above list. Search is real-time text filter on title. Filters are additive (AND logic). "Flagged only" filter is a quick-access shortcut. Results count updates live.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Filter + Search</div>
+    <div class="spec-sub">Content gallery filtering and search behaviour.</div>
+
+    <div class="spec-section">
+      <h3>Filter dimensions</h3>
+      <table class="spec-table">
+        <thead><tr><th>Dimension</th><th>Options</th><th>Logic</th></tr></thead>
+        <tbody>
+          <tr><td>Band</td><td>All / Pre-K / K–1 / G2–3 / G4–5</td><td>Single-select radio</td></tr>
+          <tr><td>Subject</td><td>Math / Reading / Phonics</td><td>Single-select radio</td></tr>
+          <tr><td>Status</td><td>Live / Draft / In review / Flagged</td><td>Multi-select checkboxes</td></tr>
+          <tr><td>QA health</td><td>Below 80% only / Broken media / Missing alt text</td><td>Multi-select checkboxes</td></tr>
+          <tr><td>Search</td><td>Free text on pack title</td><td>Real-time, case-insensitive</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Sort options</h3>
+      <table class="spec-table">
+        <thead><tr><th>Sort</th><th>Default?</th></tr></thead>
+        <tbody>
+          <tr><td>Last updated</td><td>Yes (default)</td></tr>
+          <tr><td>Band (P0 → P3)</td><td>No</td></tr>
+          <tr><td>Status (flagged first)</td><td>No</td></tr>
+          <tr><td>QA health (worst first)</td><td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: CONTENT HEALTH + SPEC -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>🩺 Content Health + Full Spec</strong>
+    Each content pack has a health score derived from: image ref validity, alt text coverage, answer key completeness. Health thresholds match owner route: ≥95% green, 80–94% amber, &lt;80% red. Flagged packs have coral border. Health filters in sidebar show only packs below threshold.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Content Gallery — Full Spec</div>
+    <div class="spec-sub">Owner/admin route for browsing, QA-checking, and managing all content packs.</div>
+
+    <div class="spec-section">
+      <h3>Card anatomy</h3>
+      <table class="spec-table">
+        <thead><tr><th>Element</th><th>Detail</th></tr></thead>
+        <tbody>
+          <tr><td>Thumb</td><td>100px tall, band-tinted gradient bg, large emoji centred</td></tr>
+          <tr><td>Status badge</td><td>Top-right of thumb: Live / Draft / Review / Flagged</td></tr>
+          <tr><td>Title</td><td>Pack name, truncated with ellipsis, 13px</td></tr>
+          <tr><td>Band chip</td><td>Color-coded by P0/P1/P2/P3</td></tr>
+          <tr><td>Type</td><td>Subject label: Math / Reading / Phonics</td></tr>
+          <tr><td>Count</td><td>N questions. If flagged: "N Qs · ⚠️ N broken"</td></tr>
+          <tr><td>Flagged border</td><td>1px coral <code>#ff7b6b</code> border replaces default</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Health score dimensions</h3>
+      <table class="spec-table">
+        <thead><tr><th>Dimension</th><th>How measured</th><th>Weight</th></tr></thead>
+        <tbody>
+          <tr><td>Image refs</td><td>% of image URLs that resolve (200 status)</td><td>40%</td></tr>
+          <tr><td>Alt text</td><td>% of images with non-empty alt text</td><td>30%</td></tr>
+          <tr><td>Answer keys</td><td>% of questions with exactly 1 correct answer marked</td><td>30%</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Action permissions</h3>
+      <table class="spec-table">
+        <thead><tr><th>Action</th><th>Who</th><th>Requires confirm?</th></tr></thead>
+        <tbody>
+          <tr><td>Edit pack</td><td>Content admin, owner</td><td>No</td></tr>
+          <tr><td>Publish draft</td><td>Content admin, owner</td><td>No</td></tr>
+          <tr><td>Flag / Unflag</td><td>Any admin</td><td>No</td></tr>
+          <tr><td>Delete pack</td><td>Owner only</td><td>Yes — confirmation modal</td></tr>
+          <tr><td>Export CSV</td><td>Any admin</td><td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
