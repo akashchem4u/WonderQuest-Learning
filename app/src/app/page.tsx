@@ -15,6 +15,7 @@ const routeCards = [
       "Fast PIN entry, big visuals, and playful question loops built to re-enter easily.",
     cta: "Open child path",
     tone: "kid",
+    featured: true,
   },
   {
     href: "/parent",
@@ -25,6 +26,7 @@ const routeCards = [
       "Link children, check recent progress, and see clear next-step signals without the noise.",
     cta: "Go to parent view",
     tone: "parent",
+    featured: false,
   },
   {
     href: "/teacher",
@@ -35,6 +37,7 @@ const routeCards = [
       "Review classroom support lanes, spot strengths, and follow session patterns quickly.",
     cta: "View teacher route",
     tone: "teacher",
+    featured: false,
   },
   {
     href: "/owner",
@@ -45,6 +48,7 @@ const routeCards = [
       "Track launch health, product signal quality, and operational readiness across the prototype.",
     cta: "Open owner console",
     tone: "owner",
+    featured: false,
   },
 ] as const;
 
@@ -155,25 +159,57 @@ export default async function HomePage() {
           </div>
         </section>
 
-        <section className="landing-route-grid">
-          {routeCards.map((card) => (
-            <article
-              className={`landing-route-card tone-${card.tone}`}
-              key={card.href}
-            >
-              <div className="landing-route-icon" aria-hidden="true">
-                {card.icon}
-              </div>
-              <div className="landing-route-copy">
-                <span>{card.audience}</span>
-                <h2>{card.title}</h2>
-                <p>{card.description}</p>
-              </div>
-              <Link className="landing-route-link" href={card.href}>
-                {card.cta}
-              </Link>
-            </article>
-          ))}
+        <section className="landing-launcher-stack">
+          {routeCards
+            .filter((card) => card.featured)
+            .map((card) => (
+              <article
+                className={`landing-featured-card tone-${card.tone}`}
+                key={card.href}
+              >
+                <div className="landing-featured-copy">
+                  <span className="landing-featured-label">{card.audience} first</span>
+                  <h2>{card.title}</h2>
+                  <p>{card.description}</p>
+                  <div className="landing-chip-row">
+                    <span className="landing-chip">Quick PIN entry</span>
+                    <span className="landing-chip">Big tap targets</span>
+                    <span className="landing-chip">Rewards stay saved</span>
+                  </div>
+                </div>
+                <div className="landing-featured-action">
+                  <div className="landing-route-icon landing-route-icon-featured" aria-hidden="true">
+                    {card.icon}
+                  </div>
+                  <Link className="landing-route-link landing-route-link-featured" href={card.href}>
+                    {card.cta}
+                  </Link>
+                </div>
+              </article>
+            ))}
+
+          <div className="landing-route-grid">
+            {routeCards
+              .filter((card) => !card.featured)
+              .map((card) => (
+                <article
+                  className={`landing-route-card tone-${card.tone}`}
+                  key={card.href}
+                >
+                  <div className="landing-route-icon" aria-hidden="true">
+                    {card.icon}
+                  </div>
+                  <div className="landing-route-copy">
+                    <span>{card.audience}</span>
+                    <h2>{card.title}</h2>
+                    <p>{card.description}</p>
+                  </div>
+                  <Link className="landing-route-link" href={card.href}>
+                    {card.cta}
+                  </Link>
+                </article>
+              ))}
+          </div>
         </section>
 
         <section className="landing-status-strip">
