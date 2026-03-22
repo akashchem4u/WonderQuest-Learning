@@ -205,6 +205,91 @@ function buildParentSkillSignal(masteryRate: number) {
   return "This still needs gentle support and slower repetition.";
 }
 
+function buildParentWeekSummary(
+  childName: string,
+  dashboard: ChildDashboard,
+  skillCount: number,
+) {
+  const leadStrength = dashboard.strengths[0]?.displayName;
+  const leadSupport = dashboard.supportAreas[0]?.displayName;
+
+  if (leadStrength && leadSupport) {
+    return {
+      headline: `${childName} is making steady progress this week.`,
+      body: `${leadStrength} is starting to feel more comfortable, and ${leadSupport.toLowerCase()} is the clearest place for one calm practice moment next.`,
+      chips: [
+        `${dashboard.strengths.length} strengths`,
+        `${dashboard.supportAreas.length} building`,
+        `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+      ],
+    };
+  }
+
+  if (leadStrength) {
+    return {
+      headline: `${childName} had a strong week in the app.`,
+      body: `${leadStrength} looks confident right now, and the next few short sessions can keep that momentum going.`,
+      chips: [
+        `${dashboard.strengths.length} strengths`,
+        `${dashboard.completedSessions} finished sessions`,
+        `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+      ],
+    };
+  }
+
+  return {
+    headline: `${childName} is building confidence one short session at a time.`,
+    body: `The next step is to keep practice calm, short, and centered on ${dashboard.recommendedFocus.toLowerCase()}.`,
+    chips: [
+      `${dashboard.completedSessions} finished sessions`,
+      `${dashboard.supportAreas.length} support lane`,
+      `${Math.min(Math.max(skillCount, 1), 3)} next ideas`,
+    ],
+  };
+}
+
+function buildParentTeacherMessage(childName: string, dashboard: ChildDashboard) {
+  if (dashboard.strengths[0]?.displayName) {
+    return `"${childName} is showing growing comfort in ${dashboard.strengths[0].displayName.toLowerCase()}. A short follow-up around ${dashboard.recommendedFocus.toLowerCase()} would be the best next step at home."`;
+  }
+
+  return `"The best next step for ${childName} is a short, calm practice moment around ${dashboard.recommendedFocus.toLowerCase()}. Keep it light and stop while it still feels successful."`;
+}
+
+function buildParentWeekendActivities(
+  primarySkill: { skillCode: string; displayName: string } | null,
+  secondarySkill: { skillCode: string; displayName: string } | null,
+) {
+  const activities = [];
+
+  if (primarySkill) {
+    activities.push({
+      icon: "🏠",
+      title: `Try ${primarySkill.displayName} at home`,
+      body: buildParentSkillAction(primarySkill.skillCode, primarySkill.displayName),
+      tag: "5 min",
+    });
+  }
+
+  if (secondarySkill) {
+    activities.push({
+      icon: "✨",
+      title: `Keep ${secondarySkill.displayName} feeling easy`,
+      body: `Let your child lead one quick moment around ${secondarySkill.displayName.toLowerCase()} so the app momentum feels familiar.`,
+      tag: "Confidence",
+    });
+  }
+
+  activities.push({
+    icon: "🎒",
+    title: "End while it still feels easy",
+    body: "Stop after one or two wins. The goal is to keep the next return to WonderQuest feeling calm and inviting.",
+    tag: "Routine",
+  });
+
+  return activities.slice(0, 3);
+}
+
 export default function ParentAccessPage() {
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
@@ -261,6 +346,24 @@ export default function ParentAccessPage() {
     activeChildDashboard?.supportAreas[0] ??
     activeChildDashboard?.strengths[0] ??
     null;
+  const parentWeekSummary =
+    activeChild && activeChildDashboard
+      ? buildParentWeekSummary(
+          activeChild.displayName,
+          activeChildDashboard,
+          activeSkillOptions.length,
+        )
+      : null;
+  const parentTeacherMessage =
+    activeChild && activeChildDashboard
+      ? buildParentTeacherMessage(activeChild.displayName, activeChildDashboard)
+      : "";
+  const parentWeekendActivities = activeChildDashboard
+    ? buildParentWeekendActivities(
+        activeChildDashboard.supportAreas[0] ?? activeSkill,
+        activeChildDashboard.strengths[0] ?? null,
+      )
+    : [];
 
   useEffect(() => {
     if (!result) {
@@ -754,16 +857,22 @@ export default function ParentAccessPage() {
           <section className="parent-hub-layout" id="parent-family-hub">
             <div className="parent-hub-main">
               <article className="parent-summary-rail">
-                <div className="parent-summary-hero">
+                <div
+                  className={`parent-summary-hero ${
+                    result.linkedChildren.length > 1 ? "is-family" : "is-single"
+                  }`}
+                >
                   <div className="parent-hub-greeting">
-                    <span className="eyebrow">Family hub</span>
-                    <h2>
-                      {result.guardian.displayName}, here is what {activeChild.displayName} needs next.
-                    </h2>
-                    <p>
-                      A calmer family view with child switching, recent learning,
-                      and one clear next action before the deeper cards.
-                    </p>
+                    <span className="eyebrow">This week</span>
+                    <h2>{parentWeekSummary?.headline}</h2>
+                    <p>{parentWeekSummary?.body}</p>
+                    <div className="parent-week-chip-row">
+                      {parentWeekSummary?.chips.map((chip) => (
+                        <span className="parent-week-chip" key={chip}>
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   <div className="parent-summary-actions">
                     <button
@@ -1234,6 +1343,38 @@ export default function ParentAccessPage() {
                     <span>Milestones</span>
                     <strong>{notifyMilestones ? "On" : "Off"}</strong>
                   </div>
+                </div>
+              </article>
+
+              <article className="parent-teacher-strip-card">
+                <span className="parent-insight-label">From school</span>
+                <div className="parent-teacher-strip-header">
+                  <span className="parent-teacher-avatar" aria-hidden="true">
+                    JL
+                  </span>
+                  <div>
+                    <strong>Teacher guidance</strong>
+                    <p>Shared for the current family summary lane</p>
+                  </div>
+                </div>
+                <blockquote>{parentTeacherMessage}</blockquote>
+              </article>
+
+              <article className="parent-activity-card">
+                <span className="parent-insight-label">Try this weekend</span>
+                <div className="parent-activity-stack">
+                  {parentWeekendActivities.map((activity) => (
+                    <div className="parent-activity-row" key={activity.title}>
+                      <span className="parent-activity-icon" aria-hidden="true">
+                        {activity.icon}
+                      </span>
+                      <div>
+                        <strong>{activity.title}</strong>
+                        <p>{activity.body}</p>
+                      </div>
+                      <small>{activity.tag}</small>
+                    </div>
+                  ))}
                 </div>
               </article>
 
