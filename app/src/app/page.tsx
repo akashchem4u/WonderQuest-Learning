@@ -9,7 +9,7 @@ const routeCards = [
   {
     href: "/child",
     audience: "Child",
-    icon: "Play",
+    icon: "⭐",
     title: "Start child access",
     description:
       "Fast PIN entry, big visuals, and playful question loops built to re-enter easily.",
@@ -20,7 +20,7 @@ const routeCards = [
   {
     href: "/parent",
     audience: "Parent",
-    icon: "Family",
+    icon: "🏡",
     title: "Open parent setup",
     description:
       "Link children, check recent progress, and see clear next-step signals without the noise.",
@@ -31,7 +31,7 @@ const routeCards = [
   {
     href: "/teacher",
     audience: "Teacher",
-    icon: "Class",
+    icon: "📘",
     title: "Teacher dashboard",
     description:
       "Review classroom support lanes, spot strengths, and follow session patterns quickly.",
@@ -42,7 +42,7 @@ const routeCards = [
   {
     href: "/owner",
     audience: "Owner",
-    icon: "Ops",
+    icon: "🛠️",
     title: "Owner console",
     description:
       "Track launch health, product signal quality, and operational readiness across the prototype.",
@@ -92,24 +92,24 @@ export default async function HomePage() {
 
         <section className="landing-hero">
           <div className="landing-hero-copy">
-            <span className="landing-eyebrow">Ages 2 to Grade 5</span>
+            <span className="landing-eyebrow">Web-first prototype</span>
             <h1>
-              Learning that <em>feels</em> like wonder.
+              Adaptive learning that <em>feels</em> like a favorite game.
             </h1>
             <p>
-              Adaptive learning for children, calmer visibility for parents,
-              actionable insight for teachers, and product signal for owners.
+              Multi-device WonderQuest prototype with separate child, parent,
+              teacher, and owner paths built on live Supabase flows.
             </p>
 
             <div className="landing-chip-row">
-              <span className="landing-chip">Multi-device web prototype</span>
-              <span className="landing-chip">Persistent progress</span>
+              <span className="landing-chip">Child-first launcher</span>
+              <span className="landing-chip">Mobile-first UI</span>
               <span className="landing-chip">
                 {launchStatus.source === "supabase"
-                  ? "Supabase live sync"
+                  ? "Supabase live flows"
                   : "Fallback launch data"}
               </span>
-              <span className="landing-chip">Child, parent, teacher, owner</span>
+              <span className="landing-chip">Saved progress</span>
             </div>
 
             <div className="landing-hero-actions">
@@ -123,11 +123,11 @@ export default async function HomePage() {
           </div>
 
           <div className="landing-proof-card">
-            <span className="landing-panel-label">Prototype signal</span>
-            <h2>Ready for visible progress, not just static mockups.</h2>
+            <span className="landing-panel-label">Launch command</span>
+            <h2>One platform, tuned for child play and adult clarity.</h2>
             <p>
-              Live profile creation, linked parent views, gated adult routes,
-              and seeded content are already wired into the current build.
+              The current build is already wired for live profile creation, play
+              sessions, linked parent views, and gated teacher and owner routes.
             </p>
 
             <div className="landing-proof-grid">
@@ -217,12 +217,12 @@ export default async function HomePage() {
             <span className="landing-panel-label">Live status</span>
             <h2>
               {launchStatus.source === "supabase"
-                ? "Current data is live."
-                : "Current data is running on fallback plan values."}
+                ? "Ready across phone, tablet, and laptop screens."
+                : "Currently showing fallback plan values."}
             </h2>
             <p>
               Launch bands and themes are shown here so adults can orient
-              themselves without turning the home route into a dashboard.
+              quickly without turning home into a dashboard.
             </p>
           </div>
 

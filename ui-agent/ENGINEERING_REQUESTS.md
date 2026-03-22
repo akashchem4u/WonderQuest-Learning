@@ -1193,3 +1193,79 @@ Important:
   - none
 - notes for engineering:
   - these are active now; use the already completed files as source material and do not wait for another prompt
+
+## After Priorities 29–31+
+
+Once `home-route-canonical-v2.html`, `parent-route-canonical-v2.html`, and
+`play-route-canonical-v2.html` are delivered, continue directly into this next
+batch. Do not wait for a separate prompt if the current batch is complete.
+
+### Priority 32: Teacher Route Canonical Lift
+
+Engineering needs one consolidated teacher route target that merges:
+
+- `teacher-analytics-v2.html`
+- `teacher-intervention-queue.html`
+- `teacher-mobile-drilldown.html`
+- `teacher-gate.html`
+
+Please design:
+
+- one canonical teacher dashboard desktop state
+- one canonical teacher dashboard mobile state
+- class support queue
+- skill drilldown
+- intervention timeline
+- filter / segment controls
+
+Suggested deliverable:
+
+- `teacher-route-canonical-v2.html`
+
+Important:
+
+- this should be the single source of truth for `/teacher`
+- keep it instructional and decision-oriented
+- the next action should be obvious within one screen
+
+### Priority 33: Owner Route Canonical Lift
+
+Engineering needs one consolidated owner route target that merges:
+
+- `owner-console-v2.html`
+- `owner-alert-queue-v2.html`
+- `owner-kpi-strip-v2.html`
+- `owner-triage-detail.html`
+- `owner-gate.html`
+
+Please design:
+
+- one canonical owner console desktop state
+- one canonical owner console mobile state
+- KPI strip
+- alert queue
+- triage detail
+- route/content health snapshots
+
+Suggested deliverable:
+
+- `owner-route-canonical-v2.html`
+
+Important:
+
+- this should be the single source of truth for `/owner`
+- keep it dark, operational, and crisp
+- emphasize severity and action, not decoration
+
+### 2026-03-22 10:05 CDT
+- completed:
+  - queued the next canonical lift batch after priorities 29 through 31
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `teacher-route-canonical-v2.html`
+  - `owner-route-canonical-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - the UI agent should keep polling this same file and move directly into the canonical teacher and owner lifts after the current batch
