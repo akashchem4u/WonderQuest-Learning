@@ -65,6 +65,13 @@ type QuestionVisualScene = {
   tokens?: string[];
 };
 
+type RewardOverlay = {
+  tone: "mint" | "gold" | "violet";
+  emoji: string;
+  title: string;
+  body: string;
+};
+
 function isEarlyLearnerBand(launchBandCode: string) {
   return launchBandCode === "PREK" || launchBandCode === "K1";
 }
@@ -287,6 +294,63 @@ function buildWelcomeBackCopy(
   };
 }
 
+function buildRewardOverlay(
+  answerState: AnswerPayload,
+  earlyLearnerMode: boolean,
+  progression: SessionPayload["progression"] | null,
+) {
+  if (answerState.milestones.trophyEarned) {
+    return {
+      tone: "gold",
+      emoji: "🏆",
+      title: "New trophy!",
+      body: earlyLearnerMode
+        ? "A shiny new trophy joined your collection."
+        : `New trophy unlocked. You now have ${progression?.trophyCount ?? 0} trophies.`,
+    } satisfies RewardOverlay;
+  }
+
+  if (answerState.milestones.badgeEarned) {
+    return {
+      tone: "violet",
+      emoji: "🏅",
+      title: "New badge!",
+      body: earlyLearnerMode
+        ? "You earned a brand-new badge for this quest."
+        : `Badge earned. You now have ${progression?.badgeCount ?? 0} badges.`,
+    } satisfies RewardOverlay;
+  }
+
+  if (answerState.milestones.leveledUp) {
+    return {
+      tone: "mint",
+      emoji: "🚀",
+      title: "Level up!",
+      body: `You reached level ${progression?.currentLevel ?? 1}.`,
+    } satisfies RewardOverlay;
+  }
+
+  if (answerState.correct && earlyLearnerMode) {
+    return {
+      tone: "mint",
+      emoji: "⭐",
+      title: "You got it!",
+      body: "That was the right answer. Keep going one step at a time.",
+    } satisfies RewardOverlay;
+  }
+
+  if (answerState.correct) {
+    return {
+      tone: "mint",
+      emoji: "✨",
+      title: "Nice work.",
+      body: `+${answerState.pointsEarned} points added to this quest.`,
+    } satisfies RewardOverlay;
+  }
+
+  return null;
+}
+
 function pickChildVoice(
   voices: SpeechSynthesisVoice[],
   launchBandCode: string,
@@ -447,6 +511,7 @@ export default function PlayClient() {
     "listen",
   );
   const [playedWelcomeVoice, setPlayedWelcomeVoice] = useState(false);
+  const [rewardOverlay, setRewardOverlay] = useState<RewardOverlay | null>(null);
 
   useEffect(() => {
     const voiceSupported =
@@ -506,6 +571,7 @@ export default function PlayClient() {
         setProgression(payload.progression);
         setCoachMode("listen");
         setPlayedWelcomeVoice(false);
+        setRewardOverlay(null);
         setQuestionStartedAt(Date.now());
       } catch (caughtError) {
         if (!active) {
@@ -587,6 +653,32 @@ export default function PlayClient() {
 
     speakText(answerState.explainer.script, "support");
   }, [answerState, voiceEnabled, availableVoices]);
+
+  useEffect(() => {
+    if (!session || !answerState?.correct) {
+      return;
+    }
+
+    const overlay = buildRewardOverlay(
+      answerState,
+      isEarlyLearnerBand(session.student.launchBandCode),
+      progression,
+    );
+
+    setRewardOverlay(overlay);
+  }, [answerState, progression, session]);
+
+  useEffect(() => {
+    if (!rewardOverlay) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRewardOverlay(null);
+    }, 2500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [rewardOverlay]);
 
   useEffect(() => {
     if (!session || !voiceEnabled || !returningEntry || playedWelcomeVoice) {
@@ -681,6 +773,7 @@ export default function PlayClient() {
     setCurrentIndex((value) => value + 1);
     setAttempt(1);
     setAnswerState(null);
+    setRewardOverlay(null);
     setCoachMode("listen");
     setQuestionStartedAt(Date.now());
   }
@@ -750,6 +843,22 @@ export default function PlayClient() {
   return (
     <AppFrame audience="kid" currentPath="/child">
       <main className="page-shell page-shell-split">
+        {rewardOverlay ? (
+          <button
+            aria-label="Reward moment"
+            className={`reward-overlay reward-overlay-${rewardOverlay.tone}`}
+            onClick={() => setRewardOverlay(null)}
+            type="button"
+          >
+            <div className="reward-overlay-card">
+              <div className="reward-overlay-emoji" aria-hidden="true">
+                {rewardOverlay.emoji}
+              </div>
+              <strong>{rewardOverlay.title}</strong>
+              <p>{rewardOverlay.body}</p>
+            </div>
+          </button>
+        ) : null}
         <section className="page-hero play-hero">
           <div>
             <span className="eyebrow">Live challenge</span>
