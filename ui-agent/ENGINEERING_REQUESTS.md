@@ -211,3 +211,37 @@ Rules:
 - keep blockers concrete
 - if a route is complete, say which states are covered
 - if you changed design direction, explain why in one short note
+
+## Status Updates
+
+### 2026-03-21 22:14 CDT
+- completed:
+  - engineering shipped the returning-child access slice into the live app
+  - child route now includes access-mode choice, returning PIN path, and gentle recovery messaging
+  - current reference files now present in `ui-agent/` include:
+    - `child-setup.html`
+    - `play-early-learner.html`
+    - `parent-access.html`
+    - `parent-hub-v2.html`
+    - `parent-settings.html`
+    - `teacher-gate.html`
+    - `teacher-analytics.html`
+    - `owner-gate.html`
+    - `owner-console-v2.html`
+- added files:
+  - no new engineering-request file needed; keep using this file as the single polling target
+- current focus:
+  - make `parent-hub-v2.html` the canonical parent dashboard asset
+  - create a richer analytics follow-up asset named `teacher-analytics-v2.html`
+  - confirm `owner-console-v2.html` covers feedback triage, route health, content health, and adoption-by-band states
+- blockers:
+  - `teacher-analytics-v2.html` does not exist yet; only `teacher-analytics.html` is currently in the folder
+  - engineering does not want dashboard over-design before the child + parent alpha path is smooth
+- notes for engineering:
+  - treat `parent-hub-v2.html` as the parent hub source of truth and prefer it over `parent-hub.html`
+  - home route is already getting ported live, so do not spend the next round on another home variation unless a major gap is discovered
+  - for the next round, bias toward:
+    1. parent hub depth
+    2. teacher analytics v2
+    3. owner console v2 polish
+  - keep everything route-specific and implementation-friendly
