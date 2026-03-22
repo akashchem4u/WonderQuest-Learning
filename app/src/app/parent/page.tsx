@@ -98,6 +98,17 @@ function formatLastSeen(value: string | null) {
   });
 }
 
+function formatShortDay(value: string) {
+  return new Date(value).toLocaleDateString([], {
+    weekday: "short",
+  });
+}
+
+function getSessionSparkHeight(effectivenessScore: number | null) {
+  const normalized = effectivenessScore ?? 52;
+  return `${Math.max(20, Math.round((normalized / 100) * 68))}px`;
+}
+
 function getAvatarSymbol(avatarKey: string) {
   if (avatarKey.includes("bunny")) return "🐰";
   if (avatarKey.includes("bear")) return "🐻";
@@ -138,6 +149,7 @@ export default function ParentAccessPage() {
     result?.childDashboards.find((dashboard) => dashboard.studentId === activeChildId) ??
     result?.childDashboard ??
     null;
+  const recentProgressSessions = activeChildDashboard?.recentSessions.slice(-6) ?? [];
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -401,6 +413,70 @@ export default function ParentAccessPage() {
                 </div>
               </div>
 
+              <article className="parent-answer-box">
+                <span className="parent-answer-eyebrow">
+                  Answers for you right now
+                </span>
+                <div className="parent-answer-list">
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      📊
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>How is {activeChild.displayName} doing?</strong>
+                      <p>
+                        {activeChildDashboard.readinessLabel} with{" "}
+                        {formatPercent(activeChildDashboard.averageEffectiveness)} average
+                        effectiveness and {formatPercent(activeChildDashboard.completionRate)}
+                        {" "}completion.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      ✨
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>What changed recently?</strong>
+                      <p>
+                        Last active {formatLastSeen(activeChildDashboard.lastSessionAt)} with{" "}
+                        {activeChild.badgeCount} badges, {activeChild.trophyCount} trophies,
+                        and {activeChildDashboard.completedSessions} completed sessions.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      🎯
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>What should we do next?</strong>
+                      <p>
+                        Spend a short session on {activeChildDashboard.recommendedFocus} and
+                        keep the next practice calm and focused.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article className="parent-next-action-banner">
+                <span className="parent-next-action-icon" aria-hidden="true">
+                  💡
+                </span>
+                <div className="parent-next-action-copy">
+                  <span>Recommended action</span>
+                  <strong>{activeChildDashboard.recommendedFocus}</strong>
+                  <p>
+                    This is the clearest next support area based on the latest
+                    answered prompts and session quality.
+                  </p>
+                </div>
+                <a className="secondary-link" href="#parent-feedback">
+                  Give context
+                </a>
+              </article>
+
               <div className="parent-linked-grid">
                 {result.linkedChildren.map((child) => {
                   const dashboard = result.childDashboards.find(
@@ -512,6 +588,40 @@ export default function ParentAccessPage() {
 
               <ShellCard
                 className="shell-card-soft"
+                eyebrow="Progress over time"
+                title="How recent sessions are trending"
+              >
+                {recentProgressSessions.length ? (
+                  <div className="parent-progress-card">
+                    <div className="parent-progress-bars" aria-hidden="true">
+                      {recentProgressSessions.map((session) => (
+                        <span
+                          className="parent-progress-bar"
+                          key={session.id}
+                          style={{ height: getSessionSparkHeight(session.effectivenessScore) }}
+                        />
+                      ))}
+                    </div>
+                    <div className="parent-progress-labels">
+                      {recentProgressSessions.map((session) => (
+                        <span key={session.id}>{formatShortDay(session.startedAt)}</span>
+                      ))}
+                    </div>
+                    <p className="soft-copy">
+                      Recent sessions show whether time spent is becoming more
+                      effective over the week.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="soft-copy">
+                    Progress-over-time will appear once there are enough recent
+                    sessions to compare.
+                  </p>
+                )}
+              </ShellCard>
+
+              <ShellCard
+                className="shell-card-soft"
                 eyebrow="Recent activity"
                 title="Latest learning activity"
               >
@@ -592,6 +702,38 @@ export default function ParentAccessPage() {
                   <div>
                     <span>Milestones</span>
                     <strong>{notifyMilestones ? "On" : "Off"}</strong>
+                  </div>
+                </div>
+              </article>
+
+              <article className="parent-settings-card">
+                <span className="parent-insight-label">Family settings</span>
+                <strong>Notifications and linked-child controls</strong>
+                <p>
+                  Keep family updates calm while staying clear on who is linked
+                  and which alerts are enabled.
+                </p>
+                <div className="parent-settings-list">
+                  <div className="parent-settings-row">
+                    <div>
+                      <strong>Weekly summary</strong>
+                      <span>Time spent, effectiveness, and next focus</span>
+                    </div>
+                    <b>{notifyWeekly ? "On" : "Off"}</b>
+                  </div>
+                  <div className="parent-settings-row">
+                    <div>
+                      <strong>Milestones</strong>
+                      <span>Badges, trophies, and level moments</span>
+                    </div>
+                    <b>{notifyMilestones ? "On" : "Off"}</b>
+                  </div>
+                  <div className="parent-settings-row">
+                    <div>
+                      <strong>Linked children</strong>
+                      <span>{result.linkedChildren.length} available in this family view</span>
+                    </div>
+                    <b>Active</b>
                   </div>
                 </div>
               </article>
