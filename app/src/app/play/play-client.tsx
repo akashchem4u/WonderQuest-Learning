@@ -488,6 +488,54 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
   );
 }
 
+function buildAnswerCardVariant(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") {
+    return "count";
+  }
+
+  if (question.questionKey === "prek_letter_b_ball") {
+    return "letter";
+  }
+
+  if (question.questionKey === "prek_shape_circle") {
+    return "shape";
+  }
+
+  if (question.subject === "early-literacy") {
+    return "picture";
+  }
+
+  if (/^\d+$/.test(question.answers[0] ?? "")) {
+    return "count";
+  }
+
+  return "standard";
+}
+
+function buildAnswerTapCue(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") {
+    return "Tap the duck group that matches.";
+  }
+
+  if (question.questionKey === "prek_letter_b_ball") {
+    return "Tap the letter you hear.";
+  }
+
+  if (question.questionKey === "prek_shape_circle") {
+    return "Tap the round shape.";
+  }
+
+  if (question.subject === "early-literacy") {
+    return "Tap the picture or letter that matches.";
+  }
+
+  if (question.subject === "math") {
+    return "Tap the group that matches.";
+  }
+
+  return "Tap the answer that matches.";
+}
+
 export default function PlayClient() {
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
@@ -828,7 +876,7 @@ export default function PlayClient() {
   );
   const earlyLearnerMode = isEarlyLearnerBand(session.student.launchBandCode);
   const visibleQuestionTags = earlyLearnerMode
-    ? questionTags.slice(0, 2)
+    ? questionTags.slice(0, 1)
     : questionTags;
   const celebrationCopy = buildCelebrationCopy(currentQuestion);
   const welcomeBackCopy = buildWelcomeBackCopy(
@@ -839,6 +887,8 @@ export default function PlayClient() {
   const promptCue = buildPromptCue(currentQuestion, currentScene);
   const coachCopy = buildCoachCopy(currentQuestion, currentScene, coachMode);
   const coachSteps = buildCoachSteps(currentQuestion);
+  const answerCardVariant = buildAnswerCardVariant(currentQuestion);
+  const answerTapCue = buildAnswerTapCue(currentQuestion);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -1151,18 +1201,26 @@ export default function PlayClient() {
                     ) : null}
                   </div>
                 ) : null}
+                {earlyLearnerMode ? (
+                  <div className={`early-answer-cue early-answer-cue-${answerCardVariant}`}>
+                    <strong>Tap the match</strong>
+                    <span>{answerTapCue}</span>
+                  </div>
+                ) : null}
                 <div className={`answer-grid ${earlyLearnerMode ? "answer-grid-early" : ""}`.trim()}>
                   {currentQuestion.answers.map((answer, index) => (
                     <button
-                      className={`answer-card ${earlyLearnerMode ? "answer-card-early" : ""}`}
+                      className={`answer-card ${earlyLearnerMode ? "answer-card-early" : ""} answer-card-${answerCardVariant}`}
                       disabled={submitting || Boolean(answerState?.correct)}
                       key={answer}
                       onClick={() => void submitAnswer(answer)}
                       type="button"
                     >
-                      <span className="answer-index">
-                        {String.fromCharCode(65 + index)}
-                      </span>
+                      {!earlyLearnerMode ? (
+                        <span className="answer-index">
+                          {String.fromCharCode(65 + index)}
+                        </span>
+                      ) : null}
                       {renderAnswerContent(currentQuestion, answer)}
                     </button>
                   ))}

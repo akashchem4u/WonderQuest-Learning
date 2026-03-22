@@ -895,3 +895,153 @@ Important:
 - keep owner dark and operational
 - emphasize severity, action, and status
 - do not reopen generic shell work
+
+## After Priorities 20–22
+
+Once `child-return-rewards-v2.html`, `teacher-intervention-queue.html`, and
+`owner-alert-queue-v2.html` are delivered, move directly into this next batch.
+Do not wait for a separate prompt if the current batch is complete.
+
+### Priority 23: Pre-Reader Entry Strip
+
+The live child route still needs one calmer entry pattern for very young
+learners so a grown-up can get them into play with less setup fatigue.
+
+Please design:
+
+- one compact pre-reader quickstart strip
+- returning child fast-entry state
+- minimal helper copy version
+- mobile version
+
+Suggested deliverable:
+
+- `child-prereader-quickstart.html`
+
+Important:
+
+- make it feel like a launch strip, not a long form
+- bias toward big tap targets and only one main action
+- assume adult + child are sitting together
+
+### Priority 24: Visual Answer Card Variants
+
+The live play route needs clearer card variations for pre-readers so counting,
+letters, shapes, and picture-word prompts do not all feel like the same card.
+
+Please design:
+
+- counting answer-card variant
+- letter / phonics answer-card variant
+- shape answer-card variant
+- picture-word answer-card variant
+- selected / correct / retry states
+- mobile version
+
+Suggested deliverable:
+
+- `play-answer-cards-v2.html`
+
+Important:
+
+- keep labels secondary to visuals for early learners
+- answer cards should still feel unified as one system
+- show how a gentle retry state differs from an incorrect lockout
+
+### Priority 25: Parent Mobile Snapshot
+
+Engineering is tightening the parent route, but one missing piece is a compact
+mobile-first summary state that answers the main parent questions without card
+fatigue.
+
+Please design:
+
+- selected child summary rail on mobile
+- time spent / effective time / support / next step stack
+- quick-switch children state
+- one action footer
+
+Suggested deliverable:
+
+- `parent-mobile-snapshot.html`
+
+Important:
+
+- make the page feel calm and immediately useful
+- do not turn this into another full dashboard redesign
+- should complement `parent-family-center.html` and `parent-summary-rail.html`
+
+## After Priorities 23–25
+
+Once `child-prereader-quickstart.html`, `play-answer-cards-v2.html`, and
+`parent-mobile-snapshot.html` are delivered, move directly into this next
+batch. Do not wait for a separate prompt if the current batch is complete.
+
+### Priority 26: Session Complete + Continue
+
+The child route needs one cleaner end-of-session state so celebrations do not
+end as dead ends. Engineering needs a reference that makes the next action
+obvious.
+
+Please design:
+
+- session-complete celebration
+- continue tomorrow state
+- replay this quest state
+- one calmer low-stimulation variant
+- mobile version
+
+Suggested deliverable:
+
+- `play-session-complete-v2.html`
+
+Important:
+
+- keep the reading burden low
+- the next action must be obvious in under 2 seconds
+- this should pair with `child-return-rewards-v2.html`
+
+### Priority 27: Teacher Mobile Drilldown
+
+The live teacher route now has a skill drilldown, but the mobile state still
+needs one implementation-ready reference so the route holds together on phone.
+
+Please design:
+
+- teacher mobile drilldown header
+- one selected skill summary
+- watch / support / strong learner tiers
+- recent intervention note stack
+- one action footer
+
+Suggested deliverable:
+
+- `teacher-mobile-drilldown.html`
+
+Important:
+
+- focus on phone clarity, not another full desktop redesign
+- make the “what should I do next?” decision obvious
+
+### Priority 28: Owner KPI Strip + Empty Alerts
+
+The owner route is close, but it still needs one compact operational reference
+for top-level trust: system health, feedback queue, and empty/alert states.
+
+Please design:
+
+- owner KPI strip
+- empty triage queue state
+- warning alert strip
+- critical alert strip
+- mobile version
+
+Suggested deliverable:
+
+- `owner-kpi-strip-v2.html`
+
+Important:
+
+- keep owner dark and crisp
+- emphasize operational trust, not decoration
+- this should complement `owner-alert-queue-v2.html`

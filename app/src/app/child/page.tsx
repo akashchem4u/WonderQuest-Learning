@@ -103,6 +103,7 @@ export default function ChildAccessPage() {
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
   const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
   const returningMode = accessMode === "returning";
+  const guidedOnlyMode = earlyLearnerBand || returningMode;
   const pinDigits = [0, 1, 2, 3];
   const selectedBandProfile = getBandProfile(selectedBand);
   const selectedAvatarSymbol = getAvatarSymbol(selectedAvatar);
@@ -112,6 +113,12 @@ export default function ChildAccessPage() {
       setSelectedAvatar(avatars[0]?.avatar_key ?? "");
     }
   }, [avatars, selectedAvatar]);
+
+  useEffect(() => {
+    if (guidedOnlyMode) {
+      setSelectedMode("guided-quest");
+    }
+  }, [guidedOnlyMode]);
 
   function appendPinDigit(digit: string) {
     setPin((current) => (current.length >= 4 ? current : `${current}${digit}`));
@@ -316,7 +323,11 @@ export default function ChildAccessPage() {
             title={returningMode ? "Welcome back" : "Set up the child profile"}
           >
             <span className="step-chip">
-              {returningMode ? "Step 2 · Sign in" : "Step 3 · Identity"}
+              {returningMode
+                ? "Step 2 · Sign in"
+                : earlyLearnerBand
+                  ? "Step 3 · Name + PIN"
+                  : "Step 3 · Identity"}
             </span>
             {returningMode ? (
               <div className="child-returning-card">
@@ -328,10 +339,20 @@ export default function ChildAccessPage() {
                     {username ? `Welcome back, ${username}` : "Return to your adventure"}
                   </strong>
                   <small>
-                    Enter the same username and 4-digit PIN so progress, badges,
-                    and trophies stay with the same child.
+                    {earlyLearnerBand
+                      ? "Use the same name and 4-digit PIN so a grown-up can open the next quest fast."
+                      : "Enter the same username and 4-digit PIN so progress, badges, and trophies stay with the same child."}
                   </small>
                 </div>
+              </div>
+            ) : null}
+            {earlyLearnerBand && !returningMode ? (
+              <div className="child-guided-note">
+                <strong>Quick start for little learners</strong>
+                <p>
+                  Pick the band, type a simple quest name, choose one picture,
+                  and press start. The session will stay in guided mode.
+                </p>
               </div>
             ) : null}
             <div className="field-grid">
@@ -415,7 +436,9 @@ export default function ChildAccessPage() {
             eyebrow="Avatar"
             title="Pick your guide"
           >
-            <span className="step-chip">Step 4 · Avatar</span>
+            <span className="step-chip">
+              {earlyLearnerBand ? "Step 4 · Pick the picture" : "Step 4 · Avatar"}
+            </span>
             <div className="child-avatar-preview">
               <span className="child-avatar-preview-icon" aria-hidden="true">
                 {selectedAvatarSymbol}
@@ -460,39 +483,39 @@ export default function ChildAccessPage() {
           </ShellCard>
           ) : null}
 
-          <ShellCard
-            className="shell-card-emphasis"
-            eyebrow="Mode"
-            title="Choose how the next session feels"
-          >
-            <span className="step-chip">
-              {returningMode ? "Step 3 · Session mode" : "Step 5 · Session mode"}
-            </span>
-            <div className="choice-column">
-              <button
-                className={`mode-card ${
-                  selectedMode === "guided-quest" ? "is-selected" : ""
-                }`}
-                onClick={() => setSelectedMode("guided-quest")}
-                type="button"
-              >
-                Guided Quest
-                <span>The system picks the next best sequence of questions.</span>
-              </button>
-              <button
-                className={`mode-card ${
-                  selectedMode === "self-directed-challenge"
-                    ? "is-selected"
-                    : ""
-                }`}
-                onClick={() => setSelectedMode("self-directed-challenge")}
-                type="button"
-              >
-                Self-Directed Challenge
-                <span>Start with more control and ask for harder or easier items.</span>
-              </button>
-            </div>
-          </ShellCard>
+          {!guidedOnlyMode ? (
+            <ShellCard
+              className="shell-card-emphasis"
+              eyebrow="Mode"
+              title="Choose how the next session feels"
+            >
+              <span className="step-chip">Step 5 · Session mode</span>
+              <div className="choice-column">
+                <button
+                  className={`mode-card ${
+                    selectedMode === "guided-quest" ? "is-selected" : ""
+                  }`}
+                  onClick={() => setSelectedMode("guided-quest")}
+                  type="button"
+                >
+                  Guided Quest
+                  <span>The system picks the next best sequence of questions.</span>
+                </button>
+                <button
+                  className={`mode-card ${
+                    selectedMode === "self-directed-challenge"
+                      ? "is-selected"
+                      : ""
+                  }`}
+                  onClick={() => setSelectedMode("self-directed-challenge")}
+                  type="button"
+                >
+                  Self-Directed Challenge
+                  <span>Start with more control and ask for harder or easier items.</span>
+                </button>
+              </div>
+            </ShellCard>
+          ) : null}
 
           <ShellCard
             className="shell-card-spotlight"
@@ -500,8 +523,31 @@ export default function ChildAccessPage() {
             title="Start the next adventure"
           >
             <span className="step-chip">
-              {returningMode ? "Step 4 · Launch" : "Step 6 · Launch"}
+              {returningMode
+                ? "Step 3 · Launch"
+                : guidedOnlyMode
+                  ? "Step 5 · Launch"
+                  : "Step 6 · Launch"}
             </span>
+            {guidedOnlyMode ? (
+              <div className="child-launch-strip">
+                <div className="child-launch-pill">
+                  <span aria-hidden="true">{selectedBandProfile.emoji}</span>
+                  <strong>{selectedBandProfile.title}</strong>
+                  <small>{selectedBandProfile.ageLabel}</small>
+                </div>
+                <div className="child-launch-pill">
+                  <span aria-hidden="true">{returningMode ? "🔐" : selectedAvatarSymbol}</span>
+                  <strong>{returningMode ? "Same PIN" : "Same picture"}</strong>
+                  <small>{returningMode ? "Fast sign-in" : "Easy to spot next time"}</small>
+                </div>
+                <div className="child-launch-pill">
+                  <span aria-hidden="true">🧭</span>
+                  <strong>Guided quest</strong>
+                  <small>One calm question at a time</small>
+                </div>
+              </div>
+            ) : null}
             <div className="summary-chip-row">
               <span className="summary-chip">
                 {returningMode ? "Returning adventurer" : selectedBandProfile.title}
@@ -513,6 +559,12 @@ export default function ChildAccessPage() {
                 {selectedMode === "guided-quest" ? "Guided quest" : "Self-directed"}
               </span>
             </div>
+            {guidedOnlyMode ? (
+              <div className="status-banner child-launch-banner">
+                <strong>Launch rule:</strong> younger and returning adventurers go straight
+                into guided quest so the grown-up setup stays short.
+              </div>
+            ) : null}
             <ul className="route-list">
               <li>
                 {earlyLearnerBand
