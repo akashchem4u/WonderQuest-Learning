@@ -41,6 +41,41 @@ function getBandSymbol(bandCode: string) {
   }
 }
 
+function getBandProfile(bandCode: string) {
+  switch (bandCode) {
+    case "PREK":
+      return {
+        emoji: "🐣",
+        title: "Tiny Explorer",
+        ageLabel: "Ages 2–5",
+      };
+    case "K1":
+      return {
+        emoji: "⚽",
+        title: "Super Starter",
+        ageLabel: "Kinder – Grade 1",
+      };
+    case "G23":
+      return {
+        emoji: "🚀",
+        title: "Space Adventurer",
+        ageLabel: "Grades 2–3",
+      };
+    case "G45":
+      return {
+        emoji: "🏗️",
+        title: "Master Builder",
+        ageLabel: "Grades 4–5",
+      };
+    default:
+      return {
+        emoji: getBandSymbol(bandCode),
+        title: bandCode,
+        ageLabel: bandCode,
+      };
+  }
+}
+
 function getAvatarSymbol(avatarKey: string) {
   if (avatarKey.includes("bunny")) return "🐰";
   if (avatarKey.includes("bear")) return "🐻";
@@ -66,6 +101,8 @@ export default function ChildAccessPage() {
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
   const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
   const pinDigits = [0, 1, 2, 3];
+  const selectedBandProfile = getBandProfile(selectedBand);
+  const selectedAvatarSymbol = getAvatarSymbol(selectedAvatar);
 
   useEffect(() => {
     if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
@@ -135,13 +172,13 @@ export default function ChildAccessPage() {
             <span className="eyebrow">Child journey</span>
             <h1>
               {earlyLearnerBand
-                ? "Pick a picture, tap start, and let the quest guide the child."
-                : "Pick your hero, press start, and jump into your next quest."}
+                ? "Pick a picture, tap start, and let the quest do the teaching."
+                : "Pick your hero, press start, and jump into the next quest."}
             </h1>
             <p>
               {earlyLearnerBand
-                ? "For younger learners, keep this setup calm and quick. After that, the play flow should do the teaching."
-                : "Lightweight access for children, but with enough structure to keep progress, badges, and challenge history intact across devices."}
+                ? "Keep this setup calm and quick. After that, the play flow should lead with visuals, audio, and fast retries."
+                : "Lightweight access for children, with enough structure to keep progress, badges, and challenge history intact."}
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">
@@ -175,22 +212,32 @@ export default function ChildAccessPage() {
             title="Choose your age or grade band"
           >
             <span className="step-chip">Step 1 · Band</span>
-            <div className="selection-card-grid">
+            <div className="child-band-grid">
               {launchBands.map((band) => (
-                <button
-                  key={band.code}
-                  className={`selection-card ${selectedBand === band.code ? "is-selected" : ""}`}
-                  onClick={() => setSelectedBand(band.code)}
-                  type="button"
-                >
-                  <span className="selection-card-icon" aria-hidden="true">
-                    {getBandSymbol(band.code)}
-                  </span>
-                  <span className="selection-card-copy">
-                    <strong>{band.label}</strong>
-                    <small>{band.primaryTheme}</small>
-                  </span>
-                </button>
+                (() => {
+                  const profile = getBandProfile(band.code);
+
+                  return (
+                    <button
+                      key={band.code}
+                      className={`child-band-card ${selectedBand === band.code ? "is-selected" : ""}`}
+                      onClick={() => setSelectedBand(band.code)}
+                      type="button"
+                    >
+                      <span className="child-band-check" aria-hidden="true">
+                        ✓
+                      </span>
+                      <span className="child-band-emoji" aria-hidden="true">
+                        {profile.emoji}
+                      </span>
+                      <strong>{profile.title}</strong>
+                      <small>{profile.ageLabel}</small>
+                      <span className="child-band-theme">
+                        {band.primaryTheme}
+                      </span>
+                    </button>
+                  );
+                })()
               ))}
             </div>
             <p className="soft-copy">
@@ -198,6 +245,11 @@ export default function ChildAccessPage() {
                 ? "This sets the voice pace, support level, and visual style."
                 : "This shapes question language, support level, and explainer style."}
             </p>
+            <div className="status-banner">
+              <strong>{selectedBandProfile.title}</strong>{" "}
+              will get a setup flow and question tone tuned for{" "}
+              {selectedBandProfile.ageLabel.toLowerCase()}.
+            </div>
           </ShellCard>
 
           <ShellCard
@@ -237,7 +289,7 @@ export default function ChildAccessPage() {
               <div className="pin-display" aria-label="PIN display">
                 {pinDigits.map((index) => (
                   <span className={`pin-cell ${pin[index] ? "has-value" : ""}`} key={index}>
-                    {pin[index] ? "•" : ""}
+                    {pin[index] ? "★" : ""}
                   </span>
                 ))}
               </div>
@@ -275,6 +327,18 @@ export default function ChildAccessPage() {
             title="Pick your guide"
           >
             <span className="step-chip">Step 3 · Avatar</span>
+            <div className="child-avatar-preview">
+              <span className="child-avatar-preview-icon" aria-hidden="true">
+                {selectedAvatarSymbol}
+              </span>
+              <div className="child-avatar-preview-copy">
+                <strong>You picked {selectedAvatarSymbol}</strong>
+                <span>
+                  {avatars.find((avatar) => avatar.avatar_key === selectedAvatar)?.display_name ??
+                    "Choose a guide"}
+                </span>
+              </div>
+            </div>
             <div className="selection-card-grid selection-card-grid-avatars">
               {avatars.map((avatar) => (
                 <button
@@ -344,6 +408,13 @@ export default function ChildAccessPage() {
             title="Start the next adventure"
           >
             <span className="step-chip">Step 5 · Launch</span>
+            <div className="summary-chip-row">
+              <span className="summary-chip">{selectedBandProfile.title}</span>
+              <span className="summary-chip">{selectedAvatarSymbol} guide</span>
+              <span className="summary-chip">
+                {selectedMode === "guided-quest" ? "Guided quest" : "Self-directed"}
+              </span>
+            </div>
             <ul className="route-list">
               <li>
                 {earlyLearnerBand
@@ -378,7 +449,7 @@ export default function ChildAccessPage() {
                 disabled={submitting}
                 type="submit"
               >
-                {submitting ? "Starting..." : "Start play"}
+                {submitting ? "Starting..." : `Start as ${selectedBandProfile.title}`}
               </button>
               <Link className="secondary-link" href="/parent">
                 Parent setup
