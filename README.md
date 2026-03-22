@@ -24,6 +24,7 @@ This project started as a simple soccer learning prototype and is now being refr
 - [docs/QUESTION_FACTORY_STRATEGY.md](./docs/QUESTION_FACTORY_STRATEGY.md): scalable 1M+ question, explainer, image, and grading architecture
 - [docs/RENDER_SETUP.md](./docs/RENDER_SETUP.md): deployment checklist and environment wiring for Render
 - [docs/TEST_READY_ALPHA_PLAN.md](./docs/TEST_READY_ALPHA_PLAN.md): explicit go / no-go gates, scenario coverage, and the milestone definition for serious owner-led testing
+- [docs/UI_ADOPTION_STRATEGY.md](./docs/UI_ADOPTION_STRATEGY.md): how WonderQuest absorbs multiple design versions without rewriting the full UI each time
 
 ## Legacy Prototype
 
