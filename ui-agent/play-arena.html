@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Play Arena (All States)</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Bitter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+/* ── TOKENS ── */
+:root{
+  --play-bg:#100b2e;--play-bg2:#1a1254;
+  --play-surface:rgba(255,255,255,0.07);
+  --play-surface-md:rgba(255,255,255,0.11);
+  --play-border:rgba(255,255,255,0.13);
+  --play-border-hi:rgba(255,255,255,0.28);
+  --play-gold:#ffd166;--play-gold2:#ffb340;
+  --play-violet:#9b72ff;--play-violet2:#c4a5ff;
+  --play-mint:#58e8c1;--play-coral:#ff7b6b;
+  --play-sky:#4ab5ff;--play-pink:#ff6bce;
+  --play-text:#fff;--play-text2:rgba(255,255,255,0.65);--play-text3:rgba(255,255,255,0.35);
+  --p0:#ffd166;--p0-bg:rgba(255,209,102,0.18);--p0-b:rgba(255,209,102,0.4);
+  --p1:#9b72ff;--p1-bg:rgba(155,114,255,0.18);--p1-b:rgba(155,114,255,0.4);
+  --p2:#58e8c1;--p2-bg:rgba(88,232,193,0.18);--p2-b:rgba(88,232,193,0.4);
+  --p3:#ff7b6b;--p3-bg:rgba(255,123,107,0.18);--p3-b:rgba(255,123,107,0.4);
+  --font-c:'Nunito',sans-serif;--font-a:'Sora',sans-serif;--font-d:'Bitter',serif;
+  --ease-spring:cubic-bezier(0.34,1.56,0.64,1);
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-c);background:var(--play-bg);color:var(--play-text);min-height:100vh;}
+
+/* ── STAR BG ── */
+.star-bg{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden;}
+.star-bg::before{content:'';position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 20% 10%,rgba(155,114,255,0.22) 0%,transparent 60%),
+  radial-gradient(ellipse 50% 30% at 80% 85%,rgba(88,232,193,0.14) 0%,transparent 60%),
+  radial-gradient(ellipse 40% 50% at 50% 50%,rgba(255,209,102,0.06) 0%,transparent 70%);}
+
+/* ── LAYOUT ── */
+.page{position:relative;z-index:1;padding:20px;}
+.page-title{text-align:center;margin-bottom:8px;}
+.page-title h1{font-family:var(--font-d);font-size:26px;color:#fff;}
+.page-title h1 span{color:var(--play-gold);}
+.page-title p{font-size:12px;color:var(--play-text3);margin-top:4px;}
+
+/* ── TAB NAVIGATION ── */
+.tab-nav{
+  display:flex;gap:6px;overflow-x:auto;padding:12px 0 16px;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{
+  flex-shrink:0;padding:8px 16px;border-radius:20px;
+  background:var(--play-surface);border:1.5px solid var(--play-border);
+  font-size:12px;font-weight:800;color:var(--play-text2);
+  cursor:pointer;font-family:var(--font-c);white-space:nowrap;
+  transition:all 150ms var(--ease-spring);
+}
+.tab-btn:hover{border-color:var(--play-border-hi);color:#fff;}
+.tab-btn.active{background:var(--p1-bg);border-color:var(--play-violet);color:#fff;}
+
+/* ── PANELS ── */
+.panels{position:relative;}
+.panel{display:none;animation:panelIn 0.3s var(--ease-out) both;}
+.panel.active{display:block;}
+@keyframes panelIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── STATE WRAPPER ── */
+.state-wrap{max-width:520px;margin:0 auto;}
+.state-label{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);
+  border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;
+  color:var(--play-text3);letter-spacing:0.06em;text-transform:uppercase;
+  margin-bottom:14px;
+}
+.state-label .dot{width:6px;height:6px;border-radius:50%;background:var(--play-mint);animation:blink 1.5s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:0.4}50%{opacity:1}}
+
+/* ── SHARED CARD ── */
+.glass{
+  background:var(--play-surface);border:1px solid var(--play-border);
+  border-radius:20px;padding:22px;backdrop-filter:blur(12px);
+}
+.glass-hi{background:var(--play-surface-md);border-color:var(--play-border-hi);}
+
+/* ── LOGO ── */
+.wq-logo{font-family:var(--font-d);font-size:28px;color:#fff;letter-spacing:-0.02em;text-align:center;}
+.wq-logo span{color:var(--play-gold);}
+.wq-sub{font-size:13px;color:var(--play-text2);text-align:center;margin-top:4px;}
+
+/* ── BUTTONS ── */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  border:none;cursor:pointer;font-family:var(--font-c);font-weight:900;
+  transition:all 120ms var(--ease-spring);padding:14px 20px;font-size:15px;border-radius:16px;
+}
+.btn-full{width:100%;}
+.btn-gold{background:linear-gradient(135deg,var(--play-gold),var(--play-gold2));color:#0e0b1a;}
+.btn-gold:hover{transform:scale(1.02);filter:brightness(1.08);}
+.btn-violet{background:var(--play-violet);color:#fff;}
+.btn-violet:hover{background:var(--play-violet2);transform:scale(1.02);}
+.btn-mint{background:var(--play-mint);color:#0e0b1a;}
+.btn-ghost{background:transparent;border:1.5px solid var(--play-border-hi);color:var(--play-text2);font-size:13px;padding:10px 18px;}
+.btn-ghost:hover{border-color:rgba(255,255,255,.5);color:#fff;}
+.btn:active{transform:scale(0.97);}
+
+/* ── SEC LABEL ── */
+.sec{font-size:11px;font-weight:700;color:var(--play-text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+
+/* ── ANIMATIONS ── */
+@keyframes floatBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+@keyframes popIn{from{transform:scale(.8);opacity:0}to{transform:scale(1);opacity:1}}
+@keyframes riseUp{from{opacity:0;transform:translateY(40px)}to{opacity:1;transform:translateY(0)}}
+
+/* ═══════════ STATE 1 — WELCOME ═══════════ */
+.welcome-mascot{font-size:88px;text-align:center;margin-bottom:16px;animation:floatBob 2s ease-in-out infinite;display:block;}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 24px;}
+.feat-chip{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px;font-size:12px;font-weight:700;color:rgba(255,255,255,0.75);}
+.feat-chip em{font-size:20px;font-style:normal;}
+
+/* ═══════════ STATE 2 — PLAYER SETUP ═══════════ */
+.count-row{display:flex;gap:8px;margin-bottom:18px;}
+.count-btn{flex:1;padding:11px;border-radius:12px;background:rgba(255,255,255,0.07);border:2px solid rgba(255,255,255,0.13);font-size:15px;font-weight:900;color:rgba(255,255,255,0.6);cursor:pointer;text-align:center;font-family:var(--font-c);transition:all 120ms var(--ease-spring);}
+.count-btn.on{background:var(--p1-bg);border-color:var(--play-violet);color:#fff;}
+.player-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.06);border:1.5px solid rgba(255,255,255,0.12);border-radius:14px;padding:10px 14px;margin-bottom:8px;}
+.p-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;border:2px solid;}
+.p-name{flex:1;font-size:15px;font-weight:800;color:#fff;}
+.p-score{font-size:11px;font-weight:700;color:var(--play-text3);background:rgba(255,255,255,0.06);border-radius:8px;padding:3px 8px;}
+
+/* ═══════════ STATE 3 — CATEGORY ═══════════ */
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;}
+.cat-card{border-radius:18px;padding:16px;cursor:pointer;border:2px solid transparent;transition:all 200ms var(--ease-spring);position:relative;overflow:hidden;}
+.cat-card.on{transform:scale(1.03);}
+.cat-emoji{font-size:34px;display:block;margin-bottom:8px;}
+.cat-name{font-size:15px;font-weight:900;color:#fff;line-height:1.2;}
+.cat-sub{font-size:11px;color:rgba(255,255,255,0.55);margin-top:3px;}
+.cat-badge{position:absolute;top:10px;right:10px;font-size:9px;font-weight:800;padding:2px 7px;border-radius:10px;background:rgba(255,255,255,0.15);color:rgba(255,255,255,0.7);}
+.cat-badge.ai{background:rgba(155,114,255,.3);color:var(--play-violet2);}
+.q-row{display:flex;align-items:center;gap:10px;margin-bottom:18px;}
+.qc-btn{padding:6px 14px;border-radius:10px;background:rgba(255,255,255,0.07);border:1.5px solid rgba(255,255,255,0.12);font-size:13px;font-weight:700;color:rgba(255,255,255,0.55);cursor:pointer;font-family:var(--font-c);}
+.qc-btn.on{background:var(--p0-bg);border-color:var(--play-gold);color:var(--play-gold);}
+
+/* ═══════════ STATE 4 — LOADING ═══════════ */
+.load-inner{display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 24px;}
+.load-em{font-size:80px;animation:floatBob 1.5s ease-in-out infinite;}
+.load-dots{display:flex;gap:8px;}
+.dot{width:10px;height:10px;border-radius:50%;background:var(--play-violet);opacity:.4;animation:pulse 1s ease-in-out infinite;}
+.dot:nth-child(2){animation-delay:.15s;}.dot:nth-child(3){animation-delay:.3s;}
+@keyframes pulse{0%,100%{opacity:.3;transform:scale(.8)}50%{opacity:1;transform:scale(1.2)}}
+.load-bar-track{width:100%;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.load-bar-fill{height:100%;background:linear-gradient(90deg,var(--play-violet),var(--play-mint));border-radius:3px;width:68%;transition:width .3s ease;}
+.load-step{font-size:12px;color:var(--play-text3);text-align:center;}
+
+/* ═══════════ STATE 5 — HANDOFF ═══════════ */
+.handoff-center{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;padding:32px 24px;}
+.handoff-av{width:76px;height:76px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:38px;border:3px solid var(--play-violet);background:var(--p1-bg);animation:popIn .4s var(--ease-spring);}
+.handoff-hint{font-size:12px;color:rgba(255,255,255,0.35);background:rgba(255,255,255,0.05);border-radius:10px;padding:8px 14px;margin-top:4px;}
+
+/* ═══════════ STATE 6 — QUESTION ═══════════ */
+.players-strip{display:flex;gap:8px;margin-bottom:14px;}
+.qp-chip{display:flex;align-items:center;gap:7px;padding:6px 12px 6px 6px;border-radius:20px;border:2px solid transparent;background:rgba(255,255,255,0.06);flex:1;min-width:0;}
+.qp-chip.cur{border-color:currentColor;}
+.qp-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;}
+.qp-name{font-size:11px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.qp-score{font-size:12px;font-weight:900;}
+
+.quiz-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.prog-track{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--play-violet),var(--play-mint));border-radius:3px;}
+.prog-label{font-size:11px;color:var(--play-text2);margin-top:3px;}
+
+/* Timer ring */
+.timer{width:46px;height:46px;flex-shrink:0;position:relative;display:flex;align-items:center;justify-content:center;}
+.timer svg{position:absolute;inset:0;transform:rotate(-90deg);}
+.t-track{fill:none;stroke:rgba(255,255,255,0.1);stroke-width:3;}
+.t-fill{fill:none;stroke:var(--play-gold);stroke-width:3;stroke-linecap:round;stroke-dasharray:126;stroke-dashoffset:28;transition:stroke-dashoffset 1s linear;}
+.t-num{font-size:15px;font-weight:900;color:#fff;position:relative;z-index:1;}
+
+.q-card{background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.14);border-radius:20px;padding:18px 20px;margin-bottom:12px;text-align:center;}
+.q-who{display:inline-flex;align-items:center;gap:6px;border-radius:20px;padding:4px 12px;font-size:12px;font-weight:800;margin-bottom:10px;border:1.5px solid currentColor;}
+.q-em{font-size:52px;margin:10px 0 6px;display:block;}
+.q-text{font-size:19px;font-weight:900;color:#fff;line-height:1.35;}
+
+.ans-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.ans-btn{background:rgba(255,255,255,0.09);border:2px solid rgba(255,255,255,0.16);border-radius:16px;padding:14px 10px;cursor:pointer;text-align:center;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all 200ms var(--ease-spring);}
+.ans-btn:hover{background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.38);transform:scale(1.03);}
+.ans-btn.correct{background:rgba(88,232,193,0.22);border-color:var(--play-mint);}
+.ans-btn.wrong{background:rgba(255,123,107,0.22);border-color:var(--play-coral);}
+.ans-letter{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.12);font-size:11px;font-weight:900;color:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;}
+.ans-text{font-size:14px;font-weight:800;color:#fff;line-height:1.3;}
+
+/* ═══════════ STATE 7 — TURN RESULT ═══════════ */
+.result-center{display:flex;flex-direction:column;align-items:center;gap:10px;padding:28px 24px;text-align:center;}
+.result-em{font-size:80px;animation:popIn .5s var(--ease-spring);}
+.result-pts{font-size:36px;font-weight:900;color:var(--play-mint);animation:popIn .4s var(--ease-spring) .1s both;}
+.reveal-box{background:rgba(88,232,193,0.12);border:1px solid rgba(88,232,193,0.3);border-radius:12px;padding:10px 16px;font-size:14px;font-weight:700;color:var(--play-mint);width:100%;text-align:center;}
+.mini-board{width:100%;display:flex;flex-direction:column;gap:6px;margin-top:8px;}
+.mini-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.05);border-radius:12px;padding:8px 12px;}
+.mini-av{font-size:18px;}
+.mini-name{font-size:13px;font-weight:700;flex:1;text-align:left;}
+.mini-pts{font-size:15px;font-weight:900;}
+.mini-delta{font-size:12px;color:var(--play-mint);font-weight:700;margin-left:4px;}
+
+/* ═══════════ STATE 8 — PODIUM ═══════════ */
+.podium-wrap{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin-bottom:24px;height:210px;}
+.podium-col{display:flex;flex-direction:column;align-items:center;animation:riseUp .6s var(--ease-spring) both;}
+.p-av-big{font-size:34px;margin-bottom:6px;}
+.p-nm{font-size:12px;font-weight:800;color:#fff;margin-bottom:6px;max-width:80px;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.p-sc{font-size:18px;font-weight:900;margin-bottom:8px;}
+.podium-block{border-radius:12px 12px 0 0;width:90px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:rgba(255,255,255,.4);}
+.rank1{background:linear-gradient(180deg,rgba(255,209,102,.35),rgba(255,209,102,.1));height:135px;border:1px solid rgba(255,209,102,.3);}
+.rank2{background:linear-gradient(180deg,rgba(155,114,255,.3),rgba(155,114,255,.08));height:98px;border:1px solid rgba(155,114,255,.25);}
+.rank3{background:linear-gradient(180deg,rgba(88,232,193,.25),rgba(88,232,193,.06));height:68px;border:1px solid rgba(88,232,193,.2);}
+.final-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:14px;padding:12px 16px;margin-bottom:8px;animation:riseUp .4s var(--ease-out) both;}
+.f-rank{font-size:22px;font-weight:900;width:28px;text-align:center;}
+.f-av{font-size:28px;}
+.f-info{flex:1;}
+.f-name{font-size:15px;font-weight:800;}
+.f-correct{font-size:12px;color:var(--play-text2);}
+.f-score{font-size:24px;font-weight:900;}
+
+/* ── ENHANCEMENT ANNOTATIONS ── */
+.hint-row{display:flex;align-items:flex-start;gap:8px;background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2);border-radius:12px;padding:10px 14px;margin-top:12px;}
+.hint-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.hint-text{font-size:11px;color:rgba(255,209,102,.8);line-height:1.5;font-weight:600;}
+
+/* ── CONFETTI STRIP ── */
+.conf-strip{display:flex;justify-content:center;gap:6px;font-size:20px;margin:8px 0;animation:floatBob 1s ease-in-out infinite;}
+</style>
+</head>
+<body>
+<div class="star-bg"></div>
+<div class="page">
+
+  <div class="page-title">
+    <h1>Wonder<span>Quest</span> — Play Arena</h1>
+    <p>UI Agent Reference · All 8 Game States · Enhanced Design</p>
+  </div>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="show(0)">① Welcome</button>
+    <button class="tab-btn" onclick="show(1)">② Player Setup</button>
+    <button class="tab-btn" onclick="show(2)">③ Category</button>
+    <button class="tab-btn" onclick="show(3)">④ AI Loading</button>
+    <button class="tab-btn" onclick="show(4)">⑤ Handoff</button>
+    <button class="tab-btn" onclick="show(5)">⑥ Question</button>
+    <button class="tab-btn" onclick="show(6)">⑦ Turn Result</button>
+    <button class="tab-btn" onclick="show(7)">⑧ Final Podium</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ═══ PANEL 1 — WELCOME ═══ -->
+    <div class="panel active">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 1 · Welcome Screen</div>
+        <span class="welcome-mascot">🧙‍♀️</span>
+        <div class="wq-logo">Wonder<span>Quest</span></div>
+        <div class="wq-sub" style="margin-bottom:20px">AI-powered multiplayer quiz — K-pop, anime, movies & more!</div>
+        <div class="feat-grid">
+          <div class="feat-chip"><em>👥</em>2–4 Players</div>
+          <div class="feat-chip"><em>🤖</em>AI Questions</div>
+          <div class="feat-chip"><em>🎬</em>8 Categories</div>
+          <div class="feat-chip"><em>⚔️</em>Live Scoring</div>
+        </div>
+        <!-- Enhanced: live player count pulse -->
+        <div style="text-align:center;margin-bottom:16px;">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(88,232,193,0.1);border:1px solid rgba(88,232,193,0.25);border-radius:20px;padding:6px 14px;">
+            <span style="width:8px;height:8px;border-radius:50%;background:var(--play-mint);animation:blink 1.5s infinite;display:inline-block;"></span>
+            <span style="font-size:12px;font-weight:700;color:var(--play-mint)">247 games played today</span>
+          </div>
+        </div>
+        <button class="btn btn-gold btn-full" style="margin-bottom:10px">✨ Let's Play!</button>
+        <button class="btn btn-ghost btn-full">How to Play? Pass the device each turn 🎯</button>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Add animated particle burst on "Let's Play" tap. Show social proof counter with live pulse animation.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 2 — PLAYER SETUP ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 2 · Player Setup</div>
+        <div class="glass" style="margin-bottom:14px">
+          <div class="sec">How many players?</div>
+          <div class="count-row">
+            <div class="count-btn on">2</div>
+            <div class="count-btn">3</div>
+            <div class="count-btn">4</div>
+          </div>
+          <div class="sec">Player names & avatars</div>
+          <!-- Player 1 -->
+          <div class="player-row">
+            <div class="p-av" style="background:var(--p0-bg);border-color:var(--p0)">🐼</div>
+            <div class="p-name">StarGazer</div>
+            <div class="p-score">GOLD</div>
+          </div>
+          <!-- Player 2 -->
+          <div class="player-row">
+            <div class="p-av" style="background:var(--p1-bg);border-color:var(--p1)">🦄</div>
+            <div class="p-name">MoonDancer</div>
+            <div class="p-score">VIOLET</div>
+          </div>
+          <!-- Enhanced: drag to reorder hint -->
+          <div style="text-align:center;margin-top:8px;font-size:11px;color:var(--play-text3)">Tap avatar to change · Drag to reorder</div>
+        </div>
+        <!-- Enhanced: team preview -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:16px;">
+          <div style="font-size:32px">🐼</div>
+          <div style="font-size:16px;color:var(--play-text3);font-weight:800">VS</div>
+          <div style="font-size:32px">🦄</div>
+        </div>
+        <button class="btn btn-violet btn-full" style="margin-bottom:10px">Continue →</button>
+        <button class="btn btn-ghost btn-full">← Back</button>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Avatar carousel with spring animation on selection. Team color preview strip. Drag-to-reorder with haptic feedback. Show "Ready!" badge when name is entered.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 3 — CATEGORY ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 3 · Category Select</div>
+        <div style="margin-bottom:14px">
+          <div class="wq-logo" style="font-size:20px;text-align:left;">Pick a <span>Category</span></div>
+          <div style="font-size:13px;color:var(--play-text2);margin-top:2px">AI crafts questions just for your crew ✨</div>
+        </div>
+        <div class="cat-grid">
+          <div class="cat-card on" style="background:rgba(232,121,160,0.18);border-color:#e879a0;">
+            <span class="cat-badge">NEW</span>
+            <span class="cat-emoji">🎭</span>
+            <div class="cat-name">Mona</div>
+            <div class="cat-sub">The Movie 🎬</div>
+          </div>
+          <div class="cat-card" style="background:rgba(155,114,255,0.18);">
+            <span class="cat-badge ai">HOT</span>
+            <span class="cat-emoji">👹</span>
+            <div class="cat-name">Demon Hunters</div>
+            <div class="cat-sub">K-Pop Universe ⚔️</div>
+          </div>
+          <div class="cat-card" style="background:rgba(255,209,102,0.18);">
+            <span class="cat-emoji">🌟</span>
+            <div class="cat-name">K-Pop Stars</div>
+            <div class="cat-sub">Idols & Hits ⭐</div>
+          </div>
+          <div class="cat-card" style="background:rgba(255,123,107,0.18);">
+            <span class="cat-emoji">🗡️</span>
+            <div class="cat-name">Anime World</div>
+            <div class="cat-sub">Manga & More 🌸</div>
+          </div>
+          <div class="cat-card" style="background:rgba(34,197,94,0.18);">
+            <span class="cat-emoji">🎮</span>
+            <div class="cat-name">Gaming World</div>
+            <div class="cat-sub">Play & Level Up 🎮</div>
+          </div>
+          <div class="cat-card" style="background:rgba(74,144,217,0.18);">
+            <span class="cat-emoji">🚀</span>
+            <div class="cat-name">Science Quest</div>
+            <div class="cat-sub">Explore & Discover 🔬</div>
+          </div>
+        </div>
+        <div class="q-row">
+          <div class="sec" style="margin:0;flex-shrink:0">Questions</div>
+          <div style="display:flex;gap:6px">
+            <div class="qc-btn">5</div>
+            <div class="qc-btn on">8</div>
+            <div class="qc-btn">10</div>
+            <div class="qc-btn">15</div>
+          </div>
+        </div>
+        <button class="btn btn-gold btn-full" style="margin-bottom:10px">🚀 Generate & Start!</button>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Category cards have hover parallax. Selected card shows check mark + glow. AI badge pulses. Add difficulty selector (Easy/Medium/Hard) below question count.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 4 — AI LOADING ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 4 · AI Question Generation</div>
+        <div class="glass load-inner">
+          <span class="load-em">🎭</span>
+          <div style="font-size:20px;font-weight:900;color:#fff;text-align:center">Conjuring your quiz…</div>
+          <div style="font-size:13px;color:var(--play-text2);text-align:center">AI is crafting 8 tricky questions just for you!</div>
+          <!-- Enhanced: step progress -->
+          <div style="width:100%;display:flex;flex-direction:column;gap:8px;text-align:left;">
+            <div class="load-step" style="display:flex;align-items:center;gap:8px">
+              <span style="color:var(--play-mint);font-size:14px">✓</span>
+              <span style="color:var(--play-mint);font-weight:700;font-size:12px">Selecting category context</span>
+            </div>
+            <div class="load-step" style="display:flex;align-items:center;gap:8px">
+              <span style="color:var(--play-mint);font-size:14px">✓</span>
+              <span style="color:var(--play-mint);font-weight:700;font-size:12px">Generating 8 unique questions</span>
+            </div>
+            <div class="load-step" style="display:flex;align-items:center;gap:8px">
+              <div class="dot" style="width:12px;height:12px;background:var(--play-gold);opacity:1;animation:pulse 0.8s infinite"></div>
+              <span style="color:var(--play-gold);font-weight:700;font-size:12px">Adding tricky distractors…</span>
+            </div>
+            <div class="load-step" style="display:flex;align-items:center;gap:8px;opacity:0.4">
+              <span style="font-size:14px">○</span>
+              <span style="font-size:12px">Finalizing answer reveals</span>
+            </div>
+          </div>
+          <div class="load-dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          <div class="load-bar-track" style="width:280px"><div class="load-bar-fill"></div></div>
+          <div style="font-size:11px;color:var(--play-text3)">Usually takes 3–5 seconds</div>
+        </div>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Animated step tracker shows real AI progress. Category emoji bounces. Progress bar with shimmer. Fun facts appear while waiting.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 5 — HANDOFF ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 5 · Device Handoff</div>
+        <div class="glass">
+          <div class="handoff-center">
+            <div style="font-size:12px;font-weight:700;color:var(--play-text3);letter-spacing:.08em;text-transform:uppercase">Question 3 of 8</div>
+            <div class="handoff-av">🐼</div>
+            <div style="font-size:28px;font-weight:900;color:#fff">StarGazer</div>
+            <div style="font-size:14px;color:var(--play-text2)">It's your turn!</div>
+            <!-- Enhanced: score context -->
+            <div style="display:flex;gap:12px;margin:4px 0">
+              <div style="text-align:center">
+                <div style="font-size:18px;font-weight:900;color:var(--play-gold)">420</div>
+                <div style="font-size:10px;color:var(--play-text3)">YOUR SCORE</div>
+              </div>
+              <div style="width:1px;background:var(--play-border)"></div>
+              <div style="text-align:center">
+                <div style="font-size:18px;font-weight:900;color:var(--play-violet2)">380</div>
+                <div style="font-size:10px;color:var(--play-text3)">2ND PLACE</div>
+              </div>
+              <div style="width:1px;background:var(--play-border)"></div>
+              <div style="text-align:center">
+                <div style="font-size:18px;font-weight:900;color:var(--play-text2)">+40</div>
+                <div style="font-size:10px;color:var(--play-text3)">YOUR LEAD</div>
+              </div>
+            </div>
+            <div style="font-size:28px;margin:4px 0">📱</div>
+            <div class="handoff-hint">Pass the device to StarGazer!<br>Everyone else — look away 👀</div>
+            <button class="btn btn-violet btn-full" style="margin-top:8px">I'm ready! Show question 👁️</button>
+          </div>
+        </div>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Show current score & lead/deficit vs nearest competitor. Countdown timer before auto-reveal. Screen blur effect for others to see to hide question.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 6 — QUESTION ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 6 · Active Question</div>
+        <!-- Players strip -->
+        <div class="players-strip">
+          <div class="qp-chip cur" style="color:var(--p0);border-color:var(--p0)">
+            <div class="qp-av" style="background:var(--p0-bg)">🐼</div>
+            <div class="qp-info">
+              <div class="qp-name" style="color:var(--p0)">StarGazer</div>
+              <div class="qp-score" style="color:var(--p0)">420</div>
+            </div>
+          </div>
+          <div class="qp-chip" style="color:var(--p1)">
+            <div class="qp-av" style="background:var(--p1-bg)">🦄</div>
+            <div class="qp-info">
+              <div class="qp-name" style="color:var(--p1)">MoonDancer</div>
+              <div class="qp-score" style="color:var(--p1)">380</div>
+            </div>
+          </div>
+        </div>
+        <!-- Progress + timer -->
+        <div class="quiz-hdr">
+          <div style="flex:1">
+            <div class="prog-track"><div class="prog-fill" style="width:37%"></div></div>
+            <div class="prog-label">Question 3 of 8</div>
+          </div>
+          <div class="timer">
+            <svg viewBox="0 0 46 46"><circle class="t-track" cx="23" cy="23" r="20"/><circle class="t-fill" cx="23" cy="23" r="20"/></svg>
+            <span class="t-num">11</span>
+          </div>
+        </div>
+        <!-- Question card -->
+        <div class="q-card">
+          <div class="q-who" style="color:var(--p0);border-color:var(--p0)">
+            <span style="font-size:16px">🐼</span>
+            <span>StarGazer's turn</span>
+          </div>
+          <span class="q-em">🎭</span>
+          <div class="q-text">In the movie "Mona", what is the name of the main character's hidden power?</div>
+        </div>
+        <!-- Answers -->
+        <div class="ans-grid">
+          <div class="ans-btn">
+            <div class="ans-letter">A</div>
+            <div class="ans-text">The Echo Gift</div>
+          </div>
+          <div class="ans-btn correct">
+            <div class="ans-letter" style="background:rgba(88,232,193,.3);color:var(--play-mint)">B</div>
+            <div class="ans-text">Mirror Sight</div>
+          </div>
+          <div class="ans-btn">
+            <div class="ans-letter">C</div>
+            <div class="ans-text">Shadow Weave</div>
+          </div>
+          <div class="ans-btn">
+            <div class="ans-letter">D</div>
+            <div class="ans-text">Dream Shift</div>
+          </div>
+        </div>
+        <div style="text-align:center;font-size:11px;color:var(--play-text3)">Tap your answer before time runs out!</div>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Timer ring changes color red at 5s with shake. Answer buttons have ripple on tap. Streak counter shows consecutive correct. Lifeline buttons (50/50, hint) appear at 8s mark.</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 7 — TURN RESULT ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 7 · Turn Result</div>
+        <div class="glass">
+          <div class="result-center">
+            <div class="result-em">🎉</div>
+            <div style="font-size:28px;font-weight:900;color:#fff">Correct!</div>
+            <div style="font-size:14px;color:var(--play-text2)">StarGazer nailed it! 🔥</div>
+            <div class="result-pts">+120 pts</div>
+            <!-- Enhanced: streak badge -->
+            <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(255,209,102,.12);border:1px solid rgba(255,209,102,.3);border-radius:20px;padding:4px 12px;">
+              <span style="font-size:14px">🔥</span>
+              <span style="font-size:12px;font-weight:800;color:var(--play-gold)">3-streak bonus! +20 pts</span>
+            </div>
+            <div class="reveal-box">✓ Mirror Sight — Mona's ability to see through illusions</div>
+            <div class="mini-board">
+              <div class="mini-row">
+                <div class="mini-av">🐼</div>
+                <div class="mini-name" style="color:var(--p0)">StarGazer</div>
+                <div class="mini-pts" style="color:var(--p0)">540</div>
+                <div class="mini-delta">+120</div>
+              </div>
+              <div class="mini-row">
+                <div class="mini-av">🦄</div>
+                <div class="mini-name" style="color:var(--p1)">MoonDancer</div>
+                <div class="mini-pts" style="color:var(--p1)">380</div>
+                <div class="mini-delta" style="color:var(--play-text3)">+0</div>
+              </div>
+            </div>
+            <button class="btn btn-violet btn-full">Next Question →</button>
+          </div>
+        </div>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Confetti burst on correct. Score counter animates up. Wrong: shows correct answer with explanation. Streak indicator. Time bonus multiplier shown (+speed bonus).</span></div>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL 8 — FINAL PODIUM ═══ -->
+    <div class="panel">
+      <div class="state-wrap">
+        <div class="state-label"><span class="dot"></span>State 8 · Final Results & Podium</div>
+        <div class="wq-logo" style="text-align:center;margin-bottom:4px;font-size:22px">🏆 Final <span>Scores!</span></div>
+        <div style="text-align:center;font-size:13px;font-weight:700;color:var(--play-text2);margin-bottom:18px;text-transform:uppercase;letter-spacing:.05em">🐼 StarGazer wins the quest!</div>
+        <div class="conf-strip">🎉 ⭐ 🏆 ✨ 🎊 ⭐ 🎉</div>
+        <!-- Podium -->
+        <div class="podium-wrap">
+          <!-- 2nd -->
+          <div class="podium-col" style="animation-delay:.1s">
+            <div class="p-av-big">🦄</div>
+            <div class="p-nm">MoonDancer</div>
+            <div class="p-sc" style="color:var(--p1)">640</div>
+            <div class="podium-block rank2">2</div>
+          </div>
+          <!-- 1st -->
+          <div class="podium-col" style="animation-delay:0s">
+            <div style="font-size:24px;margin-bottom:4px">👑</div>
+            <div class="p-av-big">🐼</div>
+            <div class="p-nm">StarGazer</div>
+            <div class="p-sc" style="color:var(--p0)">860</div>
+            <div class="podium-block rank1">1</div>
+          </div>
+          <!-- 3rd (if 3 players) -->
+          <div class="podium-col" style="animation-delay:.2s;opacity:.6">
+            <div class="p-av-big" style="font-size:24px">—</div>
+            <div class="p-nm" style="opacity:0.4">—</div>
+            <div class="p-sc" style="opacity:0.4">—</div>
+            <div class="podium-block rank3">3</div>
+          </div>
+        </div>
+        <!-- Final list -->
+        <div class="final-row" style="animation-delay:0s">
+          <div class="f-rank" style="color:var(--play-gold)">🥇</div>
+          <div class="f-av">🐼</div>
+          <div class="f-info">
+            <div class="f-name">StarGazer</div>
+            <div class="f-correct">7/8 correct · fastest answers</div>
+          </div>
+          <div class="f-score" style="color:var(--p0)">860</div>
+        </div>
+        <div class="final-row" style="animation-delay:.08s">
+          <div class="f-rank" style="color:var(--play-violet2)">🥈</div>
+          <div class="f-av">🦄</div>
+          <div class="f-info">
+            <div class="f-name">MoonDancer</div>
+            <div class="f-correct">6/8 correct</div>
+          </div>
+          <div class="f-score" style="color:var(--p1)">640</div>
+        </div>
+        <!-- Enhanced: share & replay -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px;margin-bottom:10px">
+          <button class="btn btn-ghost" style="font-size:12px;padding:10px">📤 Share Results</button>
+          <button class="btn btn-ghost" style="font-size:12px;padding:10px">📊 Full Stats</button>
+        </div>
+        <button class="btn btn-gold btn-full" style="margin-bottom:10px">🔄 Play Again!</button>
+        <button class="btn btn-ghost btn-full">New Category</button>
+        <div class="hint-row"><span class="hint-icon">💡</span><span class="hint-text">Enhancement: Podium columns rise with staggered animation. Gold winner gets confetti. Share card generator. Per-player stat breakdown (speed, accuracy, streak). Trophy animations.</span></div>
+      </div>
+    </div>
+
+  </div><!-- /panels -->
+</div><!-- /page -->
+
+<script>
+const tabs = document.querySelectorAll('.tab-btn');
+const panels = document.querySelectorAll('.panel');
+function show(i){
+  tabs.forEach((t,j)=>t.classList.toggle('active',i===j));
+  panels.forEach((p,j)=>p.classList.toggle('active',i===j));
+}
+// Add star dots
+const sb = document.querySelector('.star-bg');
+for(let i=0;i<60;i++){
+  const d = document.createElement('div');
+  d.style.cssText=`position:absolute;border-radius:50%;background:#fff;
+    width:${Math.random()*2.5+0.5}px;height:${Math.random()*2.5+0.5}px;
+    top:${Math.random()*100}%;left:${Math.random()*100}%;
+    animation:wq-twinkle ${Math.random()*3+1.5}s ease-in-out infinite ${Math.random()*2}s`;
+  sb.appendChild(d);
+}
+</script>
+</body>
+</html>

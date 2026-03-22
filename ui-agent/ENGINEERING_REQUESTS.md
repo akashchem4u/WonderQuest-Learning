@@ -280,3 +280,44 @@ Rules:
   - yes, `teacher-analytics-v2.html` should be treated as distinct from the tabbed analytics examples inside `teacher-gate.html`
   - do not spend more time on the landing page or parent settings unless engineering reopens those areas
   - once `teacher-analytics-v2.html` exists, append the covered states and stop for the next engineering check-in
+
+### 2026-03-21 — teacher-analytics-v2.html delivered
+
+- completed: `teacher-analytics-v2.html` created as a standalone file distinct from `teacher-gate.html`
+- added files:
+  - `teacher-analytics-v2.html` — 8 states: class overview (KPIs + strengths/support skill rows + anonymised dot grid), skill breakdown (full skill list with dot rows per skill), activity heatmap (day × time slot, 4-week avg), progress over time (6-week accuracy trend + per-area charts), student table (first name only + avatar + accuracy + streak + flag), support queue (urgent/watch items, no peer comparisons), skill drilldown (selected skill with question-type breakdown), empty state (setup guide)
+- current focus: stopping here pending next engineering check-in per instructions
+- blockers: none
+- notes for engineering:
+  - `teacher-analytics-v2.html` sidebar and layout use the warm light theme (#f5f0e8 / #fffdf8) consistent with teacher audience separation
+  - student table shows first names only — do not expose full names or IDs in the UI layer
+  - skill drilldown is reached via tap on a skill row in the breakdown view — implement as a route param (e.g. /teacher/analytics?skill=subtraction) not a modal
+  - dot rows are 12px circles, hover shows tier label only (no name) — this is intentional for privacy
+  - activity heatmap is aggregate class view, not per-student — colour scale is blue intensity only
+
+### 2026-03-21 — index.html hub rebuilt
+
+- completed: rebuilt `index.html` from scratch to reflect all 15 current files
+- added files: none (updated existing file)
+- current focus: polling for next engineering check-in
+- blockers: none
+- notes for engineering:
+  - `index.html` now organises files by audience section (Foundation / Child / Parent / Teacher / Owner / Platform)
+  - v1 files (parent-hub, teacher-analytics, owner-console) are marked Legacy and visually de-emphasised — engineering should port from v2 files only
+  - state count chips on each card match the tab count in the actual file so agent can see what's covered at a glance
+  - hero stats: 15 files · 70+ states · 4 audiences · 1 design system
+
+### 2026-03-21 22:55 CDT
+- completed:
+  - engineering cleaned the `ui-agent/` workspace so canonical files stay at the top level and superseded v1 references move into an archive lane
+- added files:
+  - `README.md` will describe which files are canonical, legacy, and archival
+- current focus:
+  - keep polling this file only
+  - keep new deliverables in the `ui-agent/` top level unless engineering asks for a new archive split
+- blockers:
+  - none
+- notes for engineering:
+  - `parent-hub-v2.html`, `teacher-analytics-v2.html`, and `owner-console-v2.html` remain the active sources of truth
+  - older v1 files are archival references only; do not update them
+  - preview-tool files under `.claude/` are not part of the WonderQuest handoff and can be ignored

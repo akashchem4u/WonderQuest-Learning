@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Analytics v2 — UI Reference</title>
+<link rel="stylesheet" href="design-system.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0f14; font-family: 'Sora', sans-serif; color: #1a1a2e; min-height: 100vh; }
+
+  .tab-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.97); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 24px; display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12);
+    background: transparent; color: #94a3b8; font-size: 12px; font-family: 'Sora', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn.active { background: #3b82f6; color: white; font-weight: 600; border-color: transparent; }
+  .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+
+  .hint {
+    background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3);
+    border-radius: 10px; padding: 12px 16px; margin: 20px;
+    font-size: 11px; color: #fbbf24; line-height: 1.6;
+  }
+  .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Shared shell ── */
+  .ta-shell {
+    display: flex; min-height: calc(100vh - 56px);
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 230px; flex-shrink: 0;
+    background: #fffdf8; border-right: 1px solid rgba(26,26,46,0.07);
+    padding: 20px 0; position: sticky; top: 56px; height: calc(100vh - 56px);
+    overflow-y: auto;
+  }
+  .sidebar-brand {
+    padding: 0 20px 20px;
+    border-bottom: 1px solid rgba(26,26,46,0.06); margin-bottom: 8px;
+  }
+  .sidebar-brand-name { font-size: 15px; font-weight: 700; color: #1e40af; }
+  .sidebar-brand-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .sidebar-section {
+    padding: 10px 20px 4px; font-size: 10px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase; color: #94a3b8;
+  }
+  .sidebar-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 20px; font-size: 13px; color: #475569;
+    cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent;
+  }
+  .sidebar-item:hover { background: rgba(59,130,246,0.05); color: #1e40af; }
+  .sidebar-item.active {
+    color: #1e40af; border-left-color: #3b82f6; background: rgba(59,130,246,0.06);
+    font-weight: 600;
+  }
+  .sidebar-icon { font-size: 14px; width: 18px; text-align: center; }
+  .sidebar-badge {
+    margin-left: auto; padding: 2px 7px; border-radius: 10px;
+    font-size: 10px; font-weight: 700; background: rgba(239,68,68,0.12); color: #ef4444;
+  }
+  .class-chip {
+    margin: 12px 20px 0; padding: 10px 12px; border-radius: 12px;
+    background: rgba(59,130,246,0.07); border: 1px solid rgba(59,130,246,0.15);
+  }
+  .class-chip-label { font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.08em; color: #94a3b8; margin-bottom: 3px; }
+  .class-chip-name { font-size: 13px; font-weight: 600; color: #1e40af; }
+  .class-chip-meta { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  /* Main content */
+  .main { flex: 1; padding: 28px; overflow-x: hidden; background: #f5f0e8; }
+
+  /* Page header */
+  .page-header { margin-bottom: 24px; }
+  .page-header-row { display: flex; align-items: flex-start; justify-content: space-between; }
+  .page-title { font-size: 21px; font-weight: 700; color: #1a1a2e; }
+  .page-sub { font-size: 13px; color: #64748b; margin-top: 4px; }
+  .header-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
+  .hdr-btn {
+    padding: 7px 14px; border-radius: 10px; font-size: 12px; cursor: pointer;
+    border: 1px solid rgba(26,26,46,0.12); background: #fffdf8; color: #475569;
+    font-family: 'Sora', sans-serif;
+  }
+  .hdr-btn.primary { background: #1e40af; color: white; border-color: transparent; }
+
+  /* KPI row */
+  .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
+  .kpi-card {
+    background: #fffdf8; border-radius: 14px; padding: 16px;
+    border: 1px solid rgba(26,26,46,0.07);
+  }
+  .kpi-label {
+    font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #94a3b8; margin-bottom: 8px;
+  }
+  .kpi-value { font-size: 26px; font-weight: 700; color: #1a1a2e; margin-bottom: 4px; }
+  .kpi-delta { font-size: 12px; color: #94a3b8; }
+  .kpi-delta.up { color: #16a34a; }
+  .kpi-delta.down { color: #ef4444; }
+  .kpi-delta.warn { color: #d97706; }
+
+  /* Two-col */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .one-col { margin-bottom: 16px; }
+
+  /* Section card */
+  .sc {
+    background: #fffdf8; border-radius: 16px; padding: 20px;
+    border: 1px solid rgba(26,26,46,0.07);
+  }
+  .sc-title {
+    font-size: 12px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+    color: #94a3b8; margin-bottom: 14px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .sc-action { font-size: 11px; color: #3b82f6; cursor: pointer; text-transform: none; letter-spacing: 0; }
+
+  /* Skill row */
+  .skill-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid rgba(26,26,46,0.05);
+  }
+  .skill-row:last-child { border-bottom: none; }
+  .skill-row.flagged { border-left: 3px solid #ef4444; padding-left: 10px; margin-left: -13px; }
+  .skill-row.warn-flag { border-left: 3px solid #f59e0b; padding-left: 10px; margin-left: -13px; }
+  .skill-name { flex: 1; font-size: 13px; color: #1a1a2e; font-weight: 500; }
+  .skill-sub { font-size: 11px; color: #64748b; margin-top: 2px; }
+  .skill-acc {
+    font-size: 14px; font-weight: 700; width: 44px; text-align: right; flex-shrink: 0;
+  }
+  .skill-bar-wrap { width: 80px; flex-shrink: 0; }
+  .skill-bar-track { height: 6px; border-radius: 3px; background: rgba(26,26,46,0.08); }
+  .skill-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* Trend chip */
+  .trend {
+    display: inline-flex; align-items: center; gap: 3px;
+    padding: 2px 7px; border-radius: 6px; font-size: 10px; font-weight: 600; flex-shrink: 0;
+  }
+  .trend-up { background: rgba(22,163,74,0.1); color: #16a34a; }
+  .trend-down { background: rgba(239,68,68,0.1); color: #ef4444; }
+  .trend-flat { background: rgba(148,163,184,0.12); color: #94a3b8; }
+
+  /* Dot row (anonymised students) */
+  .dot-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+  .student-dot {
+    width: 12px; height: 12px; border-radius: 50%;
+    cursor: pointer; transition: transform 0.15s;
+    title: '';
+  }
+  .student-dot:hover { transform: scale(1.4); }
+  .dot-strong { background: #16a34a; }
+  .dot-ok { background: #3b82f6; }
+  .dot-watch { background: #f59e0b; }
+  .dot-flag { background: #ef4444; }
+
+  /* Activity heatmap grid */
+  .heatmap-grid {
+    display: grid; grid-template-columns: 60px repeat(7, 1fr);
+    gap: 4px; align-items: center;
+  }
+  .heatmap-label { font-size: 11px; color: #94a3b8; text-align: right; padding-right: 8px; }
+  .heatmap-day-label { font-size: 10px; color: #94a3b8; text-align: center; padding-bottom: 4px; }
+  .heatmap-cell {
+    height: 28px; border-radius: 6px; background: rgba(26,26,46,0.06);
+    cursor: pointer; transition: transform 0.15s;
+  }
+  .heatmap-cell:hover { transform: scale(1.08); }
+  /* Intensity fills */
+  .h0 { background: rgba(26,26,46,0.05); }
+  .h1 { background: rgba(59,130,246,0.15); }
+  .h2 { background: rgba(59,130,246,0.3); }
+  .h3 { background: rgba(59,130,246,0.5); }
+  .h4 { background: rgba(59,130,246,0.75); }
+  .h5 { background: #3b82f6; }
+
+  /* Bar chart (accuracy trend) */
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+  .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .bar-fill { width: 100%; border-radius: 4px 4px 0 0; background: rgba(59,130,246,0.35); }
+  .bar-fill.today { background: #3b82f6; }
+  .bar-fill.bench { background: rgba(245,158,11,0.4); }
+  .bar-x { font-size: 9px; color: #94a3b8; }
+
+  /* Performance table */
+  .perf-table { width: 100%; border-collapse: collapse; }
+  .perf-table th {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    color: #94a3b8; text-align: left; padding: 0 0 10px;
+    border-bottom: 1px solid rgba(26,26,46,0.07);
+  }
+  .perf-table td {
+    font-size: 12px; color: #475569; padding: 9px 0;
+    border-bottom: 1px solid rgba(26,26,46,0.05); vertical-align: middle;
+  }
+  .perf-table tr:last-child td { border-bottom: none; }
+  .perf-table td:first-child { color: #1a1a2e; font-weight: 500; }
+  .mini-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; }
+  .ms-bar { width: 5px; border-radius: 1px; background: rgba(59,130,246,0.4); }
+  .ms-bar.hi { background: #3b82f6; }
+
+  /* Support queue */
+  .support-item {
+    padding: 12px 14px; border-radius: 12px; margin-bottom: 8px;
+    border: 1px solid rgba(26,26,46,0.07); background: #fffdf8;
+  }
+  .support-item.urgent { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.03); }
+  .support-item.watch { border-color: rgba(245,158,11,0.2); background: rgba(245,158,11,0.02); }
+  .support-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .support-badge {
+    padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 700;
+  }
+  .badge-urgent { background: rgba(239,68,68,0.12); color: #ef4444; }
+  .badge-watch { background: rgba(245,158,11,0.12); color: #d97706; }
+  .support-anon { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+  .support-since { font-size: 11px; color: #94a3b8; margin-left: auto; }
+  .support-skill-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .skill-chip {
+    padding: 3px 9px; border-radius: 7px; font-size: 11px;
+    background: rgba(26,26,46,0.06); color: #475569;
+  }
+  .support-actions { display: flex; gap: 6px; margin-top: 8px; }
+  .sup-btn {
+    padding: 5px 11px; border-radius: 8px; font-size: 11px; cursor: pointer;
+    border: 1px solid rgba(26,26,46,0.12); background: transparent; color: #475569;
+    font-family: 'Sora', sans-serif;
+  }
+  .sup-btn.primary { background: #1e40af; color: white; border-color: transparent; }
+
+  /* Skill drilldown */
+  .drilldown-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .drilldown-title { font-size: 18px; font-weight: 700; color: #1a1a2e; }
+  .drilldown-badge {
+    padding: 4px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    background: rgba(59,130,246,0.1); color: #1e40af;
+  }
+  .accuracy-ring-wrap {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .accuracy-ring-label { font-size: 11px; color: #94a3b8; }
+  .accuracy-big { font-size: 32px; font-weight: 800; color: #1a1a2e; }
+  .accuracy-sub { font-size: 12px; color: #64748b; }
+
+  /* Empty state */
+  .empty-wrap {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; min-height: 500px; background: #f5f0e8; padding: 40px;
+  }
+  .empty-icon { font-size: 56px; margin-bottom: 16px; }
+  .empty-title { font-size: 20px; font-weight: 700; color: #1a1a2e; margin-bottom: 8px; }
+  .empty-body { font-size: 14px; color: #64748b; line-height: 1.6; max-width: 380px; margin-bottom: 24px; }
+  .empty-steps { width: 100%; max-width: 360px; margin-bottom: 24px; text-align: left; }
+  .empty-step {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid rgba(26,26,46,0.06);
+    font-size: 13px; color: #475569;
+  }
+  .empty-step:last-child { border-bottom: none; }
+  .step-num {
+    width: 24px; height: 24px; border-radius: 50%; background: rgba(59,130,246,0.12);
+    color: #1e40af; font-weight: 700; font-size: 12px;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .empty-cta {
+    padding: 12px 28px; border-radius: 12px;
+    background: #1e40af; color: white; border: none; cursor: pointer;
+    font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600;
+  }
+
+  /* Progress over time chart area */
+  .timeline-chart {
+    height: 120px; display: flex; align-items: flex-end; gap: 4px; padding: 0 4px;
+  }
+  .tc-bar { flex: 1; border-radius: 4px 4px 0 0; transition: opacity 0.2s; }
+  .tc-bar:hover { opacity: 0.8; }
+  .x-labels { display: flex; padding: 4px 4px 0; gap: 4px; }
+  .x-label { flex: 1; text-align: center; font-size: 9px; color: #94a3b8; }
+  .legend { display: flex; gap: 16px; margin-bottom: 8px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #64748b; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('overview')">Class Overview</button>
+  <button class="tab-btn" onclick="switchTab('skills')">Skill Breakdown</button>
+  <button class="tab-btn" onclick="switchTab('heatmap')">Activity Heatmap</button>
+  <button class="tab-btn" onclick="switchTab('trends')">Progress Over Time</button>
+  <button class="tab-btn" onclick="switchTab('students')">Student Table</button>
+  <button class="tab-btn" onclick="switchTab('support')">Support Queue</button>
+  <button class="tab-btn" onclick="switchTab('drilldown')">Skill Drilldown</button>
+  <button class="tab-btn" onclick="switchTab('empty')">Empty State</button>
+</div>
+
+<!-- ═══════════ TAB 1: CLASS OVERVIEW ═══════════ -->
+<div class="panel active" id="tab-overview">
+  <div class="hint">
+    <strong>Eng Note — /teacher/analytics (main dashboard)</strong>
+    This is the landing view after gate access. Purpose: teacher sees class health at a glance and knows what to act on.
+    KPIs: avg accuracy, active students (% of roster), avg streak, support queue size.
+    Skill summary shows top 3 strong + 3 needs-support skills. Dot rows are anonymised (no names, no rank).
+    Class switcher in sidebar if teacher covers multiple classes. Privacy: never show individual student names in aggregate views.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">Mrs. Rivera's Class</div>
+        <div class="sidebar-brand-sub">Grade 2 · Room 14 · 24 students</div>
+      </div>
+      <div class="class-chip">
+        <div class="class-chip-label">Viewing class</div>
+        <div class="class-chip-name">Grade 2 – Rm 14</div>
+        <div class="class-chip-meta">24 students · active this week: 20</div>
+      </div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔥</span> Activity Heatmap</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+      <div class="sidebar-item"><span class="sidebar-icon">⚙️</span> Settings</div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <div class="page-title">Class Overview</div>
+            <div class="page-sub">Week of March 17–21 · 20 of 24 students active</div>
+          </div>
+          <div class="header-actions">
+            <button class="hdr-btn">This week ▾</button>
+            <button class="hdr-btn primary">Share report</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="kpi-row">
+        <div class="kpi-card">
+          <div class="kpi-label">Class Accuracy</div>
+          <div class="kpi-value">74%</div>
+          <div class="kpi-delta up">↑ +6pts from last week</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Active Students</div>
+          <div class="kpi-value">20 <span style="font-size:16px; color:#94a3b8;">/ 24</span></div>
+          <div class="kpi-delta up">↑ 4 more than last week</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Avg Streak</div>
+          <div class="kpi-value">5.2 <span style="font-size:14px; color:#94a3b8;">days</span></div>
+          <div class="kpi-delta">→ stable</div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Needs Support</div>
+          <div class="kpi-value" style="color:#ef4444;">3</div>
+          <div class="kpi-delta warn">↑ +1 new flag</div>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <!-- Strong skills -->
+        <div class="sc">
+          <div class="sc-title">💪 Class Strengths <span class="sc-action">All skills →</span></div>
+          <div class="skill-row">
+            <div style="flex:1;">
+              <div class="skill-name">Counting to 20</div>
+              <div class="skill-sub">24 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:91%; background:#16a34a;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#16a34a;">91%</div>
+            <div class="trend trend-up">↑ +4</div>
+          </div>
+          <div class="skill-row">
+            <div style="flex:1;">
+              <div class="skill-name">Letter recognition</div>
+              <div class="skill-sub">22 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:86%; background:#16a34a;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#16a34a;">86%</div>
+            <div class="trend trend-flat">→</div>
+          </div>
+          <div class="skill-row">
+            <div style="flex:1;">
+              <div class="skill-name">Sight words set 1</div>
+              <div class="skill-sub">20 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:82%; background:#16a34a;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#16a34a;">82%</div>
+            <div class="trend trend-up">↑ +7</div>
+          </div>
+        </div>
+
+        <!-- Needs support skills -->
+        <div class="sc">
+          <div class="sc-title">🔍 Needs Support <span class="sc-action">View all →</span></div>
+          <div class="skill-row flagged">
+            <div style="flex:1;">
+              <div class="skill-name">Multi-digit subtraction</div>
+              <div class="skill-sub">18 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:42%; background:#ef4444;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#ef4444;">42%</div>
+            <div class="trend trend-down">↓ −8</div>
+          </div>
+          <div class="skill-row flagged">
+            <div style="flex:1;">
+              <div class="skill-name">Consonant blends</div>
+              <div class="skill-sub">15 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:47%; background:#ef4444;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#ef4444;">47%</div>
+            <div class="trend trend-down">↓ −5</div>
+          </div>
+          <div class="skill-row warn-flag">
+            <div style="flex:1;">
+              <div class="skill-name">Place value (hundreds)</div>
+              <div class="skill-sub">16 students attempted</div>
+            </div>
+            <div class="skill-bar-wrap">
+              <div class="skill-bar-track"><div class="skill-bar-fill" style="width:61%; background:#f59e0b;"></div></div>
+            </div>
+            <div class="skill-acc" style="color:#f59e0b;">61%</div>
+            <div class="trend trend-down">↓ −3</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Class distribution strip -->
+      <div class="sc one-col">
+        <div class="sc-title">Student Distribution (anonymised)</div>
+        <div style="font-size:12px; color:#64748b; margin-bottom:10px;">
+          Each dot = one student. Colour = performance tier this week. Hover to see skill count only — no names.
+        </div>
+        <div style="display:flex; gap:12px; margin-bottom:10px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b;"><div style="width:10px;height:10px;border-radius:50%;background:#16a34a;"></div>Strong (≥80%)</div>
+          <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b;"><div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;"></div>On track (65–79%)</div>
+          <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b;"><div style="width:10px;height:10px;border-radius:50%;background:#f59e0b;"></div>Watch (50–64%)</div>
+          <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b;"><div style="width:10px;height:10px;border-radius:50%;background:#ef4444;"></div>Needs support (&lt;50%)</div>
+          <div style="display:flex; align-items:center; gap:5px; font-size:11px; color:#64748b;"><div style="width:10px;height:10px;border-radius:50%;background:rgba(26,26,46,0.12);"></div>Inactive this week</div>
+        </div>
+        <div class="dot-row">
+          <!-- 24 student dots matching the 20/24 active split -->
+          <div class="student-dot dot-strong" title="Strong"></div>
+          <div class="student-dot dot-strong" title="Strong"></div>
+          <div class="student-dot dot-strong" title="Strong"></div>
+          <div class="student-dot dot-strong" title="Strong"></div>
+          <div class="student-dot dot-strong" title="Strong"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-ok" title="On track"></div>
+          <div class="student-dot dot-watch" title="Watch"></div>
+          <div class="student-dot dot-watch" title="Watch"></div>
+          <div class="student-dot dot-watch" title="Watch"></div>
+          <div class="student-dot dot-watch" title="Watch"></div>
+          <div class="student-dot dot-flag" title="Needs support"></div>
+          <div class="student-dot dot-flag" title="Needs support"></div>
+          <div class="student-dot dot-flag" title="Needs support"></div>
+          <div class="student-dot" style="background:rgba(26,26,46,0.12);" title="Inactive"></div>
+          <div class="student-dot" style="background:rgba(26,26,46,0.12);" title="Inactive"></div>
+          <div class="student-dot" style="background:rgba(26,26,46,0.12);" title="Inactive"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 2: SKILL BREAKDOWN ═══════════ -->
+<div class="panel" id="tab-skills">
+  <div class="hint">
+    <strong>Eng Note — Skill Breakdown view</strong>
+    Full list of all skills the class has touched, sorted by class accuracy (ascending = problems first).
+    Each row: skill name + band label + class avg accuracy bar + trend chip + anonymised dot row showing per-student status.
+    Red left-border accent = flagged (below 50%). Amber = watch zone (50–65%). No individual names in this view.
+    Tap a row to enter the Skill Drilldown view (Tab 7).
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand">
+        <div class="sidebar-brand-name">Mrs. Rivera's Class</div>
+        <div class="sidebar-brand-sub">Grade 2 · Room 14</div>
+      </div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔥</span> Activity Heatmap</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div>
+            <div class="page-title">Skill Breakdown</div>
+            <div class="page-sub">14 skills · sorted by class accuracy (lowest first)</div>
+          </div>
+          <div class="header-actions">
+            <button class="hdr-btn">Area: All ▾</button>
+            <button class="hdr-btn">Sort ▾</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sc">
+        <!-- Flagged rows -->
+        <div class="skill-row flagged" style="cursor:pointer;">
+          <div style="flex:1;">
+            <div class="skill-name">Multi-digit subtraction</div>
+            <div class="skill-sub">Math · 18 attempts · tap to drilldown</div>
+            <div class="dot-row" style="margin-top:6px;">
+              <div class="student-dot dot-flag"></div><div class="student-dot dot-flag"></div><div class="student-dot dot-flag"></div>
+              <div class="student-dot dot-watch"></div><div class="student-dot dot-watch"></div>
+              <div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div>
+              <div class="student-dot dot-strong"></div>
+              <div class="student-dot" style="background:rgba(26,26,46,0.1);"></div><div class="student-dot" style="background:rgba(26,26,46,0.1);"></div>
+            </div>
+          </div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:42%;background:#ef4444;"></div></div></div>
+          <div class="skill-acc" style="color:#ef4444;">42%</div>
+          <div class="trend trend-down">↓ −8</div>
+        </div>
+
+        <div class="skill-row flagged" style="cursor:pointer;">
+          <div style="flex:1;">
+            <div class="skill-name">Consonant blends</div>
+            <div class="skill-sub">Reading · 15 attempts</div>
+            <div class="dot-row" style="margin-top:6px;">
+              <div class="student-dot dot-flag"></div><div class="student-dot dot-flag"></div>
+              <div class="student-dot dot-watch"></div><div class="student-dot dot-watch"></div><div class="student-dot dot-watch"></div>
+              <div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div>
+              <div class="student-dot" style="background:rgba(26,26,46,0.1);"></div>
+            </div>
+          </div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:47%;background:#ef4444;"></div></div></div>
+          <div class="skill-acc" style="color:#ef4444;">47%</div>
+          <div class="trend trend-down">↓ −5</div>
+        </div>
+
+        <!-- Watch rows -->
+        <div class="skill-row warn-flag" style="cursor:pointer;">
+          <div style="flex:1;">
+            <div class="skill-name">Place value (hundreds)</div>
+            <div class="skill-sub">Math · 16 attempts</div>
+            <div class="dot-row" style="margin-top:6px;">
+              <div class="student-dot dot-flag"></div>
+              <div class="student-dot dot-watch"></div><div class="student-dot dot-watch"></div><div class="student-dot dot-watch"></div>
+              <div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div><div class="student-dot dot-ok"></div>
+              <div class="student-dot dot-strong"></div><div class="student-dot dot-strong"></div>
+            </div>
+          </div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:61%;background:#f59e0b;"></div></div></div>
+          <div class="skill-acc" style="color:#f59e0b;">61%</div>
+          <div class="trend trend-down">↓ −3</div>
+        </div>
+
+        <div class="skill-row warn-flag" style="cursor:pointer;">
+          <div style="flex:1;">
+            <div class="skill-name">Sight words set 2</div>
+            <div class="skill-sub">Reading · 14 attempts</div>
+          </div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:64%;background:#f59e0b;"></div></div></div>
+          <div class="skill-acc" style="color:#f59e0b;">64%</div>
+          <div class="trend trend-flat">→</div>
+        </div>
+
+        <!-- Healthy rows -->
+        <div class="skill-row" style="cursor:pointer;">
+          <div style="flex:1;"><div class="skill-name">Simple addition</div><div class="skill-sub">Math · 22 attempts</div></div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:76%;background:#3b82f6;"></div></div></div>
+          <div class="skill-acc" style="color:#3b82f6;">76%</div>
+          <div class="trend trend-up">↑ +4</div>
+        </div>
+
+        <div class="skill-row" style="cursor:pointer;">
+          <div style="flex:1;"><div class="skill-name">Sight words set 1</div><div class="skill-sub">Reading · 20 attempts</div></div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:82%;background:#16a34a;"></div></div></div>
+          <div class="skill-acc" style="color:#16a34a;">82%</div>
+          <div class="trend trend-up">↑ +7</div>
+        </div>
+
+        <div class="skill-row" style="cursor:pointer;">
+          <div style="flex:1;"><div class="skill-name">Letter recognition</div><div class="skill-sub">Reading · 22 attempts</div></div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:86%;background:#16a34a;"></div></div></div>
+          <div class="skill-acc" style="color:#16a34a;">86%</div>
+          <div class="trend trend-flat">→</div>
+        </div>
+
+        <div class="skill-row" style="cursor:pointer;">
+          <div style="flex:1;"><div class="skill-name">Counting to 20</div><div class="skill-sub">Math · 24 attempts</div></div>
+          <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:91%;background:#16a34a;"></div></div></div>
+          <div class="skill-acc" style="color:#16a34a;">91%</div>
+          <div class="trend trend-up">↑ +4</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 3: ACTIVITY HEATMAP ═══════════ -->
+<div class="panel" id="tab-heatmap">
+  <div class="hint">
+    <strong>Eng Note — Activity Heatmap</strong>
+    X-axis: day of week (Mon–Sun). Y-axis: time slot (Morning/Midday/Afternoon/Evening).
+    Cell intensity = number of sessions in that slot. Aggregate class view — not per-student.
+    Useful for teacher to see when their class is most engaged. Colour: blue intensity scale.
+    Show 4-week rolling average. Current week highlighted with border.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">🔥</span> Activity Heatmap</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div><div class="page-title">Activity Heatmap</div><div class="page-sub">When your class is most active · 4-week average</div></div>
+          <div class="header-actions"><button class="hdr-btn">4 weeks ▾</button></div>
+        </div>
+      </div>
+
+      <div class="sc">
+        <!-- Legend -->
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:20px; font-size:11px; color:#94a3b8;">
+          <span>Fewer sessions</span>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h0"></div>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h1"></div>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h2"></div>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h3"></div>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h4"></div>
+          <div style="width:16px;height:12px;border-radius:3px;" class="h5"></div>
+          <span>More sessions</span>
+        </div>
+
+        <div class="heatmap-grid">
+          <!-- Header row -->
+          <div></div>
+          <div class="heatmap-day-label">Mon</div>
+          <div class="heatmap-day-label">Tue</div>
+          <div class="heatmap-day-label">Wed</div>
+          <div class="heatmap-day-label">Thu</div>
+          <div class="heatmap-day-label">Fri</div>
+          <div class="heatmap-day-label">Sat</div>
+          <div class="heatmap-day-label">Sun</div>
+
+          <!-- Morning row -->
+          <div class="heatmap-label">Morning</div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h4"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h5"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h1"></div>
+          <div class="heatmap-cell h0"></div>
+
+          <!-- Midday row -->
+          <div class="heatmap-label">Midday</div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h1"></div>
+
+          <!-- Afternoon row -->
+          <div class="heatmap-label">Afternoon</div>
+          <div class="heatmap-cell h4"></div>
+          <div class="heatmap-cell h5"></div>
+          <div class="heatmap-cell h4"></div>
+          <div class="heatmap-cell h5"></div>
+          <div class="heatmap-cell h4"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h2"></div>
+
+          <!-- Evening row -->
+          <div class="heatmap-label">Evening</div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h1"></div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h1"></div>
+          <div class="heatmap-cell h2"></div>
+          <div class="heatmap-cell h3"></div>
+          <div class="heatmap-cell h2"></div>
+        </div>
+
+        <div style="margin-top: 18px; padding: 12px 14px; border-radius: 12px; background: rgba(59,130,246,0.06); border: 1px solid rgba(59,130,246,0.12); font-size: 13px; color: #1e40af;">
+          💡 Peak engagement: <strong>Thursday and Tuesday afternoons</strong>. Consider scheduling harder new skills on these days.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 4: PROGRESS OVER TIME ═══════════ -->
+<div class="panel" id="tab-trends">
+  <div class="hint">
+    <strong>Eng Note — Progress Over Time</strong>
+    Shows class-wide accuracy trend over rolling 6 weeks. Two chart tracks: class average (blue) vs. previous period benchmark (amber dashed).
+    Below: per-skill-area trend (Math / Reading / etc.) — teacher can toggle individual lines.
+    Key insight callout card if trajectory is positive or a concern. No individual student data in this view.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔥</span> Activity Heatmap</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div><div class="page-title">Progress Over Time</div><div class="page-sub">Class accuracy trend · 6-week rolling</div></div>
+          <div class="header-actions"><button class="hdr-btn">6 weeks ▾</button></div>
+        </div>
+      </div>
+
+      <div class="sc" style="margin-bottom:16px;">
+        <div class="sc-title">Overall Class Accuracy Trend</div>
+        <div class="legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>This class</div>
+          <div class="legend-item"><div class="legend-dot" style="background:rgba(245,158,11,0.5);"></div>Previous period</div>
+        </div>
+        <div class="bar-chart">
+          <div class="bar-col"><div class="bar-fill" style="height:62%; background:rgba(245,158,11,0.3);"></div><div class="bar-x">Wk 1</div></div>
+          <div class="bar-col"><div class="bar-fill" style="height:65%;"></div><div class="bar-x">Wk 2</div></div>
+          <div class="bar-col"><div class="bar-fill" style="height:61%;"></div><div class="bar-x">Wk 3</div></div>
+          <div class="bar-col"><div class="bar-fill" style="height:68%;"></div><div class="bar-x">Wk 4</div></div>
+          <div class="bar-col"><div class="bar-fill" style="height:71%;"></div><div class="bar-x">Wk 5</div></div>
+          <div class="bar-col"><div class="bar-fill today" style="height:74%;"></div><div class="bar-x">This wk</div></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; font-size:11px; color:#94a3b8; margin-top:8px;">
+          <span>Class avg: 74%</span><span>Previous period avg: 63%</span><span class="trend trend-up" style="font-size:11px;">↑ +11pts improvement</span>
+        </div>
+      </div>
+
+      <div class="two-col">
+        <div class="sc">
+          <div class="sc-title">Math Skills Trend</div>
+          <div class="bar-chart" style="height:80px;">
+            <div class="bar-col"><div class="bar-fill" style="height:55%; background:rgba(59,130,246,0.3);"></div><div class="bar-x">W1</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:58%; background:rgba(59,130,246,0.3);"></div><div class="bar-x">W2</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:54%; background:rgba(59,130,246,0.3);"></div><div class="bar-x">W3</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:62%; background:rgba(59,130,246,0.3);"></div><div class="bar-x">W4</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:64%; background:rgba(59,130,246,0.3);"></div><div class="bar-x">W5</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:68%; background:#3b82f6;"></div><div class="bar-x">Now</div></div>
+          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:6px;">Current avg: <strong style="color:#1a1a2e;">68%</strong> · <span class="trend trend-up" style="font-size:11px;">↑ Improving</span></div>
+        </div>
+        <div class="sc">
+          <div class="sc-title">Reading Skills Trend</div>
+          <div class="bar-chart" style="height:80px;">
+            <div class="bar-col"><div class="bar-fill" style="height:68%; background:rgba(99,102,241,0.3);"></div><div class="bar-x">W1</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:72%; background:rgba(99,102,241,0.3);"></div><div class="bar-x">W2</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:69%; background:rgba(99,102,241,0.3);"></div><div class="bar-x">W3</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:75%; background:rgba(99,102,241,0.3);"></div><div class="bar-x">W4</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:77%; background:rgba(99,102,241,0.3);"></div><div class="bar-x">W5</div></div>
+            <div class="bar-col"><div class="bar-fill" style="height:79%; background:#6366f1;"></div><div class="bar-x">Now</div></div>
+          </div>
+          <div style="font-size:12px; color:#64748b; margin-top:6px;">Current avg: <strong style="color:#1a1a2e;">79%</strong> · <span class="trend trend-up" style="font-size:11px;">↑ Strong growth</span></div>
+        </div>
+      </div>
+
+      <div class="sc" style="background:rgba(22,163,74,0.06); border-color:rgba(22,163,74,0.15);">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="font-size:28px;">📈</div>
+          <div>
+            <div style="font-size:14px; font-weight:600; color:#14532d; margin-bottom:4px;">Class is trending up</div>
+            <div style="font-size:13px; color:#166534; line-height:1.5;">Overall accuracy has improved 11 points over 6 weeks. Reading is the strongest area. Math needs continued focus — multi-digit subtraction is the main drag on the class average.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 5: STUDENT TABLE ═══════════ -->
+<div class="panel" id="tab-students">
+  <div class="hint">
+    <strong>Eng Note — Student Performance Table</strong>
+    IMPORTANT: This is a teacher-only view. Show student first names only (not full names) — enough for teacher to identify without exposing full PII in the UI layer.
+    Columns: Student (first name + avatar) · Band · This week accuracy · Streak · Sessions this week · Strongest skill · Flag.
+    Sort defaults to flagged first. Tap a row to expand the individual student panel (see intervention panel in teacher-gate.html tab 7 for that state). Filter chips: All / Needs Support / On Track / Inactive.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🔥</span> Activity Heatmap</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div><div class="page-title">Student Table</div><div class="page-sub">24 students · first name only shown</div></div>
+          <div class="header-actions">
+            <div style="display:flex; gap:6px;">
+              <span style="padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; background:#1e40af; color:white; font-weight:600;">All</span>
+              <span style="padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; background:rgba(239,68,68,0.1); color:#ef4444; border:1px solid rgba(239,68,68,0.2);">Needs Support</span>
+              <span style="padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; background:rgba(26,26,46,0.06); color:#475569; border:1px solid rgba(26,26,46,0.1);">On Track</span>
+              <span style="padding:6px 12px; border-radius:20px; font-size:12px; cursor:pointer; background:rgba(26,26,46,0.06); color:#475569; border:1px solid rgba(26,26,46,0.1);">Inactive</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sc">
+        <table class="perf-table">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Accuracy</th>
+              <th>Trend</th>
+              <th>Streak</th>
+              <th>Sessions</th>
+              <th>Strongest Skill</th>
+              <th>Flag</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="background:rgba(239,68,68,0.03);">
+              <td><span style="font-size:18px;">🦊</span> Jordan</td>
+              <td style="color:#ef4444; font-weight:700;">38%</td>
+              <td><span class="trend trend-down">↓ −12</span></td>
+              <td>0 days</td>
+              <td>1</td>
+              <td style="color:#64748b;">Counting</td>
+              <td><span style="color:#ef4444; font-weight:700;">🚩</span></td>
+            </tr>
+            <tr style="background:rgba(239,68,68,0.03);">
+              <td><span style="font-size:18px;">🐻</span> Sam</td>
+              <td style="color:#ef4444; font-weight:700;">44%</td>
+              <td><span class="trend trend-down">↓ −6</span></td>
+              <td>1 day</td>
+              <td>2</td>
+              <td style="color:#64748b;">Letter rec.</td>
+              <td><span style="color:#ef4444; font-weight:700;">🚩</span></td>
+            </tr>
+            <tr style="background:rgba(239,68,68,0.03);">
+              <td><span style="font-size:18px;">🐯</span> Alex</td>
+              <td style="color:#ef4444; font-weight:700;">48%</td>
+              <td><span class="trend trend-flat">→</span></td>
+              <td>2 days</td>
+              <td>3</td>
+              <td style="color:#64748b;">Sight words</td>
+              <td><span style="color:#ef4444; font-weight:700;">🚩</span></td>
+            </tr>
+            <tr>
+              <td><span style="font-size:18px;">🦁</span> Maya</td>
+              <td style="color:#3b82f6; font-weight:700;">72%</td>
+              <td><span class="trend trend-up">↑ +8</span></td>
+              <td>12 days</td>
+              <td>6</td>
+              <td>Sight words</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span style="font-size:18px;">🐸</span> Liam</td>
+              <td style="color:#3b82f6; font-weight:700;">68%</td>
+              <td><span class="trend trend-up">↑ +4</span></td>
+              <td>5 days</td>
+              <td>4</td>
+              <td>Counting</td>
+              <td>—</td>
+            </tr>
+            <tr>
+              <td><span style="font-size:18px;">🐝</span> Zoe</td>
+              <td style="color:#16a34a; font-weight:700;">88%</td>
+              <td><span class="trend trend-up">↑ +5</span></td>
+              <td>18 days</td>
+              <td>7</td>
+              <td>Letter rec.</td>
+              <td>—</td>
+            </tr>
+            <tr style="background:rgba(148,163,184,0.06);">
+              <td><span style="font-size:18px;">🦋</span> Riley</td>
+              <td style="color:#94a3b8;">—</td>
+              <td><span class="trend trend-flat" style="background:rgba(148,163,184,0.1);">inactive</span></td>
+              <td>0 days</td>
+              <td>0</td>
+              <td style="color:#94a3b8;">—</td>
+              <td style="color:#94a3b8;">😴</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-size:12px; color:#94a3b8; margin-top:14px; padding-top:10px; border-top:1px solid rgba(26,26,46,0.06);">
+          Showing 7 of 24 students · <span style="color:#3b82f6; cursor:pointer;">Load all</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 6: SUPPORT QUEUE ═══════════ -->
+<div class="panel" id="tab-support">
+  <div class="hint">
+    <strong>Eng Note — Support Queue</strong>
+    Three or fewer flagged students shown here (individual concern flags, not class-wide issues).
+    Each item: severity badge, anonymised student chip (no full name), flagged skills, days since last active, suggested actions.
+    "Add note" and "Share with parent" are the main actions. No peer comparisons — each student evaluated on their own trajectory.
+    Resolve collapses the item; mark watch keeps it visible with reduced prominence.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📈</span> Progress Over Time</div>
+      <div class="sidebar-item"><span class="sidebar-icon">👤</span> Student Table</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <div class="page-header">
+        <div class="page-header-row">
+          <div><div class="page-title">Support Queue</div><div class="page-sub">3 students flagged for review this week</div></div>
+        </div>
+      </div>
+
+      <div class="support-item urgent">
+        <div class="support-meta">
+          <span class="support-badge badge-urgent">Urgent</span>
+          <span class="support-anon">🦊 Student A</span>
+          <span class="support-since">Last active 8 days ago</span>
+        </div>
+        <div style="font-size:13px; color:#475569; margin-bottom:6px;">Accuracy dropped 12 points this week. Has not returned since last session.</div>
+        <div class="support-skill-list">
+          <span class="skill-chip" style="background:rgba(239,68,68,0.1); color:#ef4444;">Multi-digit subtraction 38%</span>
+          <span class="skill-chip" style="background:rgba(239,68,68,0.1); color:#ef4444;">Consonant blends 41%</span>
+        </div>
+        <div class="support-actions">
+          <button class="sup-btn primary">Add note</button>
+          <button class="sup-btn">Share with parent</button>
+          <button class="sup-btn">Mark as watch</button>
+        </div>
+      </div>
+
+      <div class="support-item urgent">
+        <div class="support-meta">
+          <span class="support-badge badge-urgent">Urgent</span>
+          <span class="support-anon">🐻 Student B</span>
+          <span class="support-since">Last active 3 days ago</span>
+        </div>
+        <div style="font-size:13px; color:#475569; margin-bottom:6px;">Accuracy has been below 50% for 3 consecutive weeks across Math.</div>
+        <div class="support-skill-list">
+          <span class="skill-chip" style="background:rgba(239,68,68,0.1); color:#ef4444;">Place value 44%</span>
+          <span class="skill-chip" style="background:rgba(245,158,11,0.1); color:#d97706;">Addition 57%</span>
+        </div>
+        <div class="support-actions">
+          <button class="sup-btn primary">Add note</button>
+          <button class="sup-btn">Share with parent</button>
+          <button class="sup-btn">Mark as watch</button>
+        </div>
+      </div>
+
+      <div class="support-item watch">
+        <div class="support-meta">
+          <span class="support-badge badge-watch">Watch</span>
+          <span class="support-anon">🐯 Student C</span>
+          <span class="support-since">Last active yesterday</span>
+        </div>
+        <div style="font-size:13px; color:#475569; margin-bottom:6px;">New to class this month. Accuracy plateau at 48% for 2 weeks — may need band adjustment.</div>
+        <div class="support-skill-list">
+          <span class="skill-chip" style="background:rgba(245,158,11,0.1); color:#d97706;">Consonant blends 48%</span>
+        </div>
+        <div class="support-actions">
+          <button class="sup-btn primary">Add note</button>
+          <button class="sup-btn">Share with parent</button>
+          <button class="sup-btn" style="color:#94a3b8;">Resolve</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 7: SKILL DRILLDOWN ═══════════ -->
+<div class="panel" id="tab-drilldown">
+  <div class="hint">
+    <strong>Eng Note — Skill Drilldown</strong>
+    Reached by tapping any skill row in the Skill Breakdown view. Shows one skill in full detail.
+    Top: skill name + band + class avg accuracy (large) + trend. Middle: question-level breakdown (which question types are hardest). Bottom: anonymised student dot grid for this specific skill with tier breakdown. "Share with class" and "Flag for content review" actions.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item"><span class="sidebar-icon">📊</span> Class Overview</div>
+      <div class="sidebar-item active" style="background:rgba(59,130,246,0.06);border-left-color:#3b82f6;"><span class="sidebar-icon">🎯</span> Skill Breakdown</div>
+      <div class="sidebar-section">Actions</div>
+      <div class="sidebar-item"><span class="sidebar-icon">🚩</span> Support Queue <span class="sidebar-badge">3</span></div>
+    </div>
+
+    <div class="main">
+      <!-- Back breadcrumb -->
+      <div style="display:flex; align-items:center; gap:8px; font-size:13px; color:#3b82f6; margin-bottom:20px; cursor:pointer;">
+        ← <span>Skill Breakdown</span> <span style="color:#94a3b8;">/ Multi-digit subtraction</span>
+      </div>
+
+      <div class="drilldown-header">
+        <div>
+          <div style="font-size:12px; color:#94a3b8; margin-bottom:4px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase;">Math · Grade 2–3</div>
+          <div class="drilldown-title">Multi-digit subtraction</div>
+        </div>
+        <div class="drilldown-badge">18 students attempted</div>
+        <div class="trend trend-down" style="font-size:13px;">↓ Declining · −8 pts this week</div>
+      </div>
+
+      <div class="two-col" style="margin-bottom:16px;">
+        <div class="sc" style="display:flex; align-items:center; gap:24px;">
+          <div class="accuracy-ring-wrap">
+            <div class="accuracy-big" style="color:#ef4444;">42%</div>
+            <div class="accuracy-sub">Class avg accuracy</div>
+            <div style="margin-top:8px; font-size:12px; color:#94a3b8;">National avg: 61%</div>
+          </div>
+          <div style="flex:1;">
+            <div style="font-size:12px; color:#94a3b8; margin-bottom:8px;">Student tiers</div>
+            <div style="display:flex; flex-direction:column; gap:6px;">
+              <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#16a34a;flex-shrink:0;"></div>
+                <span>Strong (≥80%)</span><span style="margin-left:auto;color:#1a1a2e;font-weight:600;">2</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;flex-shrink:0;"></div>
+                <span>On track (65–79%)</span><span style="margin-left:auto;color:#1a1a2e;font-weight:600;">4</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;"></div>
+                <span>Watch (50–64%)</span><span style="margin-left:auto;color:#1a1a2e;font-weight:600;">5</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; font-size:12px;">
+                <div style="width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></div>
+                <span>Needs support (&lt;50%)</span><span style="margin-left:auto;color:#1a1a2e;font-weight:600;">7</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sc">
+          <div class="sc-title">Question Type Breakdown</div>
+          <div class="skill-row">
+            <div style="flex:1;"><div class="skill-name" style="font-size:12px;">Subtract with regrouping</div></div>
+            <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:31%;background:#ef4444;"></div></div></div>
+            <div class="skill-acc" style="color:#ef4444; font-size:12px;">31%</div>
+          </div>
+          <div class="skill-row">
+            <div style="flex:1;"><div class="skill-name" style="font-size:12px;">3-digit subtract</div></div>
+            <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:38%;background:#ef4444;"></div></div></div>
+            <div class="skill-acc" style="color:#ef4444; font-size:12px;">38%</div>
+          </div>
+          <div class="skill-row">
+            <div style="flex:1;"><div class="skill-name" style="font-size:12px;">2-digit no regroup</div></div>
+            <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:68%;background:#3b82f6;"></div></div></div>
+            <div class="skill-acc" style="color:#3b82f6; font-size:12px;">68%</div>
+          </div>
+          <div class="skill-row">
+            <div style="flex:1;"><div class="skill-name" style="font-size:12px;">Word problems</div></div>
+            <div class="skill-bar-wrap"><div class="skill-bar-track"><div class="skill-bar-fill" style="width:44%;background:#f59e0b;"></div></div></div>
+            <div class="skill-acc" style="color:#f59e0b; font-size:12px;">44%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="hdr-btn primary" style="font-size:13px;">📝 Add class note</button>
+        <button class="hdr-btn" style="font-size:13px;">⚑ Flag for content review</button>
+        <button class="hdr-btn" style="font-size:13px;">📤 Share with parents of flagged students</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 8: EMPTY STATE ═══════════ -->
+<div class="panel" id="tab-empty">
+  <div class="hint">
+    <strong>Eng Note — Empty state (no sessions yet)</strong>
+    Shown after gate access when no students in the class have played yet. Two variants depending on whether the teacher just entered the class code for the first time or returned and the class is still inactive.
+    Show setup guide with the 3 steps: share child link → students create accounts → data appears here. Do not show empty charts — show the guide instead.
+  </div>
+
+  <div class="ta-shell">
+    <div class="sidebar">
+      <div class="sidebar-brand"><div class="sidebar-brand-name">Mrs. Rivera's Class</div><div class="sidebar-brand-sub">Grade 2 · Room 14</div></div>
+      <div class="sidebar-section">Analytics</div>
+      <div class="sidebar-item active"><span class="sidebar-icon">📊</span> Class Overview</div>
+    </div>
+    <div class="main">
+      <div class="empty-wrap">
+        <div class="empty-icon">📚</div>
+        <div class="empty-title">No sessions yet</div>
+        <div class="empty-body">Your class hasn't started any WonderQuest sessions yet. Once students begin playing, their learning data will appear here automatically.</div>
+        <div class="empty-steps">
+          <div style="font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.08em; color:#94a3b8; margin-bottom:8px;">How to get started</div>
+          <div class="empty-step">
+            <div class="step-num">1</div>
+            <div>Share the WonderQuest child link with your class or send it home to parents</div>
+          </div>
+          <div class="empty-step">
+            <div class="step-num">2</div>
+            <div>Students create their adventurer profile and pick their band (age-appropriate)</div>
+          </div>
+          <div class="empty-step">
+            <div class="step-num">3</div>
+            <div>After their first session, data starts appearing here within minutes</div>
+          </div>
+        </div>
+        <button class="empty-cta">📋 Copy class setup link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick').includes(id))
+  );
+  document.querySelectorAll('.panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + id)
+  );
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Parent Access Flow</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Sora:wght@400;500;600;700&family=Bitter:wght@700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#f5f0e8;--bg2:#ede7d9;--bg3:#e4ddd0;
+  --surface:#fff;--surface-dim:rgba(255,255,255,0.75);
+  --ink:#18231f;--ink2:#4a5652;--ink3:#8a9692;
+  --line:rgba(23,36,31,0.09);--line-hi:rgba(23,36,31,0.18);
+  --accent:#1a7a5e;--accent2:#0f5c45;--accent-bg:rgba(26,122,94,0.09);
+  --gold:#f5a623;--gold-bg:rgba(245,166,35,0.10);
+  --violet:#7c5ce8;--violet-bg:rgba(124,92,232,0.08);
+  --mint:#20c997;--mint-bg:rgba(32,201,151,0.10);
+  --coral:#f06565;--coral-bg:rgba(240,101,101,0.10);
+  --sky:#3b9edd;
+  --fa:'Sora',sans-serif;--fc:'Nunito',sans-serif;--fd:'Bitter',serif;
+  --es:cubic-bezier(0.34,1.56,0.64,1);--eo:cubic-bezier(0.16,1,0.3,1);
+  --r-sm:10px;--r-md:16px;--r-lg:22px;--r-xl:28px;
+  --shadow-sm:0 2px 8px rgba(0,0,0,.06);--shadow-md:0 8px 24px rgba(0,0,0,.10);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth;}
+body{font-family:var(--fa);background:var(--bg);color:var(--ink);min-height:100vh;}
+body::before{content:'';position:fixed;inset:0;z-index:0;pointer-events:none;background:
+  radial-gradient(ellipse 60% 40% at 80% 5%,rgba(32,201,151,0.07) 0%,transparent 55%),
+  radial-gradient(ellipse 50% 35% at 10% 90%,rgba(245,166,35,0.08) 0%,transparent 55%);}
+
+/* LAYOUT */
+.page{position:relative;z-index:1;padding:20px;}
+.pg-title{text-align:center;margin-bottom:6px;}
+.pg-title h1{font-family:var(--fd);font-size:21px;color:var(--ink);}
+.pg-title h1 span{color:var(--accent);}
+.pg-title p{font-size:11px;color:var(--ink3);margin-top:3px;}
+
+/* TABS */
+.tab-nav{display:flex;gap:6px;overflow-x:auto;padding:10px 0 14px;scrollbar-width:none;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;padding:7px 14px;border-radius:20px;background:var(--surface);border:1.5px solid var(--line-hi);font-size:11px;font-weight:700;color:var(--ink3);cursor:pointer;font-family:var(--fa);white-space:nowrap;transition:all 140ms var(--es);}
+.tab-btn.active{background:var(--accent-bg);border-color:rgba(26,122,94,.3);color:var(--accent);font-weight:800;}
+
+.panels{position:relative;}
+.panel{display:none;animation:up .3s var(--eo) both;}
+.panel.active{display:block;}
+@keyframes up{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* SHARED WRAPPER */
+.sw{max-width:420px;margin:0 auto;}
+.state-tag{display:inline-flex;align-items:center;gap:5px;background:var(--surface);border:1px solid var(--line-hi);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--ink3);letter-spacing:.06em;text-transform:uppercase;margin-bottom:14px;}
+
+/* STEP TRACK */
+.step-track{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:24px;}
+.st{display:flex;flex-direction:column;align-items:center;gap:4px;}
+.st-circle{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;border:2px solid var(--line-hi);background:var(--surface);color:var(--ink3);transition:all 200ms var(--es);}
+.st-circle.done{background:var(--accent);border-color:var(--accent);color:#fff;}
+.st-circle.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent);transform:scale(1.1);}
+.st-label{font-size:9px;font-weight:700;color:var(--ink3);white-space:nowrap;}
+.st-label.active{color:var(--accent);}
+.st-line{width:32px;height:2px;background:var(--line-hi);border-radius:1px;margin-bottom:14px;}
+.st-line.done{background:var(--accent);}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:24px;box-shadow:var(--shadow-sm);margin-bottom:14px;}
+
+/* LOGO */
+.logo{font-family:var(--fd);font-size:22px;color:var(--ink);text-align:center;margin-bottom:4px;}
+.logo span{color:var(--accent);}
+.logo-sub{font-size:13px;color:var(--ink2);text-align:center;margin-bottom:22px;}
+
+/* FIELD */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:16px;}
+.field-label{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;}
+.field-input{background:var(--bg);border:1.5px solid var(--line-hi);border-radius:var(--r-md);padding:12px 16px;font-size:15px;color:var(--ink);font-family:var(--fa);outline:none;transition:border-color 150ms;}
+.field-input:focus{border-color:var(--accent);}
+.field-hint{font-size:11px;color:var(--ink3);}
+.field-ok{border-color:var(--mint)!important;}
+.field-err{border-color:var(--coral)!important;}
+.field-err-msg{font-size:11px;color:var(--coral);font-weight:600;}
+
+/* BTNS */
+.btn{display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer;font-family:var(--fa);font-weight:700;transition:all 120ms var(--es);border-radius:var(--r-md);padding:13px 20px;font-size:14px;width:100%;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-accent:hover{background:var(--accent2);transform:scale(1.02);}
+.btn-outline{background:transparent;border:1.5px solid var(--line-hi);color:var(--ink2);}
+.btn-outline:hover{border-color:var(--line-hi);color:var(--ink);}
+.btn:active{transform:scale(0.97);}
+
+/* CHILD CONFIRM CARD */
+.child-confirm{background:linear-gradient(135deg,rgba(26,122,94,.06),rgba(32,201,151,.04));border:2px solid rgba(26,122,94,.18);border-radius:var(--r-xl);padding:20px;text-align:center;margin-bottom:16px;}
+.cc-av{width:72px;height:72px;border-radius:50%;margin:0 auto 12px;display:flex;align-items:center;justify-content:center;font-size:36px;border:3px solid var(--accent);background:var(--accent-bg);}
+.cc-name{font-size:22px;font-weight:800;color:var(--ink);}
+.cc-meta{font-size:12px;color:var(--ink3);margin-top:4px;}
+.cc-stats{display:flex;gap:12px;justify-content:center;margin-top:12px;}
+.cc-stat{text-align:center;}
+.cc-sv{font-size:16px;font-weight:800;color:var(--ink);}
+.cc-sl{font-size:9px;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;}
+.cc-confirm-q{font-size:14px;font-weight:700;color:var(--ink);margin:16px 0 10px;}
+.cc-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cc-btn-yes{background:var(--accent);color:#fff;border:none;border-radius:var(--r-md);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fa);transition:all 120ms var(--es);}
+.cc-btn-yes:hover{background:var(--accent2);}
+.cc-btn-no{background:var(--bg2);color:var(--ink2);border:1.5px solid var(--line-hi);border-radius:var(--r-md);padding:12px;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--fa);}
+
+/* NOT FOUND STATE */
+.not-found{background:var(--coral-bg);border:1.5px solid rgba(240,101,101,.25);border-radius:var(--r-lg);padding:16px;display:flex;gap:10px;align-items:flex-start;margin-bottom:14px;}
+.nf-ico{font-size:22px;flex-shrink:0;}
+.nf-title{font-size:13px;font-weight:700;color:var(--coral);}
+.nf-sub{font-size:11px;color:var(--ink2);margin-top:3px;line-height:1.45;}
+
+/* NOTIF PREFS */
+.notif-pref-list{display:flex;flex-direction:column;gap:12px;}
+.notif-pref{display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg);border-radius:var(--r-lg);border:1.5px solid var(--line);}
+.np-ico{font-size:22px;flex-shrink:0;}
+.np-content{flex:1;}
+.np-title{font-size:13px;font-weight:700;color:var(--ink);}
+.np-sub{font-size:11px;color:var(--ink3);margin-top:2px;}
+/* Toggle switch */
+.toggle{width:44px;height:24px;border-radius:12px;background:var(--line-hi);position:relative;cursor:pointer;flex-shrink:0;transition:background 200ms;}
+.toggle.on{background:var(--accent);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform 200ms var(--es);box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle.on::after{transform:translateX(20px);}
+
+/* SUCCESS STATE */
+.success-card{background:linear-gradient(135deg,var(--accent),var(--accent2));border-radius:var(--r-xl);padding:28px;text-align:center;color:#fff;}
+.sc-ico{font-size:64px;display:block;margin-bottom:12px;}
+.sc-title{font-family:var(--fd);font-size:24px;font-weight:700;margin-bottom:6px;}
+.sc-sub{font-size:14px;opacity:.85;margin-bottom:20px;line-height:1.5;}
+.sc-child{display:inline-flex;align-items:center;gap:10px;background:rgba(255,255,255,.18);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:700;margin-bottom:20px;}
+.sc-btn{background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.4);border-radius:var(--r-md);padding:13px;font-size:14px;font-weight:700;color:#fff;cursor:pointer;font-family:var(--fa);transition:background 140ms;width:100%;text-align:center;}
+.sc-btn:hover{background:rgba(255,255,255,.32);}
+.sc-btn-primary{background:#fff;color:var(--accent);margin-bottom:10px;}
+
+/* RELINK STATE */
+.relink-warn{background:var(--gold-bg);border:1.5px solid rgba(245,166,35,.3);border-radius:var(--r-lg);padding:14px;display:flex;gap:10px;margin-bottom:14px;}
+.rw-ico{font-size:20px;}
+.rw-title{font-size:13px;font-weight:700;color:var(--gold);}
+.rw-sub{font-size:11px;color:var(--ink2);margin-top:2px;line-height:1.45;}
+
+/* HINT */
+.hint{display:flex;align-items:flex-start;gap:7px;background:rgba(26,122,94,.06);border:1px solid rgba(26,122,94,.15);border-radius:var(--r-sm);padding:10px 12px;margin-top:12px;}
+.hint-ico{font-size:13px;flex-shrink:0;margin-top:1px;}
+.hint-txt{font-size:11px;color:rgba(26,122,94,.9);line-height:1.5;font-weight:600;}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="pg-title">
+    <h1>Wonder<span>Quest</span> — Parent Access</h1>
+    <p>UI Agent Reference · /parent route · First-time access + child linkage flow</p>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="show(0)">① Enter Child Name</button>
+    <button class="tab-btn" onclick="show(1)">② Confirm Child</button>
+    <button class="tab-btn" onclick="show(2)">③ Child Not Found</button>
+    <button class="tab-btn" onclick="show(3)">④ Parent Profile</button>
+    <button class="tab-btn" onclick="show(4)">⑤ Notification Prefs</button>
+    <button class="tab-btn" onclick="show(5)">⑥ Access Granted</button>
+    <button class="tab-btn" onclick="show(6)">⑦ Wrong Child / Relink</button>
+  </div>
+
+  <div class="panels">
+
+    <!-- ① ENTER CHILD NAME -->
+    <div class="panel active">
+      <div class="sw">
+        <div class="state-tag">State 1 · First-time Parent Access</div>
+        <div class="step-track">
+          <div class="st"><div class="st-circle active">1</div><div class="st-label active">Find Child</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">2</div><div class="st-label">Confirm</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">3</div><div class="st-label">Your Info</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">4</div><div class="st-label">Done</div></div>
+        </div>
+
+        <div class="card">
+          <div class="logo">Wonder<span>Quest</span></div>
+          <div class="logo-sub">Parent access — no password required 🔓</div>
+
+          <div class="field">
+            <label class="field-label">Your child's adventurer name</label>
+            <input class="field-input field-ok" value="StarGazer" placeholder="e.g. StarGazer"/>
+            <span class="field-hint">This is the name your child chose when they set up WonderQuest.</span>
+          </div>
+
+          <div style="background:var(--accent-bg);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--accent);margin-bottom:4px">🔒 How it works</div>
+            <div style="font-size:11px;color:var(--ink2);line-height:1.55">Enter your child's adventurer name. We'll show you their profile to confirm — no email sign-in or password needed.</div>
+          </div>
+
+          <button class="btn btn-accent">Find my child →</button>
+        </div>
+
+        <div style="text-align:center;font-size:12px;color:var(--ink3)">Already linked? <span style="color:var(--accent);cursor:pointer;font-weight:700">Sign in →</span></div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Single-field entry — no email, no password. Framing is "find my child" not "create account." Trust message explains the no-login model. Input validates in real-time (green border when name resolves).</span></div>
+      </div>
+    </div>
+
+    <!-- ② CONFIRM CHILD -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 2 · Confirm This Is Your Child</div>
+        <div class="step-track">
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Find Child</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle active">2</div><div class="st-label active">Confirm</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">3</div><div class="st-label">Your Info</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">4</div><div class="st-label">Done</div></div>
+        </div>
+
+        <div class="child-confirm">
+          <div class="cc-av">🐼</div>
+          <div class="cc-name">StarGazer</div>
+          <div class="cc-meta">Space Explorer · Grade 2–3 · Joined 3 weeks ago</div>
+          <div class="cc-stats">
+            <div class="cc-stat"><div class="cc-sv" style="color:var(--accent)">Lv.8</div><div class="cc-sl">Level</div></div>
+            <div class="cc-stat"><div class="cc-sv">47</div><div class="cc-sl">Sessions</div></div>
+            <div class="cc-stat"><div class="cc-sv" style="color:var(--gold)">87%</div><div class="cc-sl">Accuracy</div></div>
+          </div>
+          <div class="cc-confirm-q">Is this your child?</div>
+          <div class="cc-btns">
+            <button class="cc-btn-yes">✓ Yes, that's them!</button>
+            <button class="cc-btn-no">✗ Not my child</button>
+          </div>
+        </div>
+
+        <div style="text-align:center;font-size:11px;color:var(--ink3);line-height:1.5">We show limited info here — full report accessible after you link.</div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Show avatar + adventurer name + band + join date only — enough to confirm identity without exposing private data. Stats (level, sessions) are visible as a preview incentive. Two clear CTAs — yes/no. "Not my child" returns to step 1 with an error message.</span></div>
+      </div>
+    </div>
+
+    <!-- ③ NOT FOUND -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 3 · Child Not Found</div>
+        <div class="step-track">
+          <div class="st"><div class="st-circle active">1</div><div class="st-label active">Find Child</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">2</div><div class="st-label">Confirm</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">3</div><div class="st-label">Your Info</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">4</div><div class="st-label">Done</div></div>
+        </div>
+
+        <div class="card">
+          <div class="logo">Wonder<span>Quest</span></div>
+          <div class="logo-sub">Parent access</div>
+
+          <div class="not-found">
+            <span class="nf-ico">🔍</span>
+            <div>
+              <div class="nf-title">No adventurer found for "Stargzer"</div>
+              <div class="nf-sub">Check the spelling — adventurer names are case-sensitive. Ask your child to check their name in the app.</div>
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Try again</label>
+            <input class="field-input field-err" value="Stargzer" placeholder="e.g. StarGazer"/>
+            <span class="field-err-msg">No adventurer with this name found</span>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px">
+            <div style="font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:6px">💡 Helpful tips</div>
+            <div style="font-size:11px;color:var(--ink3);line-height:1.65">
+              • Names are case-sensitive: "StarGazer" ≠ "stargazer"<br/>
+              • Ask your child to open the app and check their name<br/>
+              • Their name is shown on the welcome-back screen
+            </div>
+          </div>
+
+          <button class="btn btn-accent" style="margin-bottom:10px">Search again →</button>
+          <button class="btn btn-outline">My child hasn't set up yet →</button>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Error is gentle — "no adventurer found" not "invalid input." Helpful tips explain common mistakes (case sensitivity). Fallback CTA for child who hasn't set up yet. Red border on input field. Clear try-again affordance.</span></div>
+      </div>
+    </div>
+
+    <!-- ④ PARENT PROFILE -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 4 · Parent Profile Setup</div>
+        <div class="step-track">
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Find Child</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Confirm</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle active">3</div><div class="st-label active">Your Info</div></div>
+          <div class="st-line"></div>
+          <div class="st"><div class="st-circle">4</div><div class="st-label">Done</div></div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px">About you</div>
+          <div style="font-size:13px;color:var(--ink3);margin-bottom:20px">Quick — just 2 fields. No passwords ever.</div>
+
+          <div class="field">
+            <label class="field-label">Your name (optional)</label>
+            <input class="field-input" value="Sarah" placeholder="e.g. Sarah or Mum"/>
+            <span class="field-hint">Used to personalise your dashboard. You can skip this.</span>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Your relationship</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div style="padding:8px 16px;border-radius:20px;background:var(--accent-bg);border:1.5px solid rgba(26,122,94,.3);font-size:13px;font-weight:700;color:var(--accent);cursor:pointer">👩 Mum</div>
+              <div style="padding:8px 16px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--line-hi);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer">👨 Dad</div>
+              <div style="padding:8px 16px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--line-hi);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer">🧑 Guardian</div>
+              <div style="padding:8px 16px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--line-hi);font-size:13px;font-weight:700;color:var(--ink2);cursor:pointer">Other</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg2);border-radius:var(--r-md);padding:12px 14px;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:18px">🔒</span>
+              <div style="font-size:11px;color:var(--ink3);line-height:1.5">We don't store your email or any personal details. Your child's data is private and never shared.</div>
+            </div>
+          </div>
+
+          <button class="btn btn-accent">Continue →</button>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Minimal profile — name (optional) + relationship (chips). No email, no password, no DOB. Privacy reassurance inline. Relationship chips are tap-to-select, not a dropdown. "Continue" enabled even if fields are empty.</span></div>
+      </div>
+    </div>
+
+    <!-- ⑤ NOTIFICATION PREFS -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 5 · Notification Preferences</div>
+        <div class="step-track">
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Find Child</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Confirm</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle done">✓</div><div class="st-label">Your Info</div></div>
+          <div class="st-line done"></div>
+          <div class="st"><div class="st-circle active">4</div><div class="st-label active">Done</div></div>
+        </div>
+
+        <div class="card">
+          <div style="font-size:22px;font-weight:800;color:var(--ink);margin-bottom:4px">Stay in the loop 🔔</div>
+          <div style="font-size:13px;color:var(--ink3);margin-bottom:20px">Choose what you'd like to know about. You can change these any time.</div>
+
+          <div class="notif-pref-list">
+            <div class="notif-pref">
+              <span class="np-ico">📋</span>
+              <div class="np-content">
+                <div class="np-title">Weekly learning summary</div>
+                <div class="np-sub">What Mia worked on this week, every Sunday</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="notif-pref">
+              <span class="np-ico">🏆</span>
+              <div class="np-content">
+                <div class="np-title">Milestones & level-ups</div>
+                <div class="np-sub">When Mia earns a badge or reaches a new level</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="notif-pref">
+              <span class="np-ico">💡</span>
+              <div class="np-content">
+                <div class="np-title">Support signals</div>
+                <div class="np-sub">When a skill needs extra practice at home</div>
+              </div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="notif-pref">
+              <span class="np-ico">📅</span>
+              <div class="np-content">
+                <div class="np-title">Session reminders</div>
+                <div class="np-sub">Gentle nudge if Mia hasn't played in 3 days</div>
+              </div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+
+          <div style="margin-top:16px">
+            <button class="btn btn-accent">All set! See Mia's dashboard →</button>
+          </div>
+          <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--ink3);cursor:pointer">Skip for now →</div>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Toggle switches for each notification type. Sensible defaults: weekly summary + milestones + support signals = ON. Reminders = OFF by default (opt-in). Skip is always available. No email required — notifications are in-app only at this stage.</span></div>
+      </div>
+    </div>
+
+    <!-- ⑥ ACCESS GRANTED -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 6 · Linked Successfully</div>
+        <div class="success-card">
+          <span class="sc-ico">🎉</span>
+          <div class="sc-title">You're all linked up!</div>
+          <div class="sc-sub">You can now see Mia's learning progress, skills, and recent activity whenever you check in.</div>
+          <div class="sc-child"><span style="font-size:20px">🐼</span> StarGazer · Space Explorer</div>
+          <button class="sc-btn sc-btn-primary">📊 See Mia's dashboard →</button>
+          <button class="sc-btn">+ Link another child</button>
+        </div>
+        <div class="hint" style="background:rgba(26,122,94,.06);border-color:rgba(26,122,94,.15);margin-top:14px"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Success state is full-card green gradient — big celebratory moment. Child chip shown confirms who was linked. Two CTAs: go to dashboard (primary) or link another child. No email confirmation step — linkage is instant.</span></div>
+      </div>
+    </div>
+
+    <!-- ⑦ WRONG CHILD / RELINK -->
+    <div class="panel">
+      <div class="sw">
+        <div class="state-tag">State 7 · Wrong Child / Relink Flow</div>
+        <div class="card">
+          <div style="font-size:20px;font-weight:800;color:var(--ink);margin-bottom:4px">Manage linked children</div>
+          <div style="font-size:13px;color:var(--ink3);margin-bottom:16px">Linked as Sarah · 2 children</div>
+
+          <!-- Currently linked - correct one -->
+          <div style="background:var(--accent-bg);border:1.5px solid rgba(26,122,94,.2);border-radius:var(--r-lg);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:10px">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(245,166,35,.15);display:flex;align-items:center;justify-content:center;font-size:22px">🐼</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800;color:var(--ink)">StarGazer</div>
+              <div style="font-size:11px;color:var(--ink3)">G23 · Space Explorer · Linked</div>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:var(--accent);background:var(--accent-bg);padding:3px 8px;border-radius:10px">✓ Active</span>
+          </div>
+
+          <!-- Incorrectly linked child - warning -->
+          <div class="relink-warn">
+            <span class="rw-ico">⚠️</span>
+            <div>
+              <div class="rw-title">Wrong child linked?</div>
+              <div class="rw-sub">If "CosmicMia" isn't your child, you can unlink them and search again. Their data won't be affected.</div>
+            </div>
+          </div>
+
+          <div style="background:var(--bg2);border:1.5px solid var(--line-hi);border-radius:var(--r-lg);padding:14px;display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <div style="width:44px;height:44px;border-radius:50%;background:rgba(240,101,101,.12);display:flex;align-items:center;justify-content:center;font-size:22px">🦁</div>
+            <div style="flex:1">
+              <div style="font-size:14px;font-weight:800;color:var(--ink)">CosmicMia</div>
+              <div style="font-size:11px;color:var(--ink3)">G45 · Building Quest</div>
+            </div>
+            <button style="font-size:11px;font-weight:700;color:var(--coral);background:var(--coral-bg);border:1px solid rgba(240,101,101,.2);border-radius:10px;padding:4px 10px;cursor:pointer;font-family:var(--fa)">Unlink</button>
+          </div>
+
+          <button class="btn btn-accent" style="margin-bottom:10px">+ Link the right child</button>
+          <button class="btn btn-outline">Back to dashboard</button>
+        </div>
+        <div class="hint"><span class="hint-ico">💡</span><span class="hint-txt">Design rule: Correct child shows green "Active" badge. Wrong child shows amber warning + unlink button (red-tinted, not destructive red). Unlink tap shows a confirmation step before removing. Always offer "Link the right child" as clear resolution path.</span></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const tabs=document.querySelectorAll('.tab-btn');
+const panels=document.querySelectorAll('.panel');
+function show(i){tabs.forEach((t,j)=>t.classList.toggle('active',i===j));panels.forEach((p,j)=>p.classList.toggle('active',i===j));}
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@ This project started as a simple soccer learning prototype and is now being refr
 - [data](./data): structured launch data for flows, themes, and question content
 - [planning](./planning): generated spreadsheet assets for flows, paths, and content capture
 - [tools](./tools): local generators and helper scripts
+- [ui-agent](./ui-agent): shared design-reference workspace and the single-file coordination loop for the external UI agent
 - [prototype/legacy-concept](./prototype/legacy-concept): original static soccer prototype kept only as a legacy concept reference
 
 ## Planning Docs

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Teacher Analytics Enhanced</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Bitter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#eef2f7;--bg2:#e2e8f0;
+  --surface:#fff;--surface-dim:rgba(255,255,255,0.7);
+  --ink:#1e2d3d;--ink2:#4a5f72;--ink3:#8fa3b1;
+  --line:rgba(30,45,61,0.09);--line-hi:rgba(30,45,61,0.18);
+  --accent:#2563eb;--accent2:#1d4ed8;--accent-bg:rgba(37,99,235,0.08);
+  --gold:#f59e0b;--gold-bg:rgba(245,158,11,0.10);
+  --mint:#10b981;--mint-bg:rgba(16,185,129,0.10);
+  --coral:#ef4444;--coral-bg:rgba(239,68,68,0.10);
+  --violet:#7c3aed;--violet-bg:rgba(124,58,237,0.10);
+  --sky:#0ea5e9;--sky-bg:rgba(14,165,233,0.10);
+  --font-a:'Sora',sans-serif;--font-d:'Bitter',serif;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+  --r-sm:8px;--r-md:12px;--r-lg:18px;--r-xl:24px;
+  --shadow-sm:0 1px 4px rgba(0,0,0,.06);
+  --shadow-md:0 6px 20px rgba(0,0,0,.09);
+  --shadow-lg:0 16px 40px rgba(0,0,0,.12);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-a);background:var(--bg);color:var(--ink);min-height:100vh;}
+
+.page{display:grid;grid-template-columns:220px 1fr;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;padding:20px 0;}
+.sb-brand{padding:0 16px 18px;border-bottom:1px solid var(--line);}
+.sb-brand h1{font-family:var(--font-d);font-size:20px;color:var(--ink);}
+.sb-brand h1 span{color:var(--accent);}
+.sb-role{display:inline-flex;align-items:center;gap:4px;background:var(--accent-bg);border:1px solid rgba(37,99,235,.2);border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700;color:var(--accent);margin-top:6px;}
+.sb-class{padding:12px 16px;border-bottom:1px solid var(--line);}
+.sb-class-label{font-size:9px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.sb-class-name{font-size:13px;font-weight:700;color:var(--ink);}
+.sb-class-sub{font-size:11px;color:var(--ink3);}
+.sb-nav{flex:1;padding:12px 8px;display:flex;flex-direction:column;gap:2px;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:var(--r-md);font-size:12px;font-weight:600;color:var(--ink2);cursor:pointer;transition:all 120ms ease;}
+.sb-item:hover{background:var(--bg);}
+.sb-item.active{background:var(--accent-bg);color:var(--accent);font-weight:700;}
+.sb-item .ico{font-size:16px;width:20px;text-align:center;}
+.sb-item .chip{margin-left:auto;font-size:9px;font-weight:800;padding:2px 6px;border-radius:8px;}
+
+/* ── MAIN ── */
+.main{padding:24px;overflow-y:auto;}
+.topbar{display:flex;align-items:center;gap:12px;margin-bottom:24px;}
+.topbar h2{font-family:var(--font-d);font-size:20px;font-weight:700;flex:1;}
+.tb-btn{padding:7px 14px;border-radius:var(--r-md);font-size:12px;font-weight:700;cursor:pointer;border:none;font-family:var(--font-a);transition:all 120ms ease;}
+.tb-outline{background:var(--surface);border:1px solid var(--line-hi);color:var(--ink2);}
+.tb-primary{background:var(--accent);color:#fff;}
+.tb-primary:hover{background:var(--accent2);}
+
+/* ── KPI ── */
+.kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:22px;}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow-sm);}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.kpi-ico{width:34px;height:34px;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.kpi-delta-chip{font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.kpi-val{font-size:22px;font-weight:800;color:var(--ink);line-height:1;}
+.kpi-label{font-size:10px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-top:3px;}
+
+/* ── CHARTS ROW ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:22px;}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);padding:18px;box-shadow:var(--shadow-sm);}
+.card-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:2px;}
+.card-sub{font-size:11px;color:var(--ink3);margin-bottom:14px;}
+
+/* Bar chart */
+.bar-chart{display:flex;flex-direction:column;gap:8px;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-label{font-size:11px;font-weight:600;color:var(--ink2);width:90px;flex-shrink:0;}
+.bar-track{flex:1;height:8px;background:var(--bg2);border-radius:4px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:4px;transition:width .5s var(--ease-out);}
+.bar-val{font-size:11px;font-weight:700;color:var(--ink);width:28px;text-align:right;}
+
+/* Heatmap */
+.heatmap-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;}
+.hm-cell{aspect-ratio:1;border-radius:3px;transition:transform 120ms;}
+.hm-cell:hover{transform:scale(1.2);}
+.hm-label-row{display:flex;justify-content:space-between;margin-bottom:4px;}
+.hm-day-label{font-size:9px;color:var(--ink3);font-weight:600;text-align:center;flex:1;}
+
+/* Donut-style CSS skill breakdown */
+.skill-donuts{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.skill-tile{background:var(--bg);border-radius:var(--r-md);padding:10px;text-align:center;}
+.skill-pct{font-size:18px;font-weight:800;color:var(--ink);}
+.skill-name{font-size:10px;font-weight:600;color:var(--ink3);margin-top:1px;}
+.skill-bar-mini{height:4px;background:var(--bg2);border-radius:2px;margin-top:6px;overflow:hidden;}
+.skill-fill-mini{height:100%;border-radius:2px;}
+
+/* ── STUDENT TABLE ── */
+.table-wrap{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:22px;}
+.table-hdr{display:flex;align-items:center;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line);}
+.table-hdr h3{font-size:14px;font-weight:700;flex:1;}
+.table-filter{display:flex;gap:6px;}
+.filter-btn{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--line);background:transparent;color:var(--ink2);font-family:var(--font-a);}
+.filter-btn.active{background:var(--accent-bg);border-color:rgba(37,99,235,.3);color:var(--accent);}
+.tbl{width:100%;border-collapse:collapse;}
+.tbl th{font-size:10px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;padding:10px 16px;text-align:left;border-bottom:1px solid var(--line);background:var(--bg);}
+.tbl td{padding:12px 16px;font-size:12px;color:var(--ink2);border-bottom:1px solid var(--line);}
+.tbl tr:last-child td{border-bottom:none;}
+.tbl tr:hover td{background:rgba(37,99,235,.02);}
+.student-cell{display:flex;align-items:center;gap:8px;}
+.s-av{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.s-name{font-size:13px;font-weight:700;color:var(--ink);}
+.s-id{font-size:10px;color:var(--ink3);}
+.acc-bar{display:flex;align-items:center;gap:6px;}
+.acc-track{width:60px;height:5px;background:var(--bg2);border-radius:3px;overflow:hidden;}
+.acc-fill{height:100%;border-radius:3px;}
+.acc-val{font-size:11px;font-weight:700;color:var(--ink);}
+.status-chip{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+.status-chip .dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
+.chip-green{background:var(--mint-bg);color:var(--mint);}
+.chip-amber{background:var(--gold-bg);color:var(--gold);}
+.chip-red{background:var(--coral-bg);color:var(--coral);}
+.chip-blue{background:var(--accent-bg);color:var(--accent);}
+.support-flag{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:700;color:var(--coral);background:var(--coral-bg);padding:2px 7px;border-radius:20px;}
+
+/* ── TWO COL BOTTOM ── */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:16px;}
+
+/* Session frequency chart */
+.freq-chart{display:flex;align-items:flex-end;gap:4px;height:80px;}
+.freq-bar{flex:1;border-radius:4px 4px 0 0;background:var(--accent-bg);transition:height .4s var(--ease-out);position:relative;cursor:pointer;}
+.freq-bar:hover{background:var(--accent);opacity:.8;}
+.freq-bar.today{background:var(--accent);}
+.freq-labels{display:flex;gap:4px;margin-top:4px;}
+.freq-label{flex:1;text-align:center;font-size:9px;color:var(--ink3);font-weight:600;}
+
+/* Support queue */
+.support-list{display:flex;flex-direction:column;gap:8px;}
+.support-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:var(--r-md);background:var(--bg);}
+.support-item.urgent{background:var(--coral-bg);border:1px solid rgba(239,68,68,.2);}
+.support-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.support-info{flex:1;}
+.support-name{font-size:12px;font-weight:700;color:var(--ink);}
+.support-skill{font-size:11px;color:var(--ink2);}
+.support-action{font-size:10px;font-weight:700;color:var(--accent);cursor:pointer;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-brand">
+      <h1>Wonder<span>Quest</span></h1>
+      <div class="sb-role">🎓 Teacher</div>
+    </div>
+    <div class="sb-class">
+      <div class="sb-class-label">Active Class</div>
+      <div class="sb-class-name">Room 4B — Ms. Chen</div>
+      <div class="sb-class-sub">24 students · G23 Band</div>
+    </div>
+    <nav class="sb-nav">
+      <div class="sb-item active"><span class="ico">📊</span>Class Overview</div>
+      <div class="sb-item"><span class="ico">👩‍🎓</span>Students</div>
+      <div class="sb-item"><span class="ico">⚡</span>Skills Coverage</div>
+      <div class="sb-item"><span class="ico">📅</span>Sessions</div>
+      <div class="sb-item"><span class="ico">💬</span>Support Queue<span class="chip chip-red" style="background:var(--coral-bg);color:var(--coral)">4</span></div>
+      <div class="sb-item"><span class="ico">📤</span>Export Report</div>
+      <div class="sb-item"><span class="ico">⚙️</span>Class Settings</div>
+    </nav>
+    <div style="padding:12px 16px;border-top:1px solid var(--line)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:30px;height:30px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-size:14px">👩‍🏫</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--ink)">Ms. Chen</div>
+          <div style="font-size:10px;color:var(--ink3)">Lincoln Elementary</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h2>Class Overview — Room 4B</h2>
+      <div style="display:flex;align-items:center;gap:6px;background:var(--mint-bg);border:1px solid rgba(16,185,129,.2);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:700;color:var(--mint)">
+        <span style="width:6px;height:6px;border-radius:50%;background:var(--mint);display:inline-block"></span>
+        18 students active today
+      </div>
+      <button class="tb-btn tb-outline">📤 Export PDF</button>
+      <button class="tb-btn tb-primary">+ Assign Task</button>
+    </div>
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-ico" style="background:var(--accent-bg)">👩‍🎓</div>
+          <div class="kpi-delta-chip" style="background:var(--mint-bg);color:var(--mint)">+2 this wk</div>
+        </div>
+        <div class="kpi-val">24</div>
+        <div class="kpi-label">Students</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-ico" style="background:var(--mint-bg)">✅</div>
+          <div class="kpi-delta-chip" style="background:var(--mint-bg);color:var(--mint)">↑ 4pts</div>
+        </div>
+        <div class="kpi-val">82%</div>
+        <div class="kpi-label">Class Avg Accuracy</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-ico" style="background:var(--gold-bg)">📚</div>
+          <div class="kpi-delta-chip" style="background:var(--gold-bg);color:var(--gold)">118 this wk</div>
+        </div>
+        <div class="kpi-val">486</div>
+        <div class="kpi-label">Total Sessions</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-ico" style="background:var(--violet-bg)">⚡</div>
+          <div class="kpi-delta-chip" style="background:var(--mint-bg);color:var(--mint)">12 new</div>
+        </div>
+        <div class="kpi-val">31</div>
+        <div class="kpi-label">Skills Covered</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top">
+          <div class="kpi-ico" style="background:var(--coral-bg)">⚠️</div>
+          <div class="kpi-delta-chip" style="background:var(--coral-bg);color:var(--coral)">Needs attn</div>
+        </div>
+        <div class="kpi-val">4</div>
+        <div class="kpi-label">Need Support</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-row">
+      <!-- Skill accuracy bars -->
+      <div class="card">
+        <div class="card-title">Class Skill Accuracy</div>
+        <div class="card-sub">Average across all students this month</div>
+        <div class="bar-chart">
+          <div class="bar-row">
+            <div class="bar-label">Multiplication</div>
+            <div class="bar-track"><div class="bar-fill" style="width:88%;background:var(--mint)"></div></div>
+            <div class="bar-val">88%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Reading</div>
+            <div class="bar-track"><div class="bar-fill" style="width:85%;background:var(--accent)"></div></div>
+            <div class="bar-val">85%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Addition</div>
+            <div class="bar-track"><div class="bar-fill" style="width:91%;background:var(--mint)"></div></div>
+            <div class="bar-val">91%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Subtraction</div>
+            <div class="bar-track"><div class="bar-fill" style="width:79%;background:var(--sky)"></div></div>
+            <div class="bar-val">79%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Division</div>
+            <div class="bar-track"><div class="bar-fill" style="width:61%;background:var(--gold)"></div></div>
+            <div class="bar-val" style="color:var(--gold)">61%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Fractions</div>
+            <div class="bar-track"><div class="bar-fill" style="width:48%;background:var(--coral)"></div></div>
+            <div class="bar-val" style="color:var(--coral)">48%</div>
+          </div>
+          <div class="bar-row">
+            <div class="bar-label">Comprehension</div>
+            <div class="bar-track"><div class="bar-fill" style="width:77%;background:var(--violet)"></div></div>
+            <div class="bar-val">77%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Activity heatmap -->
+      <div class="card">
+        <div class="card-title">Session Activity Heatmap</div>
+        <div class="card-sub">Last 7 weeks — darker = more sessions</div>
+        <div class="hm-label-row">
+          <div class="hm-day-label">M</div><div class="hm-day-label">T</div><div class="hm-day-label">W</div>
+          <div class="hm-day-label">T</div><div class="hm-day-label">F</div><div class="hm-day-label">S</div><div class="hm-day-label">S</div>
+        </div>
+        <div class="heatmap-grid">
+          <!-- Row 1 -->
+          <div class="hm-cell" style="background:rgba(37,99,235,0.12)" title="3 sessions"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.22)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.35)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.18)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.28)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.06)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.06)"></div>
+          <!-- Row 2 -->
+          <div class="hm-cell" style="background:rgba(37,99,235,0.22)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.45)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.55)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.35)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.48)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.10)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.08)"></div>
+          <!-- Row 3 -->
+          <div class="hm-cell" style="background:rgba(37,99,235,0.18)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.38)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.60)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.42)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.50)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.12)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.06)"></div>
+          <!-- Row 4 -->
+          <div class="hm-cell" style="background:rgba(37,99,235,0.28)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.52)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.70)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.55)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.65)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.15)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.10)"></div>
+          <!-- Row 5 (current week) -->
+          <div class="hm-cell" style="background:rgba(37,99,235,0.35)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.62)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.78)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.65)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.80);outline:2px solid var(--accent)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.06)"></div>
+          <div class="hm-cell" style="background:rgba(37,99,235,0.06)"></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:10px;">
+          <div style="font-size:10px;color:var(--ink3)">Less</div>
+          <div style="display:flex;gap:3px">
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(37,99,235,0.08)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(37,99,235,0.25)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(37,99,235,0.45)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(37,99,235,0.65)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(37,99,235,0.85)"></div>
+          </div>
+          <div style="font-size:10px;color:var(--ink3)">More</div>
+        </div>
+      </div>
+
+      <!-- Skill breakdown tiles -->
+      <div class="card">
+        <div class="card-title">Skills Breakdown</div>
+        <div class="card-sub">Coverage by subject area</div>
+        <div class="skill-donuts">
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--mint)">91%</div>
+            <div class="skill-name">Math</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:91%;background:var(--mint)"></div></div>
+          </div>
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--accent)">83%</div>
+            <div class="skill-name">Reading</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:83%;background:var(--accent)"></div></div>
+          </div>
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--violet)">76%</div>
+            <div class="skill-name">Logic</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:76%;background:var(--violet)"></div></div>
+          </div>
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--gold)">64%</div>
+            <div class="skill-name">Writing</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:64%;background:var(--gold)"></div></div>
+          </div>
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--sky)">88%</div>
+            <div class="skill-name">Science</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:88%;background:var(--sky)"></div></div>
+          </div>
+          <div class="skill-tile">
+            <div class="skill-pct" style="color:var(--coral)">48%</div>
+            <div class="skill-name">Fractions</div>
+            <div class="skill-bar-mini"><div class="skill-fill-mini" style="width:48%;background:var(--coral)"></div></div>
+          </div>
+        </div>
+        <div style="margin-top:10px;padding:8px;background:rgba(239,68,68,.08);border-radius:var(--r-sm);border-left:3px solid var(--coral)">
+          <div style="font-size:11px;font-weight:700;color:var(--coral)">⚠️ Fractions needs class-wide attention</div>
+          <div style="font-size:10px;color:var(--ink2);margin-top:2px">Only 48% average — consider a review lesson</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Student table -->
+    <div class="table-wrap">
+      <div class="table-hdr">
+        <h3>Student Performance</h3>
+        <div style="font-size:11px;color:var(--ink3)">No individual comparisons shown to students</div>
+        <div class="table-filter" style="margin-left:auto">
+          <button class="filter-btn active">All</button>
+          <button class="filter-btn">On Track</button>
+          <button class="filter-btn">Needs Support</button>
+          <button class="filter-btn">Top Performers</button>
+        </div>
+      </div>
+      <table class="tbl">
+        <thead>
+          <tr>
+            <th>Student</th>
+            <th>Band</th>
+            <th>Sessions</th>
+            <th>Accuracy</th>
+            <th>Level</th>
+            <th>Streak</th>
+            <th>Status</th>
+            <th>Support</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><div class="student-cell"><div class="s-av" style="background:rgba(245,158,11,.15)">🐼</div><div><div class="s-name">Mia K.</div><div class="s-id">Student #14</div></div></div></td>
+            <td><span style="font-size:11px;font-weight:600;color:var(--accent)">G23</span></td>
+            <td>47</td>
+            <td><div class="acc-bar"><div class="acc-track"><div class="acc-fill" style="width:87%;background:var(--mint)"></div></div><div class="acc-val">87%</div></div></td>
+            <td><span style="font-weight:800;color:var(--gold)">Lv.8</span></td>
+            <td>🔥 7</td>
+            <td><div class="status-chip chip-green"><span class="dot"></span>On Track</div></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><div class="student-cell"><div class="s-av" style="background:rgba(124,58,237,.12)">🦁</div><div><div class="s-name">James T.</div><div class="s-id">Student #03</div></div></div></td>
+            <td><span style="font-size:11px;font-weight:600;color:var(--accent)">G23</span></td>
+            <td>52</td>
+            <td><div class="acc-bar"><div class="acc-track"><div class="acc-fill" style="width:93%;background:var(--mint)"></div></div><div class="acc-val">93%</div></div></td>
+            <td><span style="font-weight:800;color:var(--gold)">Lv.11</span></td>
+            <td>🔥 12</td>
+            <td><div class="status-chip chip-green"><span class="dot"></span>Excelling</div></td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td><div class="student-cell"><div class="s-av" style="background:rgba(14,165,233,.12)">🐸</div><div><div class="s-name">Priya M.</div><div class="s-id">Student #08</div></div></div></td>
+            <td><span style="font-size:11px;font-weight:600;color:var(--accent)">G23</span></td>
+            <td>31</td>
+            <td><div class="acc-bar"><div class="acc-track"><div class="acc-fill" style="width:71%;background:var(--sky)"></div></div><div class="acc-val">71%</div></div></td>
+            <td><span style="font-weight:800;color:var(--ink2)">Lv.5</span></td>
+            <td>2</td>
+            <td><div class="status-chip chip-amber"><span class="dot"></span>Watch</div></td>
+            <td><div class="support-flag">÷ Division</div></td>
+          </tr>
+          <tr>
+            <td><div class="student-cell"><div class="s-av" style="background:rgba(239,68,68,.10)">🐯</div><div><div class="s-name">Marcus L.</div><div class="s-id">Student #17</div></div></div></td>
+            <td><span style="font-size:11px;font-weight:600;color:var(--accent)">G23</span></td>
+            <td>18</td>
+            <td><div class="acc-bar"><div class="acc-track"><div class="acc-fill" style="width:55%;background:var(--coral)"></div></div><div class="acc-val" style="color:var(--coral)">55%</div></div></td>
+            <td><span style="font-weight:800;color:var(--ink3)">Lv.3</span></td>
+            <td>1</td>
+            <td><div class="status-chip chip-red"><span class="dot"></span>Needs Help</div></td>
+            <td><div class="support-flag">📚 Reading · ÷ Fractions</div></td>
+          </tr>
+          <tr>
+            <td><div class="student-cell"><div class="s-av" style="background:rgba(16,185,129,.12)">🦊</div><div><div class="s-name">Sofia R.</div><div class="s-id">Student #21</div></div></div></td>
+            <td><span style="font-size:11px;font-weight:600;color:var(--accent)">G23</span></td>
+            <td>44</td>
+            <td><div class="acc-bar"><div class="acc-track"><div class="acc-fill" style="width:84%;background:var(--mint)"></div></div><div class="acc-val">84%</div></div></td>
+            <td><span style="font-weight:800;color:var(--gold)">Lv.7</span></td>
+            <td>🔥 5</td>
+            <td><div class="status-chip chip-green"><span class="dot"></span>On Track</div></td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="padding:12px 20px;font-size:12px;color:var(--ink3);border-top:1px solid var(--line)">Showing 5 of 24 students · Privacy mode: no peer rankings shown to students</div>
+    </div>
+
+    <!-- Bottom two-col -->
+    <div class="two-col">
+      <div class="card">
+        <div class="card-title">Session Frequency This Week</div>
+        <div class="card-sub" style="margin-bottom:16px">Daily sessions across all students</div>
+        <div class="freq-chart">
+          <div class="freq-bar" style="height:45%"></div>
+          <div class="freq-bar" style="height:62%"></div>
+          <div class="freq-bar" style="height:78%"></div>
+          <div class="freq-bar" style="height:55%"></div>
+          <div class="freq-bar today" style="height:88%"></div>
+          <div class="freq-bar" style="height:20%;opacity:.4"></div>
+          <div class="freq-bar" style="height:15%;opacity:.4"></div>
+        </div>
+        <div class="freq-labels">
+          <div class="freq-label">Mon</div><div class="freq-label">Tue</div><div class="freq-label">Wed</div>
+          <div class="freq-label">Thu</div><div class="freq-label" style="color:var(--accent);font-weight:700">Fri</div>
+          <div class="freq-label">Sat</div><div class="freq-label">Sun</div>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--ink2)"><strong style="color:var(--ink)">Friday</strong> is the highest activity day — align new content introductions with Mon/Tue.</div>
+      </div>
+      <div class="card">
+        <div class="card-title">Support Queue</div>
+        <div class="card-sub" style="margin-bottom:12px">Students needing instructional attention</div>
+        <div class="support-list">
+          <div class="support-item urgent">
+            <div class="support-av" style="background:rgba(239,68,68,.15)">🐯</div>
+            <div class="support-info">
+              <div class="support-name">Marcus L.</div>
+              <div class="support-skill">Reading 55% · Fractions 42%</div>
+              <div class="support-action">→ View full report</div>
+            </div>
+            <div class="status-chip chip-red" style="flex-shrink:0"><span class="dot"></span>Urgent</div>
+          </div>
+          <div class="support-item">
+            <div class="support-av" style="background:rgba(245,158,11,.12)">🐸</div>
+            <div class="support-info">
+              <div class="support-name">Priya M.</div>
+              <div class="support-skill">Division 61% — 3 sessions</div>
+              <div class="support-action">→ View full report</div>
+            </div>
+            <div class="status-chip chip-amber" style="flex-shrink:0"><span class="dot"></span>Watch</div>
+          </div>
+          <div class="support-item">
+            <div class="support-av" style="background:rgba(245,158,11,.12)">🐺</div>
+            <div class="support-info">
+              <div class="support-name">Evan S.</div>
+              <div class="support-skill">Comprehension 58%</div>
+              <div class="support-action">→ View full report</div>
+            </div>
+            <div class="status-chip chip-amber" style="flex-shrink:0"><span class="dot"></span>Watch</div>
+          </div>
+          <div style="text-align:center;margin-top:8px;">
+            <button style="background:none;border:none;font-size:12px;font-weight:700;color:var(--accent);cursor:pointer">View all 4 flagged students →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>

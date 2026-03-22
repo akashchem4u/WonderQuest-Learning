@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Owner Console Enhanced</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Sora:wght@300;400;500;600;700&family=Bitter:wght@400;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0d1117;--bg2:#161b22;--bg3:#1c2128;
+  --surface:rgba(255,255,255,0.04);--surface-md:rgba(255,255,255,0.07);--surface-hi:rgba(255,255,255,0.10);
+  --border:rgba(255,255,255,0.08);--border-hi:rgba(255,255,255,0.15);
+  --text:#e6edf3;--text2:rgba(230,237,243,0.65);--text3:rgba(230,237,243,0.35);
+  --green:#3fb950;--green-bg:rgba(63,185,80,0.12);
+  --blue:#58a6ff;--blue-bg:rgba(88,166,255,0.12);
+  --gold:#e3b341;--gold-bg:rgba(227,179,65,0.12);
+  --coral:#f85149;--coral-bg:rgba(248,81,73,0.12);
+  --violet:#bc8cff;--violet-bg:rgba(188,140,255,0.12);
+  --mint:#56d364;--mint-bg:rgba(86,211,100,0.12);
+  --sky:#79c0ff;
+  --font-a:'Sora',sans-serif;--font-d:'Bitter',serif;
+  --ease-out:cubic-bezier(0.16,1,0.3,1);
+  --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:22px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-a);background:var(--bg);color:var(--text);min-height:100vh;}
+
+.page{display:grid;grid-template-columns:200px 1fr;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column;}
+.sb-top{padding:18px 16px;border-bottom:1px solid var(--border);}
+.sb-logo{font-family:var(--font-d);font-size:18px;color:var(--text);}
+.sb-logo span{color:var(--gold);}
+.sb-role{display:inline-flex;align-items:center;gap:4px;background:var(--gold-bg);border:1px solid rgba(227,179,65,.25);border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:var(--gold);margin-top:5px;}
+.sb-section{padding:10px 8px 4px;font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:var(--r-sm);font-size:11px;font-weight:600;color:var(--text2);cursor:pointer;margin:1px 8px;transition:all 100ms ease;}
+.sb-item:hover{background:var(--surface-hi);color:var(--text);}
+.sb-item.active{background:var(--surface-hi);color:var(--text);font-weight:700;}
+.sb-item .ico{font-size:14px;width:18px;text-align:center;}
+.sb-item .count{margin-left:auto;font-size:9px;font-weight:800;padding:1px 5px;border-radius:6px;}
+.sb-footer{padding:14px 12px;border-top:1px solid var(--border);margin-top:auto;}
+.sb-user{display:flex;align-items:center;gap:8px;}
+.sb-av{width:26px;height:26px;border-radius:50%;background:var(--violet-bg);display:flex;align-items:center;justify-content:center;font-size:12px;}
+.sb-uname{font-size:11px;font-weight:700;color:var(--text);}
+.sb-urole{font-size:9px;color:var(--text3);}
+
+/* ── MAIN ── */
+.main{padding:20px;overflow-y:auto;}
+.topbar{display:flex;align-items:center;gap:10px;margin-bottom:20px;}
+.topbar h2{font-family:var(--font-d);font-size:18px;flex:1;}
+.build-tag{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);border:1px solid rgba(63,185,80,.25);border-radius:20px;padding:4px 10px;font-size:10px;font-weight:700;color:var(--green);}
+.build-tag .dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:blink 2s ease-in-out infinite;}
+@keyframes blink{0%,100%{opacity:.4}50%{opacity:1}}
+.tb-btn{padding:6px 12px;border-radius:var(--r-md);font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:var(--font-a);transition:all 100ms ease;}
+.tb-outline{background:transparent;border:1px solid var(--border-hi);color:var(--text2);}
+.tb-outline:hover{border-color:rgba(255,255,255,.3);color:var(--text);}
+
+/* ── KPI GRID ── */
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:18px;}
+.kpi{background:var(--surface-md);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;transition:border-color 150ms;}
+.kpi:hover{border-color:var(--border-hi);}
+.kpi-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.kpi-ico{font-size:16px;}
+.kpi-delta{font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;}
+.kpi-val{font-size:20px;font-weight:800;color:var(--text);line-height:1;}
+.kpi-label{font-size:9px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-top:3px;}
+
+/* ── LAUNCH READINESS GAUGE ── */
+.readiness-card{background:var(--surface-md);border:1px solid var(--border);border-radius:var(--r-xl);padding:20px;margin-bottom:18px;}
+.rc-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;}
+.rc-title{flex:1;}
+.rc-title h3{font-size:14px;font-weight:700;}
+.rc-title p{font-size:11px;color:var(--text2);margin-top:2px;}
+.go-badge{display:inline-flex;align-items:center;gap:5px;background:var(--green-bg);border:1px solid rgba(63,185,80,.3);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:800;color:var(--green);}
+.readiness-tracks{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.rt{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;}
+.rt-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.rt-name{font-size:11px;font-weight:700;color:var(--text);}
+.rt-pct{font-size:18px;font-weight:900;}
+.rt-bar-wrap{margin-bottom:8px;}
+.rt-bar-track{height:6px;background:var(--surface-hi);border-radius:3px;overflow:hidden;margin-top:4px;}
+.rt-bar-fill{height:100%;border-radius:3px;transition:width .5s var(--ease-out);}
+.rt-checks{display:flex;flex-direction:column;gap:3px;}
+.rt-check{font-size:10px;color:var(--text2);display:flex;align-items:center;gap:4px;}
+.rt-check.pass{color:var(--green);}
+.rt-check.fail{color:var(--coral);}
+.rt-check.warn{color:var(--gold);}
+
+/* ── CHARTS ROW ── */
+.charts-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:18px;}
+.card{background:var(--surface-md);border:1px solid var(--border);border-radius:var(--r-xl);padding:16px;transition:border-color 150ms;}
+.card:hover{border-color:var(--border-hi);}
+.card-title{font-size:12px;font-weight:700;margin-bottom:2px;}
+.card-sub{font-size:10px;color:var(--text3);margin-bottom:12px;}
+
+/* Adoption chart */
+.band-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.band-label{width:70px;font-size:11px;font-weight:600;color:var(--text2);flex-shrink:0;}
+.band-track{flex:1;height:10px;background:var(--surface-hi);border-radius:5px;overflow:hidden;position:relative;}
+.band-fill{height:100%;border-radius:5px;transition:width .5s var(--ease-out);}
+.band-val{width:32px;font-size:11px;font-weight:700;text-align:right;}
+.band-delta{font-size:9px;font-weight:700;width:28px;text-align:right;}
+
+/* Sparkline CSS */
+.sparkline{display:flex;align-items:flex-end;gap:3px;height:48px;}
+.spark-bar{flex:1;border-radius:2px 2px 0 0;background:var(--blue-bg);transition:height .3s;}
+.spark-bar.hi{background:var(--blue);}
+
+/* Question factory */
+.factory-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.factory-ico{font-size:14px;width:24px;text-align:center;}
+.factory-label{flex:1;font-size:11px;color:var(--text2);}
+.factory-val{font-size:12px;font-weight:700;color:var(--text);}
+.factory-status{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;}
+
+/* ── BOTTOM ROW ── */
+.bottom-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+
+/* Feedback queue */
+.feedback-list{display:flex;flex-direction:column;gap:0;}
+.fb-item{padding:11px 14px;border-bottom:1px solid var(--border);transition:background 100ms;cursor:pointer;}
+.fb-item:hover{background:var(--surface-hi);}
+.fb-item:last-child{border-bottom:none;}
+.fb-top{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+.fb-avatar{font-size:14px;}
+.fb-role{font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;}
+.fb-time{font-size:9px;color:var(--text3);margin-left:auto;}
+.fb-type{font-size:9px;font-weight:700;padding:1px 6px;border-radius:6px;}
+.fb-msg{font-size:11px;color:var(--text2);line-height:1.45;}
+.fb-actions{display:flex;gap:6px;margin-top:5px;}
+.fb-action{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--text2);font-family:var(--font-a);}
+.fb-action:hover{background:var(--surface-hi);color:var(--text);}
+.fb-action.resolve{border-color:rgba(63,185,80,.3);color:var(--green);}
+
+/* Recent sessions */
+.session-list{display:flex;flex-direction:column;gap:0;}
+.sess-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);}
+.sess-item:last-child{border-bottom:none;}
+.sess-av{font-size:16px;}
+.sess-info{flex:1;}
+.sess-name{font-size:12px;font-weight:700;color:var(--text);}
+.sess-meta{font-size:10px;color:var(--text3);margin-top:1px;}
+.sess-score{font-size:13px;font-weight:800;}
+.sess-band{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:auto;}
+</style>
+</head>
+<body>
+<div class="page">
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="sb-top">
+      <div class="sb-logo">Wonder<span>Quest</span></div>
+      <div class="sb-role">🔑 Owner</div>
+    </div>
+    <div class="sb-section">Product</div>
+    <div class="sb-item active"><span class="ico">📊</span>Dashboard</div>
+    <div class="sb-item"><span class="ico">🚀</span>Launch Status</div>
+    <div class="sb-item"><span class="ico">📈</span>Growth</div>
+    <div class="sb-item"><span class="ico">👥</span>Users</div>
+    <div class="sb-section">Content</div>
+    <div class="sb-item"><span class="ico">❓</span>Question Factory</div>
+    <div class="sb-item"><span class="ico">🎯</span>Skills Library</div>
+    <div class="sb-section">Ops</div>
+    <div class="sb-item"><span class="ico">💬</span>Feedback<span class="count" style="background:var(--coral-bg);color:var(--coral)">7</span></div>
+    <div class="sb-item"><span class="ico">⚙️</span>Config</div>
+    <div class="sb-item"><span class="ico">🗄️</span>Database</div>
+    <div class="sb-footer">
+      <div class="sb-user">
+        <div class="sb-av">🔑</div>
+        <div><div class="sb-uname">Owner</div><div class="sb-urole">wonderquest.app</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main">
+    <div class="topbar">
+      <h2>Product Dashboard</h2>
+      <div class="build-tag"><span class="dot"></span>Alpha v0.4.2 · Live</div>
+      <div style="font-size:11px;color:var(--text3)">Last updated: just now</div>
+      <button class="tb-btn tb-outline">📤 Export</button>
+      <button class="tb-btn tb-outline">🔄 Refresh</button>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">👶</span><span class="kpi-delta" style="background:var(--green-bg);color:var(--green)">+18 today</span></div>
+        <div class="kpi-val">247</div>
+        <div class="kpi-label">Active Learners</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">📚</span><span class="kpi-delta" style="background:var(--blue-bg);color:var(--blue)">+34 today</span></div>
+        <div class="kpi-val">1,842</div>
+        <div class="kpi-label">Total Sessions</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">✅</span><span class="kpi-delta" style="background:var(--green-bg);color:var(--green)">↑ 3pts</span></div>
+        <div class="kpi-val">84%</div>
+        <div class="kpi-label">Avg Accuracy</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">❓</span><span class="kpi-delta" style="background:var(--violet-bg);color:var(--violet)">+120 new</span></div>
+        <div class="kpi-val">3,420</div>
+        <div class="kpi-label">Questions Pool</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">💬</span><span class="kpi-delta" style="background:var(--coral-bg);color:var(--coral)">7 open</span></div>
+        <div class="kpi-val">94</div>
+        <div class="kpi-label">Feedback Items</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-top"><span class="kpi-ico">🎓</span><span class="kpi-delta" style="background:var(--green-bg);color:var(--green)">+4 this wk</span></div>
+        <div class="kpi-val">18</div>
+        <div class="kpi-label">Teacher Accounts</div>
+      </div>
+    </div>
+
+    <!-- Launch Readiness -->
+    <div class="readiness-card">
+      <div class="rc-header">
+        <div class="rc-title">
+          <h3>🚀 Launch Readiness — Alpha → Beta</h3>
+          <p>All 4 bands evaluated across content, UX, and stability signals</p>
+        </div>
+        <div class="go-badge"><span style="font-size:16px">✓</span>GO for Beta Invite</div>
+      </div>
+      <div class="readiness-tracks">
+        <!-- PREK -->
+        <div class="rt">
+          <div class="rt-top">
+            <div>
+              <div class="rt-name">🐣 PREK</div>
+              <div style="font-size:9px;color:var(--text3)">Ages 2–5</div>
+            </div>
+            <div class="rt-pct" style="color:var(--green)">91%</div>
+          </div>
+          <div class="rt-bar-wrap">
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3)"><span>Readiness</span><span>91%</span></div>
+            <div class="rt-bar-track"><div class="rt-bar-fill" style="width:91%;background:var(--green)"></div></div>
+          </div>
+          <div class="rt-checks">
+            <div class="rt-check pass">✓ Voice synthesis tuned</div>
+            <div class="rt-check pass">✓ 120 questions ready</div>
+            <div class="rt-check pass">✓ Explainers mapped</div>
+            <div class="rt-check warn">⚠ Avatar set: 3 pending</div>
+          </div>
+        </div>
+        <!-- K1 -->
+        <div class="rt">
+          <div class="rt-top">
+            <div>
+              <div class="rt-name">⚽ K1</div>
+              <div style="font-size:9px;color:var(--text3)">K–Grade 1</div>
+            </div>
+            <div class="rt-pct" style="color:var(--green)">88%</div>
+          </div>
+          <div class="rt-bar-wrap">
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3)"><span>Readiness</span><span>88%</span></div>
+            <div class="rt-bar-track"><div class="rt-bar-fill" style="width:88%;background:var(--green)"></div></div>
+          </div>
+          <div class="rt-checks">
+            <div class="rt-check pass">✓ Phonics flow verified</div>
+            <div class="rt-check pass">✓ Badge system live</div>
+            <div class="rt-check warn">⚠ 8 questions need review</div>
+            <div class="rt-check pass">✓ Retry logic tested</div>
+          </div>
+        </div>
+        <!-- G23 -->
+        <div class="rt">
+          <div class="rt-top">
+            <div>
+              <div class="rt-name">🚀 G23</div>
+              <div style="font-size:9px;color:var(--text3)">Grades 2–3</div>
+            </div>
+            <div class="rt-pct" style="color:var(--gold)">76%</div>
+          </div>
+          <div class="rt-bar-wrap">
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3)"><span>Readiness</span><span>76%</span></div>
+            <div class="rt-bar-track"><div class="rt-bar-fill" style="width:76%;background:var(--gold)"></div></div>
+          </div>
+          <div class="rt-checks">
+            <div class="rt-check pass">✓ Math facts complete</div>
+            <div class="rt-check fail">✗ Fractions content gap</div>
+            <div class="rt-check warn">⚠ 2 explainer scripts TBD</div>
+            <div class="rt-check pass">✓ Level progression set</div>
+          </div>
+        </div>
+        <!-- G45 -->
+        <div class="rt">
+          <div class="rt-top">
+            <div>
+              <div class="rt-name">🏗️ G45</div>
+              <div style="font-size:9px;color:var(--text3)">Grades 4–5</div>
+            </div>
+            <div class="rt-pct" style="color:var(--coral)">62%</div>
+          </div>
+          <div class="rt-bar-wrap">
+            <div style="display:flex;justify-content:space-between;font-size:9px;color:var(--text3)"><span>Readiness</span><span>62%</span></div>
+            <div class="rt-bar-track"><div class="rt-bar-fill" style="width:62%;background:var(--coral)"></div></div>
+          </div>
+          <div class="rt-checks">
+            <div class="rt-check pass">✓ Self-directed mode live</div>
+            <div class="rt-check fail">✗ Multi-step math gaps</div>
+            <div class="rt-check fail">✗ Report card pending</div>
+            <div class="rt-check warn">⚠ Challenge paths: 60%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="charts-row">
+      <!-- Band adoption -->
+      <div class="card">
+        <div class="card-title">Learner Adoption by Band</div>
+        <div class="card-sub">Active learners this week per band</div>
+        <div class="band-row">
+          <div class="band-label">🐣 PREK</div>
+          <div class="band-track"><div class="band-fill" style="width:78%;background:var(--green)"></div></div>
+          <div class="band-val" style="color:var(--green)">93</div>
+          <div class="band-delta" style="color:var(--green)">+12</div>
+        </div>
+        <div class="band-row">
+          <div class="band-label">⚽ K1</div>
+          <div class="band-track"><div class="band-fill" style="width:65%;background:var(--blue)"></div></div>
+          <div class="band-val" style="color:var(--blue)">78</div>
+          <div class="band-delta" style="color:var(--blue)">+8</div>
+        </div>
+        <div class="band-row">
+          <div class="band-label">🚀 G23</div>
+          <div class="band-track"><div class="band-fill" style="width:55%;background:var(--violet)"></div></div>
+          <div class="band-val" style="color:var(--violet)">62</div>
+          <div class="band-delta" style="color:var(--violet)">+5</div>
+        </div>
+        <div class="band-row">
+          <div class="band-label">🏗️ G45</div>
+          <div class="band-track"><div class="band-fill" style="width:12%;background:var(--gold)"></div></div>
+          <div class="band-val" style="color:var(--gold)">14</div>
+          <div class="band-delta" style="color:var(--gold)">+2</div>
+        </div>
+        <div style="margin-top:12px;padding:8px;background:rgba(88,166,255,.08);border-radius:var(--r-sm);border-left:2px solid var(--blue)">
+          <div style="font-size:10px;font-weight:700;color:var(--sky)">PREK & K1 driving early traction</div>
+          <div style="font-size:9px;color:var(--text2);margin-top:2px">G45 under-represented — boost content to unlock</div>
+        </div>
+      </div>
+
+      <!-- Daily sessions sparkline -->
+      <div class="card">
+        <div class="card-title">Daily Sessions — 30 Days</div>
+        <div class="card-sub">Total play sessions across all bands</div>
+        <div class="sparkline">
+          <div class="spark-bar" style="height:30%"></div>
+          <div class="spark-bar" style="height:42%"></div>
+          <div class="spark-bar" style="height:38%"></div>
+          <div class="spark-bar" style="height:55%"></div>
+          <div class="spark-bar" style="height:48%"></div>
+          <div class="spark-bar" style="height:62%"></div>
+          <div class="spark-bar" style="height:58%"></div>
+          <div class="spark-bar" style="height:70%"></div>
+          <div class="spark-bar" style="height:65%"></div>
+          <div class="spark-bar" style="height:78%"></div>
+          <div class="spark-bar" style="height:72%"></div>
+          <div class="spark-bar" style="height:85%"></div>
+          <div class="spark-bar" style="height:80%"></div>
+          <div class="spark-bar" style="height:88%"></div>
+          <div class="spark-bar hi" style="height:95%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:4px">
+          <div style="font-size:9px;color:var(--text3)">30 days ago</div>
+          <div style="font-size:9px;color:var(--text3)">Today</div>
+        </div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <div style="background:var(--surface);border-radius:var(--r-sm);padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:800;color:var(--text)">↑ 217%</div>
+            <div style="font-size:9px;color:var(--text3)">Growth 30d</div>
+          </div>
+          <div style="background:var(--surface);border-radius:var(--r-sm);padding:8px;text-align:center">
+            <div style="font-size:16px;font-weight:800;color:var(--green)">61</div>
+            <div style="font-size:9px;color:var(--text3)">Sessions today</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Question factory status -->
+      <div class="card">
+        <div class="card-title">Question Factory</div>
+        <div class="card-sub">Content pipeline health</div>
+        <div class="factory-row">
+          <div class="factory-ico">🐣</div>
+          <div class="factory-label">PREK questions</div>
+          <div class="factory-val">248</div>
+          <div class="factory-status" style="background:var(--green-bg);color:var(--green)">✓ Ready</div>
+        </div>
+        <div class="factory-row">
+          <div class="factory-ico">⚽</div>
+          <div class="factory-label">K1 questions</div>
+          <div class="factory-val">312</div>
+          <div class="factory-status" style="background:var(--green-bg);color:var(--green)">✓ Ready</div>
+        </div>
+        <div class="factory-row">
+          <div class="factory-ico">🚀</div>
+          <div class="factory-label">G23 questions</div>
+          <div class="factory-val">198</div>
+          <div class="factory-status" style="background:var(--gold-bg);color:var(--gold)">⚠ Review</div>
+        </div>
+        <div class="factory-row">
+          <div class="factory-ico">🏗️</div>
+          <div class="factory-label">G45 questions</div>
+          <div class="factory-val">84</div>
+          <div class="factory-status" style="background:var(--coral-bg);color:var(--coral)">✗ Short</div>
+        </div>
+        <div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">
+          <div class="factory-row">
+            <div class="factory-ico">✅</div>
+            <div class="factory-label">Explainers mapped</div>
+            <div class="factory-val">78%</div>
+            <div class="factory-status" style="background:var(--gold-bg);color:var(--gold)">⚠</div>
+          </div>
+          <div class="factory-row">
+            <div class="factory-ico">🔊</div>
+            <div class="factory-label">Voice scripts</div>
+            <div class="factory-val">91%</div>
+            <div class="factory-status" style="background:var(--green-bg);color:var(--green)">✓</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom row -->
+    <div class="bottom-row">
+      <!-- Feedback queue -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+          <div style="font-size:13px;font-weight:700">💬 Feedback Queue</div>
+          <div style="background:var(--coral-bg);color:var(--coral);font-size:9px;font-weight:800;padding:2px 6px;border-radius:6px">7 open</div>
+          <div style="margin-left:auto;font-size:10px;font-weight:700;color:var(--blue);cursor:pointer">View all →</div>
+        </div>
+        <div class="feedback-list">
+          <div class="fb-item">
+            <div class="fb-top">
+              <span class="fb-avatar">👧</span>
+              <span class="fb-role" style="background:var(--violet-bg);color:var(--violet)">Parent</span>
+              <span class="fb-type" style="background:var(--coral-bg);color:var(--coral)">Bug</span>
+              <span class="fb-time">2h ago</span>
+            </div>
+            <div class="fb-msg">"The timer on the multiplication question seems to reset twice — my daughter got confused."</div>
+            <div class="fb-actions">
+              <button class="fb-action resolve">✓ Mark Resolved</button>
+              <button class="fb-action">🔗 Link to Issue</button>
+            </div>
+          </div>
+          <div class="fb-item">
+            <div class="fb-top">
+              <span class="fb-avatar">👨‍🏫</span>
+              <span class="fb-role" style="background:var(--blue-bg);color:var(--blue)">Teacher</span>
+              <span class="fb-type" style="background:var(--gold-bg);color:var(--gold)">Feature</span>
+              <span class="fb-time">5h ago</span>
+            </div>
+            <div class="fb-msg">"Would love to assign specific skill sets to the whole class and track completion collectively."</div>
+            <div class="fb-actions">
+              <button class="fb-action">📌 Add to Backlog</button>
+              <button class="fb-action">💬 Reply</button>
+            </div>
+          </div>
+          <div class="fb-item">
+            <div class="fb-top">
+              <span class="fb-avatar">👦</span>
+              <span class="fb-role" style="background:var(--green-bg);color:var(--green)">Child</span>
+              <span class="fb-type" style="background:var(--mint-bg);color:var(--mint)">Praise</span>
+              <span class="fb-time">8h ago</span>
+            </div>
+            <div class="fb-msg">"The dinosaur questions are my FAVOURITE!! More please 🦕🦖"</div>
+            <div class="fb-actions">
+              <button class="fb-action resolve">✓ Archive</button>
+              <button class="fb-action">⭐ Feature</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent sessions -->
+      <div class="card" style="padding:0;overflow:hidden">
+        <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">
+          <div style="font-size:13px;font-weight:700">⚡ Recent Play Sessions</div>
+          <div style="margin-left:auto;font-size:10px;font-weight:700;color:var(--blue);cursor:pointer">See all →</div>
+        </div>
+        <div class="session-list">
+          <div class="sess-item">
+            <div class="sess-av">🐼</div>
+            <div class="sess-info">
+              <div class="sess-name">StarGazer · PREK</div>
+              <div class="sess-meta">8 Qs · 4 min · 87% accuracy</div>
+            </div>
+            <div class="sess-score" style="color:var(--green)">+140 pts</div>
+            <div class="sess-band" style="background:var(--green-bg);color:var(--green)">PREK</div>
+          </div>
+          <div class="sess-item">
+            <div class="sess-av">🦁</div>
+            <div class="sess-info">
+              <div class="sess-name">SuperLeo · K1</div>
+              <div class="sess-meta">10 Qs · 6 min · 74% accuracy</div>
+            </div>
+            <div class="sess-score" style="color:var(--blue)">+92 pts</div>
+            <div class="sess-band" style="background:var(--blue-bg);color:var(--blue)">K1</div>
+          </div>
+          <div class="sess-item">
+            <div class="sess-av">🚀</div>
+            <div class="sess-info">
+              <div class="sess-name">CosmicMia · G23</div>
+              <div class="sess-meta">8 Qs · 5 min · 91% accuracy · 🔥7</div>
+            </div>
+            <div class="sess-score" style="color:var(--violet)">+210 pts</div>
+            <div class="sess-band" style="background:var(--violet-bg);color:var(--violet)">G23</div>
+          </div>
+          <div class="sess-item">
+            <div class="sess-av">🐯</div>
+            <div class="sess-info">
+              <div class="sess-name">TigerMax · K1</div>
+              <div class="sess-meta">5 Qs · 3 min · 60% accuracy</div>
+            </div>
+            <div class="sess-score" style="color:var(--gold)">+55 pts</div>
+            <div class="sess-band" style="background:var(--blue-bg);color:var(--blue)">K1</div>
+          </div>
+          <div class="sess-item">
+            <div class="sess-av">🦊</div>
+            <div class="sess-info">
+              <div class="sess-name">FoxStar · PREK</div>
+              <div class="sess-meta">8 Qs · 5 min · 100% accuracy 🏆</div>
+            </div>
+            <div class="sess-score" style="color:var(--gold)">+280 pts</div>
+            <div class="sess-band" style="background:var(--green-bg);color:var(--green)">PREK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>
