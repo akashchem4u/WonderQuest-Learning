@@ -117,12 +117,18 @@ function getWordPreview(answer: string): WordPreview {
       return { icon: "🥇", helper: "gold" };
     case "ball":
       return { icon: "⚽", helper: "ball" };
+    case "book":
+      return { icon: "📘", helper: "book" };
+    case "bell":
+      return { icon: "🔔", helper: "bell" };
     case "butterfly":
       return { icon: "🦋", helper: "butterfly" };
     case "bat":
       return { icon: "🦇", helper: "bat" };
     case "hat":
       return { icon: "🧢", helper: "hat" };
+    case "jam":
+      return { icon: "🍓", helper: "jam" };
     case "map":
       return { icon: "🗺️", helper: "map" };
     case "cap":
@@ -141,6 +147,10 @@ function getWordPreview(answer: string): WordPreview {
       return { icon: "⛺", helper: "tent" };
     case "planet":
       return { icon: "🪐", helper: "planet" };
+    case "play":
+      return { icon: "🎮", helper: "play" };
+    case "earth":
+      return { icon: "🌍", helper: "earth" };
     case "rocket":
       return { icon: "🚀", helper: "rocket" };
     case "run":
@@ -183,6 +193,7 @@ function getCountSceneToken(question: SessionQuestion) {
   if (prompt.includes("fish")) return "🐟";
   if (prompt.includes("star")) return "⭐";
   if (prompt.includes("ball")) return "⚽";
+  if (prompt.includes("bird")) return "🐦";
   if (prompt.includes("apple")) return "🍎";
   if (prompt.includes("kite")) return "🪁";
   if (prompt.includes("tree")) return "🌳";
