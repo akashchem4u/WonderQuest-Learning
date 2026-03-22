@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Quickstart v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',sans-serif;background:#0d0a1e;color:#e8e0ff;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:16px;background:#08061a;flex-wrap:wrap;border-bottom:1px solid #1e1640}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #2a1f6e;background:transparent;color:#9b8fd4;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;transition:all .2s}
+  .tab.active{background:#4c2fad;border-color:#7b56e8;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  /* Phone frame */
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:32px 16px;gap:40px;flex-wrap:wrap}
+  .phone{width:390px;min-height:844px;background:#100b2e;border-radius:40px;border:2px solid #2a1f6e;overflow:hidden;position:relative;box-shadow:0 0 60px rgba(76,47,173,0.4),inset 0 0 80px rgba(0,0,0,0.3)}
+  .phone-label{text-align:center;margin-top:12px;font-size:12px;color:#5a4a8a;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  /* Engineering note */
+  .eng-note{background:#1a1400;border:1px solid #3d2f00;border-left:3px solid #ffd166;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#c8a84b;line-height:1.6}
+  .eng-note strong{color:#ffd166;display:block;margin-bottom:4px}
+  /* BG layers */
+  .bg-stars{position:absolute;inset:0;background:radial-gradient(ellipse at 20% 10%, rgba(155,114,255,0.25) 0%, transparent 50%),radial-gradient(ellipse at 80% 80%, rgba(88,232,193,0.12) 0%, transparent 50%),#100b2e;z-index:0}
+  .phone-inner{position:relative;z-index:1;height:100%;display:flex;flex-direction:column}
+  /* Header */
+  .q-header{padding:40px 28px 20px;text-align:center}
+  .wq-logo{font-size:22px;font-weight:900;color:#ffd166;letter-spacing:-.5px;margin-bottom:4px}
+  .wq-logo span{color:#9b72ff}
+  .q-tagline{font-size:13px;color:#7b69b8;font-weight:600}
+  /* Decision split */
+  .split-question{padding:0 24px 24px;text-align:center}
+  .split-q-text{font-size:18px;font-weight:800;color:#e8e0ff;margin-bottom:6px}
+  .split-q-sub{font-size:13px;color:#7b69b8;font-weight:600}
+  .split-cards{display:flex;gap:12px;padding:0 20px 24px}
+  .split-card{flex:1;border-radius:20px;padding:24px 16px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .2s;position:relative;overflow:hidden}
+  .split-card.new-child{background:linear-gradient(145deg,#1a0f3e,#2a1468);border-color:#4c2fad}
+  .split-card.new-child:hover{border-color:#9b72ff;box-shadow:0 0 20px rgba(155,114,255,0.3)}
+  .split-card.returning{background:linear-gradient(145deg,#0f2418,#1a3828);border-color:#1a5c3a}
+  .split-card.returning:hover{border-color:#58e8c1;box-shadow:0 0 20px rgba(88,232,193,0.25)}
+  .split-icon{font-size:40px;margin-bottom:10px;display:block}
+  .split-title{font-size:15px;font-weight:900;color:#e8e0ff;margin-bottom:4px}
+  .split-sub{font-size:11px;color:#8a7ab8;font-weight:600}
+  .split-badge{position:absolute;top:10px;right:10px;background:#58e8c1;color:#0a2018;font-size:10px;font-weight:900;padding:2px 7px;border-radius:10px}
+  /* Progress dots */
+  .progress-dots{display:flex;justify-content:center;gap:6px;padding:0 0 16px}
+  .dot{width:8px;height:8px;border-radius:50%;background:#1e1640}
+  .dot.active{background:#9b72ff;width:20px;border-radius:4px}
+  .dot.done{background:#58e8c1}
+  /* Band selection */
+  .section-label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#5a4a8a;padding:0 24px 10px}
+  .band-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px 16px}
+  .band-card{border-radius:16px;padding:16px 14px;cursor:pointer;border:2px solid transparent;transition:all .2s;display:flex;align-items:center;gap:10px}
+  .band-card.b0{background:rgba(255,209,102,0.08);border-color:rgba(255,209,102,0.2)}
+  .band-card.b0.selected{border-color:#ffd166;background:rgba(255,209,102,0.15);box-shadow:0 0 12px rgba(255,209,102,0.2)}
+  .band-card.b1{background:rgba(155,114,255,0.08);border-color:rgba(155,114,255,0.2)}
+  .band-card.b1.selected{border-color:#9b72ff;background:rgba(155,114,255,0.15);box-shadow:0 0 12px rgba(155,114,255,0.25)}
+  .band-card.b2{background:rgba(88,232,193,0.08);border-color:rgba(88,232,193,0.2)}
+  .band-card.b2.selected{border-color:#58e8c1;background:rgba(88,232,193,0.1);box-shadow:0 0 12px rgba(88,232,193,0.2)}
+  .band-card.b3{background:rgba(255,123,107,0.08);border-color:rgba(255,123,107,0.2)}
+  .band-card.b3.selected{border-color:#ff7b6b;background:rgba(255,123,107,0.1);box-shadow:0 0 12px rgba(255,123,107,0.2)}
+  .band-emoji{font-size:24px}
+  .band-info{flex:1}
+  .band-name{font-size:13px;font-weight:800;color:#e8e0ff}
+  .band-age{font-size:11px;color:#7b69b8;font-weight:600}
+  /* Avatar row */
+  .avatar-row{display:flex;gap:8px;padding:0 20px 16px;overflow-x:auto;scrollbar-width:none}
+  .avatar-row::-webkit-scrollbar{display:none}
+  .av{width:60px;height:60px;border-radius:50%;background:#1e1640;border:2px solid transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;transition:all .2s}
+  .av.selected{border-color:#ffd166;box-shadow:0 0 12px rgba(255,209,102,0.4)}
+  /* Name input */
+  .name-input-wrap{padding:0 20px 16px}
+  .name-input{width:100%;background:#1e1640;border:1.5px solid #2a1f6e;border-radius:14px;padding:14px 16px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:700;color:#e8e0ff;outline:none;transition:border-color .2s}
+  .name-input:focus{border-color:#9b72ff}
+  .name-input::placeholder{color:#4a3a7a}
+  /* PIN */
+  .pin-row{display:flex;gap:10px;justify-content:center;padding:0 20px 16px}
+  .pin-dot{width:44px;height:44px;border-radius:50%;background:#1e1640;border:2px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:#9b72ff}
+  .pin-dot.filled{border-color:#9b72ff;background:#2a1f6e}
+  /* Sticky CTA */
+  .sticky-cta{position:sticky;bottom:0;background:linear-gradient(to top, #100b2e 80%, transparent);padding:20px 20px 32px;margin-top:auto}
+  .cta-btn{width:100%;padding:18px;border-radius:20px;border:none;background:linear-gradient(135deg,#6b3fdb,#9b72ff);color:#fff;font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 4px 24px rgba(107,63,219,0.5);transition:all .2s;letter-spacing:.3px}
+  .cta-btn:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(107,63,219,0.6)}
+  .cta-btn.secondary{background:transparent;border:1.5px solid #2a1f6e;color:#7b69b8;box-shadow:none;margin-top:10px;font-size:14px;padding:12px}
+  /* Returning quick path */
+  .return-header{padding:32px 24px 20px;display:flex;align-items:center;gap:14px}
+  .return-avatar{width:64px;height:64px;border-radius:50%;background:#2a1f6e;border:3px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:32px;box-shadow:0 0 20px rgba(155,114,255,0.4)}
+  .return-name{font-size:20px;font-weight:900;color:#e8e0ff}
+  .return-band{font-size:12px;font-weight:700;color:#9b72ff}
+  .return-streak{display:flex;align-items:center;gap:6px;margin-top:4px}
+  .streak-flame{font-size:16px}
+  .streak-text{font-size:12px;color:#ffd166;font-weight:700}
+  .quest-card{margin:0 20px 16px;background:linear-gradient(135deg,#1a0f3e,#241562);border:1.5px solid #4c2fad;border-radius:20px;padding:18px 20px;cursor:pointer;transition:all .2s}
+  .quest-card:hover{border-color:#9b72ff;box-shadow:0 0 20px rgba(155,114,255,0.2)}
+  .quest-label{font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#5a4a8a;margin-bottom:6px}
+  .quest-title{font-size:15px;font-weight:800;color:#e8e0ff;margin-bottom:4px}
+  .quest-progress-bar{height:6px;background:#1e1640;border-radius:3px;overflow:hidden;margin-top:10px}
+  .quest-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#6b3fdb,#9b72ff);width:68%}
+  .quick-chip-row{display:flex;gap:8px;padding:0 20px 16px;flex-wrap:wrap}
+  .quick-chip{padding:8px 14px;border-radius:12px;background:#1e1640;border:1px solid #2a1f6e;font-size:12px;font-weight:700;color:#9b72ff;cursor:pointer;transition:all .2s}
+  .quick-chip:hover{border-color:#9b72ff;background:#2a1f6e}
+  .divider{height:1px;background:#1e1640;margin:8px 20px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">New Child — Split</button>
+  <button class="tab" onclick="show('t2',this)">New Child — Progressive</button>
+  <button class="tab" onclick="show('t3',this)">Returning — Quick Path</button>
+  <button class="tab" onclick="show('t4',this)">Mobile Sticky CTA</button>
+</div>
+
+<!-- TAB 1: New / Returning split decision -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 17 / Tab 1: First screen split</strong>
+    Route: /child — One compressed first screen, child or grown-up picks new vs returning immediately. No stacked cards before decision. Band selection is step 2 (Tab 2). Sticky CTA anchors to bottom throughout.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div class="q-header">
+            <div class="wq-logo">Wonder<span>Quest</span></div>
+            <div class="q-tagline">Learning adventures await ✨</div>
+          </div>
+          <div class="split-question">
+            <div class="split-q-text">Hi! New here or coming back?</div>
+            <div class="split-q-sub">Pick one to get started</div>
+          </div>
+          <div class="split-cards">
+            <div class="split-card new-child">
+              <span class="split-icon">🌟</span>
+              <div class="split-title">New adventurer</div>
+              <div class="split-sub">Set up a child profile</div>
+            </div>
+            <div class="split-card returning">
+              <div class="split-badge">Quick!</div>
+              <span class="split-icon">⚡</span>
+              <div class="split-title">Coming back</div>
+              <div class="split-sub">Jump in where you left off</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <div style="text-align:center;font-size:12px;color:#5a4a8a;font-weight:600;margin-bottom:10px">Grown-up account? <span style="color:#9b72ff;text-decoration:underline">Sign in here</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">First screen — split</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: New child progressive reveal -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 17 / Tab 2: Progressive reveal (new child)</strong>
+    After "New adventurer" tap: reveal band → avatar → name → PIN in sequence. Each step unlocks the next. Band cards are large tap targets. Only one section visible at a time; prior steps collapse to a summary chip. Sticky CTA label updates per step.
+  </div>
+  <div class="frame-wrap">
+    <!-- Step: band selected, avatar choosing -->
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div style="padding:24px 24px 8px;display:flex;align-items:center;gap:8px">
+            <div style="font-size:18px;color:#7b69b8;cursor:pointer">←</div>
+            <div style="font-size:16px;font-weight:900;color:#e8e0ff">Set up your adventurer</div>
+          </div>
+          <div class="progress-dots" style="padding:8px 0 16px">
+            <div class="dot done"></div><div class="dot active"></div><div class="dot"></div><div class="dot"></div>
+          </div>
+          <!-- Band (collapsed summary) -->
+          <div style="display:flex;align-items:center;gap:10px;margin:0 20px 16px;background:#1a0f3e;border:1.5px solid #ffd166;border-radius:14px;padding:12px 14px">
+            <span style="font-size:20px">🌟</span>
+            <div><div style="font-size:13px;font-weight:800;color:#ffd166">Pre-K Explorer</div><div style="font-size:11px;color:#7b69b8">Age 3–5</div></div>
+            <div style="margin-left:auto;font-size:11px;color:#5a4a8a;font-weight:700">Change</div>
+          </div>
+          <!-- Avatar selection -->
+          <div class="section-label">Choose a character</div>
+          <div class="avatar-row">
+            <div class="av">🦊</div><div class="av selected">🐉</div><div class="av">🦄</div><div class="av">🐧</div><div class="av">🦁</div><div class="av">🐺</div>
+          </div>
+          <!-- Name input -->
+          <div class="section-label" style="padding-top:8px">What's the child's name?</div>
+          <div class="name-input-wrap">
+            <input class="name-input" type="text" placeholder="Type a name…" value="Luna">
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn">Next: Set a PIN →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Step 2 of 4 — Avatar + Name</div>
+    </div>
+    <!-- Step: PIN -->
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div style="padding:24px 24px 8px;display:flex;align-items:center;gap:8px">
+            <div style="font-size:18px;color:#7b69b8;cursor:pointer">←</div>
+            <div style="font-size:16px;font-weight:900;color:#e8e0ff">Set up your adventurer</div>
+          </div>
+          <div class="progress-dots" style="padding:8px 0 16px">
+            <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot active"></div>
+          </div>
+          <div style="text-align:center;padding:16px 24px">
+            <div style="font-size:44px;margin-bottom:12px">🐉</div>
+            <div style="font-size:20px;font-weight:900;color:#e8e0ff;margin-bottom:4px">Luna's secret code</div>
+            <div style="font-size:13px;color:#7b69b8;font-weight:600">Only Luna and grown-ups will know this</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot filled">•</div><div class="pin-dot filled">•</div><div class="pin-dot">_</div><div class="pin-dot">_</div>
+          </div>
+          <!-- Number pad -->
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:20px 32px 16px">
+            {['1','2','3','4','5','6','7','8','9','','0','⌫'].map(n=>`<div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">${n}</div>`)}
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">1</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">2</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">3</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">4</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">5</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">6</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">7</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">8</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">9</div>
+            <div></div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#e8e0ff;cursor:pointer">0</div>
+            <div style="height:56px;border-radius:14px;background:#1e1640;border:1.5px solid #2a1f6e;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;color:#7b69b8;cursor:pointer">⌫</div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn" style="opacity:.4">Enter 4 digits</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Step 4 of 4 — PIN entry</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Returning child quick path -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 17 / Tab 3: Returning child quick path</strong>
+    After "Coming back" tap: show avatar + name of last-active child immediately. PIN entry is the only gate. If multi-child: show child picker first (horizontal scroll), then PIN. Quest card shows active quest progress. Quick chips = shortcuts ("Practice same skill", "New quest", "Free play"). No forms.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div class="return-header">
+            <div class="return-avatar">🐉</div>
+            <div>
+              <div class="return-name">Luna</div>
+              <div class="return-band">Pre-K Explorer · Band P0</div>
+              <div class="return-streak"><span class="streak-flame">🔥</span><span class="streak-text">5-day streak!</span></div>
+            </div>
+          </div>
+          <div style="padding:0 24px 16px">
+            <div style="font-size:17px;font-weight:800;color:#e8e0ff;margin-bottom:2px">Welcome back, Luna! 🌟</div>
+            <div style="font-size:13px;color:#7b69b8;font-weight:600">Enter your secret code to play</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot filled">•</div><div class="pin-dot filled">•</div><div class="pin-dot filled">•</div><div class="pin-dot">_</div>
+          </div>
+          <div class="quest-card">
+            <div class="quest-label">Your quest</div>
+            <div class="quest-title">🌙 The Counting Cavern — Level 3</div>
+            <div style="font-size:12px;color:#9b72ff;font-weight:700;margin-top:2px">68% complete · Last played today</div>
+            <div class="quest-progress-bar"><div class="quest-fill"></div></div>
+          </div>
+          <div class="quick-chip-row">
+            <div class="quick-chip">▶ Continue quest</div>
+            <div class="quick-chip">✨ New quest</div>
+            <div class="quick-chip">🎯 Practice</div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn">Let's Play! ⚡</button>
+            <button class="cta-btn secondary">Switch adventurer</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Returning — single child</div>
+    </div>
+    <!-- Multi-child picker -->
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div style="padding:32px 24px 16px;text-align:center">
+            <div style="font-size:18px;font-weight:900;color:#e8e0ff;margin-bottom:4px">Who's playing today?</div>
+            <div style="font-size:13px;color:#7b69b8;font-weight:600">Tap your character</div>
+          </div>
+          <div class="avatar-row" style="padding:0 20px 20px;gap:12px">
+            <div style="text-align:center;flex-shrink:0">
+              <div class="av selected" style="width:72px;height:72px;font-size:34px;border-color:#ffd166;box-shadow:0 0 16px rgba(255,209,102,0.4)">🐉</div>
+              <div style="font-size:12px;font-weight:700;color:#ffd166;margin-top:6px">Luna</div>
+            </div>
+            <div style="text-align:center;flex-shrink:0">
+              <div class="av" style="width:72px;height:72px;font-size:34px">🦊</div>
+              <div style="font-size:12px;font-weight:700;color:#7b69b8;margin-top:6px">Max</div>
+            </div>
+            <div style="text-align:center;flex-shrink:0">
+              <div class="av" style="width:72px;height:72px;font-size:34px;border-style:dashed;border-color:#2a1f6e">+</div>
+              <div style="font-size:12px;font-weight:700;color:#3a2a5a;margin-top:6px">Add</div>
+            </div>
+          </div>
+          <!-- After tap: PIN -->
+          <div style="padding:0 24px 8px">
+            <div style="font-size:15px;font-weight:800;color:#ffd166;margin-bottom:2px">🐉 Luna's secret code</div>
+            <div style="font-size:12px;color:#7b69b8">Enter 4 digits</div>
+          </div>
+          <div class="pin-row">
+            <div class="pin-dot">_</div><div class="pin-dot">_</div><div class="pin-dot">_</div><div class="pin-dot">_</div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn" style="opacity:.4">Enter PIN to play</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Returning — multi-child picker</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Mobile sticky CTA behavior spec -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 17 / Tab 4: Sticky CTA rules</strong>
+    CTA must remain visible at all times — sticky bottom with gradient fade behind it. Label updates per step: "Choose a character →" / "Add name →" / "Set a PIN →" / "Let's Play! ⚡". Button is disabled (opacity 0.4, non-tappable) until the current step has a valid input. No scroll-away CTA.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div style="padding:24px 24px 16px">
+            <div style="font-size:16px;font-weight:900;color:#e8e0ff;margin-bottom:12px">Band selection — large tap targets</div>
+          </div>
+          <div class="section-label">Pick a learning band</div>
+          <div class="band-grid">
+            <div class="band-card b0 selected">
+              <span class="band-emoji">🌟</span>
+              <div class="band-info"><div class="band-name">Pre-K Explorer</div><div class="band-age">Ages 3–5</div></div>
+            </div>
+            <div class="band-card b1">
+              <span class="band-emoji">🚀</span>
+              <div class="band-info"><div class="band-name">K–1 Launcher</div><div class="band-age">Ages 5–7</div></div>
+            </div>
+            <div class="band-card b2">
+              <span class="band-emoji">🌊</span>
+              <div class="band-info"><div class="band-name">G2–3 Voyager</div><div class="band-age">Ages 7–9</div></div>
+            </div>
+            <div class="band-card b3">
+              <span class="band-emoji">⚡</span>
+              <div class="band-info"><div class="band-name">G4–5 Pioneer</div><div class="band-age">Ages 9–11</div></div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div style="padding:12px 20px;font-size:12px;color:#5a4a8a;font-weight:600;line-height:1.5">Band can be changed anytime by a grown-up. It sets the starting difficulty and content style — not a grade level.</div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn">Choose a character →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Sticky CTA — band step</div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="bg-stars"></div>
+        <div class="phone-inner">
+          <div style="padding:24px 24px 8px;display:flex;align-items:center;gap:8px">
+            <div style="font-size:18px;color:#7b69b8">←</div>
+            <div style="font-size:16px;font-weight:900;color:#e8e0ff">All set!</div>
+          </div>
+          <div style="text-align:center;padding:32px 24px 20px">
+            <div style="font-size:72px;margin-bottom:16px">🐉</div>
+            <div style="font-size:24px;font-weight:900;color:#ffd166;margin-bottom:6px">Luna is ready!</div>
+            <div style="font-size:14px;color:#7b69b8;font-weight:600">Your Pre-K Explorer adventure starts now</div>
+          </div>
+          <div style="margin:0 20px 16px;background:#1a0f3e;border:1.5px solid #58e8c1;border-radius:16px;padding:16px 18px">
+            <div style="font-size:12px;font-weight:700;color:#58e8c1;margin-bottom:8px">✓ Profile created</div>
+            <div style="font-size:13px;color:#7b69b8;font-weight:600;line-height:1.5">A grown-up can manage Luna's settings from the Parent Hub anytime.</div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="sticky-cta">
+            <button class="cta-btn" style="background:linear-gradient(135deg,#1a5c3a,#58e8c1);color:#0a2018">Start First Quest! 🌟</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Final confirmation + launch</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

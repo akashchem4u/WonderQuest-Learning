@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Alert Queue v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#0a0e14;color:#c9d1d9;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#06090d;flex-wrap:wrap;border-bottom:1px solid #1a2030}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #21262d;background:transparent;color:#5a7a9a;cursor:pointer;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+  .tab.active{background:#1f3a5c;border-color:#58a6ff;color:#58a6ff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#0d1117;border:1px solid #30200a;border-left:3px solid #ffd166;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#c8a84b;line-height:1.6}
+  .eng-note strong{color:#ffd166;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .desktop{width:900px;background:#0d1117;border-radius:12px;border:1px solid #21262d;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,0.5)}
+  .phone{width:390px;min-height:844px;background:#0d1117;border-radius:40px;border:2px solid #21262d;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,0.6);display:flex;flex-direction:column}
+  .desktop-label,.phone-label{text-align:center;margin-top:10px;font-size:12px;color:#4a6a8a;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* Header */
+  .d-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:#161b22;border-bottom:1px solid #21262d}
+  .d-title{font-size:16px;font-weight:800;color:#e6edf3}
+  .d-subtitle{font-size:11px;color:#6a8aaa;margin-top:2px}
+  .d-btn{padding:7px 14px;border-radius:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;border:1px solid #21262d;background:#161b22;color:#8a9aaa;transition:all .2s}
+  .d-btn.primary{background:#1f3a5c;border-color:#58a6ff;color:#58a6ff}
+  .d-btn.danger{background:#3a0f0f;border-color:#f85149;color:#f85149}
+
+  /* Alert banners */
+  .alert-banner{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid}
+  .ab-critical{background:#2d0f0f;border-color:#5c1a1a;color:#fca5a5}
+  .ab-warning{background:#2d1f0a;border-color:#5c3a0a;color:#fcd34d}
+  .ab-info{background:#0a1f3a;border-color:#0a3060;color:#93c5fd}
+  .ab-success{background:#0a2a1a;border-color:#0a4020;color:#6ee7b7}
+  .ab-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .ab-dot.critical{background:#f85149}
+  .ab-dot.warning{background:#f59e0b}
+  .ab-dot.info{background:#58a6ff}
+  .ab-dot.success{background:#3fb950}
+  .ab-text{flex:1;font-size:12px;font-weight:700;line-height:1.4}
+  .ab-count{font-size:11px;font-weight:800;padding:2px 8px;border-radius:8px;background:rgba(255,255,255,0.1);flex-shrink:0}
+  .ab-action{font-size:11px;font-weight:700;cursor:pointer;opacity:.8;flex-shrink:0;text-decoration:underline}
+
+  /* Body split */
+  .d-body{display:flex;min-height:500px}
+  .d-left{width:300px;border-right:1px solid #21262d;overflow-y:auto}
+  .d-right{flex:1;overflow-y:auto}
+
+  /* Queue sections */
+  .q-section{padding:8px 14px 6px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1.2px;color:#4a6a8a;background:#0d1117;border-bottom:1px solid #1a2030;position:sticky;top:0;z-index:1}
+  .q-row{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #161b22;cursor:pointer;transition:background .15s;position:relative}
+  .q-row:hover{background:#161b22}
+  .q-row.selected{background:#1a2840;border-left:2px solid #58a6ff}
+  .sev-bar{width:3px;height:32px;border-radius:2px;flex-shrink:0}
+  .sev-bar.critical{background:#f85149}
+  .sev-bar.high{background:#f59e0b}
+  .sev-bar.medium{background:#58a6ff}
+  .sev-bar.low{background:#3fb950}
+  .q-icon{font-size:14px;flex-shrink:0}
+  .q-meta{flex:1;min-width:0}
+  .q-title{font-size:12px;font-weight:700;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .q-sub{font-size:10px;color:#6a8aaa;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+  .q-time{font-size:10px;color:#4a6a8a;flex-shrink:0}
+
+  /* Detail right panel */
+  .detail-header{padding:18px 24px 14px;border-bottom:1px solid #21262d}
+  .detail-sev{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:800;margin-bottom:10px}
+  .detail-sev.critical{background:#3a0f0f;color:#f85149;border:1px solid #5c1a1a}
+  .detail-sev.high{background:#2d1a00;color:#f59e0b;border:1px solid #5c3a00}
+  .detail-sev.medium{background:#0a1f3a;color:#58a6ff;border:1px solid #0a3060}
+  .detail-title{font-size:17px;font-weight:800;color:#e6edf3;margin-bottom:4px}
+  .detail-meta{font-size:11px;color:#6a8aaa;margin-bottom:12px}
+  .detail-chip-row{display:flex;gap:6px;flex-wrap:wrap}
+  .dchip{padding:4px 10px;border-radius:8px;font-size:10px;font-weight:700;background:#161b22;border:1px solid #21262d;color:#8a9aaa}
+
+  /* Health snapshot */
+  .health-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #21262d;border-top:1px solid #21262d}
+  .hs-cell{padding:12px 14px;text-align:center;border-right:1px solid #21262d}
+  .hs-cell:last-child{border-right:none}
+  .hs-val{font-size:18px;font-weight:800;color:#e6edf3}
+  .hs-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#4a6a8a;margin-top:2px}
+  .hs-status{display:inline-block;font-size:9px;font-weight:800;padding:1px 6px;border-radius:6px;margin-top:2px}
+  .hs-status.ok{background:#0a2a1a;color:#3fb950}
+  .hs-status.warn{background:#2d1a00;color:#f59e0b}
+  .hs-status.crit{background:#3a0f0f;color:#f85149}
+
+  /* Timeline */
+  .timeline{padding:14px 24px}
+  .tl-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;margin-bottom:10px}
+  .tl-row{display:flex;gap:10px;margin-bottom:12px}
+  .tl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .tl-dot.crit{background:#f85149}
+  .tl-dot.open{background:#f59e0b}
+  .tl-dot.note{background:#58a6ff}
+  .tl-dot.resolved{background:#3fb950}
+  .tl-content{flex:1}
+  .tl-text{font-size:12px;font-weight:600;color:#c9d1d9;line-height:1.4}
+  .tl-time{font-size:10px;color:#4a6a8a;margin-top:2px}
+
+  /* Actions */
+  .action-row{display:flex;gap:8px;padding:14px 24px;background:#0d1117;border-top:1px solid #21262d;flex-wrap:wrap}
+  .route-health{padding:14px 24px}
+  .rh-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;margin-bottom:10px}
+  .rh-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #161b22}
+  .rh-name{font-size:12px;font-weight:700;color:#c9d1d9;flex:1}
+  .rh-bar{flex:2;height:6px;background:#1a2030;border-radius:3px;overflow:hidden}
+  .rh-fill{height:100%;border-radius:3px}
+  .rh-fill.ok{background:#3fb950}
+  .rh-fill.warn{background:#f59e0b}
+  .rh-fill.crit{background:#f85149}
+  .rh-pct{font-size:11px;font-weight:700;color:#8a9aaa;width:40px;text-align:right}
+
+  /* Mobile */
+  .m-header{padding:52px 20px 12px;background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between}
+  .m-title{font-size:16px;font-weight:800;color:#e6edf3}
+  .m-badge{background:#f85149;color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:8px}
+  .m-scroll{flex:1;overflow-y:auto}
+  .m-footer{padding:12px 20px 40px;background:#161b22;border-top:1px solid #21262d;display:flex;gap:8px}
+  .m-btn{flex:1;padding:13px;border-radius:12px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:1px solid #21262d;background:#0d1117;color:#8a9aaa}
+  .m-btn.primary{background:#1f3a5c;border-color:#58a6ff;color:#58a6ff}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Alert Banner System</button>
+  <button class="tab" onclick="show('t2',this)">Triage Queue Rows</button>
+  <button class="tab" onclick="show('t3',this)">Route + Content Health</button>
+  <button class="tab" onclick="show('t4',this)">Mobile 390px</button>
+</div>
+
+<!-- TAB 1: Alert banners -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 22 / Tab 1: Alert banner system</strong>
+    Alert banners sit between the owner top bar and the tab strip — NOT inside the scrollable content area. Stacked vertically if multiple alerts exist. 4 severity levels: critical (red), warning (amber), info (blue), success/clear (green). Each banner shows dot + message + count chip + action link. Critical banners cannot be dismissed until resolved. Warning/info can be dismissed with ✕. Max 3 banners shown at once — overflow into alert history tab.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="d-header">
+          <div><div class="d-title">WonderQuest Console</div><div class="d-subtitle">Last updated 2 min ago</div></div>
+          <div style="display:flex;gap:8px">
+            <div class="d-btn">Alert history</div>
+            <div class="d-btn primary">Triage queue (7)</div>
+          </div>
+        </div>
+        <!-- Banners stacked -->
+        <div class="alert-banner ab-critical">
+          <div class="ab-dot critical"></div>
+          <div class="ab-text">2 content items flagged with critical safety concern — requires immediate review before users can access</div>
+          <div class="ab-count">2 critical</div>
+          <div class="ab-action">Review now →</div>
+        </div>
+        <div class="alert-banner ab-warning">
+          <div class="ab-dot warning"></div>
+          <div class="ab-text">Route /play is showing elevated error rates (8.4% in last 30 min) — above 5% threshold</div>
+          <div class="ab-count">8.4% errors</div>
+          <div class="ab-action">View route →</div>
+        </div>
+        <div class="alert-banner ab-info">
+          <div class="ab-dot info"></div>
+          <div class="ab-text">Scheduled maintenance window starts in 2 hours — owner console will have read-only mode</div>
+          <div class="ab-count">Tonight 10pm</div>
+          <div class="ab-action" style="opacity:.5">Dismiss</div>
+        </div>
+        <div style="padding:20px 24px;border-bottom:1px solid #21262d">
+          <div style="font-size:13px;font-weight:700;color:#8a9aaa;margin-bottom:12px">Additional banner states:</div>
+          <div class="alert-banner ab-success" style="margin-bottom:6px;border-radius:8px">
+            <div class="ab-dot success"></div>
+            <div class="ab-text">All previous critical flags resolved — system clear</div>
+            <div class="ab-count">All clear</div>
+            <div class="ab-action">Dismiss</div>
+          </div>
+          <div class="alert-banner ab-warning" style="border-radius:8px">
+            <div class="ab-dot warning"></div>
+            <div class="ab-text">Content review queue is growing — 14 items pending longer than 48h</div>
+            <div class="ab-count">14 pending</div>
+            <div class="ab-action">View queue →</div>
+          </div>
+        </div>
+        <div style="padding:16px 24px">
+          <div style="font-size:12px;font-weight:600;color:#4a6a8a;line-height:1.7">
+            <strong style="color:#8a9aaa;display:block;margin-bottom:6px">Banner rules</strong>
+            • Critical: red bg #2d0f0f, no dismiss, stays until resolved<br>
+            • Warning: amber bg #2d1f0a, dismissible with ✕<br>
+            • Info: blue bg #0a1f3a, dismissible with ✕<br>
+            • Success/clear: green bg #0a2a1a, auto-dismiss after 5s or on tap<br>
+            • Max 3 banners at once — oldest non-critical collapse into "See X more alerts →"<br>
+            • Banner slot hidden entirely when no alerts (does not leave blank space)
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Alert banner system</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Triage queue rows -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 22 / Tab 2: Triage queue row states</strong>
+    Left panel: queue rows sorted by severity (critical → high → medium → low). Each row: colored severity bar, icon, title, route/type, timestamp. Selected row: blue left border + darker bg. Right panel: expanded triage item detail — severity badge, title, meta, chips, timeline, action row. Route health and content health snapshots visible in right panel below timeline.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="d-header">
+          <div><div class="d-title">Triage Queue</div><div class="d-subtitle">7 open · 2 critical · updated 1 min ago</div></div>
+          <div style="display:flex;gap:8px">
+            <div class="d-btn">Filter</div>
+            <div class="d-btn primary">Mark all reviewed</div>
+          </div>
+        </div>
+        <div class="d-body">
+          <div class="d-left">
+            <div class="q-section">Critical (2)</div>
+            <div class="q-row selected">
+              <div class="sev-bar critical"></div>
+              <div class="q-icon">🔴</div>
+              <div class="q-meta">
+                <div class="q-title">Inappropriate content in math quest #4412</div>
+                <div class="q-sub">/play · content flag · user report</div>
+              </div>
+              <div class="q-time">4m ago</div>
+            </div>
+            <div class="q-row">
+              <div class="sev-bar critical"></div>
+              <div class="q-icon">🔴</div>
+              <div class="q-meta">
+                <div class="q-title">Auth bypass attempt logged from IP range</div>
+                <div class="q-sub">/api/auth · security · auto-detected</div>
+              </div>
+              <div class="q-time">12m ago</div>
+            </div>
+            <div class="q-section">High (2)</div>
+            <div class="q-row">
+              <div class="sev-bar high"></div>
+              <div class="q-icon">🟡</div>
+              <div class="q-meta">
+                <div class="q-title">/play route error rate spike 8.4%</div>
+                <div class="q-sub">/play · route health · auto-monitor</div>
+              </div>
+              <div class="q-time">28m ago</div>
+            </div>
+            <div class="q-row">
+              <div class="sev-bar high"></div>
+              <div class="q-icon">🟡</div>
+              <div class="q-meta">
+                <div class="q-title">Teacher bulk export stalling >30s</div>
+                <div class="q-sub">/teacher · performance · user report</div>
+              </div>
+              <div class="q-time">1h ago</div>
+            </div>
+            <div class="q-section">Medium (3)</div>
+            <div class="q-row">
+              <div class="sev-bar medium"></div>
+              <div class="q-icon">🔵</div>
+              <div class="q-meta">
+                <div class="q-title">Parent relink flow not completing on iOS 17</div>
+                <div class="q-sub">/parent · bug · user report</div>
+              </div>
+              <div class="q-time">3h ago</div>
+            </div>
+            <div class="q-row">
+              <div class="sev-bar medium"></div>
+              <div class="q-icon">🔵</div>
+              <div class="q-meta">
+                <div class="q-title">14 content reviews pending >48h</div>
+                <div class="q-sub">/content · queue depth · auto-flag</div>
+              </div>
+              <div class="q-time">2h ago</div>
+            </div>
+            <div class="q-row">
+              <div class="sev-bar low"></div>
+              <div class="q-icon">🟢</div>
+              <div class="q-meta">
+                <div class="q-title">Child avatar images slow on 3G</div>
+                <div class="q-sub">/child · performance · monitoring</div>
+              </div>
+              <div class="q-time">5h ago</div>
+            </div>
+          </div>
+
+          <!-- Detail panel for selected item -->
+          <div class="d-right">
+            <div class="detail-header">
+              <div class="detail-sev critical">🔴 Critical</div>
+              <div class="detail-title">Inappropriate content in math quest #4412</div>
+              <div class="detail-meta">Reported by user · /play route · Quest ID: math-q-4412 · Mar 22 09:41</div>
+              <div class="detail-chip-row">
+                <div class="dchip">Content flag</div>
+                <div class="dchip">User report</div>
+                <div class="dchip">Quest #4412</div>
+                <div class="dchip">Auto-quarantined</div>
+              </div>
+            </div>
+            <div class="health-strip">
+              <div class="hs-cell"><div class="hs-val" style="color:#f85149">1</div><div class="hs-label">Affected quest</div><div class="hs-status crit">Quarantined</div></div>
+              <div class="hs-cell"><div class="hs-val">3</div><div class="hs-label">Reports</div><div class="hs-status warn">Escalated</div></div>
+              <div class="hs-cell"><div class="hs-val">0</div><div class="hs-label">Active sessions</div><div class="hs-status ok">Clear</div></div>
+              <div class="hs-cell"><div class="hs-val" style="color:#3fb950">Auto</div><div class="hs-label">Quarantine</div><div class="hs-status ok">Done</div></div>
+            </div>
+            <div class="timeline">
+              <div class="tl-label">Activity timeline</div>
+              <div class="tl-row"><div class="tl-dot crit"></div><div class="tl-content"><div class="tl-text">Quest auto-quarantined — no longer accessible to any users</div><div class="tl-time">09:41 · auto-system</div></div></div>
+              <div class="tl-row"><div class="tl-dot open"></div><div class="tl-content"><div class="tl-text">Third user report received — escalated to critical</div><div class="tl-time">09:40 · auto-system</div></div></div>
+              <div class="tl-row"><div class="tl-dot note"></div><div class="tl-content"><div class="tl-text">First report reviewed — flagged for manual content review</div><div class="tl-time">09:38 · system</div></div></div>
+            </div>
+            <div class="action-row">
+              <div class="d-btn primary">Review content</div>
+              <div class="d-btn">Assign reviewer</div>
+              <div class="d-btn">Add note</div>
+              <div class="d-btn danger">Confirm + remove</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Triage queue — critical item selected</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Route + Content health -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 22 / Tab 3: Route + content health snapshot</strong>
+    Health strip shows at the bottom of any triage detail panel, and also as a standalone view under the "Routes" tab. Route health: % of sessions completing without errors in last 30 min. Content health: % of active content passing auto-review. Both use same bar + color system: green ≥95%, amber 80–95%, red &lt;80%.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop" style="min-height:0">
+        <div class="d-header">
+          <div><div class="d-title">Route + Content Health</div><div class="d-subtitle">Last 30 min · auto-refreshed every 60s</div></div>
+          <div class="d-btn">Refresh now</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;border-bottom:1px solid #21262d">
+          <!-- Route health -->
+          <div style="padding:20px 24px;border-right:1px solid #21262d">
+            <div class="rh-label" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;margin-bottom:14px">Route Health</div>
+            <div class="rh-row">
+              <div class="rh-name">/ Home</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:99%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">99%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">/child</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:97%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">97%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">/play</div>
+              <div class="rh-bar"><div class="rh-fill crit" style="width:91.6%"></div></div>
+              <div class="rh-pct" style="color:#f85149">91.6%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">/parent</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:98%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">98%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">/teacher</div>
+              <div class="rh-bar"><div class="rh-fill warn" style="width:93%"></div></div>
+              <div class="rh-pct" style="color:#f59e0b">93%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">/owner</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:100%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">100%</div>
+            </div>
+          </div>
+          <!-- Content health -->
+          <div style="padding:20px 24px">
+            <div class="rh-label" style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;margin-bottom:14px">Content Health</div>
+            <div class="rh-row">
+              <div class="rh-name">Math quests</div>
+              <div class="rh-bar"><div class="rh-fill crit" style="width:85%"></div></div>
+              <div class="rh-pct" style="color:#f85149">85% ⚠</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">Reading quests</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:98%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">98%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">Letter sounds</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:100%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">100%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">Shape content</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:96%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">96%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">Phonics audio</div>
+              <div class="rh-bar"><div class="rh-fill warn" style="width:89%"></div></div>
+              <div class="rh-pct" style="color:#f59e0b">89%</div>
+            </div>
+            <div class="rh-row">
+              <div class="rh-name">Reward images</div>
+              <div class="rh-bar"><div class="rh-fill ok" style="width:100%"></div></div>
+              <div class="rh-pct" style="color:#3fb950">100%</div>
+            </div>
+          </div>
+        </div>
+        <!-- Thresholds key -->
+        <div style="padding:14px 24px;display:flex;gap:20px">
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#3fb950"></div><div style="font-size:11px;color:#6a8aaa;font-weight:600">≥95% healthy</div></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#f59e0b"></div><div style="font-size:11px;color:#6a8aaa;font-weight:600">80–95% watch</div></div>
+          <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:50%;background:#f85149"></div><div style="font-size:11px;color:#6a8aaa;font-weight:600">&lt;80% critical — auto-alert triggered</div></div>
+        </div>
+      </div>
+      <div class="desktop-label">Route + content health snapshot</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Mobile -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 22 / Tab 4: Mobile 390px</strong>
+    Alert banners stack at top, below the top bar. Triage queue rows full-width. Tapping opens full-screen item detail (push nav). Route/content health shown as compact 2-column grid of bars. Bottom nav: Console / Triage (badge) / Routes / Settings.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="m-header">
+          <div class="m-title">Triage Queue</div>
+          <div class="m-badge">2 critical</div>
+        </div>
+        <!-- Alert banners -->
+        <div class="alert-banner ab-critical" style="font-size:11px;padding:10px 16px">
+          <div class="ab-dot critical"></div>
+          <div class="ab-text" style="font-size:11px">2 critical content flags — needs review now</div>
+          <div class="ab-action" style="font-size:11px">View →</div>
+        </div>
+        <div class="alert-banner ab-warning" style="font-size:11px;padding:10px 16px">
+          <div class="ab-dot warning"></div>
+          <div class="ab-text" style="font-size:11px">/play error rate spike 8.4%</div>
+          <div class="ab-action" style="font-size:11px">View →</div>
+        </div>
+        <div class="m-scroll">
+          <div class="q-section">Critical (2)</div>
+          <div class="q-row selected" style="padding:12px 16px">
+            <div class="sev-bar critical" style="height:36px"></div>
+            <div class="q-meta" style="margin-left:4px">
+              <div class="q-title">Inappropriate content — quest #4412</div>
+              <div class="q-sub">/play · user report · 4m ago</div>
+            </div>
+            <div style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+          <div class="q-row" style="padding:12px 16px">
+            <div class="sev-bar critical" style="height:36px"></div>
+            <div class="q-meta" style="margin-left:4px">
+              <div class="q-title">Auth bypass attempt logged</div>
+              <div class="q-sub">/api/auth · security · 12m ago</div>
+            </div>
+            <div style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+          <div class="q-section">High (2)</div>
+          <div class="q-row" style="padding:12px 16px">
+            <div class="sev-bar high" style="height:36px"></div>
+            <div class="q-meta" style="margin-left:4px">
+              <div class="q-title">/play route error spike 8.4%</div>
+              <div class="q-sub">Route health · 28m ago</div>
+            </div>
+            <div style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+          <div class="q-row" style="padding:12px 16px">
+            <div class="sev-bar high" style="height:36px"></div>
+            <div class="q-meta" style="margin-left:4px">
+              <div class="q-title">Teacher export stalling >30s</div>
+              <div class="q-sub">/teacher · performance · 1h ago</div>
+            </div>
+            <div style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+          <div class="q-section">Medium (3) · Low (0)</div>
+          <div style="padding:10px 14px;font-size:11px;color:#6a8aaa;font-weight:600">3 medium items · tap to view</div>
+        </div>
+        <div class="m-footer">
+          <button class="m-btn">Route health</button>
+          <button class="m-btn primary">Mark reviewed</button>
+        </div>
+      </div>
+      <div class="phone-label">Mobile — triage queue</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mobile Route Shells — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Nunito:wght@700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#e0dbd2;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#cdc8be;flex-wrap:wrap;border-bottom:1px solid #b8b3a8}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #aaa59a;background:transparent;color:#6a6358;cursor:pointer;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+  .tab.active{background:#1a1a2e;border-color:#1a1a2e;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#fffbeb;border:1px solid #e6d48a;border-left:3px solid #c9a227;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#7a5c0a;line-height:1.6}
+  .eng-note strong{color:#c9a227;display:block;margin-bottom:4px}
+  .hint{background:#e8f0fe;border:1px solid #b8d0fa;border-left:3px solid #4a90e2;border-radius:8px;padding:12px 14px;margin:0 20px 16px;font-size:12px;color:#1a3a6e;line-height:1.6}
+  .hint strong{color:#4a90e2;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .phone{width:390px;min-height:844px;border-radius:40px;overflow:hidden;position:relative;box-shadow:0 4px 40px rgba(0,0,0,0.18);display:flex;flex-direction:column}
+  .phone-label{text-align:center;margin-top:10px;font-size:12px;color:#6a6358;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* ── CHILD shell ── */
+  .child-shell{background:#100b2e;font-family:'Nunito',sans-serif;color:#e8e0ff}
+  .child-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;background:linear-gradient(180deg,rgba(76,47,173,0.4) 0%,transparent 100%)}
+  .child-topbar-left{display:flex;align-items:center;gap:8px}
+  .child-av-sm{width:34px;height:34px;border-radius:50%;background:#2a1f6e;border:2px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .child-greeting{font-size:14px;font-weight:800;color:#e8e0ff}
+  .child-topbar-right{display:flex;gap:8px}
+  .icon-btn{width:34px;height:34px;border-radius:50%;background:rgba(155,114,255,0.15);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+  .child-scroll{flex:1;overflow-y:auto;padding:0 16px}
+  .child-bottom-safe{height:34px;background:linear-gradient(to top,#100b2e,transparent)}
+  .child-sticky-cta{padding:12px 20px 40px;background:#100b2e}
+  .child-cta-btn{width:100%;padding:16px;border-radius:18px;border:none;background:linear-gradient(135deg,#6b3fdb,#9b72ff);color:#fff;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;box-shadow:0 4px 20px rgba(107,63,219,0.45)}
+
+  /* ── PARENT shell ── */
+  .parent-shell{background:#f5f0e8;font-family:'Sora',sans-serif;color:#2c2416}
+  .parent-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;background:#f5f0e8;border-bottom:1px solid #e0d8ca}
+  .parent-title{font-size:17px;font-weight:700;color:#1a1208}
+  .parent-scroll{flex:1;overflow-y:auto;padding:0 0 8px}
+  .parent-bottom-nav{display:flex;background:#fff;border-top:1px solid #e0d8ca;padding:10px 0 34px}
+  .pbn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  .pbn-icon{font-size:20px}
+  .pbn-label{font-size:9px;font-weight:700;color:#8a7c6a;text-transform:uppercase;letter-spacing:.5px}
+  .pbn-item.active .pbn-label{color:#2c7a6e}
+
+  /* ── TEACHER shell ── */
+  .teacher-shell{background:#f0f4f8;font-family:'Sora',sans-serif;color:#1a2634}
+  .teacher-topbar{display:flex;align-items:center;gap:10px;padding:52px 20px 12px;background:#fff;border-bottom:1px solid #dde4ec}
+  .teacher-back{font-size:18px;color:#4a6a8a;cursor:pointer}
+  .teacher-title{font-size:16px;font-weight:700;color:#1a2634;flex:1}
+  .teacher-scroll{flex:1;overflow-y:auto}
+  .teacher-tab-strip{display:flex;background:#fff;border-bottom:1px solid #dde4ec;overflow-x:auto;scrollbar-width:none}
+  .teacher-tab-strip::-webkit-scrollbar{display:none}
+  .t-tab{padding:10px 16px;font-size:12px;font-weight:700;color:#6a8aaa;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;flex-shrink:0}
+  .t-tab.active{color:#2a6ab4;border-bottom-color:#2a6ab4}
+  .teacher-bottom-nav{display:flex;background:#fff;border-top:1px solid #dde4ec;padding:10px 0 34px}
+  .tbn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  .tbn-icon{font-size:20px}
+  .tbn-label{font-size:9px;font-weight:700;color:#8a9aaa;text-transform:uppercase;letter-spacing:.5px}
+  .tbn-item.active .tbn-label{color:#2a6ab4}
+
+  /* ── OWNER shell ── */
+  .owner-shell{background:#0d1117;font-family:'Sora',sans-serif;color:#c9d1d9}
+  .owner-topbar{display:flex;align-items:center;justify-content:space-between;padding:52px 20px 12px;background:#161b22;border-bottom:1px solid #21262d}
+  .owner-title{font-size:16px;font-weight:700;color:#e6edf3}
+  .owner-scroll{flex:1;overflow-y:auto}
+  .owner-tab-strip{display:flex;background:#161b22;border-bottom:1px solid #21262d;overflow-x:auto;scrollbar-width:none}
+  .owner-tab-strip::-webkit-scrollbar{display:none}
+  .o-tab{padding:10px 16px;font-size:12px;font-weight:700;color:#6a7a8a;border-bottom:2px solid transparent;white-space:nowrap;cursor:pointer;flex-shrink:0;position:relative}
+  .o-tab.active{color:#58a6ff;border-bottom-color:#58a6ff}
+  .o-badge{position:absolute;top:6px;right:4px;background:#f85149;color:#fff;font-size:9px;font-weight:800;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center}
+  .owner-bottom-nav{display:flex;background:#161b22;border-top:1px solid #21262d;padding:10px 0 34px}
+  .obn-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer}
+  .obn-icon{font-size:20px}
+  .obn-label{font-size:9px;font-weight:700;color:#4a5a6a;text-transform:uppercase;letter-spacing:.5px}
+  .obn-item.active .obn-label{color:#58a6ff}
+
+  /* Content placeholders */
+  .ph-block{margin:12px 16px;border-radius:12px;background:rgba(255,255,255,0.06);height:80px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(255,255,255,0.2);font-weight:600}
+  .ph-block-light{margin:12px 16px;border-radius:12px;background:rgba(0,0,0,0.04);height:80px;display:flex;align-items:center;justify-content:center;font-size:11px;color:rgba(0,0,0,0.2);font-weight:600}
+
+  /* Spec table */
+  .spec-wrap{padding:24px 32px;max-width:860px;margin:0 auto}
+  .spec-h{font-size:20px;font-weight:800;color:#1a1208;margin-bottom:20px}
+  .spec-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .spec-card{background:#fff;border:1px solid #d6cfbf;border-radius:16px;padding:20px 22px}
+  .spec-card-title{font-size:14px;font-weight:800;color:#1a1208;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #e8e2d6}
+  .spec-row{display:flex;gap:8px;margin-bottom:8px;align-items:flex-start}
+  .spec-key{font-size:11px;font-weight:700;color:#6a6358;min-width:120px;flex-shrink:0;margin-top:1px}
+  .spec-val{font-size:11px;color:#3c3426;font-weight:500;line-height:1.5}
+  .spec-badge{display:inline-block;padding:1px 7px;border-radius:6px;font-size:10px;font-weight:700;background:#e8e2d6;color:#3c3426;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Child Shell</button>
+  <button class="tab" onclick="show('t2',this)">Parent Shell</button>
+  <button class="tab" onclick="show('t3',this)">Teacher Shell</button>
+  <button class="tab" onclick="show('t4',this)">Owner Shell</button>
+  <button class="tab" onclick="show('t5',this)">Shell Spec</button>
+</div>
+
+<!-- TAB 1: Child -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 19 / Tab 1: Child mobile shell</strong>
+    Font: Nunito. BG: #100b2e. Top bar: avatar + greeting on left, stars badge + settings on right. No bottom nav — child routes use full-screen play or sticky CTA. Status bar area: 52px top padding (safe area). Sticky CTA at bottom: 40px bottom safe-area padding + gradient overlay behind button. Scroll zone between topbar and sticky CTA.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone child-shell">
+        <div class="child-topbar">
+          <div class="child-topbar-left">
+            <div class="child-av-sm">🐉</div>
+            <div class="child-greeting">Hi Luna! 🌟</div>
+          </div>
+          <div class="child-topbar-right">
+            <div class="icon-btn">⭐</div>
+            <div class="icon-btn">⚙️</div>
+          </div>
+        </div>
+        <div class="child-scroll">
+          <div class="ph-block">Content area — scrollable</div>
+          <div class="ph-block">Quest cards / play states</div>
+          <div class="ph-block">Reward / skill content</div>
+        </div>
+        <div class="child-sticky-cta">
+          <button class="child-cta-btn">Let's Play! ⚡</button>
+        </div>
+      </div>
+      <div class="phone-label">Child shell — /child /play</div>
+    </div>
+    <div>
+      <div class="phone child-shell" style="background:#0a1f14">
+        <div class="child-topbar" style="background:linear-gradient(180deg,rgba(0,100,60,0.4) 0%,transparent 100%)">
+          <div class="child-topbar-left">
+            <div class="icon-btn" style="background:rgba(88,232,193,0.15)">←</div>
+            <div class="child-greeting" style="color:#58e8c1">Counting Quest</div>
+          </div>
+          <div class="child-topbar-right">
+            <div class="icon-btn" style="background:rgba(255,209,102,0.15)">⭐ 4</div>
+          </div>
+        </div>
+        <div class="child-scroll">
+          <div class="ph-block" style="background:rgba(88,232,193,0.05);border:1px solid rgba(88,232,193,0.15)">Play zone — full height</div>
+          <div class="ph-block" style="background:rgba(88,232,193,0.05);border:1px solid rgba(88,232,193,0.15)">Answer cards</div>
+        </div>
+        <div class="child-sticky-cta" style="background:#0a1f14">
+          <button class="child-cta-btn" style="background:linear-gradient(135deg,#1a5c3a,#58e8c1);color:#0a2018">Answer this one ✓</button>
+        </div>
+      </div>
+      <div class="phone-label">Child shell — /play (in-quest)</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Parent -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 19 / Tab 2: Parent mobile shell</strong>
+    Font: Sora. BG: #f5f0e8. Top bar: title + action icon on right (notif/settings). Bottom nav: 4 tabs — Home, Skills, Family, Settings. Nav background: white with 1px #e0d8ca border. Bottom safe area: 34px. No floating FAB. Scroll zone fills between topbar and bottom nav. Tab strip (sub-navigation within a route) lives inside scroll zone, not sticky.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone parent-shell">
+        <div class="parent-topbar">
+          <div class="parent-title">Luna's Progress</div>
+          <div style="display:flex;gap:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#e8e2d6;display:flex;align-items:center;justify-content:center;font-size:14px">🔔</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:#2c7a6e;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700">S</div>
+          </div>
+        </div>
+        <div class="parent-scroll">
+          <div class="ph-block-light">Summary rail</div>
+          <div class="ph-block-light">Child overview cards</div>
+          <div class="ph-block-light">Skill progress section</div>
+          <div class="ph-block-light">Try-at-home tips</div>
+        </div>
+        <div class="parent-bottom-nav">
+          <div class="pbn-item active"><div class="pbn-icon">🏠</div><div class="pbn-label" style="color:#2c7a6e">Home</div></div>
+          <div class="pbn-item"><div class="pbn-icon">📊</div><div class="pbn-label">Skills</div></div>
+          <div class="pbn-item"><div class="pbn-icon">👨‍👩‍👧</div><div class="pbn-label">Family</div></div>
+          <div class="pbn-item"><div class="pbn-icon">⚙️</div><div class="pbn-label">Settings</div></div>
+        </div>
+      </div>
+      <div class="phone-label">Parent shell — /parent</div>
+    </div>
+    <div>
+      <div class="phone parent-shell">
+        <div class="parent-topbar">
+          <div style="font-size:18px;color:#4a4030;cursor:pointer;margin-right:4px">←</div>
+          <div class="parent-title" style="flex:1">Counting to 20</div>
+        </div>
+        <div class="parent-scroll">
+          <div class="ph-block-light">Skill detail rail</div>
+          <div class="ph-block-light">Progress chart</div>
+          <div class="ph-block-light">Try at home tips</div>
+        </div>
+        <div style="padding:12px 20px 40px;background:#f5f0e8;border-top:1px solid #e0d8ca">
+          <button style="width:100%;padding:14px;border-radius:14px;border:1.5px solid #2c7a6e;background:transparent;color:#2c7a6e;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Share with teacher</button>
+        </div>
+      </div>
+      <div class="phone-label">Parent shell — /parent/skills/:id</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Teacher -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 19 / Tab 3: Teacher mobile shell</strong>
+    Font: Sora. BG: #f0f4f8. Top bar: back arrow + title + optional action (white bg, 1px #dde4ec border). Tab strip for sub-views: horizontally scrollable, no wrap. Active tab: blue underline #2a6ab4. Bottom nav: 4 tabs. Scroll zone between tab strip and bottom nav. Support queue / skill rows are full-width inside scroll zone.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone teacher-shell">
+        <div class="teacher-topbar">
+          <div class="teacher-title">Ms. Rivera's Class</div>
+          <div style="display:flex;gap:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#e8eef4;display:flex;align-items:center;justify-content:center;font-size:14px">🔔</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:#2a6ab4;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:700">R</div>
+          </div>
+        </div>
+        <div class="teacher-tab-strip">
+          <div class="t-tab active">Overview</div>
+          <div class="t-tab">Skills</div>
+          <div class="t-tab">Support Queue</div>
+          <div class="t-tab">Progress</div>
+        </div>
+        <div class="teacher-scroll">
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Class summary cards</div>
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Student rows</div>
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Skill breakdown</div>
+        </div>
+        <div class="teacher-bottom-nav">
+          <div class="tbn-item active"><div class="tbn-icon">🏠</div><div class="tbn-label" style="color:#2a6ab4">Home</div></div>
+          <div class="tbn-item"><div class="tbn-icon">📊</div><div class="tbn-label">Class</div></div>
+          <div class="tbn-item"><div class="tbn-icon">🎯</div><div class="tbn-label">Support</div></div>
+          <div class="tbn-item"><div class="tbn-icon">⚙️</div><div class="tbn-label">Settings</div></div>
+        </div>
+      </div>
+      <div class="phone-label">Teacher shell — /teacher</div>
+    </div>
+    <div>
+      <div class="phone teacher-shell">
+        <div class="teacher-topbar">
+          <div class="teacher-back">←</div>
+          <div class="teacher-title">Counting Skills</div>
+          <div style="font-size:12px;font-weight:700;color:#2a6ab4;cursor:pointer">Export</div>
+        </div>
+        <div class="teacher-scroll">
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Skill drilldown header</div>
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Student tier rows</div>
+          <div class="ph-block-light" style="background:rgba(42,106,180,0.05);border:1px solid rgba(42,106,180,0.1)">Intervention notes</div>
+        </div>
+        <div style="padding:12px 20px 40px;background:#fff;border-top:1px solid #dde4ec">
+          <button style="width:100%;padding:14px;border-radius:14px;border:none;background:#2a6ab4;color:#fff;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Add intervention note</button>
+        </div>
+      </div>
+      <div class="phone-label">Teacher shell — /teacher/skills/:id</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Owner -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 19 / Tab 4: Owner mobile shell</strong>
+    Font: Sora. BG: #0d1117. Top bar: #161b22 with 1px #21262d border. Tab strip: same dark bg, blue active indicator #58a6ff. Red badge on Triage tab when alerts exist. Bottom nav: dark, 4 tabs. Safe area: 34px bottom. No floating FAB. Critical alert banner lives between top bar and tab strip (not inside scroll zone).
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone owner-shell">
+        <div class="owner-topbar">
+          <div class="owner-title">WonderQuest Console</div>
+          <div style="display:flex;gap:8px">
+            <div style="width:32px;height:32px;border-radius:50%;background:#21262d;display:flex;align-items:center;justify-content:center;font-size:13px">🔔</div>
+            <div style="width:32px;height:32px;border-radius:50%;background:#58a6ff;display:flex;align-items:center;justify-content:center;font-size:13px;color:#0d1117;font-weight:800">A</div>
+          </div>
+        </div>
+        <!-- Alert banner slot -->
+        <div style="background:#5c1f1f;border-bottom:1px solid #8b2020;padding:8px 16px;display:flex;align-items:center;gap:8px">
+          <div style="font-size:12px">🔴</div>
+          <div style="font-size:11px;font-weight:700;color:#fca5a5;flex:1">2 critical content flags need attention</div>
+          <div style="font-size:11px;color:#f87171;font-weight:700;cursor:pointer">View →</div>
+        </div>
+        <div class="owner-tab-strip">
+          <div class="o-tab active">Overview</div>
+          <div class="o-tab">Triage<div class="o-badge">2</div></div>
+          <div class="o-tab">Routes</div>
+          <div class="o-tab">Users</div>
+        </div>
+        <div class="owner-scroll">
+          <div class="ph-block">KPI strip</div>
+          <div class="ph-block">Route health cards</div>
+          <div class="ph-block">Queue summary</div>
+        </div>
+        <div class="owner-bottom-nav">
+          <div class="obn-item active"><div class="obn-icon">📊</div><div class="obn-label" style="color:#58a6ff">Console</div></div>
+          <div class="obn-item"><div class="obn-icon">🚨</div><div class="obn-label">Triage</div></div>
+          <div class="obn-item"><div class="obn-icon">🗺</div><div class="obn-label">Routes</div></div>
+          <div class="obn-item"><div class="obn-icon">⚙️</div><div class="obn-label">Settings</div></div>
+        </div>
+      </div>
+      <div class="phone-label">Owner shell — /owner (with alert)</div>
+    </div>
+    <div>
+      <div class="phone owner-shell">
+        <div class="owner-topbar">
+          <div style="font-size:18px;color:#8a9aaa;cursor:pointer;margin-right:4px">←</div>
+          <div class="owner-title" style="flex:1">Triage: Flag #142</div>
+        </div>
+        <div class="owner-scroll">
+          <div class="ph-block">Triage item detail</div>
+          <div class="ph-block">Activity timeline</div>
+          <div class="ph-block">Resolution controls</div>
+        </div>
+        <div style="padding:12px 20px 40px;background:#161b22;border-top:1px solid #21262d;display:flex;gap:8px">
+          <button style="flex:1;padding:14px;border-radius:12px;border:1.5px solid #3a4a5a;background:transparent;color:#8a9aaa;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Escalate</button>
+          <button style="flex:1;padding:14px;border-radius:12px;border:none;background:#58a6ff;color:#0d1117;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Resolve</button>
+        </div>
+      </div>
+      <div class="phone-label">Owner shell — /owner/triage/:id</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Shell spec -->
+<div class="panel" id="t5">
+  <div class="eng-note"><strong>Engineering note — Priority 19 / Tab 5: Shell spec rules</strong>
+    Implementation reference — token values and layout rules for all 4 route shells. Use route-scoped CSS classes (child-shell, parent-shell, teacher-shell, owner-shell) on the body or root route element. Safe area handling via env(safe-area-inset-bottom) with fallbacks.
+  </div>
+  <div class="spec-wrap">
+    <div class="spec-h">Mobile Route Shell Spec</div>
+    <div class="spec-grid">
+      <div class="spec-card">
+        <div class="spec-card-title">Child Shell — /child /play</div>
+        <div class="spec-row"><div class="spec-key">Background</div><div class="spec-val">#100b2e (or route variant)</div></div>
+        <div class="spec-row"><div class="spec-key">Font</div><div class="spec-val">Nunito, 700/800/900</div></div>
+        <div class="spec-row"><div class="spec-key">Top bar height</div><div class="spec-val">52px safe-area + 50px content = 102px total</div></div>
+        <div class="spec-row"><div class="spec-key">Bottom nav</div><div class="spec-val">None — sticky CTA only</div></div>
+        <div class="spec-row"><div class="spec-key">Safe area bottom</div><div class="spec-val">env(safe-area-inset-bottom, 34px)</div></div>
+        <div class="spec-row"><div class="spec-key">Sticky CTA</div><div class="spec-val">Gradient overlay + 16px → border-radius: 18px, padding 16px</div></div>
+        <div class="spec-row"><div class="spec-key">Scroll</div><div class="spec-val">Between topbar and sticky CTA. overflow-y: auto</div></div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-title">Parent Shell — /parent</div>
+        <div class="spec-row"><div class="spec-key">Background</div><div class="spec-val">#f5f0e8</div></div>
+        <div class="spec-row"><div class="spec-key">Font</div><div class="spec-val">Sora, 400/600/700</div></div>
+        <div class="spec-row"><div class="spec-key">Top bar height</div><div class="spec-val">52px safe-area + 48px content = 100px</div></div>
+        <div class="spec-row"><div class="spec-key">Bottom nav</div><div class="spec-val">4 tabs: Home / Skills / Family / Settings</div></div>
+        <div class="spec-row"><div class="spec-key">Nav bg</div><div class="spec-val">#fff, border-top: 1px #e0d8ca</div></div>
+        <div class="spec-row"><div class="spec-key">Nav height</div><div class="spec-val">50px + safe-area-inset-bottom</div></div>
+        <div class="spec-row"><div class="spec-key">Active tab color</div><div class="spec-val">#2c7a6e</div></div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-title">Teacher Shell — /teacher</div>
+        <div class="spec-row"><div class="spec-key">Background</div><div class="spec-val">#f0f4f8</div></div>
+        <div class="spec-row"><div class="spec-key">Font</div><div class="spec-val">Sora, 400/600/700</div></div>
+        <div class="spec-row"><div class="spec-key">Top bar bg</div><div class="spec-val">#fff, border: 1px #dde4ec</div></div>
+        <div class="spec-row"><div class="spec-key">Tab strip</div><div class="spec-val">Horizontal scroll, #fff bg, active: 2px #2a6ab4 underline</div></div>
+        <div class="spec-row"><div class="spec-key">Bottom nav</div><div class="spec-val">4 tabs: Home / Class / Support / Settings</div></div>
+        <div class="spec-row"><div class="spec-key">Active color</div><div class="spec-val">#2a6ab4</div></div>
+        <div class="spec-row"><div class="spec-key">Action footer</div><div class="spec-val">White bg, 1px #dde4ec top border, 40px safe area</div></div>
+      </div>
+      <div class="spec-card">
+        <div class="spec-card-title">Owner Shell — /owner</div>
+        <div class="spec-row"><div class="spec-key">Background</div><div class="spec-val">#0d1117</div></div>
+        <div class="spec-row"><div class="spec-key">Font</div><div class="spec-val">Sora, 400/600/700</div></div>
+        <div class="spec-row"><div class="spec-key">Top bar bg</div><div class="spec-val">#161b22, border: 1px #21262d</div></div>
+        <div class="spec-row"><div class="spec-key">Alert banner slot</div><div class="spec-val">Between top bar and tab strip — red bg #5c1f1f when active, hidden when clear</div></div>
+        <div class="spec-row"><div class="spec-key">Tab strip</div><div class="spec-val">#161b22 bg, active: 2px #58a6ff underline + color #58a6ff</div></div>
+        <div class="spec-row"><div class="spec-key">Triage badge</div><div class="spec-val">Red dot #f85149 on tab when queue > 0</div></div>
+        <div class="spec-row"><div class="spec-key">Bottom nav</div><div class="spec-val">4 tabs: Console / Triage / Routes / Settings</div></div>
+        <div class="spec-row"><div class="spec-key">Active color</div><div class="spec-val">#58a6ff</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

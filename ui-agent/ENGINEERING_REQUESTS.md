@@ -1062,3 +1062,134 @@ Important:
   - none
 - notes for engineering:
   - these requests are active now; do not wait for another prompt before starting them
+
+### 2026-03-22 — Priorities 17–28 complete
+
+- completed: Priority 17 (child quickstart v2), Priority 18 (parent summary rail), Priority 19 (mobile route shells), Priority 20 (child return + rewards v2), Priority 21 (teacher intervention queue), Priority 22 (owner alert queue v2), Priority 23 (child pre-reader quickstart), Priority 24 (play answer cards v2), Priority 25 (parent mobile snapshot), Priority 26 (play session complete v2), Priority 27 (teacher mobile drilldown), Priority 28 (owner KPI strip v2)
+- added files:
+  - `child-quickstart-v2.html` — 4 tabs: new/returning split screen, progressive reveal (band→avatar→name→PIN), returning quick path with quest resume card, sticky CTA spec; route: /child
+  - `parent-summary-rail.html` — 4 tabs: active child summary rail (KPIs + status + what changed + try at home + weekly bars), child switcher inline expand, weekly signal row + day tooltip, mobile 375px; route: /parent
+  - `mobile-route-shells.html` — 5 tabs: child shell (Nunito, dark cosmic, sticky CTA, no bottom nav), parent shell (Sora, warm light, 4-tab bottom nav), teacher shell (Sora, cool steel, tab strip + bottom nav), owner shell (Sora, dark ops, alert banner slot + tab strip), shell spec table with all token values and layout rules
+  - `child-return-rewards-v2.html` — 4 tabs: welcome back (3 variants: after break / quick pick-up / gentle come-back), badge earned + level-up with burst rings, trophy earned + collection view (locked desaturated, no spoilers), session complete great + short — zero accuracy numbers throughout
+  - `teacher-intervention-queue.html` — 4 tabs: intervention queue (left/right split, support→watch→strong tiers, drilldown panel with timeline + next actions), skill drilldown connected to queue, class-level skill overview table, mobile 390px queue rows
+  - `owner-alert-queue-v2.html` — 4 tabs: alert banner system (4 severity levels, stacking rules, dismiss rules), triage queue rows (severity bar + detail panel + timeline + action row), route + content health snapshot (bar chart per route/content area), mobile 390px
+  - `child-prereader-quickstart.html` — 4 tabs: launch strip (big tap cards, new vs returning), new child entry (character grid → name + PIN, 3 steps only), returning fast-entry (PIN gate, wrong PIN friendly error), minimal helper copy (icon-only grid for non-English contexts)
+  - `play-answer-cards-v2.html` — 5 tabs: counting cards (emoji dot objects + number, 2×2 and 2×1 grids), letter/phonics cards (large letter + picture-word), shape cards (SVG inline, brand colors on correct), picture-word cards (emoji primary, word secondary, phonetic hint), shared state reference (default/selected/correct/retry — no lockout, no accuracy %)
+  - `parent-mobile-snapshot.html` — 4 tabs: child summary rail (child switcher chip strip, KPI stack, status line, what changed, try at home), time + effective time + support + next step stack, quick-switch children (inline swap, no modal), action footer variants (2 CTAs max, context-aware primary)
+  - `play-session-complete-v2.html` — 4 tabs: main celebration (confetti, star pop, stats, play again + done for now), continue tomorrow (quest saved card, positive forward framing), replay/new quest choice (two quest cards), low-stimulation bedtime variant (no confetti, float only, gentle teal)
+  - `teacher-mobile-drilldown.html` — 4 tabs: skill drilldown header (5-week mini chart, distribution chips, tier rows), student detail push screen (trend + notes), intervention note stack (add note bottom sheet), what to do next + action footer
+  - `owner-kpi-strip-v2.html` — 5 tabs: KPI strip + triage + health grid (6 cells, status dots, delta badges), empty triage queue all-clear state, warning alert strip (amber, dismissible, named route/content), critical alert strip (red, non-dismissible, pulsing status dot), mobile 390px (3×2 KPI grid + alert banners + queue rows + empty state)
+- current focus: polling for next engineering requests
+- blockers: none
+- notes for engineering:
+  - `child-quickstart-v2.html` — band defaults to P0 (Pre-K) for pre-reader flow; parent can change from settings; progressive reveal collapses prior steps to summary chips
+  - `parent-summary-rail.html` — "effective time" = sessions with strong engagement (not idle time); weekly bars show engagement level not accuracy; no missed-day framing anywhere
+  - `mobile-route-shells.html` — shell spec table (Tab 5) has all token values, safe-area rules, and nav heights; use route-scoped CSS classes on body/root element
+  - `child-return-rewards-v2.html` — all overlays: auto-dismiss 2.5–3s or on tap; never interrupt mid-question; zero accuracy numbers and zero missed-day counts by design
+  - `play-answer-cards-v2.html` — shape cards use inline SVG not emoji for clean scaling; retry state has no lockout — child can tap again immediately; correct/retry animation specs in Tab 5
+  - `play-session-complete-v2.html` — low-stimulation variant triggered by time-of-day (8pm+), session length &lt;5min, or parent preference toggle; pairs with child-return-rewards-v2.html
+  - `owner-kpi-strip-v2.html` — critical alert strip: non-dismissible until triage item resolved; 15min unacknowledged → push notification; critical KPI cells pulse via CSS animation; pairs with owner-alert-queue-v2.html
+
+## After Priorities 29–31
+
+Use the newly completed files as inputs. The next work is no longer isolated
+state exploration; it is route-lift packaging for engineering.
+
+### Priority 29: Home Route Canonical Lift
+
+Engineering is porting `/` next and needs one canonical reference that merges
+the best parts of:
+
+- `home-launcher-refined.html`
+- `landing-page.html`
+- `audience-backgrounds.html`
+- `mobile-route-shells.html`
+
+Please design:
+
+- one final home route desktop state
+- one final home route mobile state
+- child-first cosmic hero
+- launcher cards for parent / teacher / owner
+- live-status strip
+- trust / safety strip
+
+Suggested deliverable:
+
+- `home-route-canonical-v2.html`
+
+Important:
+
+- this should be the single source of truth for `/`
+- child CTA first, parent second, teacher third, owner last
+- preserve strong audience separation without turning home into a dashboard
+
+### Priority 30: Parent Route Canonical Lift
+
+Engineering needs one consolidated parent route target that combines:
+
+- `parent-family-center.html`
+- `parent-summary-rail.html`
+- `parent-mobile-snapshot.html`
+- `parent-access-manager.html`
+- `parent-settings.html`
+
+Please design:
+
+- one canonical parent dashboard desktop state
+- one canonical parent dashboard mobile state
+- linked-child switcher
+- summary rail
+- support / strengths / next step stack
+- access manager entry point
+
+Suggested deliverable:
+
+- `parent-route-canonical-v2.html`
+
+Important:
+
+- this should feel like one coherent route, not separate partial mocks
+- keep it calm and immediately useful
+- answer: how is my child doing, what changed, what next
+
+### Priority 31: Child Play Canonical Lift
+
+Engineering needs one consolidated early-learner play reference that combines:
+
+- `play-early-learner.html`
+- `play-answer-cards-v2.html`
+- `play-session-complete-v2.html`
+- `child-return-rewards-v2.html`
+- `play-voice-coach.html`
+
+Please design:
+
+- one canonical child play desktop state set
+- one canonical child play mobile state set
+- prompt / scene / answer card / coach / retry / celebration integration
+- one K1-friendly state and one PREK-friendly state
+
+Suggested deliverable:
+
+- `play-route-canonical-v2.html`
+
+Important:
+
+- this should be the single source of truth for `/play`
+- keep reading burden low
+- make the route feel complete, not like stitched-together states
+
+### 2026-03-22 09:55 CDT
+- completed:
+  - engineering received and verified priorities 17 through 28
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `home-route-canonical-v2.html`
+  - `parent-route-canonical-v2.html`
+  - `play-route-canonical-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - these are active now; use the already completed files as source material and do not wait for another prompt

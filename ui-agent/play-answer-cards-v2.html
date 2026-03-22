@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Answer Cards v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Nunito',sans-serif;background:#08061a;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#06041a;flex-wrap:wrap;border-bottom:1px solid #1a1440}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #2a1f6e;background:transparent;color:#9b8fd4;cursor:pointer;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;transition:all .2s}
+  .tab.active{background:#4c2fad;border-color:#7b56e8;color:#fff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#1a1400;border:1px solid #3d2f00;border-left:3px solid #ffd166;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#c8a84b;line-height:1.6}
+  .eng-note strong{color:#ffd166;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .phone{width:390px;min-height:844px;background:#100b2e;border-radius:40px;border:2px solid #2a1f6e;overflow:hidden;box-shadow:0 0 60px rgba(76,47,173,0.3);display:flex;flex-direction:column;position:relative}
+  .phone-label{text-align:center;margin-top:10px;font-size:12px;color:#5a4a8a;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* BG */
+  .bg{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(155,114,255,0.2) 0%,transparent 60%),#100b2e;z-index:0}
+  .inner{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
+
+  /* Play top bar */
+  .play-bar{display:flex;align-items:center;justify-content:space-between;padding:44px 20px 12px;background:linear-gradient(180deg,rgba(76,47,173,0.3) 0%,transparent)}
+  .pb-back{font-size:18px;color:#5a4a8a;cursor:pointer}
+  .pb-progress{flex:1;margin:0 12px;height:8px;background:#1e1640;border-radius:4px;overflow:hidden}
+  .pb-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#6b3fdb,#9b72ff);transition:width .4s}
+  .pb-stars{font-size:13px;font-weight:800;color:#ffd166}
+
+  /* Prompt area */
+  .prompt-area{padding:16px 24px 8px;text-align:center}
+  .prompt-label{font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:1.5px;color:#5a4a8a;margin-bottom:8px}
+  .prompt-text{font-size:20px;font-weight:900;color:#e8e0ff;line-height:1.3;margin-bottom:4px}
+  .prompt-sub{font-size:13px;color:#7b69b8;font-weight:700}
+  .prompt-visual{font-size:80px;margin:8px 0}
+
+  /* Card grids */
+  .card-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:8px 20px 16px}
+  .card-grid-4{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:8px 20px 16px}
+  .card-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;padding:8px 16px 16px}
+
+  /* Base card */
+  .acard{border-radius:20px;padding:16px 10px;text-align:center;cursor:pointer;border:2.5px solid rgba(155,114,255,0.2);background:rgba(155,114,255,0.05);transition:all .2s;position:relative;overflow:hidden}
+  .acard:hover{border-color:rgba(155,114,255,0.5);background:rgba(155,114,255,0.1)}
+
+  /* States */
+  .acard.selected{border-color:#9b72ff;background:rgba(155,114,255,0.18);box-shadow:0 0 16px rgba(155,114,255,0.3)}
+  .acard.correct{border-color:#58e8c1;background:rgba(88,232,193,0.12);box-shadow:0 0 16px rgba(88,232,193,0.3);animation:correctPop .3s ease}
+  .acard.retry{border-color:#ff7b6b;background:rgba(255,123,107,0.08)}
+  .acard.disabled{opacity:.35;pointer-events:none}
+
+  @keyframes correctPop{0%{transform:scale(1)}50%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+  /* Counting card */
+  .count-objects{display:flex;flex-wrap:wrap;justify-content:center;gap:4px;margin:6px 0 8px;min-height:48px;align-content:center}
+  .count-dot{font-size:20px}
+  .count-label{font-size:22px;font-weight:900;color:#e8e0ff;margin-top:4px}
+  .count-sublabel{font-size:11px;font-weight:700;color:#7b69b8;margin-top:2px}
+
+  /* Letter card */
+  .letter-big{font-size:52px;font-weight:900;color:#e8e0ff;line-height:1;margin:4px 0}
+  .letter-word{font-size:12px;font-weight:800;color:#7b69b8;margin-top:2px}
+  .letter-img{font-size:28px;margin-top:2px}
+
+  /* Shape card */
+  .shape-svg{margin:8px auto;display:block}
+  .shape-label{font-size:13px;font-weight:800;color:#e8e0ff;margin-top:4px}
+
+  /* Picture-word card */
+  .pw-img{font-size:44px;margin-bottom:6px;display:block}
+  .pw-word{font-size:16px;font-weight:900;color:#e8e0ff;letter-spacing:.5px}
+  .pw-phonetic{font-size:10px;font-weight:700;color:#7b69b8;margin-top:2px}
+
+  /* State indicators */
+  .correct-check{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:#58e8c1;display:flex;align-items:center;justify-content:center;font-size:12px}
+  .retry-x{position:absolute;top:8px;right:8px;width:22px;height:22px;border-radius:50%;background:rgba(255,123,107,0.3);display:flex;align-items:center;justify-content:center;font-size:12px;color:#ff7b6b}
+  .try-again-banner{background:rgba(255,123,107,0.1);border:1.5px solid rgba(255,123,107,0.25);border-radius:12px;padding:10px 14px;margin:0 20px 10px;text-align:center;font-size:13px;font-weight:800;color:#ff7b6b}
+  .correct-banner{background:rgba(88,232,193,0.1);border:1.5px solid rgba(88,232,193,0.3);border-radius:12px;padding:10px 14px;margin:0 20px 10px;text-align:center;font-size:14px;font-weight:900;color:#58e8c1}
+
+  /* CTA */
+  .play-cta{padding:8px 20px 40px}
+  .cta-btn{width:100%;padding:17px;border-radius:18px;border:none;background:linear-gradient(135deg,#6b3fdb,#9b72ff);color:#fff;font-family:'Nunito',sans-serif;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 4px 20px rgba(107,63,219,0.45)}
+  .cta-btn.green{background:linear-gradient(135deg,#1a5c3a,#58e8c1);color:#0a2018;box-shadow:0 4px 20px rgba(88,232,193,0.3)}
+  .cta-btn:disabled,.cta-btn.dim{opacity:.4;pointer-events:none}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">Counting Cards</button>
+  <button class="tab" onclick="show('t2',this)">Letter / Phonics Cards</button>
+  <button class="tab" onclick="show('t3',this)">Shape Cards</button>
+  <button class="tab" onclick="show('t4',this)">Picture-Word Cards</button>
+  <button class="tab" onclick="show('t5',this)">States: Selected / Correct / Retry</button>
+</div>
+
+<!-- TAB 1: Counting cards -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 24 / Tab 1: Counting answer cards</strong>
+    Counting cards show objects visually (emoji dots) + a number below. Labels are secondary to the visual. Card sizes: 2×2 grid for 4 options, or 2×1 for 2 options. Object emojis scale with count: small counts use larger dots. Zero accuracy percentage anywhere. Correct state: green border + checkmark. Retry state: soft red border + shake animation, NO lockout — child can try again immediately.
+  </div>
+  <div class="frame-wrap">
+    <!-- 4-option counting -->
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:40%"></div></div>
+            <div class="pb-stars">⭐ 6</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Counting</div>
+            <div class="prompt-visual">🍎🍎🍎🍎🍎🍎🍎</div>
+            <div class="prompt-text">How many apples?</div>
+          </div>
+          <div class="card-grid-2">
+            <div class="acard">
+              <div class="count-objects"><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span></div>
+              <div class="count-label">5</div>
+            </div>
+            <div class="acard selected">
+              <div class="count-objects"><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span></div>
+              <div class="count-label">7</div>
+            </div>
+            <div class="acard">
+              <div class="count-objects"><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span></div>
+              <div class="count-label">6</div>
+            </div>
+            <div class="acard">
+              <div class="count-objects"><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span><span class="count-dot">🔵</span></div>
+              <div class="count-label">8</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn">Check my answer ✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Counting — 4 options</div>
+    </div>
+    <!-- 2-option counting (early learner) -->
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:20%"></div></div>
+            <div class="pb-stars">⭐ 2</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Counting</div>
+            <div class="prompt-visual">⭐⭐⭐</div>
+            <div class="prompt-text">How many stars?</div>
+          </div>
+          <div class="card-grid-2" style="gap:16px;padding:12px 24px 20px">
+            <div class="acard correct" style="padding:24px 10px">
+              <div class="correct-check">✓</div>
+              <div class="count-objects"><span class="count-dot" style="font-size:26px">⭐</span><span class="count-dot" style="font-size:26px">⭐</span><span class="count-dot" style="font-size:26px">⭐</span></div>
+              <div class="count-label" style="font-size:28px;color:#58e8c1">3</div>
+            </div>
+            <div class="acard disabled">
+              <div class="count-objects"><span class="count-dot" style="font-size:26px">⭐</span><span class="count-dot" style="font-size:26px">⭐</span></div>
+              <div class="count-label" style="font-size:28px">2</div>
+            </div>
+          </div>
+          <div class="correct-banner">🌟 Yes! Three stars!</div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn green">Next question →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Counting — 2 options, correct state</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Letter / Phonics -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 24 / Tab 2: Letter / phonics answer cards</strong>
+    Letter cards show the letter LARGE, with a picture-word below (B = 🐻 Bear). Phonics cards show the sound emphasis visually. 2×2 grid for 4 options. Card height: at least 110px for comfortable tap target. Letter is the primary visual — not just text. Word + picture reinforce the letter below the letter.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:60%"></div></div>
+            <div class="pb-stars">⭐ 9</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Letters</div>
+            <div class="prompt-visual">🐻</div>
+            <div class="prompt-text">Bear starts with which letter?</div>
+          </div>
+          <div class="card-grid-2">
+            <div class="acard">
+              <div class="letter-big">D</div>
+              <div class="letter-img">🦆</div>
+              <div class="letter-word">Duck</div>
+            </div>
+            <div class="acard selected">
+              <div class="letter-big" style="color:#9b72ff">B</div>
+              <div class="letter-img">🐻</div>
+              <div class="letter-word">Bear</div>
+            </div>
+            <div class="acard">
+              <div class="letter-big">P</div>
+              <div class="letter-img">🐧</div>
+              <div class="letter-word">Penguin</div>
+            </div>
+            <div class="acard">
+              <div class="letter-big">C</div>
+              <div class="letter-img">🐱</div>
+              <div class="letter-word">Cat</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn">Check my answer ✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Letter cards — 4 options</div>
+    </div>
+    <!-- Phonics sound match -->
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:75%"></div></div>
+            <div class="pb-stars">⭐ 11</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Sounds</div>
+            <div style="font-size:32px;font-weight:900;color:#9b72ff;margin:8px 0;letter-spacing:2px">"sss…"</div>
+            <div class="prompt-text">Which picture starts with S?</div>
+            <div class="prompt-sub">Tap the one that says "sss"</div>
+          </div>
+          <div class="card-grid-2">
+            <div class="acard retry">
+              <div class="retry-x">✕</div>
+              <div style="font-size:44px;margin-bottom:6px">🌙</div>
+              <div style="font-size:14px;font-weight:800;color:#e8e0ff">Moon</div>
+            </div>
+            <div class="acard correct">
+              <div class="correct-check">✓</div>
+              <div style="font-size:44px;margin-bottom:6px">⭐</div>
+              <div style="font-size:14px;font-weight:800;color:#58e8c1">Star</div>
+            </div>
+            <div class="acard disabled">
+              <div style="font-size:44px;margin-bottom:6px">🐧</div>
+              <div style="font-size:14px;font-weight:800;color:#e8e0ff">Penguin</div>
+            </div>
+            <div class="acard disabled">
+              <div style="font-size:44px;margin-bottom:6px">🐻</div>
+              <div style="font-size:14px;font-weight:800;color:#e8e0ff">Bear</div>
+            </div>
+          </div>
+          <div class="correct-banner">✨ Star! S says "sss"!</div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn green">Next question →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Phonics — correct state</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Shape cards -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 24 / Tab 3: Shape answer cards</strong>
+    Shapes are rendered as SVG inline — not emoji, not images — so they scale cleanly and can be filled with brand colors. Card shows shape + label below. 3-option or 4-option grids. Shape fill uses band color on selected/correct state. Retry state shows shape outline only (desaturated). Never show "Wrong" — just let child tap again.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:50%"></div></div>
+            <div class="pb-stars">⭐ 7</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Shapes</div>
+            <div class="prompt-visual">🔵</div>
+            <div class="prompt-text">Tap the circle!</div>
+          </div>
+          <div class="card-grid-3">
+            <div class="acard">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><rect x="8" y="8" width="44" height="44" fill="rgba(155,114,255,0.3)" stroke="#9b72ff" stroke-width="2.5" rx="4"/></svg>
+              <div class="shape-label">Square</div>
+            </div>
+            <div class="acard correct">
+              <div class="correct-check">✓</div>
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="rgba(88,232,193,0.3)" stroke="#58e8c1" stroke-width="2.5"/></svg>
+              <div class="shape-label" style="color:#58e8c1">Circle</div>
+            </div>
+            <div class="acard disabled">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><polygon points="30,8 52,50 8,50" fill="rgba(255,209,102,0.15)" stroke="#5a4a3a" stroke-width="2.5"/></svg>
+              <div class="shape-label">Triangle</div>
+            </div>
+          </div>
+          <div class="card-grid-3">
+            <div class="acard disabled">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><rect x="5" y="15" width="50" height="30" fill="rgba(155,114,255,0.1)" stroke="#3a2a5a" stroke-width="2.5" rx="4"/></svg>
+              <div class="shape-label">Rectangle</div>
+            </div>
+            <div class="acard disabled">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><polygon points="30,8 52,28 44,52 16,52 8,28" fill="rgba(255,123,107,0.1)" stroke="#3a2a5a" stroke-width="2.5"/></svg>
+              <div class="shape-label">Pentagon</div>
+            </div>
+            <div class="acard disabled">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><polygon points="30,6 36,22 54,22 40,34 46,52 30,40 14,52 20,34 6,22 24,22" fill="rgba(255,209,102,0.1)" stroke="#3a2a5a" stroke-width="2.5"/></svg>
+              <div class="shape-label">Star</div>
+            </div>
+          </div>
+          <div class="correct-banner">🌟 Circle! Round like the sun!</div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn green">Next question →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Shape cards — correct state</div>
+    </div>
+    <!-- Retry state -->
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:50%"></div></div>
+            <div class="pb-stars">⭐ 7</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Shapes</div>
+            <div class="prompt-visual">🔷</div>
+            <div class="prompt-text">Tap the triangle!</div>
+          </div>
+          <div class="card-grid-3">
+            <div class="acard retry" style="animation:shake .3s ease">
+              <div class="retry-x">✕</div>
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><rect x="8" y="8" width="44" height="44" fill="rgba(255,123,107,0.15)" stroke="#ff7b6b" stroke-width="2.5" rx="4"/></svg>
+              <div class="shape-label" style="color:#ff7b6b">Square</div>
+            </div>
+            <div class="acard">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><circle cx="30" cy="30" r="22" fill="rgba(155,114,255,0.2)" stroke="#9b72ff" stroke-width="2.5"/></svg>
+              <div class="shape-label">Circle</div>
+            </div>
+            <div class="acard">
+              <svg class="shape-svg" width="60" height="60" viewBox="0 0 60 60"><polygon points="30,8 52,50 8,50" fill="rgba(255,209,102,0.2)" stroke="#ffd166" stroke-width="2.5"/></svg>
+              <div class="shape-label">Triangle</div>
+            </div>
+          </div>
+          <div class="try-again-banner">Hmm, try again! Look for the pointy one 👆</div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn dim">Check my answer ✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Shape cards — gentle retry state</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Picture-word cards -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 24 / Tab 4: Picture-word answer cards</strong>
+    Large picture (emoji) is primary. Word label below is secondary — smaller font. 2×2 grid. Phonetic hint optional below word (e.g. "kuh-AT" for CAT). For pre-readers: picture carries more weight than word. For K–1: word is readable and clear. Same correct/retry state rules apply — no lockout, no accuracy displayed.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:33%"></div></div>
+            <div class="pb-stars">⭐ 4</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Words</div>
+            <div style="font-size:28px;font-weight:900;color:#9b72ff;margin:8px 0;letter-spacing:2px">CAT</div>
+            <div class="prompt-text">Find the cat!</div>
+            <div class="prompt-sub">Tap the picture that matches</div>
+          </div>
+          <div class="card-grid-2">
+            <div class="acard">
+              <div class="pw-img">🐶</div>
+              <div class="pw-word">DOG</div>
+              <div class="pw-phonetic">duh-OG</div>
+            </div>
+            <div class="acard selected">
+              <div class="pw-img">🐱</div>
+              <div class="pw-word" style="color:#9b72ff">CAT</div>
+              <div class="pw-phonetic">kuh-AT</div>
+            </div>
+            <div class="acard">
+              <div class="pw-img">🐭</div>
+              <div class="pw-word">MOUSE</div>
+              <div class="pw-phonetic">mow-SS</div>
+            </div>
+            <div class="acard">
+              <div class="pw-img">🐸</div>
+              <div class="pw-word">FROG</div>
+              <div class="pw-phonetic">frr-OG</div>
+            </div>
+          </div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn">Check my answer ✓</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Picture-word — 4 options</div>
+    </div>
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div class="play-bar">
+            <div class="pb-back">←</div>
+            <div class="pb-progress"><div class="pb-fill" style="width:66%"></div></div>
+            <div class="pb-stars">⭐ 10</div>
+          </div>
+          <div class="prompt-area">
+            <div class="prompt-label">Words</div>
+            <div style="font-size:28px;font-weight:900;color:#ffd166;margin:8px 0;letter-spacing:2px">SUN</div>
+            <div class="prompt-text">Where is the sun?</div>
+          </div>
+          <div class="card-grid-2">
+            <div class="acard correct">
+              <div class="correct-check">✓</div>
+              <div class="pw-img">☀️</div>
+              <div class="pw-word" style="color:#58e8c1">SUN</div>
+            </div>
+            <div class="acard disabled">
+              <div class="pw-img">🌙</div>
+              <div class="pw-word">MOON</div>
+            </div>
+            <div class="acard disabled">
+              <div class="pw-img">⭐</div>
+              <div class="pw-word">STAR</div>
+            </div>
+            <div class="acard disabled">
+              <div class="pw-img">🌈</div>
+              <div class="pw-word">RAINBOW</div>
+            </div>
+          </div>
+          <div class="correct-banner">☀️ Yes! That's the sun!</div>
+          <div style="flex:1"></div>
+          <div class="play-cta">
+            <button class="cta-btn green">Next question →</button>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">Picture-word — correct state</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: States -->
+<div class="panel" id="t5">
+  <div class="eng-note"><strong>Engineering note — Priority 24 / Tab 5: Shared card states</strong>
+    All 4 card types share the same 4 states: (1) Default — neutral purple border. (2) Selected — darker purple border + subtle bg glow. (3) Correct — green border + green checkmark badge + correctPop animation. (4) Retry — soft red border + ✕ badge + try-again banner below prompt — never say "wrong", never lock out. Cards not selected = disabled (opacity .35) after answer is confirmed. No accuracy % ever shown.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="phone">
+        <div class="bg"></div>
+        <div class="inner">
+          <div style="padding:44px 20px 16px;text-align:center">
+            <div style="font-size:16px;font-weight:900;color:#e8e0ff;margin-bottom:4px">Card state reference</div>
+            <div style="font-size:12px;color:#7b69b8;font-weight:700">All card types use these 4 states</div>
+          </div>
+          <div class="card-grid-2" style="gap:16px;padding:8px 24px 20px">
+            <!-- Default -->
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#5a4a8a;margin-bottom:8px;text-align:center">Default</div>
+              <div class="acard" style="padding:20px 10px">
+                <div style="font-size:36px;margin-bottom:6px">🐱</div>
+                <div style="font-size:15px;font-weight:900;color:#e8e0ff">CAT</div>
+              </div>
+            </div>
+            <!-- Selected -->
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#9b72ff;margin-bottom:8px;text-align:center">Selected</div>
+              <div class="acard selected" style="padding:20px 10px">
+                <div style="font-size:36px;margin-bottom:6px">🐱</div>
+                <div style="font-size:15px;font-weight:900;color:#9b72ff">CAT</div>
+              </div>
+            </div>
+            <!-- Correct -->
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#58e8c1;margin-bottom:8px;text-align:center">Correct ✓</div>
+              <div class="acard correct" style="padding:20px 10px">
+                <div class="correct-check">✓</div>
+                <div style="font-size:36px;margin-bottom:6px">🐱</div>
+                <div style="font-size:15px;font-weight:900;color:#58e8c1">CAT</div>
+              </div>
+            </div>
+            <!-- Retry -->
+            <div>
+              <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#ff7b6b;margin-bottom:8px;text-align:center">Retry (no lockout)</div>
+              <div class="acard retry" style="padding:20px 10px">
+                <div class="retry-x">✕</div>
+                <div style="font-size:36px;margin-bottom:6px">🐱</div>
+                <div style="font-size:15px;font-weight:900;color:#ff7b6b">CAT</div>
+              </div>
+            </div>
+          </div>
+          <div style="margin:0 20px 16px;background:#1e1640;border-radius:14px;padding:14px 16px">
+            <div style="font-size:11px;color:#7b69b8;font-weight:700;line-height:1.7">
+              <div style="font-weight:900;color:#e8e0ff;margin-bottom:6px">State rules</div>
+              • Retry → cards remain tappable, try again immediately<br>
+              • Correct → all other cards go to disabled (opacity .35)<br>
+              • Never show accuracy % in any state<br>
+              • correctPop: scale 1→1.06→1 over 300ms<br>
+              • Retry shake: translateX ±4px 3 times over 300ms<br>
+              • CTA button: disabled until a card is selected
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="phone-label">State reference</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

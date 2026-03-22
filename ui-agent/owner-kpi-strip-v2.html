@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner KPI Strip v2 — WonderQuest</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#06090d;color:#c9d1d9;min-height:100vh}
+  .tabs{display:flex;gap:8px;padding:14px;background:#040608;flex-wrap:wrap;border-bottom:1px solid #161b22}
+  .tab{padding:8px 16px;border-radius:20px;border:1px solid #21262d;background:transparent;color:#5a7a9a;cursor:pointer;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;transition:all .2s}
+  .tab.active{background:#1f3a5c;border-color:#58a6ff;color:#58a6ff}
+  .panel{display:none}.panel.active{display:block}
+  .eng-note{background:#0d1117;border:1px solid #30200a;border-left:3px solid #ffd166;border-radius:8px;padding:14px 16px;margin:20px;font-size:12px;color:#c8a84b;line-height:1.6}
+  .eng-note strong{color:#ffd166;display:block;margin-bottom:4px}
+  .frame-wrap{display:flex;justify-content:center;align-items:flex-start;padding:24px 16px;gap:32px;flex-wrap:wrap}
+  .desktop{width:860px;background:#0d1117;border-radius:12px;border:1px solid #21262d;overflow:hidden;box-shadow:0 4px 32px rgba(0,0,0,.5)}
+  .phone{width:390px;min-height:844px;background:#0d1117;border-radius:40px;border:2px solid #21262d;overflow:hidden;box-shadow:0 0 40px rgba(0,0,0,.6);display:flex;flex-direction:column}
+  .desktop-label,.phone-label{text-align:center;margin-top:10px;font-size:12px;color:#4a6a8a;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+
+  /* KPI strip */
+  .kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:0;background:#161b22;border-bottom:1px solid #21262d}
+  .kpi-cell{padding:16px 14px;border-right:1px solid #21262d;text-align:center;position:relative}
+  .kpi-cell:last-child{border-right:none}
+  .kc-val{font-size:22px;font-weight:800;color:#e6edf3;line-height:1;margin-bottom:3px}
+  .kc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#4a6a8a;margin-bottom:3px}
+  .kc-delta{font-size:10px;font-weight:700;display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:8px}
+  .kc-delta.up{background:#0a2a1a;color:#3fb950}
+  .kc-delta.down{background:#2d0f0f;color:#f85149}
+  .kc-delta.flat{background:#161b22;color:#6a8aaa}
+  .kc-delta.warn{background:#2d1a00;color:#f59e0b}
+  .kc-status-dot{position:absolute;top:10px;right:10px;width:8px;height:8px;border-radius:50%}
+  .kc-status-dot.ok{background:#3fb950}
+  .kc-status-dot.warn{background:#f59e0b}
+  .kc-status-dot.crit{background:#f85149}
+
+  /* Section headers */
+  .section-header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:#0d1117;border-bottom:1px solid #21262d}
+  .sh-title{font-size:13px;font-weight:800;color:#e6edf3}
+  .sh-sub{font-size:11px;color:#4a6a8a;font-weight:500;margin-top:1px}
+  .sh-action{font-size:11px;font-weight:700;color:#58a6ff;cursor:pointer}
+
+  /* Triage rows */
+  .triage-row{display:flex;align-items:center;gap:10px;padding:13px 20px;border-bottom:1px solid #161b22;cursor:pointer;transition:background .15s}
+  .triage-row:hover{background:#161b22}
+  .tr-sev{width:3px;height:32px;border-radius:2px;flex-shrink:0}
+  .tr-sev.critical{background:#f85149}
+  .tr-sev.high{background:#f59e0b}
+  .tr-sev.ok{background:#3fb950}
+  .tr-icon{font-size:14px;flex-shrink:0}
+  .tr-meta{flex:1;min-width:0}
+  .tr-title{font-size:12px;font-weight:700;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tr-sub{font-size:10px;color:#6a8aaa;margin-top:1px}
+  .tr-time{font-size:10px;color:#4a6a8a;flex-shrink:0}
+  .tr-badge{font-size:9px;font-weight:800;padding:2px 7px;border-radius:8px;flex-shrink:0}
+  .tr-badge.critical{background:#3a0f0f;color:#f85149}
+  .tr-badge.high{background:#2d1a00;color:#f59e0b}
+  .tr-badge.ok{background:#0a2a1a;color:#3fb950}
+
+  /* Empty state */
+  .empty-state{padding:48px 32px;text-align:center}
+  .es-icon{font-size:48px;margin-bottom:14px}
+  .es-title{font-size:16px;font-weight:800;color:#3fb950;margin-bottom:6px}
+  .es-sub{font-size:13px;color:#4a6a8a;font-weight:500;line-height:1.5}
+  .es-meta{font-size:11px;color:#2a3a2a;margin-top:10px;font-weight:600}
+
+  /* Alert strips */
+  .alert-strip{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid}
+  .as-warn{background:#2d1f0a;border-color:#5c3a0a}
+  .as-crit{background:#2d0f0f;border-color:#5c1a1a}
+  .as-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+  .as-dot.warn{background:#f59e0b}
+  .as-dot.crit{background:#f85149}
+  .as-text{flex:1;font-size:12px;font-weight:700;line-height:1.4}
+  .as-text.warn{color:#fcd34d}
+  .as-text.crit{color:#fca5a5}
+  .as-badge{font-size:10px;font-weight:800;padding:2px 8px;border-radius:8px;flex-shrink:0}
+  .as-badge.warn{background:#3d2a00;color:#f59e0b}
+  .as-badge.crit{background:#4a1010;color:#f85149}
+  .as-dismiss{font-size:11px;color:#4a6a8a;cursor:pointer;flex-shrink:0}
+
+  /* Health grid */
+  .health-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #21262d}
+  .hg-section{padding:16px 20px}
+  .hg-section:first-child{border-right:1px solid #21262d}
+  .hg-label{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;margin-bottom:10px}
+  .hg-row{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .hg-name{font-size:11px;font-weight:700;color:#c9d1d9;flex:1}
+  .hg-bar{flex:2;height:5px;background:#1a2030;border-radius:3px;overflow:hidden}
+  .hg-fill{height:100%;border-radius:3px}
+  .hg-fill.ok{background:#3fb950}
+  .hg-fill.warn{background:#f59e0b}
+  .hg-fill.crit{background:#f85149}
+  .hg-pct{font-size:10px;font-weight:700;width:36px;text-align:right;flex-shrink:0}
+  .hg-pct.ok{color:#3fb950}
+  .hg-pct.warn{color:#f59e0b}
+  .hg-pct.crit{color:#f85149}
+
+  /* Mobile */
+  .m-header{padding:52px 20px 12px;background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;justify-content:space-between}
+  .m-title{font-size:15px;font-weight:800;color:#e6edf3}
+  .m-kpi-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;background:#161b22;border-bottom:1px solid #21262d}
+  .mk-cell{padding:12px 8px;text-align:center;border-right:1px solid #21262d}
+  .mk-cell:last-child{border-right:none}
+  .mk-val{font-size:16px;font-weight:800;color:#e6edf3;margin-bottom:2px}
+  .mk-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#4a6a8a}
+  .mk-delta{font-size:9px;font-weight:700;margin-top:2px}
+  .mk-delta.ok{color:#3fb950}
+  .mk-delta.warn{color:#f59e0b}
+  .mk-delta.crit{color:#f85149}
+  .m-scroll{flex:1;overflow-y:auto}
+  .m-footer{padding:12px 20px 40px;background:#161b22;border-top:1px solid #21262d}
+  .m-btn{width:100%;padding:13px;border-radius:12px;border:none;background:#1f3a5c;color:#58a6ff;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('t1',this)">KPI Strip</button>
+  <button class="tab" onclick="show('t2',this)">Empty Triage Queue</button>
+  <button class="tab" onclick="show('t3',this)">Warning Alert Strip</button>
+  <button class="tab" onclick="show('t4',this)">Critical Alert Strip</button>
+  <button class="tab" onclick="show('t5',this)">Mobile 390px</button>
+</div>
+
+<!-- TAB 1: KPI strip -->
+<div class="panel active" id="t1">
+  <div class="eng-note"><strong>Engineering note — Priority 28 / Tab 1: Owner KPI strip</strong>
+    Six KPI cells across the top of the owner console. Values: Active users (today), Sessions today, Route health %, Content health %, Open triage items, Resolved today. Each cell has a status dot (green/amber/red) that indicates threshold state. Delta badge shows change vs. yesterday. Strip updates on 30s poll. Auto-collapses to 3×2 grid on mobile. Pairs with owner-alert-queue-v2.html.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="section-header">
+          <div>
+            <div class="sh-title">WonderQuest Console</div>
+            <div class="sh-sub">Updated 45s ago · Mar 22, 2026</div>
+          </div>
+          <div class="sh-action">Refresh ↺</div>
+        </div>
+        <div class="kpi-strip">
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Active users</div>
+            <div class="kc-val">247</div>
+            <div class="kc-delta up">↑ 12%</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Sessions today</div>
+            <div class="kc-val">1,842</div>
+            <div class="kc-delta up">↑ 8%</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot warn"></div>
+            <div class="kc-label">Route health</div>
+            <div class="kc-val" style="color:#f59e0b">93.2%</div>
+            <div class="kc-delta warn">⚠ /play</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot crit"></div>
+            <div class="kc-label">Content health</div>
+            <div class="kc-val" style="color:#f85149">85.1%</div>
+            <div class="kc-delta down">↓ 3%</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot crit"></div>
+            <div class="kc-label">Open triage</div>
+            <div class="kc-val" style="color:#f85149">7</div>
+            <div class="kc-delta down">2 critical</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Resolved today</div>
+            <div class="kc-val" style="color:#3fb950">4</div>
+            <div class="kc-delta up">↑ good</div>
+          </div>
+        </div>
+        <!-- Triage summary below -->
+        <div class="section-header" style="padding:12px 20px">
+          <div><div class="sh-title">Open triage — 7 items</div></div>
+          <div class="sh-action">View all →</div>
+        </div>
+        <div class="triage-row">
+          <div class="tr-sev critical"></div>
+          <div class="tr-icon">🔴</div>
+          <div class="tr-meta"><div class="tr-title">Inappropriate content — quest #4412</div><div class="tr-sub">/play · user report · auto-quarantined</div></div>
+          <div class="tr-badge critical">Critical</div>
+          <div class="tr-time">4m ago</div>
+        </div>
+        <div class="triage-row">
+          <div class="tr-sev critical"></div>
+          <div class="tr-icon">🔴</div>
+          <div class="tr-meta"><div class="tr-title">Auth bypass attempt from IP range</div><div class="tr-sub">/api/auth · security · auto-detected</div></div>
+          <div class="tr-badge critical">Critical</div>
+          <div class="tr-time">12m ago</div>
+        </div>
+        <div class="triage-row">
+          <div class="tr-sev high"></div>
+          <div class="tr-icon">🟡</div>
+          <div class="tr-meta"><div class="tr-title">/play route error rate 8.4%</div><div class="tr-sub">Route health · above 5% threshold</div></div>
+          <div class="tr-badge high">High</div>
+          <div class="tr-time">28m ago</div>
+        </div>
+        <!-- Health grid -->
+        <div class="health-grid">
+          <div class="hg-section">
+            <div class="hg-label">Route health</div>
+            <div class="hg-row"><div class="hg-name">/ Home</div><div class="hg-bar"><div class="hg-fill ok" style="width:99%"></div></div><div class="hg-pct ok">99%</div></div>
+            <div class="hg-row"><div class="hg-name">/child</div><div class="hg-bar"><div class="hg-fill ok" style="width:97%"></div></div><div class="hg-pct ok">97%</div></div>
+            <div class="hg-row"><div class="hg-name">/play</div><div class="hg-bar"><div class="hg-fill crit" style="width:91.6%"></div></div><div class="hg-pct crit">91.6%</div></div>
+            <div class="hg-row"><div class="hg-name">/parent</div><div class="hg-bar"><div class="hg-fill ok" style="width:98%"></div></div><div class="hg-pct ok">98%</div></div>
+            <div class="hg-row"><div class="hg-name">/teacher</div><div class="hg-bar"><div class="hg-fill warn" style="width:93%"></div></div><div class="hg-pct warn">93%</div></div>
+          </div>
+          <div class="hg-section">
+            <div class="hg-label">Content health</div>
+            <div class="hg-row"><div class="hg-name">Math quests</div><div class="hg-bar"><div class="hg-fill crit" style="width:85%"></div></div><div class="hg-pct crit">85% ⚠</div></div>
+            <div class="hg-row"><div class="hg-name">Reading quests</div><div class="hg-bar"><div class="hg-fill ok" style="width:98%"></div></div><div class="hg-pct ok">98%</div></div>
+            <div class="hg-row"><div class="hg-name">Letter sounds</div><div class="hg-bar"><div class="hg-fill ok" style="width:100%"></div></div><div class="hg-pct ok">100%</div></div>
+            <div class="hg-row"><div class="hg-name">Phonics audio</div><div class="hg-bar"><div class="hg-fill warn" style="width:89%"></div></div><div class="hg-pct warn">89%</div></div>
+            <div class="hg-row"><div class="hg-name">Reward images</div><div class="hg-bar"><div class="hg-fill ok" style="width:100%"></div></div><div class="hg-pct ok">100%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">KPI strip + triage + health</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Empty triage queue -->
+<div class="panel" id="t2">
+  <div class="eng-note"><strong>Engineering note — Priority 28 / Tab 2: Empty triage queue state</strong>
+    When triage queue is empty: show full-width green "all clear" empty state inside the triage panel. KPI strip still shows (triage cell = 0, green dot). Health bars still visible. Empty state tone: operational confidence, not celebration. Shows last-resolved timestamp and queue depth over last 7 days for context.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="section-header">
+          <div><div class="sh-title">WonderQuest Console</div><div class="sh-sub">Updated 20s ago</div></div>
+          <div class="sh-action">Refresh ↺</div>
+        </div>
+        <div class="kpi-strip">
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Active users</div>
+            <div class="kc-val">312</div>
+            <div class="kc-delta up">↑ 18%</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Sessions today</div>
+            <div class="kc-val">2,104</div>
+            <div class="kc-delta up">↑ 11%</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Route health</div>
+            <div class="kc-val" style="color:#3fb950">99.1%</div>
+            <div class="kc-delta up">All clear</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Content health</div>
+            <div class="kc-val" style="color:#3fb950">97.8%</div>
+            <div class="kc-delta up">↑ healthy</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Open triage</div>
+            <div class="kc-val" style="color:#3fb950">0</div>
+            <div class="kc-delta up" style="background:#0a2a1a;color:#3fb950">All clear</div>
+          </div>
+          <div class="kpi-cell">
+            <div class="kc-status-dot ok"></div>
+            <div class="kc-label">Resolved today</div>
+            <div class="kc-val" style="color:#3fb950">6</div>
+            <div class="kc-delta up">Good day</div>
+          </div>
+        </div>
+        <div class="section-header" style="padding:12px 20px">
+          <div><div class="sh-title">Triage queue</div></div>
+        </div>
+        <div class="empty-state">
+          <div class="es-icon">✅</div>
+          <div class="es-title">Queue is clear</div>
+          <div class="es-sub">No open triage items right now.<br>Route and content health are both in the green.</div>
+          <div class="es-meta">Last resolved: Auth bypass attempt · 2h ago · by Admin</div>
+          <div style="margin-top:20px;display:flex;justify-content:center;gap:16px;font-size:11px;color:#2a3a2a;font-weight:600">
+            <span>Last 7 days: <strong style="color:#3fb950">23 resolved</strong></span>
+            <span>·</span>
+            <span>Avg resolve time: <strong style="color:#3fb950">18 min</strong></span>
+          </div>
+        </div>
+        <div class="health-grid" style="border-top:1px solid #21262d">
+          <div class="hg-section">
+            <div class="hg-label">Route health — all clear</div>
+            <div class="hg-row"><div class="hg-name">/ Home</div><div class="hg-bar"><div class="hg-fill ok" style="width:100%"></div></div><div class="hg-pct ok">100%</div></div>
+            <div class="hg-row"><div class="hg-name">/play</div><div class="hg-bar"><div class="hg-fill ok" style="width:99%"></div></div><div class="hg-pct ok">99%</div></div>
+            <div class="hg-row"><div class="hg-name">/parent</div><div class="hg-bar"><div class="hg-fill ok" style="width:99%"></div></div><div class="hg-pct ok">99%</div></div>
+          </div>
+          <div class="hg-section">
+            <div class="hg-label">Content health — all clear</div>
+            <div class="hg-row"><div class="hg-name">Math quests</div><div class="hg-bar"><div class="hg-fill ok" style="width:98%"></div></div><div class="hg-pct ok">98%</div></div>
+            <div class="hg-row"><div class="hg-name">Reading quests</div><div class="hg-bar"><div class="hg-fill ok" style="width:99%"></div></div><div class="hg-pct ok">99%</div></div>
+            <div class="hg-row"><div class="hg-name">All content</div><div class="hg-bar"><div class="hg-fill ok" style="width:97.8%"></div></div><div class="hg-pct ok">97.8%</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="desktop-label">Empty triage queue — all clear</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Warning alert strip -->
+<div class="panel" id="t3">
+  <div class="eng-note"><strong>Engineering note — Priority 28 / Tab 3: Warning alert strip</strong>
+    Warning alerts (amber) live between the KPI strip and the triage queue. Dismissible. Shows route or content threshold breach but not yet critical (&lt;95% but &gt;80%). Banner text is specific — names the route or content area. Dismissing a warning auto-creates a "monitoring" note in the triage log. Warning strip is hidden entirely when no warnings exist.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="section-header">
+          <div><div class="sh-title">WonderQuest Console</div><div class="sh-sub">1 warning active</div></div>
+        </div>
+        <div class="kpi-strip">
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Active users</div><div class="kc-val">289</div><div class="kc-delta up">↑ 9%</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Sessions today</div><div class="kc-val">1,940</div><div class="kc-delta flat">—</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot warn"></div><div class="kc-label">Route health</div><div class="kc-val" style="color:#f59e0b">93.2%</div><div class="kc-delta warn">⚠ /play</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Content health</div><div class="kc-val" style="color:#3fb950">96.4%</div><div class="kc-delta up">Healthy</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Open triage</div><div class="kc-val">2</div><div class="kc-delta flat">Medium</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Resolved today</div><div class="kc-val" style="color:#3fb950">3</div><div class="kc-delta up">Good</div></div>
+        </div>
+        <!-- Warning strips -->
+        <div class="alert-strip as-warn">
+          <div class="as-dot warn"></div>
+          <div class="as-text warn">/play route error rate at 8.4% — above 5% warning threshold for 32 min</div>
+          <div class="as-badge warn">8.4% errors</div>
+          <div class="as-dismiss">View → &nbsp; ✕</div>
+        </div>
+        <div class="alert-strip as-warn">
+          <div class="as-dot warn"></div>
+          <div class="as-text warn">Content review queue: 14 items pending longer than 48h — approaching 72h SLA</div>
+          <div class="as-badge warn">14 pending</div>
+          <div class="as-dismiss">View → &nbsp; ✕</div>
+        </div>
+        <div class="section-header" style="padding:12px 20px">
+          <div><div class="sh-title">Triage queue — 2 open</div></div>
+          <div class="sh-action">View all →</div>
+        </div>
+        <div class="triage-row">
+          <div class="tr-sev high"></div>
+          <div class="tr-icon">🟡</div>
+          <div class="tr-meta"><div class="tr-title">/play error rate spike 8.4%</div><div class="tr-sub">Route health · auto-monitor</div></div>
+          <div class="tr-badge high">High</div>
+          <div class="tr-time">32m ago</div>
+        </div>
+        <div class="triage-row">
+          <div class="tr-sev high"></div>
+          <div class="tr-icon">🟡</div>
+          <div class="tr-meta"><div class="tr-title">14 content reviews pending >48h</div><div class="tr-sub">Content queue · auto-flag</div></div>
+          <div class="tr-badge high">Medium</div>
+          <div class="tr-time">2h ago</div>
+        </div>
+      </div>
+      <div class="desktop-label">Warning alert strip</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Critical alert strip -->
+<div class="panel" id="t4">
+  <div class="eng-note"><strong>Engineering note — Priority 28 / Tab 4: Critical alert strip</strong>
+    Critical alerts (red) cannot be dismissed — they stay until the item is resolved in the triage queue. Strip shows above warning strips. Background of the entire alert zone shifts to a dark red tint when critical alert is present. KPI strip critical cell pulses (CSS animation). Auto-escalation: if a critical alert is unacknowledged for 15 min, owner receives push notification.
+  </div>
+  <div class="frame-wrap">
+    <div>
+      <div class="desktop">
+        <div class="section-header" style="background:#1a0808;border-color:#3a1010">
+          <div><div class="sh-title" style="color:#fca5a5">⚠ WonderQuest Console — 2 critical</div><div class="sh-sub" style="color:#7a3a3a">Immediate action required</div></div>
+          <div class="sh-action" style="color:#f85149">Triage now →</div>
+        </div>
+        <!-- Critical strips -->
+        <div class="alert-strip as-crit">
+          <div class="as-dot crit"></div>
+          <div class="as-text crit">Inappropriate content in math quest #4412 — auto-quarantined, needs manual review before reinstatement</div>
+          <div class="as-badge crit">Critical</div>
+          <div style="font-size:11px;color:#f85149;font-weight:700;cursor:pointer;flex-shrink:0">Review →</div>
+        </div>
+        <div class="alert-strip as-crit">
+          <div class="as-dot crit"></div>
+          <div class="as-text crit">Auth bypass attempt detected from IP range 203.0.113.x — 3 attempts in 5 min, rate-limited</div>
+          <div class="as-badge crit">Critical</div>
+          <div style="font-size:11px;color:#f85149;font-weight:700;cursor:pointer;flex-shrink:0">Review →</div>
+        </div>
+        <!-- Warning below critical -->
+        <div class="alert-strip as-warn">
+          <div class="as-dot warn"></div>
+          <div class="as-text warn">/play error rate at 8.4% — above warning threshold</div>
+          <div class="as-badge warn">8.4%</div>
+          <div class="as-dismiss">✕</div>
+        </div>
+        <div class="kpi-strip" style="border-top:1px solid #3a1010">
+          <div class="kpi-cell" style="background:#1a0808"><div class="kc-status-dot crit" style="animation:pulse 1s ease-in-out infinite"></div><div class="kc-label">Active users</div><div class="kc-val">247</div><div class="kc-delta flat">—</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Sessions today</div><div class="kc-val">1,842</div><div class="kc-delta flat">—</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot warn"></div><div class="kc-label">Route health</div><div class="kc-val" style="color:#f59e0b">93.2%</div><div class="kc-delta warn">⚠</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot crit"></div><div class="kc-label">Content health</div><div class="kc-val" style="color:#f85149">85.1%</div><div class="kc-delta down">↓ crit</div></div>
+          <div class="kpi-cell" style="background:#1a0808"><div class="kc-status-dot crit"></div><div class="kc-label">Open triage</div><div class="kc-val" style="color:#f85149">7</div><div class="kc-delta down">2 critical</div></div>
+          <div class="kpi-cell"><div class="kc-status-dot ok"></div><div class="kc-label">Resolved today</div><div class="kc-val" style="color:#3fb950">4</div><div class="kc-delta up">↑</div></div>
+        </div>
+        <div style="padding:14px 20px;display:flex;gap:8px">
+          <button style="flex:1;padding:12px;border-radius:10px;border:none;background:#3a0f0f;color:#f85149;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer;border:1.5px solid #5c1a1a">Review critical items now →</button>
+        </div>
+      </div>
+      <div class="desktop-label">Critical alert strip — 2 active</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Mobile -->
+<div class="panel" id="t5">
+  <div class="eng-note"><strong>Engineering note — Priority 28 / Tab 5: Mobile 390px — KPI + alert + queue</strong>
+    KPI strip collapses to 3×2 grid (Active users / Sessions / Route health / Content health / Triage open / Resolved). Alert banners stack below top bar. Triage queue rows full-width. Health bars shown as compact 2-column below triage. CTA button: "View triage" when items open, "All clear" (disabled) when empty. Pairs with owner-alert-queue-v2.html mobile tab.
+  </div>
+  <div class="frame-wrap">
+    <!-- With warning -->
+    <div>
+      <div class="phone">
+        <div class="m-header">
+          <div class="m-title">Console</div>
+          <div style="font-size:11px;font-weight:700;color:#f59e0b;background:#2d1a00;padding:3px 8px;border-radius:8px">1 warning</div>
+        </div>
+        <div class="m-kpi-grid">
+          <div class="mk-cell"><div class="mk-val">247</div><div class="mk-label">Users</div><div class="mk-delta ok">↑ 9%</div></div>
+          <div class="mk-cell"><div class="mk-val">1,842</div><div class="mk-label">Sessions</div><div class="mk-delta ok">Good</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#f59e0b">93%</div><div class="mk-label">Routes</div><div class="mk-delta warn">⚠ /play</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">96%</div><div class="mk-label">Content</div><div class="mk-delta ok">Healthy</div></div>
+          <div class="mk-cell"><div class="mk-val">2</div><div class="mk-label">Triage</div><div class="mk-delta warn">Medium</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">3</div><div class="mk-label">Resolved</div><div class="mk-delta ok">Today</div></div>
+        </div>
+        <!-- Warning banner -->
+        <div class="alert-strip as-warn" style="padding:10px 16px">
+          <div class="as-dot warn"></div>
+          <div class="as-text warn" style="font-size:11px">/play error rate 8.4% — above threshold</div>
+          <div style="font-size:11px;color:#f59e0b;font-weight:700;cursor:pointer">View →</div>
+        </div>
+        <div class="m-scroll">
+          <div style="padding:8px 14px 4px;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:#4a6a8a;background:#0d1117;border-bottom:1px solid #1a2030">Open triage (2)</div>
+          <div class="triage-row" style="padding:12px 16px">
+            <div class="tr-sev high"></div>
+            <div class="tr-meta" style="margin-left:4px"><div class="tr-title">/play error rate spike</div><div class="tr-sub">Route health · 32m ago</div></div>
+            <div class="tr-badge high">High</div>
+            <div class="tr-arrow" style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+          <div class="triage-row" style="padding:12px 16px">
+            <div class="tr-sev high"></div>
+            <div class="tr-meta" style="margin-left:4px"><div class="tr-title">14 content reviews pending</div><div class="tr-sub">Content queue · 2h ago</div></div>
+            <div class="tr-badge high">Medium</div>
+            <div class="tr-arrow" style="font-size:14px;color:#4a6a8a">→</div>
+          </div>
+        </div>
+        <div class="m-footer">
+          <button class="m-btn">View triage queue →</button>
+        </div>
+      </div>
+      <div class="phone-label">Mobile — warning state</div>
+    </div>
+    <!-- All clear -->
+    <div>
+      <div class="phone">
+        <div class="m-header">
+          <div class="m-title">Console</div>
+          <div style="font-size:11px;font-weight:700;color:#3fb950;background:#0a2a1a;padding:3px 8px;border-radius:8px">All clear ✓</div>
+        </div>
+        <div class="m-kpi-grid">
+          <div class="mk-cell"><div class="mk-val">312</div><div class="mk-label">Users</div><div class="mk-delta ok">↑ 18%</div></div>
+          <div class="mk-cell"><div class="mk-val">2,104</div><div class="mk-label">Sessions</div><div class="mk-delta ok">↑ 11%</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">99%</div><div class="mk-label">Routes</div><div class="mk-delta ok">Clear</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">98%</div><div class="mk-label">Content</div><div class="mk-delta ok">Healthy</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">0</div><div class="mk-label">Triage</div><div class="mk-delta ok">Clear</div></div>
+          <div class="mk-cell"><div class="mk-val" style="color:#3fb950">6</div><div class="mk-label">Resolved</div><div class="mk-delta ok">Today</div></div>
+        </div>
+        <div class="m-scroll">
+          <div class="empty-state" style="padding:40px 24px">
+            <div class="es-icon">✅</div>
+            <div class="es-title">Queue is clear</div>
+            <div class="es-sub" style="font-size:12px">No open triage items.<br>All systems healthy.</div>
+            <div class="es-meta" style="font-size:10px">Last resolved 2h ago</div>
+          </div>
+        </div>
+        <div class="m-footer">
+          <button class="m-btn" style="background:#0a2a1a;color:#3fb950;border:1.5px solid #1a4a2a">All clear — nothing to action</button>
+        </div>
+      </div>
+      <div class="phone-label">Mobile — all clear state</div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+</style>
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
