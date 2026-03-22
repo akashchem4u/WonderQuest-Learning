@@ -69,6 +69,16 @@ function isEarlyLearnerBand(launchBandCode: string) {
   return launchBandCode === "PREK" || launchBandCode === "K1";
 }
 
+function getAvatarSymbol(avatarKey: string) {
+  if (avatarKey.includes("bunny")) return "🐰";
+  if (avatarKey.includes("bear")) return "🐻";
+  if (avatarKey.includes("lion")) return "🦁";
+  if (avatarKey.includes("fox")) return "🦊";
+  if (avatarKey.includes("panda")) return "🐼";
+  if (avatarKey.includes("owl")) return "🦉";
+  return "✨";
+}
+
 function buildQuestionVisualScene(question: SessionQuestion) {
   switch (question.questionKey) {
     case "prek_count_ducks_3":
@@ -90,6 +100,26 @@ function buildQuestionVisualScene(question: SessionQuestion) {
     default:
       return null;
   }
+}
+
+function buildSceneClass(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") {
+    return "scene-count";
+  }
+
+  if (question.questionKey === "prek_letter_b_ball") {
+    return "scene-letter";
+  }
+
+  if (question.questionKey === "prek_shape_circle") {
+    return "scene-shape";
+  }
+
+  if (question.subject === "early-literacy") {
+    return "scene-letter";
+  }
+
+  return "";
 }
 
 function buildQuestionTags(question: SessionQuestion, launchBandCode: string) {
@@ -634,7 +664,7 @@ export default function PlayClient() {
 
         <section className="play-layout">
           <ShellCard
-            className="shell-card-spotlight question-stage"
+            className={`shell-card-spotlight question-stage ${earlyLearnerMode ? "question-stage-early" : ""}`}
             eyebrow="Question"
             title={
               finished
@@ -684,6 +714,23 @@ export default function PlayClient() {
               </div>
             ) : (
               <>
+                {earlyLearnerMode ? (
+                  <div className="play-early-topbar">
+                    <div className="play-early-player">
+                      <span className="play-early-avatar" aria-hidden="true">
+                        {getAvatarSymbol(session.student.avatarKey)}
+                      </span>
+                      <div className="play-early-player-copy">
+                        <strong>{session.student.displayName}</strong>
+                        <span>Level {progression?.currentLevel ?? 1}</span>
+                      </div>
+                    </div>
+                    <div className="play-early-stars">
+                      <span aria-hidden="true">⭐</span>
+                      {progression?.totalPoints ?? 0}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="summary-chip-row">
                   {visibleQuestionTags.map((tag) => (
                     <span className="summary-chip" key={tag}>
@@ -732,7 +779,10 @@ export default function PlayClient() {
                   </div>
                 ) : null}
                 {currentScene ? (
-                  <div className="visual-scene" aria-label={currentScene.title}>
+                  <div
+                    className={`visual-scene ${buildSceneClass(currentQuestion)}`.trim()}
+                    aria-label={currentScene.title}
+                  >
                     <div className="visual-scene-copy">
                       <strong>{currentScene.title}</strong>
                       <p>{currentScene.helper}</p>
@@ -771,7 +821,7 @@ export default function PlayClient() {
                     ) : null}
                   </div>
                 ) : null}
-                <div className="answer-grid">
+                <div className={`answer-grid ${earlyLearnerMode ? "answer-grid-early" : ""}`.trim()}>
                   {currentQuestion.answers.map((answer, index) => (
                     <button
                       className={`answer-card ${earlyLearnerMode ? "answer-card-early" : ""}`}
