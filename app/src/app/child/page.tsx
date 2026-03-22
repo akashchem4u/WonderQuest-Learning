@@ -88,6 +88,7 @@ function getAvatarSymbol(avatarKey: string) {
 
 export default function ChildAccessPage() {
   const router = useRouter();
+  const [accessMode, setAccessMode] = useState<"new" | "returning">("new");
   const [selectedBand, setSelectedBand] = useState("K1");
   const [selectedMode, setSelectedMode] = useState("guided-quest");
   const [username, setUsername] = useState("");
@@ -96,10 +97,12 @@ export default function ChildAccessPage() {
   const [selectedAvatar, setSelectedAvatar] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [recoveryHint, setRecoveryHint] = useState("");
   const [result, setResult] = useState<ChildAccessResponse | null>(null);
 
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
   const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
+  const returningMode = accessMode === "returning";
   const pinDigits = [0, 1, 2, 3];
   const selectedBandProfile = getBandProfile(selectedBand);
   const selectedAvatarSymbol = getAvatarSymbol(selectedAvatar);
@@ -126,6 +129,7 @@ export default function ChildAccessPage() {
     event.preventDefault();
     setSubmitting(true);
     setError("");
+    setRecoveryHint("");
 
     try {
       const response = await fetch("/api/child/access", {
@@ -154,11 +158,27 @@ export default function ChildAccessPage() {
 
       router.push(`/play?sessionMode=${selectedMode}`);
     } catch (caughtError) {
-      setError(
+      const message =
         caughtError instanceof Error
           ? caughtError.message
-          : "Child access failed.",
-      );
+          : "Child access failed.";
+
+      if (returningMode && message === "Wrong username or PIN.") {
+        setError("Oops, that PIN did not match.");
+        setRecoveryHint(
+          "Try the same 4 digits again, or switch to new adventurer if this is a first-time setup.",
+        );
+      } else if (
+        returningMode &&
+        message === "Display name and avatar are required for first-time setup."
+      ) {
+        setError("We could not find that adventurer yet.");
+        setRecoveryHint(
+          "Check the username again, or switch to new adventurer to create the child profile.",
+        );
+      } else {
+        setError(message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -208,10 +228,45 @@ export default function ChildAccessPage() {
         <form className="route-grid route-grid-child" onSubmit={handleSubmit}>
           <ShellCard
             className="shell-card-soft"
+            eyebrow="Access"
+            title="Choose the quickest path"
+          >
+            <span className="step-chip">Step 1 · Access mode</span>
+            <div className="choice-column">
+              <button
+                className={`mode-card ${accessMode === "new" ? "is-selected" : ""}`}
+                onClick={() => {
+                  setAccessMode("new");
+                  setError("");
+                  setRecoveryHint("");
+                }}
+                type="button"
+              >
+                New Adventurer
+                <span>Create a child profile with a band, avatar, and quest name.</span>
+              </button>
+              <button
+                className={`mode-card ${accessMode === "returning" ? "is-selected" : ""}`}
+                onClick={() => {
+                  setAccessMode("returning");
+                  setError("");
+                  setRecoveryHint("");
+                }}
+                type="button"
+              >
+                Returning Adventurer
+                <span>Use the same username and 4-digit PIN to jump back in fast.</span>
+              </button>
+            </div>
+          </ShellCard>
+
+          {!returningMode ? (
+          <ShellCard
+            className="shell-card-soft"
             eyebrow="Band"
             title="Choose your age or grade band"
           >
-            <span className="step-chip">Step 1 · Band</span>
+            <span className="step-chip">Step 2 · Band</span>
             <div className="child-band-grid">
               {launchBands.map((band) => (
                 (() => {
@@ -251,31 +306,56 @@ export default function ChildAccessPage() {
               {selectedBandProfile.ageLabel.toLowerCase()}.
             </div>
           </ShellCard>
+          ) : null}
 
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Identity"
-            title="Set up the child profile"
+            title={returningMode ? "Welcome back" : "Set up the child profile"}
           >
-            <span className="step-chip">Step 2 · Identity</span>
+            <span className="step-chip">
+              {returningMode ? "Step 2 · Sign in" : "Step 3 · Identity"}
+            </span>
+            {returningMode ? (
+              <div className="child-returning-card">
+                <span className="child-returning-icon" aria-hidden="true">
+                  {username ? "👋" : "✨"}
+                </span>
+                <div className="child-returning-copy">
+                  <strong>
+                    {username ? `Welcome back, ${username}` : "Return to your adventure"}
+                  </strong>
+                  <small>
+                    Enter the same username and 4-digit PIN so progress, badges,
+                    and trophies stay with the same child.
+                  </small>
+                </div>
+              </div>
+            ) : null}
             <div className="field-grid">
               <FieldBlock
                 autoComplete="username"
-                helper="Use the same username each time."
+                helper={
+                  returningMode
+                    ? "Use the same username from the child&apos;s earlier setup."
+                    : "Use the same username each time."
+                }
                 label="Username"
                 name="username"
                 onChange={(event) => setUsername(event.target.value)}
                 placeholder="your quest name"
                 value={username}
               />
-              <FieldBlock
-                helper="Shown inside the game world."
-                label="Display name"
-                name="displayName"
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="what we call you"
-                value={displayName}
-              />
+              {!returningMode ? (
+                <FieldBlock
+                  helper="Shown inside the game world."
+                  label="Display name"
+                  name="displayName"
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="what we call you"
+                  value={displayName}
+                />
+              ) : null}
             </div>
             <div className="pin-panel">
               <div className="pin-panel-header">
@@ -319,14 +399,21 @@ export default function ChildAccessPage() {
                 </button>
               </div>
             </div>
+            {recoveryHint ? (
+              <div className="child-recovery-card">
+                <strong>Gentle recovery</strong>
+                <p>{recoveryHint}</p>
+              </div>
+            ) : null}
           </ShellCard>
 
+          {!returningMode ? (
           <ShellCard
             className="shell-card-soft"
             eyebrow="Avatar"
             title="Pick your guide"
           >
-            <span className="step-chip">Step 3 · Avatar</span>
+            <span className="step-chip">Step 4 · Avatar</span>
             <div className="child-avatar-preview">
               <span className="child-avatar-preview-icon" aria-hidden="true">
                 {selectedAvatarSymbol}
@@ -369,13 +456,16 @@ export default function ChildAccessPage() {
                 : "choose the same avatar each time so younger learners can find their account faster."}
             </div>
           </ShellCard>
+          ) : null}
 
           <ShellCard
             className="shell-card-emphasis"
             eyebrow="Mode"
             title="Choose how the next session feels"
           >
-            <span className="step-chip">Step 4 · Session mode</span>
+            <span className="step-chip">
+              {returningMode ? "Step 3 · Session mode" : "Step 5 · Session mode"}
+            </span>
             <div className="choice-column">
               <button
                 className={`mode-card ${
@@ -407,10 +497,16 @@ export default function ChildAccessPage() {
             eyebrow="Launch"
             title="Start the next adventure"
           >
-            <span className="step-chip">Step 5 · Launch</span>
+            <span className="step-chip">
+              {returningMode ? "Step 4 · Launch" : "Step 6 · Launch"}
+            </span>
             <div className="summary-chip-row">
-              <span className="summary-chip">{selectedBandProfile.title}</span>
-              <span className="summary-chip">{selectedAvatarSymbol} guide</span>
+              <span className="summary-chip">
+                {returningMode ? "Returning adventurer" : selectedBandProfile.title}
+              </span>
+              {!returningMode ? (
+                <span className="summary-chip">{selectedAvatarSymbol} guide</span>
+              ) : null}
               <span className="summary-chip">
                 {selectedMode === "guided-quest" ? "Guided quest" : "Self-directed"}
               </span>
@@ -449,7 +545,11 @@ export default function ChildAccessPage() {
                 disabled={submitting}
                 type="submit"
               >
-                {submitting ? "Starting..." : `Start as ${selectedBandProfile.title}`}
+                {submitting
+                  ? "Starting..."
+                  : returningMode
+                    ? "Continue adventure"
+                    : `Start as ${selectedBandProfile.title}`}
               </button>
               <Link className="secondary-link" href="/parent">
                 Parent setup
