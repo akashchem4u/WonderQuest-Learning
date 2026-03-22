@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>WonderQuest — Parent Access Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root {
+  --bg: #f5f0e8;
+  --bg2: #ede7d9;
+  --bg3: #e4ddd0;
+  --surface: #fff;
+  --surface-dim: #faf8f4;
+  --ink: #1a2926;
+  --ink2: #4a5652;
+  --ink3: #8a9692;
+  --line: rgba(26, 41, 38, 0.09);
+  --line-hi: rgba(26, 41, 38, 0.16);
+  --accent: #1a7a5e;
+  --accent2: #0f5c45;
+  --accent-bg: rgba(26, 122, 94, 0.09);
+  --accent-border: rgba(26, 122, 94, 0.28);
+  --coral: #e05555;
+  --coral-bg: rgba(224, 85, 85, 0.09);
+  --coral-border: rgba(224, 85, 85, 0.3);
+  --gold: #c98a10;
+  --gold-bg: rgba(245, 166, 35, 0.10);
+  --gold-border: rgba(245, 166, 35, 0.35);
+  --green: #1a7a5e;
+  --green-bg: rgba(26, 122, 94, 0.08);
+  --fa: 'Sora', sans-serif;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 20px;
+  --shadow-sm: 0 2px 10px rgba(0,0,0,.06);
+  --shadow-md: 0 6px 24px rgba(0,0,0,.09);
+  --eo: cubic-bezier(0.16, 1, 0.3, 1);
+  --es: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--fa);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  font-size: 14px;
+}
+
+/* PAGE */
+.page { padding: 24px 20px 60px; }
+.pg-title { text-align: center; margin-bottom: 6px; }
+.pg-title h1 { font-size: 19px; font-weight: 700; color: var(--ink); }
+.pg-title h1 span { color: var(--accent); }
+.pg-title p { font-size: 11px; color: var(--ink3); margin-top: 3px; }
+
+/* TAB NAV */
+.tab-nav {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 12px 0 16px;
+  scrollbar-width: none;
+}
+.tab-nav::-webkit-scrollbar { display: none; }
+.tab-btn {
+  flex-shrink: 0;
+  padding: 7px 14px;
+  border-radius: 20px;
+  background: var(--surface);
+  border: 1.5px solid var(--line-hi);
+  font-family: var(--fa);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 140ms var(--es);
+}
+.tab-btn.active {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+  font-weight: 700;
+}
+.tab-btn:hover:not(.active) { border-color: var(--line-hi); color: var(--ink2); }
+
+/* PANELS */
+.panel { display: none; animation: fadeUp .28s var(--eo) both; }
+.panel.active { display: block; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* SHARED WRAPPER */
+.sw { max-width: 440px; margin: 0 auto; }
+
+/* STATE LABEL */
+.state-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--surface);
+  border: 1px solid var(--line-hi);
+  border-radius: 20px;
+  padding: 3px 11px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ink3);
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+
+/* READY HEADER */
+.ready-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 20px;
+  background: var(--green-bg);
+  border: 1.5px solid var(--accent-border);
+  border-radius: var(--r-xl);
+  margin-bottom: 16px;
+}
+.ready-ico {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  color: #fff;
+}
+.ready-text h2 { font-size: 16px; font-weight: 700; color: var(--ink); }
+.ready-text p { font-size: 12px; color: var(--ink2); margin-top: 2px; }
+
+/* FAMILY CARD */
+.family-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-xl);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 14px;
+}
+
+.child-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.child-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--accent-bg);
+  border: 2px solid var(--accent-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.child-info { flex: 1; }
+.child-name { font-size: 16px; font-weight: 700; color: var(--ink); }
+.linked-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--green-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-top: 3px;
+}
+.linked-badge::before { content: '●'; font-size: 7px; }
+
+.parent-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+.parent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg2);
+  border: 1.5px solid var(--line-hi);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.parent-info { flex: 1; }
+.parent-name { font-size: 14px; font-weight: 600; color: var(--ink); }
+.rel-pill {
+  display: inline-block;
+  background: var(--bg2);
+  border: 1px solid var(--line-hi);
+  border-radius: 20px;
+  padding: 2px 9px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-top: 3px;
+}
+
+/* STAT ROW */
+.stat-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat-cell {
+  background: var(--surface-dim);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 10px 8px;
+  text-align: center;
+}
+.stat-val { font-size: 12px; font-weight: 700; color: var(--ink); line-height: 1.2; }
+.stat-lbl { font-size: 9px; color: var(--ink3); margin-top: 3px; text-transform: uppercase; letter-spacing: .05em; }
+
+/* CTA ROW */
+.cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--fa);
+  font-weight: 600;
+  border-radius: var(--r-md);
+  padding: 11px 16px;
+  font-size: 13px;
+  transition: all 120ms var(--es);
+}
+.btn:active { transform: scale(0.97); }
+.btn-accent { background: var(--accent); color: #fff; }
+.btn-accent:hover { background: var(--accent2); }
+.btn-outline-teal {
+  background: transparent;
+  border: 1.5px solid var(--accent);
+  color: var(--accent);
+}
+.btn-outline-teal:hover { background: var(--accent-bg); }
+.btn-ghost {
+  background: transparent;
+  border: 1.5px solid var(--line-hi);
+  color: var(--ink2);
+}
+.btn-ghost:hover { border-color: var(--line-hi); color: var(--ink); }
+.btn-full { width: 100%; }
+.btn-coral { background: var(--coral-bg); border: 1.5px solid var(--coral-border); color: var(--coral); }
+.btn-coral:hover { background: rgba(224, 85, 85, 0.15); }
+
+/* ACCORDION */
+.accordion { border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; margin-top: 16px; }
+.acc-item { border-bottom: 1px solid var(--line); }
+.acc-item:last-child { border-bottom: none; }
+.acc-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  cursor: pointer;
+  background: var(--surface);
+  transition: background 100ms;
+  user-select: none;
+}
+.acc-trigger:hover { background: var(--surface-dim); }
+.acc-label { font-size: 13px; font-weight: 600; color: var(--ink); }
+.acc-chevron {
+  font-size: 11px;
+  color: var(--ink3);
+  transition: transform 200ms var(--eo);
+  flex-shrink: 0;
+}
+.acc-chevron.open { transform: rotate(180deg); }
+.acc-body { display: none; padding: 4px 16px 16px; background: var(--surface-dim); }
+.acc-body.open { display: block; }
+
+/* FIELDS */
+.field { display: flex; flex-direction: column; gap: 5px; margin-bottom: 14px; }
+.field-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink3);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+.field-input {
+  background: #fff;
+  border: 1.5px solid var(--line-hi);
+  border-radius: var(--r-md);
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: var(--fa);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 150ms;
+}
+.field-input:focus { border-color: var(--accent); }
+.field-input.error { border-color: var(--coral); }
+.field-err-msg { font-size: 11px; color: var(--coral); font-weight: 600; margin-top: 3px; }
+.field-readonly {
+  background: var(--bg2);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: var(--fa);
+  color: var(--ink2);
+}
+
+/* PILL CHIPS */
+.chip-group { display: flex; flex-wrap: wrap; gap: 7px; }
+.chip {
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--line-hi);
+  background: var(--surface);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink2);
+  cursor: pointer;
+  transition: all 120ms;
+  font-family: var(--fa);
+}
+.chip.selected {
+  background: var(--accent-bg);
+  border-color: var(--accent-border);
+  color: var(--accent);
+}
+.chip:hover:not(.selected) { border-color: var(--line-hi); color: var(--ink); }
+
+/* FORM ACTIONS */
+.form-actions { display: flex; gap: 8px; margin-top: 16px; }
+.form-actions .btn { flex: 1; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--fa);
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 20px;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  z-index: 1000;
+  transition: transform 280ms var(--eo);
+  white-space: nowrap;
+}
+.toast.visible { transform: translateX(-50%) translateY(0); }
+
+/* TOGGLE ROWS */
+.toggle-list { display: flex; flex-direction: column; gap: 10px; }
+.toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+.toggle-content { flex: 1; }
+.toggle-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+.toggle-chip {
+  display: inline-block;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 1px 7px;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink3);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+}
+.toggle {
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--line-hi);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 200ms;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 200ms var(--es);
+  box-shadow: 0 1px 4px rgba(0,0,0,.18);
+}
+.toggle.on::after { transform: translateX(20px); }
+
+/* WARNING / INFO CARDS */
+.warn-card {
+  background: var(--gold-bg);
+  border: 1.5px solid var(--gold-border);
+  border-radius: var(--r-md);
+  padding: 13px 14px;
+  display: flex;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+.warn-ico { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+.warn-title { font-size: 12px; font-weight: 700; color: var(--gold); }
+.warn-sub { font-size: 11px; color: var(--ink2); margin-top: 3px; line-height: 1.45; }
+
+.linked-readonly-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: var(--bg2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  margin-top: 10px;
+}
+.lrr-left { display: flex; align-items: center; gap: 9px; }
+.lrr-avatar { font-size: 22px; }
+.lrr-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.lrr-sub { font-size: 11px; color: var(--ink3); }
+.unlink-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--coral);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--fa);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  padding: 0;
+}
+.unlink-btn:hover { opacity: .75; }
+
+/* ERROR CARDS */
+.err-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.err-card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  padding: 18px;
+  box-shadow: var(--shadow-sm);
+}
+.err-card-a { border: 1.5px solid var(--accent-border); }
+.err-card-b { border-left: 4px solid var(--coral); border-top: 1px solid var(--line); border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.err-ico { font-size: 22px; margin-bottom: 8px; }
+.err-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.err-sub { font-size: 11px; color: var(--ink2); line-height: 1.45; margin-bottom: 12px; }
+.err-retry { font-size: 12px; font-weight: 600; color: var(--accent); background: var(--accent-bg); border: 1.5px solid var(--accent-border); border-radius: var(--r-sm); padding: 7px 12px; cursor: pointer; font-family: var(--fa); transition: background 120ms; }
+.err-retry:hover { background: rgba(26,122,94,.15); }
+.err-retype { font-size: 12px; color: var(--ink3); margin-bottom: 6px; }
+.err-field-sm {
+  background: #fff;
+  border: 1.5px solid var(--coral);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--fa);
+  color: var(--ink);
+  outline: none;
+  width: 100%;
+  margin-bottom: 8px;
+}
+.err-field-sm::placeholder { color: var(--ink3); }
+.err-sub-try { font-size: 11px; color: var(--coral); font-weight: 600; margin-bottom: 8px; }
+
+/* PHONE FRAME */
+.phone-frame {
+  width: 375px;
+  min-height: 680px;
+  background: var(--bg);
+  border-radius: 36px;
+  border: 2px solid var(--line-hi);
+  box-shadow: 0 16px 48px rgba(0,0,0,.14);
+  overflow: hidden;
+  position: relative;
+  margin: 0 auto;
+}
+.phone-notch {
+  width: 120px;
+  height: 28px;
+  background: var(--ink);
+  border-radius: 0 0 18px 18px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+}
+.phone-scroll {
+  padding: 14px 16px 80px;
+  overflow-y: auto;
+  max-height: 620px;
+}
+.phone-bottom-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding: 12px 18px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pbb-label { font-size: 12px; font-weight: 600; color: var(--ink3); }
+.pbb-done {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-md);
+  padding: 8px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--fa);
+}
+
+/* HINT BOXES */
+.hint-yellow {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: rgba(245, 166, 35, 0.09);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-top: 12px;
+}
+.hint-blue {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  background: rgba(59, 130, 246, 0.07);
+  border: 1px solid rgba(59, 130, 246, 0.22);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-top: 10px;
+}
+.hint-ico { font-size: 13px; flex-shrink: 0; margin-top: 1px; }
+.hint-yellow .hint-txt { font-size: 11px; color: #8a6208; line-height: 1.5; font-weight: 600; }
+.hint-blue .hint-txt { font-size: 11px; color: #1e4fa0; line-height: 1.5; font-weight: 600; }
+
+/* SECTION HEADER */
+.sec-hdr { font-size: 11px; font-weight: 700; color: var(--ink3); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 10px; }
+</style>
+</head>
+<body>
+
+<!-- Toast notification -->
+<div class="toast" id="toast">✓ Your name has been updated</div>
+
+<div class="page">
+  <div class="pg-title">
+    <h1>Wonder<span>Quest</span> — Parent Access Manager</h1>
+    <p>UI Agent Reference · /parent/access · Post-link compact management state</p>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="show(0)">① Ready State</button>
+    <button class="tab-btn" onclick="show(1)">② Manage Drawer</button>
+    <button class="tab-btn" onclick="show(2)">③ Edit Fields</button>
+    <button class="tab-btn" onclick="show(3)">④ Relink Child</button>
+    <button class="tab-btn" onclick="show(4)">⑤ Notification Toggles</button>
+    <button class="tab-btn" onclick="show(5)">⑥ Error State</button>
+    <button class="tab-btn" onclick="show(6)">⑦ Mobile 375px</button>
+  </div>
+
+  <!-- ======================================================
+       TAB 1 — COMPACT READY STATE
+  ====================================================== -->
+  <div class="panel active" id="panel-0">
+    <div class="sw">
+      <div class="state-label">Route: /parent/access</div>
+
+      <!-- Green ready header -->
+      <div class="ready-header">
+        <div class="ready-ico">✓</div>
+        <div class="ready-text">
+          <h2>Family access is ready</h2>
+          <p>Your child is linked and notifications are active</p>
+        </div>
+      </div>
+
+      <!-- Family card -->
+      <div class="family-card">
+        <!-- Child row -->
+        <div class="child-row">
+          <div class="child-avatar">🦊</div>
+          <div class="child-info">
+            <div class="child-name">Mia Chen</div>
+            <div class="linked-badge">Linked</div>
+          </div>
+        </div>
+
+        <!-- Parent row -->
+        <div class="parent-row">
+          <div class="parent-avatar">👤</div>
+          <div class="parent-info">
+            <div class="parent-name">Sarah Chen</div>
+            <div class="rel-pill">Parent</div>
+          </div>
+        </div>
+
+        <!-- 3-col stat row -->
+        <div class="stat-row">
+          <div class="stat-cell">
+            <div class="stat-val">🔔 On</div>
+            <div class="stat-lbl">Notifications</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val">Weekly</div>
+            <div class="stat-lbl">Reports</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val">Feb 2026</div>
+            <div class="stat-lbl">Since</div>
+          </div>
+        </div>
+
+        <!-- CTA row -->
+        <div class="cta-row">
+          <button class="btn btn-outline-teal">Manage Access</button>
+          <button class="btn btn-accent">View Family Center →</button>
+        </div>
+      </div>
+
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: This is the settled state — calm and reassuring, not action-demanding. The green header provides confidence. CTAs are secondary; the user is not expected to act unless they choose to.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 2 — MANAGE DRAWER / INLINE ACCORDION
+  ====================================================== -->
+  <div class="panel" id="panel-1">
+    <div class="sw">
+      <div class="state-label">Manage Drawer — Inline Accordion</div>
+
+      <!-- Same base card as Tab 1 -->
+      <div class="ready-header">
+        <div class="ready-ico">✓</div>
+        <div class="ready-text">
+          <h2>Family access is ready</h2>
+          <p>Your child is linked and notifications are active</p>
+        </div>
+      </div>
+
+      <div class="family-card">
+        <div class="child-row">
+          <div class="child-avatar">🦊</div>
+          <div class="child-info">
+            <div class="child-name">Mia Chen</div>
+            <div class="linked-badge">Linked</div>
+          </div>
+        </div>
+        <div class="parent-row">
+          <div class="parent-avatar">👤</div>
+          <div class="parent-info">
+            <div class="parent-name">Sarah Chen</div>
+            <div class="rel-pill">Parent</div>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-cell">
+            <div class="stat-val">🔔 On</div>
+            <div class="stat-lbl">Notifications</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val">Weekly</div>
+            <div class="stat-lbl">Reports</div>
+          </div>
+          <div class="stat-cell">
+            <div class="stat-val">Feb 2026</div>
+            <div class="stat-lbl">Since</div>
+          </div>
+        </div>
+        <div class="cta-row">
+          <button class="btn btn-outline-teal">Manage Access</button>
+          <button class="btn btn-accent">View Family Center →</button>
+        </div>
+
+        <!-- Inline accordion — opens below the card content -->
+        <div class="accordion">
+          <!-- Edit Info — open by default in this tab -->
+          <div class="acc-item">
+            <div class="acc-trigger" onclick="toggleAcc(this)">
+              <span class="acc-label">✏️ Edit Info</span>
+              <span class="acc-chevron open">▼</span>
+            </div>
+            <div class="acc-body open">
+              <div class="field" style="margin-top:10px;">
+                <label class="field-label">Display Name</label>
+                <input class="field-input" type="text" value="Sarah Chen"/>
+              </div>
+              <div class="field">
+                <label class="field-label">Relationship</label>
+                <div class="chip-group">
+                  <button class="chip selected">Parent</button>
+                  <button class="chip">Guardian</button>
+                  <button class="chip">Grandparent</button>
+                  <button class="chip">Other</button>
+                </div>
+              </div>
+              <div class="form-actions">
+                <button class="btn btn-accent">Save</button>
+                <button class="btn btn-ghost">Cancel</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Notifications — collapsed -->
+          <div class="acc-item">
+            <div class="acc-trigger" onclick="toggleAcc(this)">
+              <span class="acc-label">🔔 Notifications</span>
+              <span class="acc-chevron">▼</span>
+            </div>
+            <div class="acc-body">
+              <p style="font-size:12px;color:var(--ink3);padding-top:8px;">Manage email and push preferences</p>
+            </div>
+          </div>
+
+          <!-- Relink Child — collapsed -->
+          <div class="acc-item">
+            <div class="acc-trigger" onclick="toggleAcc(this)">
+              <span class="acc-label">🔗 Relink Child</span>
+              <span class="acc-chevron">▼</span>
+            </div>
+            <div class="acc-body">
+              <p style="font-size:12px;color:var(--ink3);padding-top:8px;">Enter a new child code to update the link</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hint-yellow">
+        <span class="hint-ico">⚙️</span>
+        <span class="hint-txt">Engineering note: This is an inline accordion inside the card, not a drawer/modal — avoids z-index stacking issues on mobile. Each section expands in-place; no overlay or fixed positioning required.</span>
+      </div>
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: "Edit Info" is open on first expand. The other sections (Notifications, Relink) are collapsed to reduce visual weight. Only one section needs to be open at a time.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 3 — EDIT FIELDS
+  ====================================================== -->
+  <div class="panel" id="panel-2">
+    <div class="sw">
+      <div class="state-label">Edit Fields — Validation + Success Toast</div>
+
+      <div class="card">
+        <div class="sec-hdr">Edit Parent Info</div>
+
+        <!-- Display name field with inline error -->
+        <div class="field">
+          <label class="field-label">Display Name</label>
+          <input class="field-input error" id="name-input" type="text" placeholder="Your name" value=""/>
+          <span class="field-err-msg" id="name-err">Please enter a name</span>
+        </div>
+
+        <!-- Relationship chip selector -->
+        <div class="field">
+          <label class="field-label">Relationship</label>
+          <div class="chip-group" id="rel-chips">
+            <button class="chip selected" onclick="selectChip(this)">Parent</button>
+            <button class="chip" onclick="selectChip(this)">Guardian</button>
+            <button class="chip" onclick="selectChip(this)">Grandparent</button>
+            <button class="chip" onclick="selectChip(this)">Other</button>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button class="btn btn-accent" onclick="saveEdit()">Save Changes</button>
+          <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+        </div>
+
+        <div class="hint-yellow" style="margin-top:14px;">
+          <span class="hint-ico">⚙️</span>
+          <span class="hint-txt">Engineering note: Validation triggers on Save attempt. The name field re-focuses automatically when the error shows. Success fires a toast from the top; no page reload needed — optimistic UI update inline.</span>
+        </div>
+      </div>
+
+      <!-- Success state preview (static) -->
+      <div class="card" style="border-color: var(--accent-border); background: var(--green-bg);">
+        <div class="sec-hdr" style="color:var(--accent);">Success State Preview</div>
+        <p style="font-size:13px;color:var(--ink2);margin-bottom:10px;">After a valid save, the toast slides in from the top:</p>
+        <div style="background:var(--accent);color:#fff;border-radius:20px;padding:9px 16px;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;">
+          ✓ Your name has been updated
+        </div>
+        <p style="font-size:11px;color:var(--ink3);margin-top:10px;">Toast auto-dismisses after 2.5 seconds. No blocking overlay.</p>
+      </div>
+
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: Input style uses white background with 1.5px teal border on focus. Error state uses coral border + inline message below the field. Keeps the form feel warm and adult — not clinical.</span>
+      </div>
+
+      <button class="btn btn-accent btn-full" style="margin-top:16px;" onclick="triggerToast()">▶ Demo Success Toast</button>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 4 — RELINK CHILD
+  ====================================================== -->
+  <div class="panel" id="panel-3">
+    <div class="sw">
+      <div class="state-label">Relink Child — Secondary / Destructive</div>
+
+      <div class="card">
+        <div class="sec-hdr">Relink Child</div>
+
+        <!-- Warning card -->
+        <div class="warn-card">
+          <span class="warn-ico">⚠️</span>
+          <div>
+            <div class="warn-title">Connection will pause temporarily</div>
+            <div class="warn-sub">If you relink, the current child connection will pause while the new code is verified. Progress and settings are preserved.</div>
+          </div>
+        </div>
+
+        <!-- Code input -->
+        <div class="field">
+          <label class="field-label">New Child Code</label>
+          <input class="field-input" type="text" placeholder="e.g. MIA-7X2" maxlength="8" style="text-transform:uppercase;letter-spacing:.12em;font-size:18px;font-weight:700;"/>
+          <span style="font-size:11px;color:var(--ink3);margin-top:3px;">6-character code from the child's device</span>
+        </div>
+
+        <button class="btn btn-outline-teal btn-full" style="margin-bottom:12px;">Submit New Code</button>
+
+        <!-- Currently linked read-only row -->
+        <div class="linked-readonly-row">
+          <div class="lrr-left">
+            <div class="lrr-avatar">🦊</div>
+            <div>
+              <div class="lrr-name">Mia Chen</div>
+              <div class="lrr-sub">Currently linked · Code: MIA-4K9</div>
+            </div>
+          </div>
+          <button class="unlink-btn">Remove link</button>
+        </div>
+      </div>
+
+      <div class="hint-yellow">
+        <span class="hint-ico">⚙️</span>
+        <span class="hint-txt">Engineering note: Relink is uncommon — this section should only be reachable from the accordion. The "Remove link" action should trigger a confirmation step before executing. Do not surface this action prominently in the main card.</span>
+      </div>
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: Relink is weighted as a secondary/destructive action. Gold warning card (not coral) signals caution without alarm. "Remove link" uses coral text only — no red background button — to reduce visual aggression.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 5 — NOTIFICATION TOGGLES
+  ====================================================== -->
+  <div class="panel" id="panel-4">
+    <div class="sw">
+      <div class="state-label">Notifications — Expanded Section</div>
+
+      <div class="card">
+        <div class="sec-hdr">Notifications</div>
+
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <div class="toggle-content">
+              <div class="toggle-title">Daily progress summary</div>
+              <div class="toggle-chip">Email</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-content">
+              <div class="toggle-title">Weekly report email</div>
+              <div class="toggle-chip">Email</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-content">
+              <div class="toggle-title">Badge earned</div>
+              <div class="toggle-chip">Email</div>
+            </div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+
+          <div class="toggle-row">
+            <div class="toggle-content">
+              <div class="toggle-title">Parent tip of the week</div>
+              <div class="toggle-chip">Email</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-accent btn-full" style="margin-top:16px;" onclick="triggerToast()">Save Preferences</button>
+      </div>
+
+      <div class="hint-yellow">
+        <span class="hint-ico">⚙️</span>
+        <span class="hint-txt">Engineering note: Toggle state is optimistic — update UI immediately on click and sync to API in background. Show a subtle error snackbar if the save fails, then revert the toggle visually.</span>
+      </div>
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: Teal toggles when on, gray when off. The "Email" chip on each row provides delivery context without a full settings UI. Compact and scannable.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 6 — ERROR STATE
+  ====================================================== -->
+  <div class="panel" id="panel-5">
+    <div class="sw">
+      <div class="state-label">Error States</div>
+
+      <div class="err-grid">
+        <!-- Error A: network save failure -->
+        <div class="err-card err-card-a">
+          <div class="err-ico">📡</div>
+          <div class="err-title">Could not save changes</div>
+          <div class="err-sub">A network error occurred. Your changes haven't been saved yet.</div>
+          <button class="err-retry">↺ Retry</button>
+        </div>
+
+        <!-- Error B: invalid relink code -->
+        <div class="err-card err-card-b">
+          <div class="err-ico">🔗</div>
+          <div class="err-title">Child relink failed</div>
+          <div class="err-sub">That code wasn't recognized. Please check and try again.</div>
+          <div class="err-retype">Re-enter code:</div>
+          <input class="err-field-sm" type="text" placeholder="e.g. MIA-7X2" autofocus/>
+          <div class="err-sub-try">Invalid or expired code</div>
+          <button class="err-retry" style="border-color:var(--coral-border);color:var(--coral);background:var(--coral-bg);">Try Again</button>
+        </div>
+      </div>
+
+      <div class="hint-yellow" style="margin-top:16px;">
+        <span class="hint-ico">⚙️</span>
+        <span class="hint-txt">Engineering note: Error A (network) uses teal outline to feel non-alarming — it's recoverable. Error B (invalid code) uses coral left-border to direct attention to the field. The code input re-focuses automatically on render to speed up re-entry.</span>
+      </div>
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: Side-by-side layout for documentation clarity only. In production these appear in-context — Error A replaces the save button area, Error B appears below the code input field in the relink section.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================
+       TAB 7 — MOBILE 375px
+  ====================================================== -->
+  <div class="panel" id="panel-6">
+    <div class="sw" style="max-width:460px;">
+      <div class="state-label">Mobile — 375px Phone Frame</div>
+
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+
+        <div class="phone-scroll">
+          <!-- Compact ready state, slightly scrolled look -->
+          <div class="ready-header" style="margin-bottom:12px;">
+            <div class="ready-ico">✓</div>
+            <div class="ready-text">
+              <h2 style="font-size:14px;">Family access is ready</h2>
+              <p style="font-size:11px;">Child linked · Notifications on</p>
+            </div>
+          </div>
+
+          <div class="family-card" style="padding:14px;margin-bottom:12px;">
+            <div class="child-row" style="margin-bottom:10px;">
+              <div class="child-avatar" style="width:40px;height:40px;font-size:20px;">🦊</div>
+              <div class="child-info">
+                <div class="child-name" style="font-size:14px;">Mia Chen</div>
+                <div class="linked-badge">Linked</div>
+              </div>
+            </div>
+            <div class="parent-row" style="margin-bottom:10px;padding:10px 0;">
+              <div class="parent-avatar" style="width:30px;height:30px;font-size:15px;">👤</div>
+              <div class="parent-info">
+                <div class="parent-name" style="font-size:13px;">Sarah Chen</div>
+                <div class="rel-pill" style="font-size:9px;">Parent</div>
+              </div>
+            </div>
+            <div class="stat-row" style="margin-bottom:12px;">
+              <div class="stat-cell" style="padding:8px 4px;">
+                <div class="stat-val" style="font-size:11px;">🔔 On</div>
+                <div class="stat-lbl">Notifs</div>
+              </div>
+              <div class="stat-cell" style="padding:8px 4px;">
+                <div class="stat-val" style="font-size:11px;">Weekly</div>
+                <div class="stat-lbl">Reports</div>
+              </div>
+              <div class="stat-cell" style="padding:8px 4px;">
+                <div class="stat-val" style="font-size:11px;">Feb '26</div>
+                <div class="stat-lbl">Since</div>
+              </div>
+            </div>
+            <div class="cta-row">
+              <button class="btn btn-outline-teal" style="font-size:12px;padding:9px 10px;">Manage</button>
+              <button class="btn btn-accent" style="font-size:12px;padding:9px 10px;">Family →</button>
+            </div>
+
+            <!-- Accordion open inline on mobile -->
+            <div class="accordion" style="margin-top:12px;">
+              <div class="acc-item">
+                <div class="acc-trigger" onclick="toggleAcc(this)" style="padding:12px 14px;">
+                  <span class="acc-label" style="font-size:12px;">✏️ Edit Info</span>
+                  <span class="acc-chevron open" style="font-size:10px;">▼</span>
+                </div>
+                <div class="acc-body open" style="padding:4px 14px 14px;">
+                  <div class="field" style="margin-top:8px;margin-bottom:10px;">
+                    <label class="field-label">Display Name</label>
+                    <input class="field-input" type="text" value="Sarah Chen" style="font-size:13px;padding:9px 12px;"/>
+                  </div>
+                  <div class="chip-group" style="margin-bottom:10px;">
+                    <button class="chip selected" style="font-size:11px;padding:5px 11px;">Parent</button>
+                    <button class="chip" style="font-size:11px;padding:5px 11px;">Guardian</button>
+                  </div>
+                  <div class="form-actions" style="gap:6px;">
+                    <button class="btn btn-accent" style="font-size:12px;padding:9px;">Save</button>
+                    <button class="btn btn-ghost" style="font-size:12px;padding:9px;">Cancel</button>
+                  </div>
+                </div>
+              </div>
+              <div class="acc-item">
+                <div class="acc-trigger" onclick="toggleAcc(this)" style="padding:12px 14px;">
+                  <span class="acc-label" style="font-size:12px;">🔔 Notifications</span>
+                  <span class="acc-chevron" style="font-size:10px;">▼</span>
+                </div>
+                <div class="acc-body" style="padding:4px 14px 10px;">
+                  <p style="font-size:11px;color:var(--ink3);padding-top:6px;">Manage email preferences</p>
+                </div>
+              </div>
+              <div class="acc-item">
+                <div class="acc-trigger" onclick="toggleAcc(this)" style="padding:12px 14px;">
+                  <span class="acc-label" style="font-size:12px;">🔗 Relink Child</span>
+                  <span class="acc-chevron" style="font-size:10px;">▼</span>
+                </div>
+                <div class="acc-body" style="padding:4px 14px 10px;">
+                  <p style="font-size:11px;color:var(--ink3);padding-top:6px;">Enter a new child code</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sticky bottom bar -->
+        <div class="phone-bottom-bar">
+          <div class="pbb-label">WonderQuest — Family Access</div>
+          <button class="pbb-done">Done</button>
+        </div>
+      </div>
+
+      <div class="hint-yellow" style="margin-top:14px;">
+        <span class="hint-ico">⚙️</span>
+        <span class="hint-txt">Engineering note: Sticky bottom bar uses position:absolute within the phone-frame container. In production use position:fixed with safe-area-inset-bottom for iOS notch handling. The accordion expand should not cause the bottom bar to shift.</span>
+      </div>
+      <div class="hint-blue">
+        <span class="hint-ico">💡</span>
+        <span class="hint-txt">Design intent: Mobile frame shows the compact ready state scrolled slightly with the manage accordion open. The "Done" CTA in the sticky bar allows quick exit from the management view back to the child play surface.</span>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script>
+// Tab switching
+function show(idx) {
+  document.querySelectorAll('.panel').forEach((p, i) => {
+    p.classList.toggle('active', i === idx);
+  });
+  document.querySelectorAll('.tab-btn').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+}
+
+// Accordion toggle
+function toggleAcc(trigger) {
+  const chevron = trigger.querySelector('.acc-chevron');
+  const body = trigger.nextElementSibling;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chevron.classList.toggle('open', !isOpen);
+}
+
+// Chip selection (relationship)
+function selectChip(btn) {
+  const group = btn.closest('.chip-group');
+  if (!group) return;
+  group.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+
+// Save edit — validates name field
+function saveEdit() {
+  const input = document.getElementById('name-input');
+  const errMsg = document.getElementById('name-err');
+  if (!input.value.trim()) {
+    input.classList.add('error');
+    errMsg.style.display = 'block';
+    input.focus();
+    return;
+  }
+  input.classList.remove('error');
+  errMsg.style.display = 'none';
+  triggerToast();
+}
+
+function cancelEdit() {
+  const input = document.getElementById('name-input');
+  const errMsg = document.getElementById('name-err');
+  input.value = '';
+  input.classList.remove('error');
+  errMsg.style.display = 'none';
+}
+
+// Toast
+function triggerToast() {
+  const toast = document.getElementById('toast');
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 2500);
+}
+
+// Init: hide err message on tab 3 by default
+document.addEventListener('DOMContentLoaded', () => {
+  const errMsg = document.getElementById('name-err');
+  if (errMsg) errMsg.style.display = 'none';
+});
+</script>
+</body>
+</html>

@@ -707,3 +707,23 @@ Important:
 - keep new deliverables at the top level of `ui-agent/`
 - do not reopen teacher, owner, or generic component work unless engineering asks
 - bias toward implementation-ready route states and token guidance
+
+---
+
+### 2026-03-22 16:30
+
+- completed: Priority 14 (audience backgrounds + palette systems), Priority 15 (parent access manager), Priority 16 (home launcher refinement)
+- added files:
+  - `audience-backgrounds.html` — 5-tab reference (Child / Parent / Teacher / Owner / Home); each tab shows full-bleed background preview, token swatches, loading/empty/alert variants, and mobile notes
+  - `parent-access-manager.html` — 7-tab post-link management flow (compact ready state, manage drawer/accordion, edit fields, relink child, notification toggles, error states, mobile 375px); warm light parent theme, Sora, no glassmorphism
+  - `home-launcher-refined.html` — 5-tab home launcher (child-first full page, live status strip, trust/safety strip, route launcher cards with deliberate prominence hierarchy, mobile 375px); child CTA dominant, trust-led cream default
+  - `design-system.css` — added `AUDIENCE BACKGROUND TOKENS` section with route-scoped vars for `--child-*`, `--parent-*`, `--teacher-*`, `--owner-*`, `--home-trust-*`, `--home-energy-*`
+- current focus: polling for next requests
+- blockers: none
+- notes for engineering:
+  - audience background tokens are now in `design-system.css` under `AUDIENCE BACKGROUND TOKENS` — use these vars rather than hardcoding hex values in route components
+  - `--child-bg` / `--child-bg-mid` / `--child-bg-deep` replace old ad-hoc `#100b2e` refs in child routes
+  - `--parent-bg` is `#f5f0e8` (not `#f6f1e7`) — slightly warmer than the old `--dash-bg`; intentional
+  - home has two distinct treatment vars: `--home-trust-bg` (cream, first-time/parent visits) and `--home-energy-bg` (cosmic, returning child with active quest) — switch at the app shell level, not per-component
+  - live status strip in `home-launcher-refined.html` specifies 30s poll + AbortController timeout + graceful hide-on-failure behavior
+  - parent access manager is an inline accordion, not a drawer/modal — avoids z-index stacking issues on mobile; see Tab 2 engineering note
