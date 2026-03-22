@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child World Picker v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Phone frame — child dark cosmic */
+  .phone-wrap { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; background: #100b2e; border-radius: 40px; border: 8px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.6); overflow: hidden; flex-shrink: 0; font-family: 'Nunito', 'Segoe UI', sans-serif; }
+  .phone-inner { overflow-y: auto; max-height: 820px; }
+  .phone-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  .status-bar { display: flex; justify-content: space-between; padding: 12px 20px 6px; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.35); background: #100b2e; }
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 16px 14px; background: #100b2e; }
+  .topbar-back { font-size: 20px; color: rgba(255,255,255,0.4); }
+  .topbar-greeting { font-size: 16px; font-weight: 900; color: #fff; flex: 1; }
+  .streak-chip { display: flex; align-items: center; gap: 5px; background: rgba(255,209,102,0.15); border: 1px solid rgba(255,209,102,0.3); border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 900; color: #ffd166; }
+
+  /* Star field */
+  .star-field { position: absolute; top: 0; left: 0; right: 0; bottom: 0; pointer-events: none; overflow: hidden; }
+  .star { position: absolute; background: white; border-radius: 50%; animation: twinkle 3s infinite alternate; }
+  @keyframes twinkle { 0% { opacity: 0.15; } 100% { opacity: 0.7; } }
+
+  /* World cards */
+  .worlds-container { position: relative; padding: 0 16px 20px; }
+  .worlds-scroll { display: flex; flex-direction: column; gap: 14px; }
+
+  .world-card { border-radius: 20px; overflow: hidden; position: relative; cursor: pointer; transition: transform 0.15s ease; }
+  .world-card:active { transform: scale(0.97); }
+
+  /* World card states */
+  .world-card.completed { opacity: 0.75; }
+  .world-card.current { box-shadow: 0 0 0 3px rgba(255,255,255,0.25), 0 8px 32px rgba(0,0,0,0.4); }
+  .world-card.locked { opacity: 0.45; filter: grayscale(0.3); cursor: not-allowed; }
+
+  .world-card-bg { height: 100px; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; position: relative; }
+  .world-emoji { font-size: 44px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3)); }
+  .world-card-info { flex: 1; padding: 0 16px; }
+  .world-friendly-name { font-size: 18px; font-weight: 900; color: #fff; line-height: 1.2; margin-bottom: 2px; }
+  .world-tagline { font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.65); }
+  .world-status-badge { flex-shrink: 0; }
+
+  /* Progress dots */
+  .progress-dots { display: flex; gap: 4px; margin-top: 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .dot.done { background: rgba(255,255,255,0.8); }
+  .dot.current { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.4); }
+  .dot.remaining { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); }
+
+  /* Lock icon */
+  .lock-icon { font-size: 28px; flex-shrink: 0; opacity: 0.5; }
+
+  /* CTA badge */
+  .cta-badge { background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 5px 14px; font-size: 11px; font-weight: 800; color: #fff; }
+  .cta-badge.active { background: #fff; color: #1a1040; }
+  .cta-badge.jump-back { background: rgba(255,209,102,0.3); border-color: rgba(255,209,102,0.5); color: #ffd166; }
+
+  /* Completed check */
+  .completed-check { width: 32px; height: 32px; border-radius: 50%; background: rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+
+  /* Jump back banner */
+  .jump-back-banner { background: rgba(255,209,102,0.12); border: 1.5px solid rgba(255,209,102,0.3); border-radius: 14px; margin: 0 16px 14px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; }
+  .jb-icon { font-size: 24px; flex-shrink: 0; }
+  .jb-title { font-size: 13px; font-weight: 900; color: #ffd166; }
+  .jb-sub { font-size: 11px; color: rgba(255,209,102,0.7); margin-top: 1px; }
+  .jb-arrow { font-size: 20px; color: #ffd166; }
+
+  /* World detail bottom sheet */
+  .world-sheet { background: rgba(16,11,46,0.96); border-top: 2px solid rgba(255,255,255,0.1); border-radius: 24px 24px 0 0; padding: 20px 20px 28px; position: sticky; bottom: 0; }
+  .ws-title { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .ws-sub { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 14px; }
+  .ws-skills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+  .ws-skill-chip { padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.07em; }
+  .ws-cta { width: 100%; padding: 14px; border-radius: 16px; border: none; font-size: 15px; font-weight: 900; cursor: pointer; font-family: 'Nunito', sans-serif; }
+
+  /* Spec */
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('picker')">World Picker</button>
+  <button class="tab" onclick="show('jumpback')">Jump Back In</button>
+  <button class="tab" onclick="show('locked')">Locked States</button>
+  <button class="tab" onclick="show('detail')">World Detail Sheet</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: WORLD PICKER ═══ -->
+<div id="picker" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — World Picker (Default State)</strong><br>
+    Child-facing world selection. Friendly world names (NOT grade labels — never "Pre-K" or "G2–3" to the child). Completed worlds: muted + ✓ check. Current world: bright + "Jump Back In" CTA. Locked worlds: greyed + lock icon. Tiny skill progress dots per world. Nunito 900, dark cosmic bg.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Mia's World Picker — Mid-Progress</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:#100b2e;">
+            <!-- Star field -->
+            <div class="star-field" style="position:absolute;height:100%;">
+              <div class="star" style="width:2px;height:2px;top:3%;left:18%;animation-delay:0s;"></div>
+              <div class="star" style="width:3px;height:3px;top:8%;left:75%;animation-delay:0.7s;"></div>
+              <div class="star" style="width:2px;height:2px;top:15%;left:42%;animation-delay:1.3s;"></div>
+              <div class="star" style="width:2px;height:2px;top:28%;left:88%;animation-delay:0.4s;"></div>
+              <div class="star" style="width:2px;height:2px;top:40%;left:12%;animation-delay:2s;"></div>
+              <div class="star" style="width:3px;height:3px;top:55%;left:60%;animation-delay:0.9s;"></div>
+              <div class="star" style="width:2px;height:2px;top:68%;left:30%;animation-delay:1.6s;"></div>
+              <div class="star" style="width:2px;height:2px;top:80%;left:82%;animation-delay:0.2s;"></div>
+            </div>
+
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Choose your world! 🌌</div>
+                <div class="streak-chip">🔥 21</div>
+              </div>
+
+              <div class="worlds-container">
+                <div class="worlds-scroll">
+
+                  <!-- World 1: Completed -->
+                  <div class="world-card completed">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                      <div class="world-emoji">🌙</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Dream World</div>
+                        <div class="world-tagline">Numbers &amp; Counting</div>
+                        <div class="progress-dots">
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                        </div>
+                      </div>
+                      <div class="completed-check">✓</div>
+                    </div>
+                  </div>
+
+                  <!-- World 2: Current -->
+                  <div class="world-card current">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                      <div class="world-emoji">🌊</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Ocean World</div>
+                        <div class="world-tagline">Multiplication &amp; Fractions</div>
+                        <div class="progress-dots">
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot done"></div>
+                          <div class="dot current"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                        </div>
+                      </div>
+                      <div class="cta-badge active">Play →</div>
+                    </div>
+                  </div>
+
+                  <!-- World 3: Locked -->
+                  <div class="world-card locked">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a0a08,#1a0808);">
+                      <div class="world-emoji">🌋</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Fire World</div>
+                        <div class="world-tagline">Advanced Fractions &amp; Algebra</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;font-weight:700;">Finish Ocean World first</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+
+                  <!-- World 4: Locked -->
+                  <div class="world-card locked">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#1a1040,#100820);">
+                      <div class="world-emoji">⭐</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Star World</div>
+                        <div class="world-tagline">Mystery awaits</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.2);margin-top:4px;font-weight:700;">Coming soon</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">New Player — Only First World Unlocked</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:#100b2e;">
+            <div class="star-field" style="position:absolute;height:100%;">
+              <div class="star" style="width:2px;height:2px;top:5%;left:22%;animation-delay:0s;"></div>
+              <div class="star" style="width:3px;height:3px;top:12%;left:68%;animation-delay:0.9s;"></div>
+              <div class="star" style="width:2px;height:2px;top:25%;left:40%;animation-delay:1.5s;"></div>
+              <div class="star" style="width:2px;height:2px;top:38%;left:85%;animation-delay:0.3s;"></div>
+            </div>
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Hi Leo! 👋</div>
+                <div class="streak-chip">🔥 1</div>
+              </div>
+
+              <!-- Welcome prompt -->
+              <div style="text-align:center;padding:10px 20px 16px;">
+                <div style="font-size:32px;margin-bottom:6px;">🌌</div>
+                <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:4px;">Your adventure starts here</div>
+                <div style="font-size:12px;color:rgba(255,255,255,0.5);">Complete worlds to unlock more!</div>
+              </div>
+
+              <div class="worlds-container">
+                <div class="worlds-scroll">
+                  <!-- World 1: Current (new player) -->
+                  <div class="world-card current">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                      <div class="world-emoji">🌙</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Dream World</div>
+                        <div class="world-tagline">Numbers &amp; Counting</div>
+                        <div class="progress-dots">
+                          <div class="dot current"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                          <div class="dot remaining"></div>
+                        </div>
+                      </div>
+                      <div class="cta-badge active">Start! →</div>
+                    </div>
+                  </div>
+                  <div class="world-card locked">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                      <div class="world-emoji">🌊</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Ocean World</div>
+                        <div class="world-tagline">???</div>
+                        <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:4px;font-weight:700;">Finish Dream World first</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+                  <div class="world-card locked">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a0a08,#1a0808);">
+                      <div class="world-emoji">🌋</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Fire World</div>
+                        <div class="world-tagline">???</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: JUMP BACK IN ═══ -->
+<div id="jumpback" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Return / Jump Back In Treatment</strong><br>
+    When last_session > 1 day: world picker shows a "Jump Back In" gold banner above the current world card. Banner: "Welcome back! You were away X days" + CTA arrow. Current world card has a "Jump Back In →" badge instead of the default "Play →". Short away (2–3 days): streak intact message. Longer away: fresh start framing.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">Short Away (2 days) — Streak Intact</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:radial-gradient(ellipse at 50% 25%, #2e2060 0%, #18105e 40%, #100b2e 100%);">
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Welcome back, Mia! ✨</div>
+                <div class="streak-chip">🔥 21</div>
+              </div>
+
+              <!-- Jump back banner -->
+              <div class="jump-back-banner">
+                <div class="jb-icon">🌙</div>
+                <div style="flex:1;">
+                  <div class="jb-title">2 days away — streak's still going!</div>
+                  <div class="jb-sub">Pick up right where you left off</div>
+                </div>
+                <div class="jb-arrow">›</div>
+              </div>
+
+              <div class="worlds-container">
+                <div class="worlds-scroll">
+                  <div class="world-card completed">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                      <div class="world-emoji">🌙</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Dream World</div>
+                        <div class="world-tagline">Numbers &amp; Counting</div>
+                        <div class="progress-dots">
+                          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div>
+                        </div>
+                      </div>
+                      <div class="completed-check">✓</div>
+                    </div>
+                  </div>
+
+                  <!-- Current world with jump-back badge -->
+                  <div class="world-card current" style="box-shadow:0 0 0 3px rgba(255,209,102,0.4), 0 8px 32px rgba(0,0,0,0.5);">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                      <div class="world-emoji">🌊</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Ocean World</div>
+                        <div class="world-tagline">Multiplication · node 5</div>
+                        <div class="progress-dots">
+                          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot remaining"></div><div class="dot remaining"></div><div class="dot remaining"></div>
+                        </div>
+                      </div>
+                      <div class="cta-badge jump-back">Jump in →</div>
+                    </div>
+                  </div>
+
+                  <div class="world-card locked">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a0a08,#1a0808);">
+                      <div class="world-emoji">🌋</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Fire World</div>
+                        <div class="world-tagline">Finish Ocean World first</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Long Away (14 days) — Fresh Start</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:radial-gradient(ellipse at 50% 20%, #2e2060 0%, #18105e 40%, #100b2e 100%);">
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Welcome back! 🎉</div>
+                <div class="streak-chip" style="border-color:rgba(155,114,255,0.4);color:#c8a8ff;background:rgba(155,114,255,0.12);">🌱 Day 1</div>
+              </div>
+
+              <!-- Fresh start banner -->
+              <div style="background:rgba(155,114,255,0.12);border:1.5px solid rgba(155,114,255,0.3);border-radius:14px;margin:0 16px 14px;padding:12px 16px;">
+                <div style="font-size:13px;font-weight:900;color:#c8a8ff;margin-bottom:2px;">🌱 Fresh start!</div>
+                <div style="font-size:11px;color:rgba(155,114,255,0.7);">You were away for a while. New streak, same adventure!</div>
+              </div>
+
+              <!-- New content discovered while away -->
+              <div style="background:rgba(255,209,102,0.08);border:1px solid rgba(255,209,102,0.2);border-radius:12px;margin:0 16px 14px;padding:12px 14px;">
+                <div style="font-size:11px;font-weight:800;color:#ffd166;margin-bottom:4px;">✨ New while you were away</div>
+                <div style="font-size:12px;color:rgba(255,209,102,0.7);">Ocean World got 3 new nodes! Check them out.</div>
+              </div>
+
+              <div class="worlds-container">
+                <div class="worlds-scroll">
+                  <div class="world-card completed" style="opacity:0.6;">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                      <div class="world-emoji">🌙</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Dream World</div>
+                        <div class="world-tagline">Completed ✓</div>
+                      </div>
+                      <div class="completed-check">✓</div>
+                    </div>
+                  </div>
+                  <div class="world-card current" style="box-shadow:0 0 0 3px rgba(155,114,255,0.4);">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                      <div class="world-emoji">🌊</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Ocean World</div>
+                        <div class="world-tagline">Multiplication · Resume here</div>
+                        <div class="progress-dots">
+                          <div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot done"></div><div class="dot current"></div><div class="dot remaining"></div><div class="dot remaining"></div>
+                        </div>
+                      </div>
+                      <div class="cta-badge" style="background:rgba(155,114,255,0.25);border-color:rgba(155,114,255,0.4);color:#c8a8ff;">Resume →</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: LOCKED STATES ═══ -->
+<div id="locked" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — Locked World States</strong><br>
+    Two locked variants: (1) Standard locked (previous world not complete) — "Finish [World name] first" + greyed emoji + lock. (2) Coming soon — no progress requirement, just future content. Tapping a locked world shows a brief toast/tip at bottom (never a blocking modal).
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Locked Tap Toast</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:#100b2e;min-height:680px;">
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Choose your world! 🌌</div>
+                <div class="streak-chip">🔥 21</div>
+              </div>
+
+              <div class="worlds-container">
+                <div class="worlds-scroll">
+                  <div class="world-card completed">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                      <div class="world-emoji">🌙</div>
+                      <div class="world-card-info"><div class="world-friendly-name">Dream World</div><div class="world-tagline">Completed ✓</div></div>
+                      <div class="completed-check">✓</div>
+                    </div>
+                  </div>
+                  <div class="world-card current">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                      <div class="world-emoji">🌊</div>
+                      <div class="world-card-info"><div class="world-friendly-name">Ocean World</div><div class="world-tagline">4 / 8 skills done</div></div>
+                      <div class="cta-badge active">Play →</div>
+                    </div>
+                  </div>
+                  <!-- Locked world — user just tapped it -->
+                  <div class="world-card locked" style="opacity:0.6;box-shadow:0 0 0 2px rgba(255,100,100,0.3);">
+                    <div class="world-card-bg" style="background:linear-gradient(135deg,#2a0a08,#1a0808);">
+                      <div class="world-emoji" style="filter:grayscale(0.8);">🌋</div>
+                      <div class="world-card-info">
+                        <div class="world-friendly-name">Fire World</div>
+                        <div class="world-tagline">Finish Ocean World first</div>
+                      </div>
+                      <div class="lock-icon">🔒</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Toast at bottom (from locking tap) -->
+              <div style="position:absolute;bottom:20px;left:20px;right:20px;background:rgba(30,20,60,0.96);border:1px solid rgba(255,255,255,0.12);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 24px rgba(0,0,0,0.4);">
+                <div style="font-size:20px;">🔒</div>
+                <div>
+                  <div style="font-size:13px;font-weight:900;color:#fff;margin-bottom:2px;">Almost there!</div>
+                  <div style="font-size:11px;color:rgba(255,255,255,0.5);">Finish Ocean World to unlock Fire World</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: WORLD DETAIL SHEET ═══ -->
+<div id="detail" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — World Detail Bottom Sheet</strong><br>
+    Tapping a completed or current world card expands a bottom sheet with: world name + description + skill chips + progress summary + CTA (Resume / Play Again / View Skills). Sheet slides up from bottom, play screen dims behind it. Locked worlds show no sheet — just the toast.
+  </div>
+  <div class="phone-wrap">
+    <div>
+      <div class="phone-label">Current World — Sheet Expanded</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:#100b2e;min-height:680px;">
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Choose your world! 🌌</div>
+                <div class="streak-chip">🔥 21</div>
+              </div>
+              <!-- Dimmed cards behind sheet -->
+              <div style="opacity:0.3;padding:0 16px 0;">
+                <div class="world-card completed" style="margin-bottom:12px;">
+                  <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                    <div class="world-emoji">🌙</div>
+                    <div class="world-card-info"><div class="world-friendly-name">Dream World</div></div>
+                  </div>
+                </div>
+                <div class="world-card current">
+                  <div class="world-card-bg" style="background:linear-gradient(135deg,#0e3535,#091e2e);">
+                    <div class="world-emoji">🌊</div>
+                    <div class="world-card-info"><div class="world-friendly-name">Ocean World</div></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Detail sheet -->
+              <div class="world-sheet">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                  <div style="font-size:36px;">🌊</div>
+                  <div>
+                    <div class="ws-title">Ocean World</div>
+                    <div class="ws-sub">4 of 8 skills complete · Multiplication up next</div>
+                  </div>
+                </div>
+                <div class="ws-skills">
+                  <div class="ws-skill-chip" style="background:rgba(88,232,193,0.2);color:#58e8c1;">Addition ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(88,232,193,0.2);color:#58e8c1;">Subtraction ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(88,232,193,0.2);color:#58e8c1;">Skip Counting ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,255,255,0.15);color:#fff;">Multiplication →</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);">Fractions</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.4);">Division</div>
+                </div>
+                <!-- Progress bar -->
+                <div style="margin-bottom:14px;">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:5px;">
+                    <div style="font-size:11px;font-weight:800;color:rgba(255,255,255,0.5);">Progress</div>
+                    <div style="font-size:11px;font-weight:900;color:#58e8c1;">4 / 8</div>
+                  </div>
+                  <div style="height:8px;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;">
+                    <div style="height:100%;width:50%;background:#58e8c1;border-radius:4px;"></div>
+                  </div>
+                </div>
+                <button class="ws-cta" style="background:#58e8c1;color:#042018;">Resume Ocean World →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="phone-label">Completed World — Sheet</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div style="position:relative;background:#100b2e;min-height:680px;">
+            <div style="position:relative;z-index:1;">
+              <div class="status-bar"><span>9:41</span><span>●●● 🔋</span></div>
+              <div class="topbar">
+                <div class="topbar-greeting">Choose your world! 🌌</div>
+                <div class="streak-chip">🔥 21</div>
+              </div>
+              <div style="opacity:0.3;padding:0 16px;">
+                <div class="world-card completed">
+                  <div class="world-card-bg" style="background:linear-gradient(135deg,#2a1a5e,#1a1040);">
+                    <div class="world-emoji">🌙</div>
+                    <div class="world-card-info"><div class="world-friendly-name">Dream World</div></div>
+                  </div>
+                </div>
+              </div>
+              <div class="world-sheet">
+                <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+                  <div style="font-size:36px;">🌙</div>
+                  <div>
+                    <div class="ws-title">Dream World</div>
+                    <div class="ws-sub">All 6 skills complete! 🏆</div>
+                  </div>
+                  <div style="margin-left:auto;font-size:28px;">🏅</div>
+                </div>
+                <div class="ws-skills">
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Counting ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Number Order ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Patterns ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Shapes ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Comparing ✓</div>
+                  <div class="ws-skill-chip" style="background:rgba(255,209,102,0.15);color:#ffd166;">Addition Intro ✓</div>
+                </div>
+                <div style="margin-bottom:14px;background:rgba(255,209,102,0.08);border:1px solid rgba(255,209,102,0.2);border-radius:10px;padding:10px 12px;text-align:center;">
+                  <div style="font-size:12px;font-weight:800;color:#ffd166;">Dream World Champion 🏆</div>
+                  <div style="font-size:11px;color:rgba(255,209,102,0.6);margin-top:2px;">Badge earned · All skills mastered</div>
+                </div>
+                <button class="ws-cta" style="background:rgba(255,209,102,0.2);color:#ffd166;border:1.5px solid rgba(255,209,102,0.4);">Play Again</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Tab 5 — Spec Notes</strong></div>
+
+  <div class="spec-h2">World Naming Rules</div>
+  <div class="spec-note">
+    Child-facing names are thematic, NOT grade labels. Never show "Pre-K", "K-1", "G2-3", or "G4-5" to the child. World names examples: Dream World (P0), Ocean World (P2), Fire World (P3). Names are defined in content CMS and may vary. Locked world tagline shows "???" until adjacent world is complete.
+  </div>
+
+  <div class="spec-h2">World Card States</div>
+  <table class="spec-table">
+    <tr><th>State</th><th>Visual</th><th>Badge</th><th>Tap action</th></tr>
+    <tr><td>Completed</td><td>Opacity 0.75, ✓ check circle</td><td>✓ check</td><td>Open detail sheet (Play Again CTA)</td></tr>
+    <tr><td>Current</td><td>Full opacity + glow ring + scale(1.02)</td><td>"Play →" or "Jump in →" or "Resume →"</td><td>Open detail sheet (Resume CTA)</td></tr>
+    <tr><td>Locked (prev)</td><td>Opacity 0.45, grayscale, lock icon</td><td>🔒</td><td>Show toast (not modal)</td></tr>
+    <tr><td>Locked (coming soon)</td><td>Opacity 0.3, locked, tagline "Mystery awaits"</td><td>🔒</td><td>Show "coming soon" toast</td></tr>
+  </table>
+
+  <div class="spec-h2">Jump Back In Rules</div>
+  <table class="spec-table">
+    <tr><th>Days away</th><th>Banner text</th><th>Streak status</th><th>Card badge</th></tr>
+    <tr><td>1 day</td><td>No banner — normal picker</td><td>Intact</td><td>"Play →"</td></tr>
+    <tr><td>2–3 days</td><td>"X days away — streak's still going!"</td><td>Gold — intact</td><td>"Jump in →" (gold)</td></tr>
+    <tr><td>4–6 days</td><td>"Welcome back — jump in where you left off"</td><td>Check server — may be reset</td><td>"Resume →"</td></tr>
+    <tr><td>7–13 days</td><td>"We missed you! New streak starting 🌱"</td><td>Likely reset — violet fresh-start</td><td>"Resume →"</td></tr>
+    <tr><td>14+ days</td><td>"Fresh start! 🌱 New adventure begins"</td><td>Reset — show Day 1</td><td>"Resume →"</td></tr>
+  </table>
+  <div class="spec-note">Grace period threshold (streak reset) is server-configurable. Never hardcode. NEVER say "broke your streak" — always positive framing.</div>
+
+  <div class="spec-h2">Progress Dots</div>
+  <div class="spec-note">One dot per skill in the world. Max 10 dots displayed — if world has more than 10 skills, show 10 dots + "…" overflow. Done = bright white filled. Current = bright white with outer glow ring. Remaining = dim outline only.</div>
+
+  <div class="spec-h2">Bottom Sheet Animation</div>
+  <div class="spec-note">Sheet slides up from <code>translateY(100%)</code> to <code>translateY(0)</code> in 300ms ease-out. Background cards dim to 30% opacity simultaneously. Dismiss by tapping outside the sheet or swiping down. Locked worlds never trigger sheet — only show toast.</div>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Base bg</td><td><code>#100b2e</code> dark cosmic</td></tr>
+    <tr><td>World sheet bg</td><td><code>rgba(16,11,46,0.96)</code> + blur</td></tr>
+    <tr><td>Sheet border-top</td><td><code>rgba(255,255,255,0.1)</code></td></tr>
+    <tr><td>Completed card opacity</td><td>0.75</td></tr>
+    <tr><td>Locked card opacity</td><td>0.45</td></tr>
+    <tr><td>Current card ring</td><td><code>rgba(255,255,255,0.25)</code></td></tr>
+    <tr><td>Jump-back gold</td><td><code>rgba(255,209,102,0.12)</code> bg / <code>rgba(255,209,102,0.3)</code> border</td></tr>
+    <tr><td>Fresh-start violet</td><td><code>rgba(155,114,255,0.12)</code> bg</td></tr>
+    <tr><td>Font</td><td>Nunito 900 · all child-facing</td></tr>
+    <tr><td>Phone frame</td><td>375px · child</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

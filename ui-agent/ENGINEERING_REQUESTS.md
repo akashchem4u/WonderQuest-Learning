@@ -1559,3 +1559,59 @@ Important:
   - `teacher-dashboard-mobile-canonical-v2.html` should be the true compact teacher home for between-class checks, not just a compressed desktop panel
   - `owner-feedback-summary-v2.html` should sit above queue/detail and summarize severity, routing, and trend health for ops triage
   - `owner-route-health-mobile-v2.html` should provide a compact incident / route-health snapshot for on-the-go alpha support
+
+### 2026-03-22 UI Agent Status
+- completed:
+  - delivered current batch (all 4 files):
+    - `parent-home-practice-detail-v2.html` — 5 tabs: practice moments (2–3 activity cards per child, support-tier first, with skill dot + tier label + description + duration/skill/fun tags + "Try together" CTA footer) + weekend activities (gradient image header, longer format 15–30 min, 2 cards max, rotate weekly) + all-done state (muted completed cards + green hero "You did it!" + "check back next week" message) + teacher-note-only edge case (note prominent + "Ideas on their way" placeholder + multi-note thread collapsed older than 7 days) + spec (practice moment rules, parent language rules, teacher note display, weekend rotation, tokens)
+    - `teacher-support-lane-desktop-v2.html` — 5 tabs: 3-col workbench (220px student lane: Flag/Watch/Strong sections + selectable rows + left-border state indicator; 1fr center: student name header + skill cards with progress bars + 5-week tier bar chart + intervention log; 320px right: quick-add note form + full intervention thread) + filters/sort (filter bar: tier/skill/duration/active-toggle + applied chips + reset all + sort dropdown) + empty/low-data (all-clear empty lane + no-data waiting state) + mobile condensed (student lane only, tap pushes detail) + spec (layout grid, sort order, filter options, tokens)
+    - `owner-content-review-workbench-v2.html` — 5 tabs: review workbench (KPI strip 5-cols: pending/flagged/approved/in-revision/QA-pass-rate + 3-col: 280px queue with filter chips; center: content preview with question card + flagged-answer banner + fix indicator; 340px right: QA score 0-100 + 6-item checklist + reviewer notes textarea + action buttons) + flagged content focused view (red banner + full flagged list with report counts + fix-in-editor deep-links) + approve/revise/archive post-action states (approve: mint badge + version bumped + reports resolved; revise: returned-to-author with notes + failed checks highlighted) + mobile notes (queue list → detail push, QA badge in topbar) + spec (queue sort, QA checklist, actions table, fix-in-editor deep-link format, tokens)
+    - `child-world-picker-v2.html` — 5 tabs: world picker (completed: muted ✓ check; current: bright + glow ring + progress dots; locked: 0.45 opacity + lock icon; friendly world names NEVER grade labels — Dream/Ocean/Fire/Star World) + jump-back-in (gold banner for 2–3 days away streak intact; violet fresh-start banner for 7+ days; badge changes: "Play →" / "Jump in →" / "Resume →" by days-away) + locked states (tap shows toast not modal; "Finish [World] first" text; coming-soon variant) + world detail sheet (slide-up from bottom; current world: skill chips + progress bar + Resume CTA; completed world: all-skill chips + badge + Play Again CTA; dim cards behind sheet) + spec (world naming rules, card state table, jump-back rules by days-away, progress dot rules, sheet animation, tokens)
+- current focus:
+  - polling for next batch
+- blockers:
+  - none
+- notes for engineering:
+  - child-world-picker: world names in content CMS, never hardcoded. Locked world tagline shows "???" until adjacent world is complete.
+  - child-world-picker: locked tap = toast only (not modal). Sheet slides up 300ms ease-out. Dismissed by tap-outside or swipe-down.
+  - parent-home-practice: practice moments rotate every Monday. Parent can manually refresh once/day. Support-tier activities always shown first.
+  - teacher-support-lane: desktop 3-col min-width 960px. Mobile collapses to student lane list only — tap pushes full-screen detail.
+  - owner-content-review: QA hard-block checks: correct answer marked + all options distinct. Others are warnings only. Approve blocked when hard-check fails.
+
+### 2026-03-22 15:18 CDT
+- completed:
+  - verified the remaining current-focus files are now present:
+    - `owner-content-review-workbench-v2.html`
+    - `child-world-picker-v2.html`
+- current focus:
+  - `child-launcher-canonical-v2.html`
+  - `child-progress-review-v2.html`
+  - `parent-access-manager-v2.html`
+  - `teacher-dashboard-mobile-canonical-v2.html`
+  - `owner-feedback-summary-v2.html`
+  - `owner-route-health-mobile-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - when this six-file batch is complete, append the delivery/status block here before waiting
+  - `child-launcher-canonical-v2.html` should be the most polished child entry point yet:
+    - first-time start
+    - resume
+    - returning-player comeback
+    - ultra-low reading load
+    - mobile-first
+  - `child-progress-review-v2.html` should bridge session-complete and world progression:
+    - earned rewards
+    - calm recap
+    - next world / next skill prompt
+    - replay vs continue options
+  - `parent-access-manager-v2.html` should cover:
+    - child switching
+    - relink / fix link
+    - notification control
+    - account hygiene
+    - family-safe error states
+  - `teacher-dashboard-mobile-canonical-v2.html` should be a true between-class teacher home, not a reduced desktop
+  - `owner-feedback-summary-v2.html` should sit above queue/detail with severity, volume, routing mix, and trend health
+  - `owner-route-health-mobile-v2.html` should provide compact ops/incident awareness for alpha support on the go
