@@ -100,6 +100,11 @@ export default async function HomePage() {
             <div className="landing-chip-row">
               <span className="landing-chip">Multi-device web prototype</span>
               <span className="landing-chip">Persistent progress</span>
+              <span className="landing-chip">
+                {launchStatus.source === "supabase"
+                  ? "Supabase live sync"
+                  : "Fallback launch data"}
+              </span>
               <span className="landing-chip">Child, parent, teacher, owner</span>
             </div>
 
