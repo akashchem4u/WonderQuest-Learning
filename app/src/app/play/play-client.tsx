@@ -72,6 +72,11 @@ type RewardOverlay = {
   body: string;
 };
 
+type WordPreview = {
+  icon: string;
+  helper: string;
+};
+
 function isEarlyLearnerBand(launchBandCode: string) {
   return launchBandCode === "PREK" || launchBandCode === "K1";
 }
@@ -84,6 +89,25 @@ function getAvatarSymbol(avatarKey: string) {
   if (avatarKey.includes("panda")) return "🐼";
   if (avatarKey.includes("owl")) return "🦉";
   return "✨";
+}
+
+function getWordPreview(answer: string): WordPreview {
+  switch (answer.toLowerCase()) {
+    case "cat":
+      return { icon: "🐱", helper: "cat" };
+    case "bike":
+      return { icon: "🚲", helper: "bike" };
+    case "home":
+      return { icon: "🏠", helper: "home" };
+    case "goal":
+      return { icon: "🥅", helper: "goal" };
+    case "goat":
+      return { icon: "🐐", helper: "goat" };
+    case "gold":
+      return { icon: "🥇", helper: "gold" };
+    default:
+      return { icon: "✨", helper: answer };
+  }
 }
 
 function buildQuestionVisualScene(question: SessionQuestion) {
@@ -104,6 +128,21 @@ function buildQuestionVisualScene(question: SessionQuestion) {
         title: "Find the circle",
         helper: "Look for the round shape with no corners.",
       } satisfies QuestionVisualScene;
+    case "k1_short_a_cat":
+      return {
+        title: "Find the short a word",
+        helper: "Say cat. Listen for the short a sound.",
+      } satisfies QuestionVisualScene;
+    case "k1_add_6_4":
+      return {
+        title: "Add to ten",
+        helper: "Start with six, add four more, then tap the total.",
+      } satisfies QuestionVisualScene;
+    case "k1_first_word_goal":
+      return {
+        title: "Read the word goal",
+        helper: "Look at each word card, then tap goal.",
+      } satisfies QuestionVisualScene;
     default:
       return null;
   }
@@ -120,6 +159,18 @@ function buildSceneClass(question: SessionQuestion) {
 
   if (question.questionKey === "prek_shape_circle") {
     return "scene-shape";
+  }
+
+  if (question.questionKey === "k1_short_a_cat") {
+    return "scene-phonics";
+  }
+
+  if (question.questionKey === "k1_add_6_4") {
+    return "scene-score";
+  }
+
+  if (question.questionKey === "k1_first_word_goal") {
+    return "scene-reading";
   }
 
   if (question.subject === "early-literacy") {
@@ -171,6 +222,18 @@ function buildPromptCue(question: SessionQuestion, scene: QuestionVisualScene | 
 
   if (question.subject === "math") {
     return "Look carefully and tap the answer you see.";
+  }
+
+  if (question.questionKey === "k1_short_a_cat") {
+    return "Say cat, then tap the word that sounds the same.";
+  }
+
+  if (question.questionKey === "k1_add_6_4") {
+    return "Count up from six, then tap the total.";
+  }
+
+  if (question.questionKey === "k1_first_word_goal") {
+    return "Read each card, then tap the word goal.";
   }
 
   if (question.subject === "early-literacy") {
@@ -232,6 +295,30 @@ function buildCoachSteps(question: SessionQuestion) {
       "Look for the round shape.",
       "Find the one with no corners.",
       "Tap the circle card.",
+    ];
+  }
+
+  if (question.questionKey === "k1_short_a_cat") {
+    return [
+      "Say cat with me.",
+      "Listen for the short a sound.",
+      "Tap the word that matches.",
+    ];
+  }
+
+  if (question.questionKey === "k1_add_6_4") {
+    return [
+      "Start with six.",
+      "Add four more.",
+      "Tap the total.",
+    ];
+  }
+
+  if (question.questionKey === "k1_first_word_goal") {
+    return [
+      "Look at the word cards.",
+      "Find the word goal.",
+      "Tap the matching card.",
     ];
   }
 
@@ -466,6 +553,25 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
     );
   }
 
+  if (
+    question.questionKey === "k1_short_a_cat" ||
+    question.questionKey === "k1_first_word_goal"
+  ) {
+    const preview = getWordPreview(answer);
+
+    return (
+      <>
+        <div className="answer-visual-stack">
+          <span className="word-preview" aria-hidden="true">
+            {preview.icon}
+          </span>
+          <strong>{answer}</strong>
+        </div>
+        <small>{preview.helper}</small>
+      </>
+    );
+  }
+
   if (/^\d+$/.test(answer)) {
     return (
       <>
@@ -493,12 +599,24 @@ function buildAnswerCardVariant(question: SessionQuestion) {
     return "count";
   }
 
+  if (question.questionKey === "k1_add_6_4") {
+    return "count";
+  }
+
   if (question.questionKey === "prek_letter_b_ball") {
     return "letter";
   }
 
+  if (question.questionKey === "k1_short_a_cat") {
+    return "picture";
+  }
+
   if (question.questionKey === "prek_shape_circle") {
     return "shape";
+  }
+
+  if (question.questionKey === "k1_first_word_goal") {
+    return "picture";
   }
 
   if (question.subject === "early-literacy") {
@@ -521,8 +639,20 @@ function buildAnswerTapCue(question: SessionQuestion) {
     return "Tap the letter you hear.";
   }
 
+  if (question.questionKey === "k1_short_a_cat") {
+    return "Tap the word that sounds like cat.";
+  }
+
   if (question.questionKey === "prek_shape_circle") {
     return "Tap the round shape.";
+  }
+
+  if (question.questionKey === "k1_add_6_4") {
+    return "Tap the total after six and four more.";
+  }
+
+  if (question.questionKey === "k1_first_word_goal") {
+    return "Tap the word that says goal.";
   }
 
   if (question.subject === "early-literacy") {
@@ -1188,6 +1318,46 @@ export default function PlayClient() {
                         <div className="visual-token visual-token-word">
                           <span className="emoji-scene-token">⚽</span>
                           <small>ball</small>
+                        </div>
+                      </div>
+                    ) : currentQuestion.questionKey === "k1_short_a_cat" ? (
+                      <div className="visual-token-grid letter-word-scene" aria-hidden="true">
+                        <div className="visual-token visual-token-word">
+                          <span className="emoji-scene-token">🐱</span>
+                          <small>cat</small>
+                        </div>
+                        <div className="visual-token visual-token-word">
+                          <span className="letter-scene-token">a</span>
+                          <small>short a sound</small>
+                        </div>
+                      </div>
+                    ) : currentQuestion.questionKey === "k1_add_6_4" ? (
+                      <div className="score-scene" aria-hidden="true">
+                        <div className="score-scene-row">
+                          {Array.from({ length: 6 }, (_, index) => (
+                            <span className="score-token" key={`score-six-${index}`}>
+                              ⚽
+                            </span>
+                          ))}
+                        </div>
+                        <span className="score-scene-plus">+</span>
+                        <div className="score-scene-row">
+                          {Array.from({ length: 4 }, (_, index) => (
+                            <span className="score-token" key={`score-four-${index}`}>
+                              ⚽
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    ) : currentQuestion.questionKey === "k1_first_word_goal" ? (
+                      <div className="visual-token-grid letter-word-scene" aria-hidden="true">
+                        <div className="visual-token visual-token-word">
+                          <span className="emoji-scene-token">🥅</span>
+                          <small>goal</small>
+                        </div>
+                        <div className="visual-token visual-token-word">
+                          <span className="letter-scene-token">GOAL</span>
+                          <small>read the whole word</small>
                         </div>
                       </div>
                     ) : questionTags.includes("letter time") ? (
