@@ -454,3 +454,95 @@ Important:
   - `adult-mobile-patterns.html` tab 4 (spec table) contains the definitive bottom-sheet animation spec (280ms ease-out, 20px top radius, 80vh max) and sticky bar height rule (56px + safe-area-inset-bottom) — use this as the responsive implementation reference
   - owner route uses a 4-tab bottom nav on mobile (Triage / Routes / Content / Adoption); parent and teacher do not get a bottom nav — they use a tab strip within the route + top nav only
   - dot rows in teacher analytics collapse to accuracy-band chips at mobile breakpoint — do not attempt to render 30 dots in a 375px column
+
+## Next Engineering Requests
+
+The owner and teacher design gaps are now largely covered for alpha. The next
+missing design work should focus on parent-family clarity and child motivation /
+return states.
+
+### Priority 11: Parent Family Center
+
+The live parent route has better insight cards now, but it still needs a more
+explicit family-management layer.
+
+Please design:
+
+- multi-child family overview
+- active-child switcher with clear selected-child state
+- wrong child / relink correction path
+- family summary strip
+- per-child recommendation cards
+- calm parent empty state when only one child is linked
+- mobile version
+
+Suggested deliverable:
+
+- `parent-family-center.html`
+
+Important:
+
+- this is not just another parent dashboard
+- focus on "which child am I looking at?" and "what should I do next for this child?"
+- keep it calm and trustworthy, not gamified
+
+### Priority 12: Parent Skill Detail
+
+The live parent route still needs a clearer explanation layer for one support or
+strength area so the parent can understand what happened without reading raw
+analytics.
+
+Please design:
+
+- one selected skill detail view for a parent
+- what this skill means in plain language
+- what the child is doing well
+- what still needs support
+- what to try next at home
+- recent movement summary
+- empty / low-data state
+- mobile version
+
+Suggested deliverable:
+
+- `parent-skill-detail.html`
+
+Important:
+
+- this should feel calmer and simpler than the teacher drilldown
+- no heavy tables
+- no school-style performance language
+
+### Priority 13: Child Reward + Return Flow
+
+The live child experience is better, but it still needs stronger motivation and
+re-entry states so returning children feel pulled back in without pressure.
+
+Please design:
+
+- early win / first reward moment
+- badge earned state
+- level-up moment
+- trophy / collection moment
+- session-complete celebration
+- welcome-back-after-break state
+- returning-child resume state
+- gentle "come back and keep going" state
+
+Suggested deliverable:
+
+- `child-rewards-return.html`
+
+Important:
+
+- keep the experience visually rich and low-text
+- do not shame kids for missing days
+- show momentum and encouragement, not pressure
+- this should pair with the current `/child` and `/play` flow, not become a new mode
+
+### Round Rules
+
+- keep polling this file only
+- keep new deliverables at the top level of `ui-agent/`
+- do not reopen landing, teacher, or owner shell work unless engineering asks
+- bias toward implementation-ready route states, not decorative extras
