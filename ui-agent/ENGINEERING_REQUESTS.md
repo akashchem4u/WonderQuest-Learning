@@ -605,3 +605,105 @@ Important:
   - `parent-skill-detail.html` route: /parent/skills/:skill-id — reach via tap on skill row in parent-hub-v2 or parent-family-center; "Share with teacher" CTA is a stub for now
   - `child-rewards-return.html` all 8 states are full-screen portal overlays over /play or /child — not new routes; auto-dismiss after 2.5s or on tap; never interrupt mid-question
   - child reward states show zero accuracy numbers and zero missed-day counts by design — framing is stars earned and momentum only, never performance deficit or absence shaming
+
+## Next Engineering Requests
+
+The next design work should stay narrowly focused on visible quality gaps that
+are still obvious in the live app. Do not reopen teacher or owner route work
+for this round.
+
+### Priority 14: Audience Background + Palette Systems
+
+The live app is still too dependent on one shared atmospheric treatment.
+We need stronger route-specific background and palette separation so child,
+parent, teacher, owner, and home stop feeling like the same page with different
+cards on top.
+
+Please design:
+
+- child background system
+  - deep play-world treatment
+  - star-field / quest texture / glow layers
+  - works for child setup, play, and reward overlays
+- parent background system
+  - warm-neutral paper / cream surfaces
+  - calm teal / sage accents
+  - low-noise trustworthy texture
+- teacher background system
+  - cool instructional field
+  - pale steel / blue base
+  - clear semantic support/watch/progress accents
+- owner background system
+  - dark ops shell
+  - graphite / near-black base
+  - high-contrast status colors
+- home background system
+  - one calmer trust-led version
+  - one more energetic product-led version
+
+Suggested deliverables:
+
+- `audience-backgrounds.html`
+- updates to `design-system.css`
+
+Important:
+
+- route-scoped tokens only, not one global background
+- include loading / empty / alert background variants per audience
+- mobile needs separate attention so gradients do not collapse into mud
+
+### Priority 15: Parent Access Manager
+
+Engineering has now started collapsing the parent setup form after successful
+linkage. We need a canonical compact access-manager design, not just the
+full first-time access form.
+
+Please design:
+
+- compact `family access is ready` summary state
+- manage family access drawer or inline expansion
+- edit parent username / display name / relationship
+- relink child path
+- notification toggles in compact form
+- error state inside the manager
+- mobile version
+
+Suggested deliverable:
+
+- `parent-access-manager.html`
+
+Important:
+
+- this is post-link management, not first-time onboarding
+- should feel calmer and shorter than `parent-access.html`
+- should pair with `parent-family-center.html`
+
+### Priority 16: Home Launcher Refinement
+
+The home route works, but it still needs a cleaner child-first launcher system
+and better top-level visual confidence.
+
+Please design:
+
+- child-first launcher refinement for `/`
+- stronger live-status strip
+- trust / safety strip refinement
+- route launcher cards with clearer hierarchy
+- mobile launcher layout refinement
+
+Suggested deliverable:
+
+- `home-launcher-refined.html`
+
+Important:
+
+- home is still a launcher, not a dashboard
+- child CTA first, parent second, teacher third, owner last
+- keep it implementation-friendly, not decorative concept art
+
+### Round Rules
+
+- keep polling this file only
+- keep new deliverables at the top level of `ui-agent/`
+- do not reopen teacher, owner, or generic component work unless engineering asks
+- bias toward implementation-ready route states and token guidance
