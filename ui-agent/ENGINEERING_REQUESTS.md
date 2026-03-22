@@ -1689,3 +1689,107 @@ Important:
     - key route statuses
     - alert banner
     - drilldown entry points
+
+---
+
+## [UI AGENT → ENGINEERING] Batch Delivery — 2026-03-22
+
+### Status: ✅ Complete
+
+**6-file batch delivered:**
+
+| File | Status | Notes |
+|------|--------|-------|
+| `child-launcher-canonical-v2.html` | ✅ Done | 5 tabs: first-time / resume / comeback (short+long away) / multi-child / spec. State routing table, ultra-low reading load rules, emoji-first hierarchy. |
+| `child-progress-review-v2.html` | ✅ Done | 5 tabs: session complete (mid-world + end-of-day) / earned rewards (badge + XP-only) / world complete + band complete / replay vs continue / spec. XP level system, session end API response shape, reading load rules. |
+| `parent-access-manager-v2.html` | ✅ Done | 5 tabs: child switching (multi + single-child) / relink/fix link (ok + broken + parent-only) / notification preferences (all toggles + silent-mode warning) / account hygiene (issues + clean + remove-child 2-step) / spec. FERPA data retention, link state machine, max 6 children. |
+| `teacher-dashboard-mobile-canonical-v2.html` | ✅ Done | 5 tabs: teacher home (SNS trio + priority students + quick-action rail + today's interventions) / roster summary (sorted flag→watch→strong + mini bar charts) / student context (flag-tier: skill cards + 5-week trend + intervention log + quick-add) / quick actions (add-note bottom sheet + message-parents multi-select) / spec. Desktop vs mobile differences table. |
+| `owner-feedback-summary-v2.html` | ✅ Done | 5 tabs: summary KPIs (4+3 grid + health score + queue preview) / severity breakdown (bar chart + escalation rules + WoW comparison) / volume trends (14-day bars + by-type + resolve rate) / routing mix (per-team pct + unrouted alert + SLA table) / spec. Health score formula, refresh cadence. |
+| `owner-route-health-mobile-v2.html` | ✅ Done | 5 tabs: route health (active-incident + all-clear states, colour-coded route cards) / active incidents (INC detail + append-only timeline + no-incident state) / system alerts (unacknowledged + acknowledged history) / uptime history (90-day segment bars per route + summary stats) / spec. 8 monitored alpha routes, incident auto-creation rules, status thresholds. |
+
+**Design tokens used consistently:**
+- `#0d1117` owner bg · `#f0f4f8` teacher bg · `#f5f0e8` parent bg · `#100b2e` child bg
+- `#ffd166` owner gold / P0 · `#2a5080` teacher navy · `#2c7a6e` parent teal · `#9b72ff` P1 violet
+- Sora (all adult surfaces) · Nunito 900 (all child surfaces)
+- 375px phone frames (child/parent) · 390px (teacher/owner mobile)
+
+**Next batch starting immediately** (no wait required):
+- `child-question-gallery-v2.html`
+- `teacher-class-summary-desktop-v2.html`
+- `owner-feedback-detail-mobile-v2.html`
+- `owner-content-health-mobile-v2.html`
+- `parent-linked-children-mobile-v2.html`
+- `content-question-browser-v2.html`
+
+
+---
+
+## [UI AGENT → ENGINEERING] Batch Delivery — Follow-on 6-file batch — 2026-03-22
+
+### Status: ✅ Complete
+
+**Follow-on 6-file batch delivered:**
+
+| File | Status | Notes |
+|------|--------|-------|
+| `child-question-gallery-v2.html` | ✅ Done | 5 tabs: gallery list (completed/current/locked tiles, 2-col grid toggle) / question detail (unanswered + correct + wrong states, gentle correction, no stars lost in replay) / filters+search (active filters strip, fuzzy text match, result highlights) / empty states (no results + all-world-complete celebration) / spec. Reading-load rules enforced; never expose skill IDs or grade labels. |
+| `teacher-class-summary-desktop-v2.html` | ✅ Done | 5 tabs: class overview (top-nav + subnav + KPI row + 3-col: 280px student list / skill dist bar chart + 5-week trend / 300px SNS+band+actions) / skill breakdown (sortable table, view-students filter) / engagement (sessions + streaks table, zero-sessions highlighted) / low-data states (early-week amber banner, partial data) / spec. Min-width 1024px; full layout spec table vs mobile. |
+| `owner-feedback-detail-mobile-v2.html` | ✅ Done | 5 tabs: bug/critical (P0 non-dismissible header, impact chips, user quote, stack trace, metadata 2-col grid, audit trail, fixed action bar) / UX feedback (screenshot attachment, device tags, route+component path, related patterns, design-system deeplink) / praise (user profile card, quote highlight, usage context, auto-tags, highlight bank CTA) / resolved+archived / spec. Desktop-to-mobile adaptation table. |
+| `owner-content-health-mobile-v2.html` | ✅ Done | 5 tabs: content health overview (QA score, flag rates, skill health list with left-border severity) / skill breakdown (Phonics alert detail: 5-bar QA score breakdown, coverage per node, flagged question list) / review queue (filter chips, queue rows, open-workbench CTA) / coverage gaps (node-level coverage bars, critical alert when <4 questions) / spec. Alert thresholds: flag rate >3% = warn, >5% = crit; node <6 = warn, <4 = crit. |
+| `parent-linked-children-mobile-v2.html` | ✅ Done | 5 tabs: linked children list (full child cards: avatar+name+world+streak+sessions+tier+link-status+switch/manage; add-child card) / link progress per child (wizard steps: account→family→school) / 3-step link setup wizard (school search → confirm teacher → done+notify) / error states (school not on WonderQuest with "Tell my school" CTA; broken link with relink wizard) / spec. Family-safe error language throughout. |
+| `content-question-browser-v2.html` | ✅ Done | 5 tabs: 3-col browser (220px skill/node tree with flag counts / center question list with filter chips+QA badges / 320px detail: answer options+QA checks+metadata+flag reports+action bar with hard-block gate) / create+edit (editor with answer options, correct marker, reading-level/duplicate inline validation, QA sidebar, publish hard-block) / bulk import (CSV drop zone, format reference, dry-run+import) / QA checks matrix / spec. Content-admin surface: `#10161e` bg, `#58c8f0` accent. Access control table. |
+
+**Design consistency maintained:**
+- Content browser uses distinct content-admin palette (`#58c8f0` accent) distinct from owner gold/teacher navy/parent teal
+- All parent surfaces: Sora font, `#f5f0e8` bg, `#2c7a6e` nav
+- All owner surfaces: Sora font, `#0d1117` bg, `#ffd166` accent
+- All teacher surfaces: Sora font, `#f0f4f8` bg, `#2a5080` nav
+- Child surfaces: Nunito 900, `#100b2e` bg
+- Hard-block QA gates enforced in both content-review-workbench and content-question-browser
+
+**Total files delivered this session: 12** (2 batches of 6)
+
+### 2026-03-22 16:41 CDT
+- completed:
+  - verified and preserved the owner/mobile/content follow-on batch delivered by the UI agent:
+    - `owner-feedback-summary-v2.html`
+    - `owner-route-health-mobile-v2.html`
+    - `child-question-gallery-v2.html`
+    - `teacher-class-summary-desktop-v2.html`
+    - `owner-feedback-detail-mobile-v2.html`
+    - `owner-content-health-mobile-v2.html`
+    - `parent-linked-children-mobile-v2.html`
+    - `content-question-browser-v2.html`
+- current focus:
+  - start the next six-file batch immediately
+- next batch:
+  - `play-prereader-session-canonical-v2.html`
+  - `play-k1-session-canonical-v2.html`
+  - `teacher-student-detail-desktop-v2.html`
+  - `owner-feedback-resolution-mobile-v2.html`
+  - `parent-notification-center-v2.html`
+  - `content-bulk-import-review-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `play-prereader-session-canonical-v2.html` should be the canonical live play surface for ages 2-5:
+    - one question active
+    - answer cards
+    - voice coach
+    - wrong-answer support
+    - ultra-low reading load
+  - `play-k1-session-canonical-v2.html` should cover the next step up from prereader:
+    - word + number balance
+    - slightly richer progress cues
+    - still fast and child-first
+  - `teacher-student-detail-desktop-v2.html` should complement the new desktop class summary with a selected-student workspace:
+    - skill trend
+    - intervention history
+    - quick next actions
+  - `owner-feedback-resolution-mobile-v2.html` should be the compact owner flow for assignment, resolve, reopen, and note capture
+  - `parent-notification-center-v2.html` should centralize reminders, milestone alerts, quiet hours, and recent notices
+  - `content-bulk-import-review-v2.html` should show the path to larger content scale:
+    - import review
+    - validation results
+    - approve/reject rows

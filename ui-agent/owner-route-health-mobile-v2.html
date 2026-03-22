@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Route Health Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #060a0f; color: #c8d4e0; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #1a2230; color: #ffd166; transition: background .2s; }
+  .tab.active { background: #ffd166; color: #0d1117; }
+  .tab:hover:not(.active) { background: #1e2a3a; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 390px; min-height: 720px; background: #0d1117; border-radius: 36px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 2px #1e2a3a; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  .phone-label { font-size: 11px; color: #ffd166; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Status bar ── */
+  .status-bar { height: 44px; background: #060a0f; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+  .status-bar-time { font-size: 14px; font-weight: 700; color: #e8f0f8; }
+  .status-bar-icons { font-size: 12px; color: #6a7a8e; }
+
+  /* ── Header bar ── */
+  .header-bar { padding: 12px 20px 16px; flex-shrink: 0; }
+  .header-bar.ok { background: #0a1a10; border-bottom: 1px solid rgba(50,160,80,.3); }
+  .header-bar.warn { background: #1a1400; border-bottom: 1px solid rgba(220,160,0,.3); }
+  .header-bar.crit { background: #1a0808; border-bottom: 1px solid rgba(220,50,50,.4); }
+  .hb-back { font-size: 12px; color: rgba(255,255,255,.5); font-weight: 600; margin-bottom: 4px; }
+  .hb-title { font-size: 20px; font-weight: 700; color: #e8f0f8; }
+  .hb-status-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+  .hb-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .dot-ok { background: #50b880; box-shadow: 0 0 8px rgba(80,184,128,.6); animation: pulse-ok 2s ease-in-out infinite; }
+  .dot-warn { background: #f0c030; box-shadow: 0 0 8px rgba(240,192,48,.6); animation: pulse-warn 1.5s ease-in-out infinite; }
+  .dot-crit { background: #e04040; box-shadow: 0 0 10px rgba(224,64,64,.8); animation: pulse-crit 1s ease-in-out infinite; }
+  @keyframes pulse-ok { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+  @keyframes pulse-warn { 0%,100% { opacity:1; } 50% { opacity:.4; } }
+  @keyframes pulse-crit { 0%,100% { opacity:1; } 50% { opacity:.3; } }
+  .hb-status-text { font-size: 13px; font-weight: 700; }
+  .text-ok { color: #50b880; }
+  .text-warn { color: #f0c030; }
+  .text-crit { color: #ff5050; }
+
+  /* ── Scroll body ── */
+  .scroll-body { flex: 1; overflow-y: auto; padding-bottom: 20px; }
+
+  /* ── Route health card ── */
+  .route-card { margin: 0 16px 8px; border-radius: 14px; padding: 14px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; }
+  .rc-ok { background: #0a1a10; border: 1.5px solid rgba(50,160,80,.25); }
+  .rc-degraded { background: #1a1400; border: 1.5px solid rgba(240,192,48,.3); }
+  .rc-down { background: #1a0808; border: 1.5px solid rgba(224,64,64,.4); }
+  .rc-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
+  .rc-info { flex: 1; min-width: 0; }
+  .rc-route { font-size: 13px; font-weight: 700; color: #e8f0f8; font-family: 'Courier New', monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rc-desc { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+  .rc-meta { font-size: 11px; font-weight: 700; flex-shrink: 0; text-align: right; }
+
+  /* ── Section label ── */
+  .section-lbl { font-size: 11px; font-weight: 700; color: #5a6a7e; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 8px; }
+
+  /* ── Incident card ── */
+  .incident-card { margin: 0 16px 10px; background: #1a0808; border: 1.5px solid rgba(224,64,64,.4); border-radius: 14px; padding: 14px; }
+  .ic-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .ic-title { font-size: 14px; font-weight: 700; color: #ff8080; }
+  .ic-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: rgba(224,64,64,.3); color: #ff7070; flex-shrink: 0; }
+  .ic-desc { font-size: 13px; color: #9aaabe; line-height: 1.5; margin-bottom: 10px; }
+  .ic-meta-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .ic-meta-chip { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 20px; background: rgba(255,255,255,.06); color: #7a8a9e; }
+  .ic-action-row { display: flex; gap: 8px; margin-top: 10px; }
+  .ic-btn { flex: 1; padding: 10px; border-radius: 10px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; }
+  .ic-btn-prim { background: #e04040; color: #fff; }
+  .ic-btn-sec { background: rgba(255,255,255,.08); color: #c0c8d8; }
+
+  /* ── Timeline ── */
+  .timeline-item { margin: 0 16px 6px; display: flex; gap: 10px; }
+  .tl-line-col { display: flex; flex-direction: column; align-items: center; }
+  .tl-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+  .tl-line { width: 2px; background: #1e2a3a; flex: 1; margin-top: 3px; }
+  .tl-body { flex: 1; padding-bottom: 12px; }
+  .tl-event { font-size: 13px; font-weight: 700; color: #e8f0f8; }
+  .tl-detail { font-size: 12px; color: #7a8a9e; margin-top: 2px; line-height: 1.4; }
+  .tl-time { font-size: 11px; color: #5a6a7e; margin-top: 3px; }
+
+  /* ── Alert banner ── */
+  .alert-banner { margin: 12px 16px; border-radius: 12px; padding: 12px 14px; display: flex; align-items: flex-start; gap: 10px; }
+  .ab-crit { background: #1a0808; border: 1.5px solid rgba(224,64,64,.4); }
+  .ab-warn { background: #1a1400; border: 1.5px solid rgba(240,192,48,.3); }
+  .ab-ok { background: #081a0e; border: 1.5px solid rgba(80,184,128,.25); }
+  .ab-icon { font-size: 18px; flex-shrink: 0; }
+  .ab-text h4 { font-size: 13px; font-weight: 700; }
+  .ab-crit .ab-text h4 { color: #ff7070; }
+  .ab-warn .ab-text h4 { color: #f0c030; }
+  .ab-ok .ab-text h4 { color: #50c878; }
+  .ab-text p { font-size: 12px; color: #7a8a9e; margin-top: 2px; }
+
+  /* ── Uptime bars ── */
+  .uptime-bar-row { display: flex; gap: 2px; height: 20px; border-radius: 4px; overflow: hidden; }
+  .uptime-seg { flex: 1; }
+  .seg-ok { background: #1a8050; }
+  .seg-partial { background: #c07800; }
+  .seg-down { background: #a02020; }
+  .seg-na { background: #1e2a3a; }
+
+  /* ── Spec ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #1e2a3a; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #7a8a9e; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #1e2a3a; }
+  td { padding: 8px 8px; border-bottom: 1px solid #121820; color: #9aaabe; vertical-align: top; }
+  td:first-child { color: #e8f0f8; font-weight: 600; }
+  code { background: #1a2230; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('route-health')">Route Health</button>
+  <button class="tab" onclick="show('active-incidents')">Active Incidents</button>
+  <button class="tab" onclick="show('system-alerts')">System Alerts</button>
+  <button class="tab" onclick="show('uptime-history')">Uptime History</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ROUTE HEALTH -->
+<div id="route-health" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Owner Route Health — mobile ops view</strong><br>
+    Compact incident awareness for alpha support staff checking status on-the-go.
+    Route: <code>/owner/ops/route-health</code>. Data from <code>GET /owner/system/health</code>,
+    refreshed every 30s. Only shows routes relevant to current alpha cohort. Route status:
+    <code>ok</code> / <code>degraded</code> / <code>down</code>. Down routes trigger push notification immediately.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Active incident state (2 down routes) -->
+    <div>
+      <div class="phone-label">Active incident — 2 routes down</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">11:24</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="header-bar crit">
+          <div class="hb-back">← Owner Dashboard</div>
+          <div class="hb-title">Route Health</div>
+          <div class="hb-status-row">
+            <div class="hb-dot dot-crit"></div>
+            <div class="hb-status-text text-crit">Incident active · 2 routes down</div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <!-- Critical alert -->
+          <div class="alert-banner ab-crit" style="margin-top:12px;">
+            <div class="ab-icon">🚨</div>
+            <div class="ab-text">
+              <h4>Critical: 2 routes down</h4>
+              <p>Session start + login affected. On-call paged at 11:12 AM. Incident #INC-0041 active.</p>
+            </div>
+          </div>
+
+          <!-- Down routes -->
+          <div class="section-lbl">Down · Immediate action</div>
+          <div class="route-card rc-down">
+            <div class="rc-dot" style="background:#e04040;box-shadow:0 0 8px rgba(224,64,64,.7);"></div>
+            <div class="rc-info">
+              <div class="rc-route">/session/start</div>
+              <div class="rc-desc">Child session launch · 14 failed in 12 min</div>
+            </div>
+            <div class="rc-meta" style="color:#ff5050;">DOWN<br><span style="font-size:10px;color:#7a8a9e;">12 min</span></div>
+          </div>
+          <div class="route-card rc-down">
+            <div class="rc-dot" style="background:#e04040;box-shadow:0 0 8px rgba(224,64,64,.7);"></div>
+            <div class="rc-info">
+              <div class="rc-route">/auth/parent/login</div>
+              <div class="rc-desc">Parent login · 7 errors reported</div>
+            </div>
+            <div class="rc-meta" style="color:#ff5050;">DOWN<br><span style="font-size:10px;color:#7a8a9e;">18 min</span></div>
+          </div>
+
+          <!-- Degraded routes -->
+          <div class="section-lbl">Degraded · Monitor</div>
+          <div class="route-card rc-degraded">
+            <div class="rc-dot dot-warn" style="width:12px;height:12px;"></div>
+            <div class="rc-info">
+              <div class="rc-route">/child/:id/progress</div>
+              <div class="rc-desc">Progress chart · Slow p95: 4.2s (target &lt;1s)</div>
+            </div>
+            <div class="rc-meta" style="color:#f0c030;">SLOW<br><span style="font-size:10px;color:#7a8a9e;">4.2s p95</span></div>
+          </div>
+          <div class="route-card rc-degraded">
+            <div class="rc-dot dot-warn" style="width:12px;height:12px;"></div>
+            <div class="rc-info">
+              <div class="rc-route">/teacher/dashboard-summary</div>
+              <div class="rc-desc">Teacher home KPIs · Elevated error rate 2.1%</div>
+            </div>
+            <div class="rc-meta" style="color:#f0c030;">WARN<br><span style="font-size:10px;color:#7a8a9e;">2.1% err</span></div>
+          </div>
+
+          <!-- Healthy routes -->
+          <div class="section-lbl">Healthy</div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info">
+              <div class="rc-route">/content/question/:id</div>
+              <div class="rc-desc">Content serving · p95: 220ms</div>
+            </div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info">
+              <div class="rc-route">/parent/practice-detail</div>
+              <div class="rc-desc">Parent home · p95: 340ms</div>
+            </div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info">
+              <div class="rc-route">/owner/feedback/queue</div>
+              <div class="rc-desc">Owner ops · p95: 180ms</div>
+            </div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All clear state -->
+    <div>
+      <div class="phone-label">All clear — all routes healthy</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">11:24</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="header-bar ok">
+          <div class="hb-back">← Owner Dashboard</div>
+          <div class="hb-title">Route Health</div>
+          <div class="hb-status-row">
+            <div class="hb-dot dot-ok"></div>
+            <div class="hb-status-text text-ok">All systems operational</div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <div class="alert-banner ab-ok" style="margin-top:12px;">
+            <div class="ab-icon">✅</div>
+            <div class="ab-text">
+              <h4>All routes healthy</h4>
+              <p>8/8 monitored routes reporting normal. Last incident resolved 3 hrs ago.</p>
+            </div>
+          </div>
+
+          <div class="section-lbl">Monitored routes (8/8 OK)</div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info"><div class="rc-route">/session/start</div><div class="rc-desc">p95: 380ms · 0 errors</div></div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info"><div class="rc-route">/auth/parent/login</div><div class="rc-desc">p95: 210ms · 0 errors</div></div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info"><div class="rc-route">/child/:id/progress</div><div class="rc-desc">p95: 680ms · 0 errors</div></div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info"><div class="rc-route">/teacher/dashboard-summary</div><div class="rc-desc">p95: 420ms · 0 errors</div></div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+          <div class="route-card rc-ok">
+            <div class="rc-dot dot-ok" style="width:12px;height:12px;"></div>
+            <div class="rc-info"><div class="rc-route">/content/question/:id</div><div class="rc-desc">p95: 190ms · 0 errors</div></div>
+            <div class="rc-meta" style="color:#50b880;">OK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ACTIVE INCIDENTS -->
+<div id="active-incidents" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Active Incidents</strong><br>
+    Incidents created automatically when: any route goes <code>down</code> for >2 min, or P0 feedback received.
+    Manual creation via <code>POST /owner/incidents</code>. State: <code>detecting → investigating → mitigating → resolved</code>.
+    On-call auto-paged at detection. Incident timeline is append-only audit log.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Active incident detail -->
+    <div>
+      <div class="phone-label">Active incident — investigating</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="header-bar crit">
+          <div class="hb-back">← Route Health</div>
+          <div class="hb-title">INC-0041</div>
+          <div class="hb-status-row">
+            <div class="hb-dot dot-crit"></div>
+            <div class="hb-status-text text-crit">Investigating · 12 min ago</div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <!-- Incident card -->
+          <div class="incident-card" style="margin-top:12px;">
+            <div class="ic-header">
+              <div class="ic-title">Session start failure + Login errors</div>
+              <span class="ic-badge">P0</span>
+            </div>
+            <div class="ic-desc">
+              Two related routes failing simultaneously. Likely shared dependency: auth service timeout or DB connection pool exhaustion. 14 child sessions and 7 parent logins blocked.
+            </div>
+            <div class="ic-meta-row">
+              <span class="ic-meta-chip">@devteam · on-call</span>
+              <span class="ic-meta-chip">14 users affected</span>
+              <span class="ic-meta-chip">Alpha cohort: 3 schools</span>
+            </div>
+            <div class="ic-action-row">
+              <button class="ic-btn ic-btn-prim">Update status</button>
+              <button class="ic-btn ic-btn-sec">Resolve incident</button>
+            </div>
+          </div>
+
+          <!-- Timeline -->
+          <div class="section-lbl">Incident timeline</div>
+          <div class="timeline-item">
+            <div class="tl-line-col">
+              <div class="tl-dot" style="background:#e04040;"></div>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-event">Auto-detected: /session/start down</div>
+              <div class="tl-detail">Error rate crossed 50% threshold. Auto-incident created.</div>
+              <div class="tl-time">11:12 AM · System</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-line-col">
+              <div class="tl-dot" style="background:#e04040;"></div>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-event">On-call paged: @devteam</div>
+              <div class="tl-detail">PagerDuty notification sent. Acknowledged in 2 min.</div>
+              <div class="tl-time">11:12 AM · System</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-line-col">
+              <div class="tl-dot" style="background:#f0c030;"></div>
+              <div class="tl-line"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-event">Second route added: /auth/parent/login</div>
+              <div class="tl-detail">Login route also degrading. Linked to INC-0041.</div>
+              <div class="tl-time">11:14 AM · System</div>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="tl-line-col">
+              <div class="tl-dot" style="background:#60a8e8;"></div>
+              <div class="tl-line" style="background:transparent;"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-event">Owner notified via app push</div>
+              <div class="tl-detail">"P0 incident active: session start + login failing"</div>
+              <div class="tl-time">11:15 AM · System</div>
+            </div>
+          </div>
+          <div style="margin:0 16px;padding:10px;background:#1a2230;border-radius:12px;display:flex;gap:8px;align-items:center;">
+            <input style="flex:1;background:transparent;border:none;font-family:'Sora',sans-serif;font-size:13px;color:#e8f0f8;outline:none;" placeholder="Add update to timeline…">
+            <button style="padding:8px 12px;border-radius:8px;border:none;background:#ffd166;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;color:#0d1117;cursor:pointer;">Post</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No active incidents -->
+    <div>
+      <div class="phone-label">No active incidents</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="header-bar ok">
+          <div class="hb-back">← Route Health</div>
+          <div class="hb-title">Incidents</div>
+          <div class="hb-status-row">
+            <div class="hb-dot dot-ok"></div>
+            <div class="hb-status-text text-ok">No active incidents</div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <div style="padding:40px 24px;text-align:center;">
+            <div style="font-size:48px;margin-bottom:12px;">🟢</div>
+            <div style="font-size:18px;font-weight:700;color:#50b880;margin-bottom:6px;">All clear!</div>
+            <div style="font-size:14px;color:#7a8a9e;line-height:1.6;">No active incidents. Last incident resolved 3 hrs ago (INC-0040 · resolved in 22 min).</div>
+          </div>
+
+          <div class="section-lbl">Recent incidents (resolved)</div>
+          <div style="margin:0 16px 8px;background:#081a0e;border:1.5px solid rgba(80,184,128,.2);border-radius:12px;padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div style="font-size:13px;font-weight:700;color:#50b880;">INC-0040 · Resolved</div>
+              <div style="font-size:11px;color:#5a6a7e;">3 hrs ago</div>
+            </div>
+            <div style="font-size:12px;color:#7a8a9e;margin-top:4px;">/content/question/:id — 404 spike on node 14 content. Resolved in 22 min.</div>
+          </div>
+          <div style="margin:0 16px;background:#081a0e;border:1.5px solid rgba(80,184,128,.2);border-radius:12px;padding:12px 14px;">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+              <div style="font-size:13px;font-weight:700;color:#50b880;">INC-0039 · Resolved</div>
+              <div style="font-size:11px;color:#5a6a7e;">Yesterday</div>
+            </div>
+            <div style="font-size:12px;color:#7a8a9e;margin-top:4px;">/teacher/dashboard-summary — high latency. Resolved in 45 min.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SYSTEM ALERTS -->
+<div id="system-alerts" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · System Alerts</strong><br>
+    Push alerts delivered to owner device when: route goes down, P0 feedback submitted, incident auto-created,
+    or health score drops below 70. Alert history in <code>GET /owner/alerts/history</code>.
+    Alerts are non-dismissible in-app until acknowledged.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Alert history -->
+    <div>
+      <div class="phone-label">System alert history</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div style="background:#0d1117;padding:12px 20px 14px;border-bottom:1px solid #1e2a3a;">
+          <div style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:4px;">← Route Health</div>
+          <div style="font-size:20px;font-weight:700;color:#e8f0f8;">System Alerts</div>
+          <div style="font-size:13px;color:#7a8a9e;margin-top:2px;">3 unacknowledged</div>
+        </div>
+
+        <div style="overflow-y:auto;max-height:620px;padding-bottom:12px;">
+          <div style="padding:6px 20px 4px;font-size:10px;font-weight:700;color:#e07070;text-transform:uppercase;letter-spacing:.07em;margin-top:10px;">🔴 Unacknowledged</div>
+
+          <!-- Unack alerts -->
+          <div class="alert-banner ab-crit">
+            <div class="ab-icon">🚨</div>
+            <div class="ab-text">
+              <h4>INC-0041: Session start down</h4>
+              <p>14 sessions failed · Tap to view incident · 12 min ago</p>
+              <button style="margin-top:8px;padding:6px 14px;border-radius:8px;border:none;background:#e04040;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;color:#fff;cursor:pointer;">Acknowledge</button>
+            </div>
+          </div>
+          <div class="alert-banner ab-crit">
+            <div class="ab-icon">🚨</div>
+            <div class="ab-text">
+              <h4>P0 feedback: App crash on iOS 17</h4>
+              <p>Linked to INC-0041 · 8 min ago</p>
+              <button style="margin-top:8px;padding:6px 14px;border-radius:8px;border:none;background:#e04040;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;color:#fff;cursor:pointer;">Acknowledge</button>
+            </div>
+          </div>
+          <div class="alert-banner ab-warn">
+            <div class="ab-icon">⚠️</div>
+            <div class="ab-text">
+              <h4>Health score dropped to 72</h4>
+              <p>Below warning threshold (80) · 15 min ago</p>
+              <button style="margin-top:8px;padding:6px 14px;border-radius:8px;border:none;background:#c07800;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;color:#fff;cursor:pointer;">Acknowledge</button>
+            </div>
+          </div>
+
+          <div style="padding:6px 20px 4px;font-size:10px;font-weight:700;color:#5a6a7e;text-transform:uppercase;letter-spacing:.07em;margin-top:4px;">Earlier · Acknowledged</div>
+
+          <div style="margin:0 16px 6px;background:#121820;border-radius:12px;padding:12px 14px;opacity:.7;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="font-size:13px;font-weight:700;color:#50b880;">✓ INC-0040 resolved</div>
+              <div style="font-size:11px;color:#5a6a7e;">3 hrs ago</div>
+            </div>
+            <div style="font-size:12px;color:#7a8a9e;">/content/question/:id — 404 spike resolved</div>
+          </div>
+          <div style="margin:0 16px;background:#121820;border-radius:12px;padding:12px 14px;opacity:.7;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="font-size:13px;font-weight:700;color:#60a8e8;">ℹ️ Volume spike</div>
+              <div style="font-size:11px;color:#5a6a7e;">6 hrs ago</div>
+            </div>
+            <div style="font-size:12px;color:#7a8a9e;">Feedback volume 34% above 7-day average</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ UPTIME HISTORY -->
+<div id="uptime-history" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Uptime History</strong><br>
+    90-day rolling uptime per route. Each segment = 1 day. Green=OK, Amber=degraded, Red=incident, Grey=no data.
+    Overall uptime target: 99.5% for alpha. <code>GET /owner/system/uptime?days=90</code> returns per-route daily segments.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">90-day uptime per route</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">11:24</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div style="background:#0d1117;padding:12px 20px 14px;border-bottom:1px solid #1e2a3a;">
+          <div style="font-size:12px;color:rgba(255,255,255,.5);font-weight:600;margin-bottom:4px;">← Route Health</div>
+          <div style="font-size:20px;font-weight:700;color:#e8f0f8;">Uptime History</div>
+          <div style="font-size:13px;color:#7a8a9e;margin-top:2px;">Last 90 days · Alpha cohort</div>
+        </div>
+
+        <div style="overflow-y:auto;max-height:630px;padding:12px 16px 20px;">
+
+          <!-- Legend -->
+          <div style="display:flex;gap:12px;margin-bottom:14px;font-size:11px;color:#7a8a9e;">
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#1a8050;border-radius:2px;display:inline-block;"></span>OK</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#c07800;border-radius:2px;display:inline-block;"></span>Degraded</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#a02020;border-radius:2px;display:inline-block;"></span>Down</span>
+            <span style="display:flex;align-items:center;gap:4px;"><span style="width:10px;height:10px;background:#1e2a3a;border-radius:2px;display:inline-block;"></span>N/A</span>
+          </div>
+
+          <!-- Route uptime strips -->
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="font-size:12px;font-weight:700;color:#e8f0f8;font-family:'Courier New',monospace;">/session/start</div>
+              <div style="font-size:12px;font-weight:700;color:#f0c030;">98.9%</div>
+            </div>
+            <div class="uptime-bar-row">
+              <!-- 90 segments: mostly green with a few incidents -->
+              <div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-partial"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-down"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-down"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#5a6a7e;margin-top:4px;"><span>90d ago</span><span>30d ago</span><span>Today</span></div>
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+              <div style="font-size:12px;font-weight:700;color:#e8f0f8;font-family:'Courier New',monospace;">/auth/parent/login</div>
+              <div style="font-size:12px;font-weight:700;color:#f0c030;">99.1%</div>
+            </div>
+            <div class="uptime-bar-row">
+              <div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div><div class="uptime-seg seg-na"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-partial"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div>
+              <div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-ok"></div><div class="uptime-seg seg-down"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px;color:#5a6a7e;margin-top:4px;"><span>90d ago</span><span>30d ago</span><span>Today</span></div>
+          </div>
+
+          <!-- Summary stats -->
+          <div style="background:#121820;border-radius:12px;padding:14px;margin-top:6px;">
+            <div style="font-size:12px;font-weight:700;color:#7a8a9e;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px;">90-day summary</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:#f0c030;">98.9%</div>
+                <div style="font-size:11px;color:#7a8a9e;">Overall uptime</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:#60a8e8;">3</div>
+                <div style="font-size:11px;color:#7a8a9e;">Incidents</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:#50b880;">29 min</div>
+                <div style="font-size:11px;color:#7a8a9e;">Avg resolve</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="font-size:22px;font-weight:700;color:#e07070;">99.5%</div>
+                <div style="font-size:11px;color:#7a8a9e;">Target</div>
+              </div>
+            </div>
+            <div style="margin-top:10px;background:#1a0808;border-radius:8px;padding:8px 12px;">
+              <div style="font-size:12px;color:#ff8080;">⚠️ Uptime 0.6% below target — 3 incidents in 85 active days</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — owner-route-health-mobile-v2</strong><br>
+    Compact ops awareness for alpha support staff on the go.
+  </div>
+
+  <div class="spec-section">
+    <h3>// ROUTES & ENDPOINTS</h3>
+    <table>
+      <tr><th>Route</th><th>Method</th><th>Returns</th></tr>
+      <tr><td><code>/owner/ops/route-health</code></td><td>Screen</td><td>Route health overview</td></tr>
+      <tr><td><code>GET /owner/system/health</code></td><td>GET</td><td>Per-route status + p95 latency</td></tr>
+      <tr><td><code>GET /owner/incidents</code></td><td>GET</td><td>Active + recent incidents</td></tr>
+      <tr><td><code>POST /owner/incidents</code></td><td>POST</td><td>Create manual incident</td></tr>
+      <tr><td><code>PATCH /owner/incidents/:id</code></td><td>PATCH</td><td>Add timeline update</td></tr>
+      <tr><td><code>GET /owner/alerts/history</code></td><td>GET</td><td>Alert feed with ack status</td></tr>
+      <tr><td><code>GET /owner/system/uptime?days=90</code></td><td>GET</td><td>Per-route daily segments</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// ROUTE STATUS THRESHOLDS</h3>
+    <table>
+      <tr><th>Status</th><th>Color</th><th>Condition</th></tr>
+      <tr><td>OK</td><td><code>#50b880</code></td><td>Error rate &lt;0.5% AND p95 &lt;target</td></tr>
+      <tr><td>Degraded</td><td><code>#f0c030</code></td><td>Error rate 0.5–5% OR p95 &gt;2× target</td></tr>
+      <tr><td>Down</td><td><code>#e04040</code></td><td>Error rate &gt;5% OR 3 consecutive failures</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// INCIDENT AUTO-CREATION RULES</h3>
+    <table>
+      <tr><th>Trigger</th><th>Severity</th><th>Action</th></tr>
+      <tr><td>Route down &gt;2 min</td><td>P0</td><td>Auto-incident + on-call page</td></tr>
+      <tr><td>P0 feedback submitted</td><td>P0</td><td>Link to incident or create new</td></tr>
+      <tr><td>Route degraded &gt;15 min</td><td>P1</td><td>Auto-incident, no page</td></tr>
+      <tr><td>Health score &lt;70</td><td>P1</td><td>Owner push notification</td></tr>
+      <tr><td>Uptime &lt;99% in rolling 7d</td><td>P2</td><td>Daily digest flag</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// MONITORED ROUTES (ALPHA)</h3>
+    <table>
+      <tr><th>Route</th><th>Latency target</th><th>Error target</th></tr>
+      <tr><td><code>/session/start</code></td><td>p95 &lt;500ms</td><td>&lt;0.5%</td></tr>
+      <tr><td><code>/auth/parent/login</code></td><td>p95 &lt;300ms</td><td>&lt;0.5%</td></tr>
+      <tr><td><code>/child/:id/progress</code></td><td>p95 &lt;1s</td><td>&lt;1%</td></tr>
+      <tr><td><code>/teacher/dashboard-summary</code></td><td>p95 &lt;500ms</td><td>&lt;1%</td></tr>
+      <tr><td><code>/content/question/:id</code></td><td>p95 &lt;250ms</td><td>&lt;0.1%</td></tr>
+      <tr><td><code>/parent/practice-detail</code></td><td>p95 &lt;500ms</td><td>&lt;1%</td></tr>
+      <tr><td><code>/owner/feedback/queue</code></td><td>p95 &lt;300ms</td><td>&lt;1%</td></tr>
+      <tr><td><code>/session/end</code></td><td>p95 &lt;400ms</td><td>&lt;0.5%</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>owner-bg</td><td><code>#0d1117</code></td><td>Screen background</td></tr>
+      <tr><td>owner-gold</td><td><code>#ffd166</code></td><td>Active tab, highlight CTA</td></tr>
+      <tr><td>status-ok-dot</td><td><code>#50b880</code></td><td>Pulsing OK dot</td></tr>
+      <tr><td>status-warn-dot</td><td><code>#f0c030</code></td><td>Pulsing warn dot</td></tr>
+      <tr><td>status-down-dot</td><td><code>#e04040</code></td><td>Pulsing critical dot</td></tr>
+      <tr><td>incident-bg</td><td><code>#1a0808</code></td><td>Active incident card</td></tr>
+      <tr><td>uptime-ok</td><td><code>#1a8050</code></td><td>90-day uptime bar segments</td></tr>
+      <tr><td>uptime-partial</td><td><code>#c07800</code></td><td>Degraded segments</td></tr>
+      <tr><td>uptime-down</td><td><code>#a02020</code></td><td>Incident segments</td></tr>
+      <tr><td>phone-width</td><td>390px</td><td>Owner mobile frame (wider than child/parent 375px)</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Child Question Gallery v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #1a1230; color: #e8e0ff; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #2a1f4e; color: #9b72ff; transition: background .2s; }
+  .tab.active { background: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { background: #3a2a6e; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 720px; background: #100b2e; border-radius: 36px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,.7), 0 0 0 2px #2a1f5e; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  .phone-label { font-size: 11px; color: #9b72ff; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Status bar ── */
+  .status-bar { height: 44px; background: #0a0720; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+  .status-bar-time { font-size: 14px; font-weight: 900; color: #e8e0ff; }
+
+  /* ── Question card (gallery tile) ── */
+  .q-tile { border-radius: 20px; padding: 18px; margin-bottom: 12px; cursor: pointer; position: relative; overflow: hidden; }
+  .q-tile-p0 { background: linear-gradient(135deg, #1e1a3a 0%, #2a1f2e 100%); border: 2px solid rgba(255,209,102,.25); }
+  .q-tile-p1 { background: linear-gradient(135deg, #1a1040 0%, #1e1650 100%); border: 2px solid rgba(155,114,255,.3); }
+  .q-tile-p2 { background: linear-gradient(135deg, #0e2020 0%, #122820 100%); border: 2px solid rgba(88,232,193,.25); }
+  .q-tile-p3 { background: linear-gradient(135deg, #1e1010 0%, #2a1515 100%); border: 2px solid rgba(255,123,107,.25); }
+  .q-tile-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  .q-type-chip { font-size: 10px; font-weight: 900; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .07em; }
+  .chip-vocab { background: rgba(255,209,102,.15); color: #ffd166; }
+  .chip-read { background: rgba(88,232,193,.15); color: #58e8c1; }
+  .chip-write { background: rgba(155,114,255,.15); color: #9b72ff; }
+  .chip-math { background: rgba(255,123,107,.15); color: #ff7b6b; }
+  .q-difficulty { display: flex; gap: 3px; }
+  .star-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .q-text { font-size: 16px; font-weight: 900; color: #fff; line-height: 1.4; margin-bottom: 10px; }
+  .q-world-row { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #9b72ff; font-weight: 700; }
+  .q-star-count { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 900; color: #ffd166; }
+
+  /* ── Filter chips ── */
+  .filter-row { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; }
+  .filter-row::-webkit-scrollbar { display: none; }
+  .filter-chip { flex-shrink: 0; padding: 6px 14px; border-radius: 20px; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 900; border: none; cursor: pointer; }
+  .fc-active { background: #9b72ff; color: #fff; }
+  .fc-idle { background: rgba(155,114,255,.15); color: #9b72ff; border: 1.5px solid rgba(155,114,255,.3); }
+
+  /* ── Question detail ── */
+  .q-detail { padding: 24px 20px; flex: 1; overflow-y: auto; }
+  .qd-world-tag { font-size: 12px; font-weight: 700; color: #58e8c1; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
+  .qd-question { font-size: 22px; font-weight: 900; color: #fff; line-height: 1.3; margin-bottom: 24px; }
+  .qd-answer-option { width: 100%; padding: 16px; border-radius: 18px; margin-bottom: 10px; border: 2px solid transparent; cursor: pointer; text-align: left; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 700; color: #e8e0ff; display: flex; align-items: center; gap: 12px; transition: background .15s, border-color .15s; }
+  .qd-ao-unsel { background: rgba(155,114,255,.08); border-color: rgba(155,114,255,.2); }
+  .qd-ao-sel { background: rgba(155,114,255,.2); border-color: #9b72ff; }
+  .qd-ao-correct { background: rgba(88,232,193,.15); border-color: #58e8c1; color: #58e8c1; }
+  .qd-ao-wrong { background: rgba(255,123,107,.1); border-color: rgba(255,123,107,.4); color: rgba(255,255,255,.4); }
+  .ao-letter { width: 32px; height: 32px; border-radius: 50%; background: rgba(155,114,255,.2); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 900; flex-shrink: 0; }
+  .qd-ao-correct .ao-letter { background: rgba(88,232,193,.3); color: #58e8c1; }
+
+  /* ── Correct/try again feedback ── */
+  .feedback-correct { background: rgba(88,232,193,.12); border: 2px solid rgba(88,232,193,.4); border-radius: 16px; padding: 14px; text-align: center; margin-top: 8px; }
+  .feedback-try { background: rgba(155,114,255,.08); border: 2px solid rgba(155,114,255,.2); border-radius: 16px; padding: 14px; text-align: center; margin-top: 8px; }
+
+  /* ── Spec ── */
+  .spec-section { background: #0d1117; border-radius: 12px; padding: 20px; margin-bottom: 20px; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #ffd166; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #9b72ff; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #2a1f5e; }
+  td { padding: 8px 8px; border-bottom: 1px solid #1a1530; color: #c0b0f0; vertical-align: top; }
+  td:first-child { color: #fff; font-weight: 700; }
+  code { background: #1a1530; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #58e8c1; }
+
+  .btn-cta { width: 100%; padding: 18px; border-radius: 24px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 18px; cursor: pointer; }
+  .btn-violet { background: linear-gradient(135deg, #9b72ff, #6a3fd4); color: #fff; }
+  .btn-teal { background: linear-gradient(135deg, #58e8c1, #2fc4a0); color: #0a2e26; }
+  .btn-gold { background: linear-gradient(135deg, #ffd166, #e6a800); color: #3a2800; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('gallery')">Question Gallery</button>
+  <button class="tab" onclick="show('q-detail')">Question Detail</button>
+  <button class="tab" onclick="show('filters')">Filters / Search</button>
+  <button class="tab" onclick="show('empty-states')">Empty States</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ GALLERY -->
+<div id="gallery" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Child Question Gallery</strong><br>
+    Browse all unlocked questions in the current world. Locked questions show a lock icon (never shown if not yet reached).
+    Route: <code>/child/:id/gallery</code>. Data: <code>GET /child/:id/questions?worldId=:wId</code>.
+    Stars earned per question shown as filled dots. Tap opens question detail.
+    Gallery is read-only browse — play always happens through the quest map flow.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Gallery grid -->
+    <div>
+      <div class="phone-label">Question gallery — Ocean World</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:16px;">🌊</span>
+        </div>
+        <div style="background:rgba(88,232,193,.08);padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(88,232,193,.15);">
+          <div style="font-size:24px;">🌊</div>
+          <div>
+            <div style="font-size:16px;font-weight:900;color:#fff;">Ocean World</div>
+            <div style="font-size:12px;color:#58e8c1;font-weight:700;">18 quests · 12 completed ⭐</div>
+          </div>
+          <div style="margin-left:auto;font-size:20px;color:#ffd166;font-weight:900;">67%</div>
+        </div>
+
+        <div style="padding:12px 16px 8px;">
+          <div class="filter-row">
+            <button class="filter-chip fc-active">All</button>
+            <button class="filter-chip fc-idle">📖 Reading</button>
+            <button class="filter-chip fc-idle">✏️ Writing</button>
+            <button class="filter-chip fc-idle">🔤 Vocab</button>
+            <button class="filter-chip fc-idle">⭐ Favourites</button>
+          </div>
+        </div>
+
+        <div style="overflow-y:auto;flex:1;padding:0 16px 20px;">
+          <!-- Completed questions -->
+          <div style="font-size:11px;font-weight:700;color:#58e8c1;text-transform:uppercase;letter-spacing:.07em;padding:8px 0 6px;">✅ Completed (12)</div>
+
+          <div class="q-tile q-tile-p1">
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-read">📖 Reading</span>
+              <div class="q-star-count">⭐⭐⭐</div>
+            </div>
+            <div class="q-text">What did the whale find at the bottom of the sea?</div>
+            <div class="q-world-row">
+              <span>🌊 Ocean World · Node 1</span>
+            </div>
+          </div>
+
+          <div class="q-tile q-tile-p2">
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-vocab">🔤 Vocab</span>
+              <div class="q-star-count">⭐⭐⭐</div>
+            </div>
+            <div class="q-text">Which word means the same as "big"?</div>
+            <div class="q-world-row">
+              <span>🌊 Ocean World · Node 1</span>
+            </div>
+          </div>
+
+          <div class="q-tile q-tile-p1">
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-write">✏️ Writing</span>
+              <div class="q-star-count">⭐⭐</div>
+            </div>
+            <div class="q-text">Write a sentence about a fish swimming in the ocean.</div>
+            <div class="q-world-row">
+              <span>🌊 Ocean World · Node 2</span>
+            </div>
+          </div>
+
+          <!-- Current node questions -->
+          <div style="font-size:11px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:.07em;padding:12px 0 6px;">🌟 Play now (Node 4)</div>
+
+          <div class="q-tile q-tile-p1" style="border-color:#9b72ff;box-shadow:0 0 20px rgba(155,114,255,.2);">
+            <div style="position:absolute;top:10px;right:10px;font-size:10px;font-weight:700;background:#9b72ff;color:#fff;padding:3px 8px;border-radius:20px;">NEW</div>
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-read">📖 Reading</span>
+              <div class="q-difficulty">
+                <div class="star-dot" style="background:#9b72ff;"></div>
+                <div class="star-dot" style="background:#9b72ff;"></div>
+                <div class="star-dot" style="background:rgba(155,114,255,.3);"></div>
+              </div>
+            </div>
+            <div class="q-text">What is the main idea of the paragraph about dolphins?</div>
+            <div class="q-world-row">
+              <span>🌊 Ocean World · Node 4</span>
+            </div>
+          </div>
+
+          <!-- Locked questions teaser -->
+          <div style="font-size:11px;font-weight:700;color:#5a4a7e;text-transform:uppercase;letter-spacing:.07em;padding:12px 0 6px;">🔒 Coming up</div>
+          <div style="background:rgba(255,255,255,.03);border:1.5px dashed rgba(155,114,255,.2);border-radius:20px;padding:18px;margin-bottom:10px;display:flex;align-items:center;gap:12px;">
+            <div style="font-size:28px;opacity:.4;">🔒</div>
+            <div>
+              <div style="font-size:14px;font-weight:900;color:rgba(255,255,255,.3);">More quests unlock as you play!</div>
+              <div style="font-size:12px;color:#5a4a7e;margin-top:4px;">Keep going to unlock Node 5</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Gallery compact grid view (2-col) -->
+    <div>
+      <div class="phone-label">Compact grid view (2-col)</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:16px;">🌊</span>
+        </div>
+        <div style="background:rgba(88,232,193,.08);padding:14px 20px;display:flex;align-items:center;gap:10px;border-bottom:1px solid rgba(88,232,193,.15);">
+          <div>
+            <div style="font-size:14px;font-weight:900;color:#fff;">Ocean World Quests</div>
+            <div style="font-size:11px;color:#58e8c1;font-weight:700;">12/18 done · Tap to replay</div>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;">
+            <button style="padding:6px 10px;border-radius:10px;border:1.5px solid rgba(155,114,255,.4);background:rgba(155,114,255,.15);font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;color:#9b72ff;">List</button>
+            <button style="padding:6px 10px;border-radius:10px;border:none;background:#9b72ff;font-family:'Nunito',sans-serif;font-size:12px;font-weight:900;color:#fff;">Grid</button>
+          </div>
+        </div>
+
+        <div style="overflow-y:auto;flex:1;padding:12px;">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <!-- Grid tiles -->
+            <div style="background:rgba(88,232,193,.1);border:2px solid rgba(88,232,193,.3);border-radius:18px;padding:14px;text-align:center;position:relative;">
+              <div style="font-size:28px;margin-bottom:6px;">📖</div>
+              <div style="font-size:12px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:6px;">Whale story</div>
+              <div style="font-size:12px;color:#ffd166;">⭐⭐⭐</div>
+              <div style="position:absolute;top:8px;right:8px;font-size:10px;color:#58e8c1;">✓</div>
+            </div>
+            <div style="background:rgba(88,232,193,.1);border:2px solid rgba(88,232,193,.3);border-radius:18px;padding:14px;text-align:center;position:relative;">
+              <div style="font-size:28px;margin-bottom:6px;">🔤</div>
+              <div style="font-size:12px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:6px;">Big words</div>
+              <div style="font-size:12px;color:#ffd166;">⭐⭐⭐</div>
+              <div style="position:absolute;top:8px;right:8px;font-size:10px;color:#58e8c1;">✓</div>
+            </div>
+            <div style="background:rgba(155,114,255,.12);border:2px solid #9b72ff;border-radius:18px;padding:14px;text-align:center;box-shadow:0 0 16px rgba(155,114,255,.25);">
+              <div style="font-size:28px;margin-bottom:6px;">📖</div>
+              <div style="font-size:12px;font-weight:900;color:#fff;line-height:1.3;margin-bottom:6px;">Dolphins!</div>
+              <div style="font-size:11px;font-weight:900;background:#9b72ff;color:#fff;padding:3px 8px;border-radius:20px;display:inline-block;">Play!</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border:2px dashed rgba(255,255,255,.1);border-radius:18px;padding:14px;text-align:center;opacity:.5;">
+              <div style="font-size:28px;margin-bottom:6px;">🔒</div>
+              <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.3);line-height:1.3;">Locked</div>
+            </div>
+            <div style="background:rgba(255,255,255,.03);border:2px dashed rgba(255,255,255,.1);border-radius:18px;padding:14px;text-align:center;opacity:.5;">
+              <div style="font-size:28px;margin-bottom:6px;">🔒</div>
+              <div style="font-size:12px;font-weight:700;color:rgba(255,255,255,.3);line-height:1.3;">Locked</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ QUESTION DETAIL -->
+<div id="q-detail" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Question Detail</strong><br>
+    Gallery read-only play: child can replay any completed question for fun.
+    Route: <code>/child/:id/gallery/:questionId</code>. Not in session flow — stars already earned don't change.
+    Show feedback immediately on tap (no "check" step). Correct → celebrate. Wrong → show correct answer gently.
+    "Play in quest" CTA routes back to the live quest map.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Unanswered question -->
+    <div>
+      <div class="phone-label">Question — unanswered</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:14px;color:#9b72ff;font-weight:900;">← Gallery</span>
+        </div>
+        <div style="background:rgba(88,232,193,.08);padding:12px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(88,232,193,.15);">
+          <span style="font-size:14px;">🌊</span>
+          <span style="font-size:13px;font-weight:700;color:#58e8c1;">Ocean World · Node 4 · Reading</span>
+          <span style="margin-left:auto;font-size:20px;color:#ffd166;">⭐⭐☆</span>
+        </div>
+        <div class="q-detail">
+          <div class="qd-question">What is the main idea of the paragraph about dolphins?</div>
+          <div class="qd-answer-option qd-ao-unsel">
+            <span class="ao-letter">A</span>Dolphins are the biggest animals in the sea
+          </div>
+          <div class="qd-answer-option qd-ao-unsel">
+            <span class="ao-letter">B</span>Dolphins are very smart and live in groups
+          </div>
+          <div class="qd-answer-option qd-ao-unsel">
+            <span class="ao-letter">C</span>Dolphins eat only fish
+          </div>
+          <div class="qd-answer-option qd-ao-unsel">
+            <span class="ao-letter">D</span>Dolphins can fly above the water
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Correct answer selected -->
+    <div>
+      <div class="phone-label">Correct answer selected</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:14px;color:#9b72ff;font-weight:900;">← Gallery</span>
+        </div>
+        <div style="background:rgba(88,232,193,.08);padding:12px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(88,232,193,.15);">
+          <span style="font-size:14px;">🌊</span>
+          <span style="font-size:13px;font-weight:700;color:#58e8c1;">Ocean World · Node 4 · Reading</span>
+        </div>
+        <div class="q-detail">
+          <div class="qd-question">What is the main idea of the paragraph about dolphins?</div>
+          <div class="qd-answer-option qd-ao-unsel" style="opacity:.4;">
+            <span class="ao-letter" style="opacity:.4;">A</span>Dolphins are the biggest animals in the sea
+          </div>
+          <div class="qd-answer-option qd-ao-correct">
+            <span class="ao-letter">B</span>Dolphins are very smart and live in groups ✅
+          </div>
+          <div class="qd-answer-option qd-ao-unsel" style="opacity:.4;">
+            <span class="ao-letter" style="opacity:.4;">C</span>Dolphins eat only fish
+          </div>
+          <div class="qd-answer-option qd-ao-unsel" style="opacity:.4;">
+            <span class="ao-letter" style="opacity:.4;">D</span>Dolphins can fly above the water
+          </div>
+          <div class="feedback-correct" style="margin-top:14px;">
+            <div style="font-size:32px;margin-bottom:6px;">🎉</div>
+            <div style="font-size:18px;font-weight:900;color:#58e8c1;">That's right!</div>
+            <div style="font-size:14px;color:#9b72ff;margin-top:4px;">You already knew this one! 🌟</div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <button class="btn-cta btn-teal" style="font-size:15px;padding:14px;">Next question →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wrong answer selected -->
+    <div>
+      <div class="phone-label">Wrong answer — gentle correction</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:14px;color:#9b72ff;font-weight:900;">← Gallery</span>
+        </div>
+        <div style="background:rgba(88,232,193,.08);padding:12px 20px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(88,232,193,.15);">
+          <span style="font-size:14px;">🌊</span>
+          <span style="font-size:13px;font-weight:700;color:#58e8c1;">Ocean World · Node 4 · Reading</span>
+        </div>
+        <div class="q-detail">
+          <div class="qd-question">What is the main idea of the paragraph about dolphins?</div>
+          <div class="qd-answer-option qd-ao-wrong">
+            <span class="ao-letter" style="background:rgba(255,123,107,.2);">A</span>Dolphins are the biggest animals in the sea
+          </div>
+          <div class="qd-answer-option qd-ao-correct">
+            <span class="ao-letter">B</span>Dolphins are very smart and live in groups ✅
+          </div>
+          <div class="qd-answer-option qd-ao-unsel" style="opacity:.4;">
+            <span class="ao-letter" style="opacity:.4;">C</span>Dolphins eat only fish
+          </div>
+          <div class="qd-answer-option qd-ao-unsel" style="opacity:.4;">
+            <span class="ao-letter" style="opacity:.4;">D</span>Dolphins can fly above the water
+          </div>
+          <div class="feedback-try" style="margin-top:14px;">
+            <div style="font-size:28px;margin-bottom:6px;">🤔</div>
+            <div style="font-size:16px;font-weight:900;color:#9b72ff;">B was the right answer!</div>
+            <div style="font-size:14px;color:#c0b0f0;margin-top:4px;">Dolphins live in groups — that's the main idea!</div>
+          </div>
+          <button class="btn-cta btn-violet" style="margin-top:16px;font-size:15px;padding:14px;">Try another →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ FILTERS / SEARCH -->
+<div id="filters" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Filters & Search</strong><br>
+    Filter by: question type (reading/writing/vocab), world, completed/not-yet.
+    Search is fuzzy text match on question body — client-side on already-loaded data.
+    No more than 40 questions in local cache at once (current + prior world only).
+    Search input: max reading challenge = question text only; never expose skill IDs.
+  </div>
+  <div class="phone-wrap">
+
+    <div>
+      <div class="phone-label">Filter + search active</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">10:22</span>
+          <span style="font-size:16px;">🌊</span>
+        </div>
+
+        <!-- Search bar -->
+        <div style="padding:12px 16px;background:#0a0720;border-bottom:1px solid rgba(155,114,255,.15);">
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(155,114,255,.1);border:1.5px solid rgba(155,114,255,.3);border-radius:14px;padding:10px 14px;">
+            <span style="font-size:18px;">🔍</span>
+            <input style="flex:1;background:transparent;border:none;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#e8e0ff;outline:none;" placeholder="Search quests…" value="dolphin">
+            <button style="background:rgba(155,114,255,.3);border:none;border-radius:8px;padding:4px 8px;font-family:'Nunito',sans-serif;font-size:12px;color:#9b72ff;font-weight:900;cursor:pointer;">✕ Clear</button>
+          </div>
+        </div>
+
+        <!-- Filter chips -->
+        <div style="padding:10px 16px;">
+          <div class="filter-row">
+            <button class="filter-chip fc-idle">All</button>
+            <button class="filter-chip fc-active">📖 Reading</button>
+            <button class="filter-chip fc-idle">✏️ Writing</button>
+            <button class="filter-chip fc-idle">🔤 Vocab</button>
+          </div>
+        </div>
+
+        <!-- Active filters summary -->
+        <div style="padding:0 16px 8px;display:flex;align-items:center;gap:8px;">
+          <div style="font-size:12px;color:#9b72ff;font-weight:700;">Filters: Reading, "dolphin"</div>
+          <button style="background:none;border:none;font-size:11px;color:#5a4a7e;font-weight:700;cursor:pointer;padding:0;">Clear all</button>
+        </div>
+
+        <!-- Results -->
+        <div style="overflow-y:auto;flex:1;padding:0 16px 20px;">
+          <div style="font-size:12px;color:#9b72ff;font-weight:700;padding:4px 0 8px;">2 quests found</div>
+
+          <div class="q-tile q-tile-p1">
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-read">📖 Reading</span>
+              <div class="q-star-count">⭐⭐☆</div>
+            </div>
+            <div class="q-text">What is the main idea of the paragraph about <span style="background:rgba(155,114,255,.3);border-radius:4px;padding:0 4px;">dolphins</span>?</div>
+            <div class="q-world-row"><span>🌊 Node 4</span></div>
+          </div>
+
+          <div class="q-tile q-tile-p1">
+            <div class="q-tile-header">
+              <span class="q-type-chip chip-read">📖 Reading</span>
+              <div class="q-star-count">⭐⭐⭐</div>
+            </div>
+            <div class="q-text">How do <span style="background:rgba(155,114,255,.3);border-radius:4px;padding:0 4px;">dolphins</span> communicate with each other?</div>
+            <div class="q-world-row"><span>🌊 Node 3 ✅</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ EMPTY STATES -->
+<div id="empty-states" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Empty States</strong><br>
+    Three empty states: no world started (first-time), no results from filter/search, world complete (all done).
+    Never show "no questions available" as an error — always give a forward action.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- No results from search -->
+    <div>
+      <div class="phone-label">No results — search empty</div>
+      <div class="phone" style="display:flex;flex-direction:column;">
+        <div class="status-bar"><span class="status-bar-time">10:22</span></div>
+        <div style="padding:12px 16px;background:#0a0720;border-bottom:1px solid rgba(155,114,255,.15);">
+          <div style="display:flex;align-items:center;gap:10px;background:rgba(155,114,255,.1);border:1.5px solid rgba(155,114,255,.3);border-radius:14px;padding:10px 14px;">
+            <span style="font-size:18px;">🔍</span>
+            <input style="flex:1;background:transparent;border:none;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#e8e0ff;outline:none;" value="spaceship">
+          </div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;">
+          <div style="font-size:64px;margin-bottom:16px;">🌊</div>
+          <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:8px;">No quests found!</div>
+          <div style="font-size:14px;color:#9b72ff;line-height:1.5;margin-bottom:24px;">No Ocean World quests match "spaceship" — try a different search!</div>
+          <button class="btn-cta btn-violet" style="padding:14px 28px;width:auto;font-size:15px;">Show all quests</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- All quests complete -->
+    <div>
+      <div class="phone-label">World complete — all quests done</div>
+      <div class="phone" style="display:flex;flex-direction:column;">
+        <div class="status-bar"><span class="status-bar-time">10:22</span></div>
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;background:radial-gradient(ellipse at 50% 20%,#1e4a3a 0%,#100b2e 60%,#06040f 100%);">
+          <div style="font-size:64px;margin-bottom:12px;">🏆🌊🏆</div>
+          <div style="font-size:24px;font-weight:900;color:#58e8c1;margin-bottom:6px;">All done!</div>
+          <div style="font-size:16px;font-weight:900;color:#fff;margin-bottom:8px;">You finished every Ocean World quest!</div>
+          <div style="font-size:14px;color:#9b72ff;margin-bottom:28px;">You can replay any quest for fun or start Fire World! 🔥</div>
+          <button class="btn-cta btn-gold" style="margin-bottom:10px;">Enter Fire World 🔥</button>
+          <button style="background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);border-radius:20px;padding:14px 24px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#c0b0f0;cursor:pointer;">Replay a quest</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — child-question-gallery-v2</strong><br>
+    Browse and replay surface only. All question IDs are opaque — never show skill names to child.
+  </div>
+
+  <div class="spec-section">
+    <h3>// ROUTES</h3>
+    <table>
+      <tr><th>Route</th><th>Purpose</th></tr>
+      <tr><td><code>/child/:id/gallery</code></td><td>Gallery home (current world default)</td></tr>
+      <tr><td><code>/child/:id/gallery/:questionId</code></td><td>Individual question detail/replay</td></tr>
+      <tr><td><code>GET /child/:id/questions?worldId=:wId</code></td><td>All questions for this world (unlocked only)</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// QUESTION TILE STATES</h3>
+    <table>
+      <tr><th>State</th><th>Visual</th><th>Interaction</th></tr>
+      <tr><td>Completed (3 stars)</td><td>Gold star row, teal border glow</td><td>Tap to replay</td></tr>
+      <tr><td>Completed (1–2 stars)</td><td>Partial stars, muted border</td><td>Tap to replay (improve stars)</td></tr>
+      <tr><td>Current (playable)</td><td>Violet glow border, NEW chip</td><td>Tap → quest map for play</td></tr>
+      <tr><td>Locked</td><td>Lock icon, 0.4 opacity, dashed border</td><td>Toast: "Finish more quests to unlock!" — never modal</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>child-bg</td><td><code>#100b2e</code></td><td>Screen background</td></tr>
+      <tr><td>p1-violet</td><td><code>#9b72ff</code></td><td>Current node glow, filter active</td></tr>
+      <tr><td>p2-mint</td><td><code>#58e8c1</code></td><td>Ocean World accent, correct answer</td></tr>
+      <tr><td>p0-gold</td><td><code>#ffd166</code></td><td>Stars, XP, CTA</td></tr>
+      <tr><td>tile-p1-bg</td><td><code>linear-gradient(135deg, #1a1040, #1e1650)</code></td><td>P1-band question tiles</td></tr>
+      <tr><td>font</td><td>Nunito 900</td><td>All child-facing text</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// CHILD SAFETY RULES</h3>
+    <table>
+      <tr><th>Rule</th><th>Detail</th></tr>
+      <tr><td>Never show skill IDs</td><td>Show type emoji + label only (Reading, Vocab, Writing)</td></tr>
+      <tr><td>No grade labels</td><td>Never show P0/P1/G2-3 etc — use world names</td></tr>
+      <tr><td>Replay doesn't re-score</td><td>Stars can't be lost in gallery replay mode</td></tr>
+      <tr><td>Max text per question</td><td>≤30 words in question body for gallery display</td></tr>
+      <tr><td>Wrong answer: gentle</td><td>Show correct answer immediately — never punish or count errors</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
