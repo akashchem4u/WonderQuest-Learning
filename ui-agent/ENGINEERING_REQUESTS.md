@@ -1615,3 +1615,43 @@ Important:
   - `teacher-dashboard-mobile-canonical-v2.html` should be a true between-class teacher home, not a reduced desktop
   - `owner-feedback-summary-v2.html` should sit above queue/detail with severity, volume, routing mix, and trend health
   - `owner-route-health-mobile-v2.html` should provide compact ops/incident awareness for alpha support on the go
+
+### 2026-03-22 16:02 CDT
+- completed:
+  - engineering packaged the next live child-route quickstart lift and widened the alpha question bank to 48 playable items
+- current focus:
+  - keep the existing six-file batch as the active delivery target:
+    - `child-launcher-canonical-v2.html`
+    - `child-progress-review-v2.html`
+    - `parent-access-manager-v2.html`
+    - `teacher-dashboard-mobile-canonical-v2.html`
+    - `owner-feedback-summary-v2.html`
+    - `owner-route-health-mobile-v2.html`
+- next after current batch:
+  - `child-question-gallery-v2.html`
+  - `teacher-class-summary-desktop-v2.html`
+  - `owner-feedback-detail-mobile-v2.html`
+  - `owner-content-health-mobile-v2.html`
+  - `parent-linked-children-mobile-v2.html`
+  - `content-question-browser-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - do not wait after the current six-file batch is done; append the delivery block here, then move directly into the six-file follow-on batch above
+  - `child-question-gallery-v2.html` should be a visual-first child content browser:
+    - world tiles
+    - skill/theme chips
+    - minimal reading load
+    - locked/current/completed states
+  - `teacher-class-summary-desktop-v2.html` should become the canonical large-screen teacher home:
+    - roster summary
+    - support/watch/strong lanes
+    - quick action rail
+    - selected student context
+  - `owner-feedback-detail-mobile-v2.html` should be the compact, action-oriented mobile companion to owner queue/detail
+  - `owner-content-health-mobile-v2.html` should translate content QA/status into a compact mobile ops view
+  - `parent-linked-children-mobile-v2.html` should make switching, relinking, and child-at-a-glance status easy on phones
+  - `content-question-browser-v2.html` should support alpha/beta content review:
+    - filters by band, subject, skill, and difficulty
+    - question card preview
+    - lightweight QA / status indicators

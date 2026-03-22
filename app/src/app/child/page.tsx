@@ -196,18 +196,21 @@ export default function ChildAccessPage() {
   return (
     <AppFrame audience="kid" currentPath="/child">
       <main className="page-shell page-shell-split">
-        <section className="page-hero child-hero">
+        <section className="page-hero child-hero child-hero-quickstart">
           <div>
-            <span className="eyebrow">Child journey</span>
+            <div className="child-hero-brand">
+              <span>Wonder</span>Quest
+            </div>
+            <span className="eyebrow">Child quickstart</span>
             <h1>
               {earlyLearnerBand
-                ? "Pick a picture, tap start, and let the quest do the teaching."
-                : "Pick your hero, press start, and jump into the next quest."}
+                ? "One big tap to start, one calm setup, then straight into play."
+                : "Fast child setup now, real quest momentum right after."}
             </h1>
             <p>
               {earlyLearnerBand
-                ? "Keep this setup calm and quick. After that, the play flow should lead with visuals, audio, and fast retries."
-                : "Lightweight access for children, with enough structure to keep progress, badges, and challenge history intact."}
+                ? "Keep the grown-up step short. The child should recognize the path instantly, then the play flow can take over with visuals, voice, and quick retries."
+                : "Use the same username, avatar, and PIN to keep badges, points, and world progress attached to one adventurer."}
             </p>
             <div className="summary-chip-row">
               <span className="summary-chip">
@@ -241,9 +244,9 @@ export default function ChildAccessPage() {
             title="Choose the quickest path"
           >
             <span className="step-chip">Step 1 · Access mode</span>
-            <div className="choice-column">
+            <div className="child-entry-grid">
               <button
-                className={`mode-card ${accessMode === "new" ? "is-selected" : ""}`}
+                className={`child-entry-card child-entry-card-new ${accessMode === "new" ? "is-selected" : ""}`}
                 onClick={() => {
                   setAccessMode("new");
                   setError("");
@@ -251,11 +254,19 @@ export default function ChildAccessPage() {
                 }}
                 type="button"
               >
-                New Adventurer
-                <span>Create a child profile with a band, avatar, and quest name.</span>
+                <span className="child-entry-icon" aria-hidden="true">
+                  🌟
+                </span>
+                <span className="child-entry-copy">
+                  <strong>New adventurer</strong>
+                  <small>Create a child profile with a band, avatar, and quest name.</small>
+                </span>
+                <span className="child-entry-arrow" aria-hidden="true">
+                  →
+                </span>
               </button>
               <button
-                className={`mode-card ${accessMode === "returning" ? "is-selected" : ""}`}
+                className={`child-entry-card child-entry-card-returning ${accessMode === "returning" ? "is-selected" : ""}`}
                 onClick={() => {
                   setAccessMode("returning");
                   setError("");
@@ -263,10 +274,23 @@ export default function ChildAccessPage() {
                 }}
                 type="button"
               >
-                Returning Adventurer
-                <span>Use the same username and 4-digit PIN to jump back in fast.</span>
+                <span className="child-entry-icon" aria-hidden="true">
+                  ⚡
+                </span>
+                <span className="child-entry-copy">
+                  <strong>Coming back</strong>
+                  <small>Use the same username and 4-digit PIN to jump back in fast.</small>
+                </span>
+                <span className="child-entry-arrow" aria-hidden="true">
+                  →
+                </span>
               </button>
             </div>
+            <p className="soft-copy child-entry-hint">
+              {earlyLearnerBand
+                ? "Grown-up help starts here. After this step, the child should mostly follow pictures, worlds, and short prompts."
+                : "Keep this step quick so returning kids get back to the quest without feeling like they hit a login wall."}
+            </p>
           </ShellCard>
 
           {!returningMode ? (
