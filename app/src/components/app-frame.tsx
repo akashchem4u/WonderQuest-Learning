@@ -3,11 +3,11 @@ import type { ReactNode } from "react";
 import { DisplayModeToggle } from "@/components/display-mode-toggle";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/child", label: "Child" },
-  { href: "/parent", label: "Parent" },
-  { href: "/teacher", label: "Teacher" },
-  { href: "/owner", label: "Owner" },
+  { href: "/", label: "Home", icon: "🏠" },
+  { href: "/child", label: "Child", icon: "👶" },
+  { href: "/parent", label: "Parent", icon: "👨‍👩‍👧" },
+  { href: "/teacher", label: "Teacher", icon: "🎓" },
+  { href: "/owner", label: "Owner", icon: "🔑" },
 ];
 
 const audienceMeta = {
@@ -84,6 +84,82 @@ export function AppFrame({
 }: AppFrameProps) {
   const meta = audienceMeta[audience];
   const routeHints = audienceRoutes[audience];
+  const isAdultShell =
+    audience === "parent" || audience === "teacher" || audience === "owner";
+
+  if (isAdultShell) {
+    return (
+      <div className={`adult-shell theme-${audience}`}>
+        <aside className="adult-sidebar">
+          <div className="adult-sidebar-brand">
+            <Link className="adult-brand-mark" href="/">
+              Wonder<span>Quest</span>
+            </Link>
+            <p>{meta.label}</p>
+          </div>
+
+          <div className="adult-sidebar-section-label">Routes</div>
+          <nav aria-label="Primary" className="adult-sidebar-nav">
+            {navItems.map((item) => {
+              const isActive = currentPath === item.href;
+
+              return (
+                <Link
+                  aria-current={isActive ? "page" : undefined}
+                  className={`adult-nav-link ${isActive ? "is-active" : ""}`}
+                  href={item.href}
+                  key={item.href}
+                >
+                  <span className="adult-nav-icon" aria-hidden="true">
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                  <code>{item.href}</code>
+                </Link>
+              );
+            })}
+          </nav>
+
+          <div className="adult-sidebar-section-label">Mode</div>
+          <div className="adult-sidebar-panel">
+            <strong>{meta.shortLabel}</strong>
+            <p>{meta.detail}</p>
+          </div>
+        </aside>
+
+        <div className="adult-main">
+          <header className="adult-topbar">
+            <div>
+              <span className="adult-topbar-kicker">{meta.label}</span>
+              <strong>{meta.title}</strong>
+            </div>
+            <div className="adult-topbar-actions">
+              <DisplayModeToggle />
+            </div>
+          </header>
+
+          <div className="adult-context-row">
+            {routeHints.map((item) => {
+              const isCurrent = currentPath === item.href;
+
+              return (
+                <Link
+                  aria-current={isCurrent ? "page" : undefined}
+                  className={`adult-context-chip ${isCurrent ? "is-current" : ""}`}
+                  href={item.href}
+                  key={`${audience}-${item.href}`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+
+          {children}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`app-frame theme-${audience}`}>
