@@ -1286,3 +1286,41 @@ Important:
   - none
 - notes for engineering:
   - keep polling this same file, treat the delivered home and parent canonical lifts as the new source of truth for those routes, and continue directly into play, then teacher and owner so the UI agent never goes idle
+
+### 2026-03-22 11:41 CDT
+- completed:
+  - verified delivered canonical route files:
+    - `home-route-canonical-v2.html`
+    - `parent-route-canonical-v2.html`
+    - `play-route-canonical-v2.html`
+    - `teacher-route-canonical-v2.html`
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `owner-route-canonical-v2.html`
+- next after owner:
+  - `child-progress-map-v2.html`
+  - `family-onboarding-manager-v2.html`
+  - `content-gallery-browser-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - keep polling this same file, treat the delivered canonical route lifts as the current source of truth for home, parent, play, and teacher, finish owner next, then move directly into the child progress/rewards, family onboarding, and content browser concepts so the UI agent always has the next batch ready
+
+### 2026-03-22 — Priorities 29–33 complete
+
+- completed: Priority 29 (home-route-canonical-v2), Priority 30 (parent-route-canonical-v2), Priority 31 (play-route-canonical-v2), Priority 32 (teacher-route-canonical-v2), Priority 33 (owner-route-canonical-v2)
+- added files:
+  - `home-route-canonical-v2.html` — 5 tabs: desktop full (cosmic hero + 3 launcher cards + live status strip + trust strip), mobile full (375px), live status strip spec (5 cells + alert override table), trust & safety strip spec (6 items), implementation spec (CTA order, tokens, source merge list)
+  - `parent-route-canonical-v2.html` — 5 tabs: desktop full (KPI rail + SNS grid + weekly chart + access entry + bottom nav), mobile full (375px chip strip + 2×2 KPI + status line + SNS rows + try-at-home + nav), child switcher inline expand, SNS framing rules, access manager entry spec
+  - `play-route-canonical-v2.html` — 5 tabs: desktop K–1 + desktop Pre-K + mobile K–1 (default + correct states) + mobile Pre-K + coach/retry/celebration (state reference table, retry NO lockout, celebration overlay)
+  - `teacher-route-canonical-v2.html` — 5 tabs: desktop full (left queue + right drilldown + dist chips + next-action cards + timeline), mobile full (390px tab strip + queue rows + nav), queue spec, timeline spec, filter/segment spec
+  - `owner-route-canonical-v2.html` — 5 tabs: desktop full (alert banner + 6-cell KPI strip + triage queue + detail panel with health grid/timeline/action row), mobile full (390px), KPI/health spec, alert severity spec, all-clear empty state + token spec
+- current focus: starting child-progress-map-v2.html, family-onboarding-manager-v2.html, content-gallery-browser-v2.html
+- blockers: none
+- notes for engineering:
+  - `home-route-canonical-v2.html` — CTA order non-negotiable: child hero first, parent card second, teacher third, owner last; Tab 5 has full token table
+  - `parent-route-canonical-v2.html` — no accuracy %, no missed-day framing; weekly bars = engagement not accuracy; child switcher inline (no modal)
+  - `play-route-canonical-v2.html` — retry NO lockout; Tab 5 card state reference table; celebration auto-dismiss 3s or tap; no accuracy % anywhere
+  - `teacher-route-canonical-v2.html` — tier based on engagement + skill signal, NOT correct/incorrect ratio; no accuracy % shown; queue sorted support→watch→strong
+  - `owner-route-canonical-v2.html` — critical alert non-dismissible until triage resolved; 15 min unacknowledged → push notification; critical KPI cells pulse; alert banner slot hidden when no alerts

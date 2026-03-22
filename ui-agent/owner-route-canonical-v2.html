@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Owner Route Canonical v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --ops:      #0d1117;
+      --ops2:     #161b22;
+      --ops3:     #21262d;
+      --ops4:     #30363d;
+      --ops-text: #e6edf3;
+      --ops-mid:  #8b949e;
+      --ops-faint:#484f58;
+      --blue:     #58a6ff;
+      --blue-bg:  rgba(88,166,255,.1);
+      --mint:     #58e8c1;
+      --coral:    #ff7b6b;
+      --amber:    #f59e0b;
+      --gold:     #ffd166;
+      --violet:   #9b72ff;
+      --radius:   12px;
+      --shadow:   0 2px 10px rgba(0,0,0,.4);
+    }
+    body { font-family: 'Sora', sans-serif; background: #080c10; color: var(--ops-text); min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,12,16,.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--ops4);
+      display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid var(--ops4); background: transparent;
+      color: var(--ops-mid); font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { background: var(--blue); color: #0d1117; font-weight: 700; border-color: transparent; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.05); color: var(--ops-text); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.07); border: 1px solid rgba(255,209,102,.2);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #fbbf24; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       DESKTOP FRAME
+    ═══════════════════════════════════════ */
+    .desktop-frame { background: var(--ops); min-height: 100vh; }
+
+    .desktop-topbar {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 56px;
+    }
+    .topbar-logo { font-size: 14px; font-weight: 700; color: var(--ops-text); }
+    .topbar-logo span { color: var(--blue); }
+    .topbar-tabs { display: flex; gap: 0; }
+    .topbar-tab {
+      padding: 0 18px; height: 56px; display: flex; align-items: center;
+      font-size: 12px; color: var(--ops-mid); border-bottom: 2px solid transparent;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .topbar-tab.active { color: var(--ops-text); border-bottom-color: var(--blue); font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 10px; }
+    .topbar-icon { width: 32px; height: 32px; background: var(--ops3); border-radius: 8px; border: 1px solid var(--ops4); display: flex; align-items: center; justify-content: center; font-size: 13px; cursor: pointer; }
+    .ops-badge { font-size: 10px; font-weight: 600; color: var(--blue); background: var(--blue-bg); padding: 3px 9px; border-radius: 20px; }
+
+    /* Alert banner slot */
+    .alert-banner {
+      display: flex; align-items: center; gap: 10px; padding: 10px 32px;
+      font-size: 12px; font-weight: 600; border-bottom: 1px solid var(--ops4);
+    }
+    .alert-banner.critical { background: rgba(255,123,107,.12); color: #ff9090; border-bottom-color: rgba(255,123,107,.3); }
+    .alert-banner.warning { background: rgba(245,158,11,.1); color: #fbbf24; border-bottom-color: rgba(245,158,11,.25); }
+    .alert-banner.hidden { display: none; }
+    .alert-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .alert-dot.critical { background: var(--coral); animation: pulse 1.5s ease-in-out infinite; }
+    .alert-dot.warning { background: var(--amber); }
+    .alert-text { flex: 1; }
+    .alert-dismiss { font-size: 11px; color: var(--ops-mid); cursor: pointer; padding: 2px 8px; border-radius: 6px; border: 1px solid var(--ops4); background: transparent; }
+
+    /* KPI strip */
+    .kpi-strip {
+      display: grid; grid-template-columns: repeat(6, 1fr);
+      border-bottom: 1px solid var(--ops4); background: var(--ops2);
+    }
+    .kpi-cell {
+      padding: 16px 20px; border-right: 1px solid var(--ops4);
+      display: flex; flex-direction: column; gap: 6px;
+    }
+    .kpi-cell:last-child { border-right: none; }
+    .kpi-label { font-size: 10px; font-weight: 600; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.4px; }
+    .kpi-val { font-size: 22px; font-weight: 700; color: var(--ops-text); line-height: 1; }
+    .kpi-val.critical { color: var(--coral); animation: pulse 2s ease-in-out infinite; }
+    .kpi-delta { font-size: 10px; font-weight: 600; }
+    .kpi-delta.up { color: var(--mint); }
+    .kpi-delta.down { color: var(--coral); }
+    .kpi-delta.neutral { color: var(--ops-mid); }
+    .kpi-status-dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .dot-green { background: var(--mint); }
+    .dot-red { background: var(--coral); animation: pulse 1.5s ease-in-out infinite; }
+    .dot-amber { background: var(--amber); }
+
+    /* Desktop body split */
+    .desktop-body {
+      display: grid; grid-template-columns: 360px 1fr; min-height: calc(100vh - 56px - 48px - 64px);
+    }
+
+    /* Left: alert queue */
+    .queue-col {
+      background: var(--ops2); border-right: 1px solid var(--ops4);
+      display: flex; flex-direction: column;
+    }
+    .queue-header {
+      padding: 16px 18px 12px; border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .queue-header h2 { font-size: 13px; font-weight: 700; color: var(--ops-text); }
+    .queue-count { font-size: 11px; color: var(--ops-mid); }
+    .queue-list { flex: 1; overflow-y: auto; }
+
+    .triage-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 12px 14px; border-bottom: 1px solid var(--ops4);
+      cursor: pointer; transition: background .15s; position: relative;
+    }
+    .triage-row:hover { background: rgba(255,255,255,.02); }
+    .triage-row.selected { background: rgba(88,166,255,.07); }
+    .triage-sev-bar { width: 3px; border-radius: 2px; align-self: stretch; min-height: 36px; flex-shrink: 0; }
+    .tsev-critical { background: var(--coral); }
+    .tsev-warning { background: var(--amber); }
+    .tsev-info { background: var(--blue); }
+    .tsev-resolved { background: var(--mint); }
+    .triage-icon { font-size: 18px; flex-shrink: 0; }
+    .triage-body { flex: 1; min-width: 0; }
+    .triage-title { font-size: 12px; font-weight: 600; color: var(--ops-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .triage-sub { font-size: 10px; color: var(--ops-mid); margin-top: 2px; }
+    .triage-time { font-size: 10px; color: var(--ops-faint); margin-top: 4px; }
+    .triage-badge { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 5px; }
+    .tbadge-critical { background: rgba(255,123,107,.15); color: var(--coral); }
+    .tbadge-warning { background: rgba(245,158,11,.12); color: var(--amber); }
+    .tbadge-info { background: var(--blue-bg); color: var(--blue); }
+    .tbadge-resolved { background: rgba(88,232,193,.1); color: var(--mint); }
+
+    /* Right: detail panel */
+    .detail-col { padding: 24px 28px; overflow-y: auto; }
+    .detail-hdr { margin-bottom: 20px; }
+    .detail-hdr h2 { font-size: 16px; font-weight: 700; color: var(--ops-text); }
+    .detail-hdr-sub { font-size: 11px; color: var(--ops-mid); margin-top: 4px; }
+
+    /* Health snapshot */
+    .health-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+    .health-bar-card { background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px; padding: 12px 14px; }
+    .health-bar-label { font-size: 10px; color: var(--ops-mid); margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .health-bar-track { height: 6px; background: var(--ops4); border-radius: 6px; overflow: hidden; }
+    .health-bar-fill { height: 100%; border-radius: 6px; }
+    .hfill-green { background: var(--mint); }
+    .hfill-amber { background: var(--amber); }
+    .hfill-red { background: var(--coral); }
+    .health-bar-pct { font-size: 12px; font-weight: 700; margin-top: 5px; }
+
+    /* Triage timeline */
+    .triage-timeline { margin-bottom: 20px; }
+    .triage-tl-row { display: flex; gap: 12px; padding-bottom: 14px; position: relative; }
+    .triage-tl-row::before { content: ''; position: absolute; left: 12px; top: 20px; bottom: 0; width: 1px; background: var(--ops4); }
+    .triage-tl-row:last-child::before { display: none; }
+    .tl-dot-sm { width: 24px; height: 24px; border-radius: 50%; border: 1px solid var(--ops4); background: var(--ops3); display: flex; align-items: center; justify-content: center; font-size: 11px; flex-shrink: 0; }
+    .tl-body { flex: 1; padding-top: 2px; }
+    .tl-title { font-size: 12px; font-weight: 600; color: var(--ops-text); }
+    .tl-sub { font-size: 10px; color: var(--ops-mid); margin-top: 2px; line-height: 1.5; }
+    .tl-time-sm { font-size: 10px; color: var(--ops-faint); margin-top: 2px; }
+
+    /* Action row */
+    .action-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+    .action-btn { padding: 8px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; }
+    .action-btn.primary { background: var(--blue); color: #0d1117; }
+    .action-btn.ghost { background: rgba(255,255,255,.06); color: var(--ops-text); border: 1px solid var(--ops4); }
+    .action-btn.danger { background: rgba(255,123,107,.15); color: var(--coral); }
+
+    /* ═══════════════════════════════════════
+       MOBILE FRAME
+    ═══════════════════════════════════════ */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; }
+    .phone-frame {
+      width: 390px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.7); border: 1px solid var(--ops4);
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: var(--ops); border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--ops); min-height: 844px; position: relative; }
+
+    .mob-topbar {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 46px 16px 10px;
+    }
+    .mob-logo { font-size: 13px; font-weight: 700; color: var(--ops-text); }
+    .mob-logo span { color: var(--blue); }
+    .mob-tab-strip {
+      background: var(--ops2); border-bottom: 1px solid var(--ops4);
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .mob-tab-strip::-webkit-scrollbar { display: none; }
+    .mob-tab {
+      flex-shrink: 0; padding: 10px 16px;
+      font-size: 11px; font-weight: 500; color: var(--ops-mid);
+      border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer;
+    }
+    .mob-tab.active { color: var(--ops-text); border-bottom-color: var(--blue); font-weight: 600; }
+
+    /* Mobile alert banner */
+    .mob-alert {
+      display: flex; align-items: center; gap: 8px;
+      padding: 9px 14px; font-size: 11px; font-weight: 600;
+    }
+    .mob-alert.critical { background: rgba(255,123,107,.12); color: #ff9090; }
+    .mob-alert.warning { background: rgba(245,158,11,.1); color: #fbbf24; }
+
+    /* Mobile KPI grid 3×2 */
+    .mob-kpi-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1px; background: var(--ops4); margin-bottom: 12px; }
+    .mob-kpi-cell { background: var(--ops2); padding: 12px 10px; }
+    .mob-kpi-label { font-size: 9px; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.3px; margin-bottom: 4px; }
+    .mob-kpi-val { font-size: 18px; font-weight: 700; color: var(--ops-text); line-height: 1; }
+    .mob-kpi-val.critical { color: var(--coral); }
+    .mob-kpi-delta { font-size: 9px; margin-top: 3px; }
+    .mob-kpi-delta.up { color: var(--mint); }
+    .mob-kpi-delta.down { color: var(--coral); }
+
+    .mob-body { padding: 12px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 10px; }
+
+    .mob-section-title { font-size: 10px; font-weight: 700; color: var(--ops-mid); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+
+    /* Mobile triage rows */
+    .mob-triage-row {
+      background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px;
+      display: flex; align-items: center; gap: 10px; padding: 12px;
+      cursor: pointer;
+    }
+    .mob-triage-sev { width: 3px; align-self: stretch; border-radius: 2px; min-height: 28px; flex-shrink: 0; }
+    .mob-triage-body { flex: 1; min-width: 0; }
+    .mob-triage-title { font-size: 12px; font-weight: 600; color: var(--ops-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-triage-sub { font-size: 10px; color: var(--ops-mid); margin-top: 2px; }
+    .mob-triage-arrow { color: var(--ops-faint); font-size: 14px; }
+
+    /* Mobile health bars */
+    .mob-health-row { display: flex; flex-direction: column; gap: 6px; background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px; padding: 12px; }
+    .mob-health-item { display: flex; align-items: center; gap: 8px; }
+    .mob-health-label { font-size: 10px; color: var(--ops-mid); width: 90px; flex-shrink: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-health-track { flex: 1; height: 5px; background: var(--ops4); border-radius: 5px; overflow: hidden; }
+    .mob-health-fill { height: 100%; border-radius: 5px; }
+    .mob-health-pct { font-size: 10px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+
+    /* Mobile bottom nav */
+    .mob-bnav-wrap {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: var(--ops2); border-top: 1px solid var(--ops4);
+      padding: 8px 0 20px;
+    }
+    .mob-bnav { display: flex; justify-content: space-around; }
+    .mob-bnav-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; color: var(--ops-faint); }
+    .mob-bnav-tab.active { color: var(--blue); }
+    .mob-bnav-icon { font-size: 18px; }
+
+    /* All-clear state */
+    .all-clear {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 10px; padding: 40px 20px; text-align: center;
+    }
+    .all-clear-icon { font-size: 40px; }
+    .all-clear-title { font-size: 15px; font-weight: 700; color: var(--mint); }
+    .all-clear-sub { font-size: 12px; color: var(--ops-mid); line-height: 1.6; }
+    .all-clear-time { font-size: 11px; color: var(--ops-faint); }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ops-text); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--ops-mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: var(--ops2); border: 1px solid var(--ops4); border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; }
+    .spec-row-title { font-size: 13px; font-weight: 600; color: var(--ops-text); margin-bottom: 3px; }
+    .spec-row-desc { font-size: 12px; color: var(--ops-mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid var(--ops4); }
+    .spec-table th { color: var(--ops-mid); font-weight: 600; }
+    .spec-table td { color: var(--ops-text); }
+    .spec-table td code { background: var(--blue-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--blue); }
+
+    @keyframes pulse { 0%,100%{opacity:.6} 50%{opacity:1} }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — Full</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Mobile — Full</button>
+  <button class="tab-btn" onclick="show('tab3',this)">KPI Strip + Health Grid</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Alert Queue + Triage</button>
+  <button class="tab-btn" onclick="show('tab5',this)">All-Clear + Spec</button>
+</div>
+
+<!-- TAB 1: DESKTOP -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>⚙️ Owner Route Canonical — Desktop</strong>
+    Single source of truth for <code>/owner</code>. Dark ops theme. Top: alert banner slot (hidden when no alerts). KPI strip (6 cells). Left: alert/triage queue. Right: triage detail + route health snapshot + timeline + action row. Crisp, severity-first, no decoration.
+  </div>
+
+  <div class="desktop-frame">
+    <!-- Topbar -->
+    <div class="desktop-topbar">
+      <div class="topbar-logo">Wonder<span>Quest</span> — Owner</div>
+      <div class="topbar-tabs">
+        <div class="topbar-tab active">Console</div>
+        <div class="topbar-tab">Routes</div>
+        <div class="topbar-tab">Content</div>
+        <div class="topbar-tab">Alerts</div>
+        <div class="topbar-tab">Reports</div>
+      </div>
+      <div class="topbar-right">
+        <span class="ops-badge">Platform Ops</span>
+        <div class="topbar-icon">🔔</div>
+        <div class="topbar-icon">⚙️</div>
+      </div>
+    </div>
+
+    <!-- Alert banner — warning state shown -->
+    <div class="alert-banner warning">
+      <div class="alert-dot warning"></div>
+      <div class="alert-text">⚠️ /teacher route — elevated latency detected · P99 &gt; 3s · 8 affected sessions</div>
+      <button class="alert-dismiss" onclick="this.parentElement.classList.add('hidden')">Dismiss</button>
+    </div>
+
+    <!-- KPI strip -->
+    <div class="kpi-strip">
+      <div class="kpi-cell">
+        <div class="kpi-label">Active users</div>
+        <div class="kpi-val">3,214</div>
+        <div class="kpi-delta up">↑ +12% vs yesterday</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Sessions today</div>
+        <div class="kpi-val">12,847</div>
+        <div class="kpi-delta up">↑ on track</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Route health</div>
+        <div class="kpi-val"><span class="kpi-status-dot dot-amber"></span>94%</div>
+        <div class="kpi-delta down">↓ /teacher degraded</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Content health</div>
+        <div class="kpi-val"><span class="kpi-status-dot dot-green"></span>99%</div>
+        <div class="kpi-delta neutral">→ nominal</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Open triage</div>
+        <div class="kpi-val critical">3</div>
+        <div class="kpi-delta down">↑ +2 since 8am</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Resolved today</div>
+        <div class="kpi-val">7</div>
+        <div class="kpi-delta up">↑ good pace</div>
+      </div>
+    </div>
+
+    <!-- Body split -->
+    <div class="desktop-body">
+      <!-- Left: queue -->
+      <div class="queue-col">
+        <div class="queue-header">
+          <h2>Triage queue</h2>
+          <span class="queue-count">3 open · 7 resolved today</span>
+        </div>
+        <div class="queue-list">
+          <div class="triage-row selected">
+            <div class="triage-sev-bar tsev-critical"></div>
+            <div class="triage-icon">🔴</div>
+            <div class="triage-body">
+              <div class="triage-title">/teacher route latency spike</div>
+              <div class="triage-sub">P99 &gt; 3s · 8 affected sessions · ongoing</div>
+              <div class="triage-time">Opened 14 min ago</div>
+            </div>
+            <div><div class="triage-badge tbadge-critical">Critical</div></div>
+          </div>
+          <div class="triage-row">
+            <div class="triage-sev-bar tsev-warning"></div>
+            <div class="triage-icon">🟡</div>
+            <div class="triage-body">
+              <div class="triage-title">Content pack: G2–3 math</div>
+              <div class="triage-sub">3 questions with broken image refs</div>
+              <div class="triage-time">Opened 2h ago</div>
+            </div>
+            <div><div class="triage-badge tbadge-warning">Warning</div></div>
+          </div>
+          <div class="triage-row">
+            <div class="triage-sev-bar tsev-info"></div>
+            <div class="triage-icon">🔵</div>
+            <div class="triage-body">
+              <div class="triage-title">Parent onboarding flow drop-off</div>
+              <div class="triage-sub">Step 3 completion rate down 8% today</div>
+              <div class="triage-time">Opened 4h ago</div>
+            </div>
+            <div><div class="triage-badge tbadge-info">Info</div></div>
+          </div>
+          <!-- Resolved -->
+          <div style="padding:8px 14px;font-size:10px;color:var(--ops-faint);font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-top:1px solid var(--ops4);margin-top:4px;">Resolved today (7)</div>
+          <div class="triage-row" style="opacity:.5;">
+            <div class="triage-sev-bar tsev-resolved"></div>
+            <div class="triage-icon">✅</div>
+            <div class="triage-body">
+              <div class="triage-title">/play route cold start</div>
+              <div class="triage-sub">Resolved in 23 min</div>
+              <div class="triage-time">8:42am</div>
+            </div>
+            <div><div class="triage-badge tbadge-resolved">Resolved</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: detail -->
+      <div class="detail-col">
+        <div class="detail-hdr">
+          <h2>/teacher route — Latency Spike</h2>
+          <div class="detail-hdr-sub">Critical · Opened 14 min ago · Unacknowledged · Auto-page in 1 min</div>
+        </div>
+
+        <!-- Route health snapshot -->
+        <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin-bottom:10px;">Route / Content Health Snapshot</div>
+        <div class="health-grid">
+          <div class="health-bar-card">
+            <div class="health-bar-label">/play</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-green" style="width:99%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--mint);">99%</div>
+          </div>
+          <div class="health-bar-card">
+            <div class="health-bar-label">/parent</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-green" style="width:98%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--mint);">98%</div>
+          </div>
+          <div class="health-bar-card">
+            <div class="health-bar-label">/teacher</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-amber" style="width:94%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--amber);">94%</div>
+          </div>
+          <div class="health-bar-card">
+            <div class="health-bar-label">/owner</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-green" style="width:100%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--mint);">100%</div>
+          </div>
+          <div class="health-bar-card">
+            <div class="health-bar-label">K–1 Content</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-green" style="width:99%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--mint);">99%</div>
+          </div>
+          <div class="health-bar-card">
+            <div class="health-bar-label">G2–3 Content</div>
+            <div class="health-bar-track"><div class="health-bar-fill hfill-amber" style="width:86%;"></div></div>
+            <div class="health-bar-pct" style="color:var(--amber);">86%</div>
+          </div>
+        </div>
+
+        <!-- Triage timeline -->
+        <div style="font-size:12px;font-weight:700;color:var(--ops-text);margin:20px 0 10px;">Incident timeline</div>
+        <div class="triage-timeline">
+          <div class="triage-tl-row">
+            <div class="tl-dot-sm" style="border-color:var(--coral);background:rgba(255,123,107,.1);">🔴</div>
+            <div class="tl-body">
+              <div class="tl-title">Latency spike detected — P99 crossed 3s threshold</div>
+              <div class="tl-sub">Auto-alert triggered. 8 active teacher sessions affected.</div>
+              <div class="tl-time-sm">14 min ago · 10:47am</div>
+            </div>
+          </div>
+          <div class="triage-tl-row">
+            <div class="tl-dot-sm">📊</div>
+            <div class="tl-body">
+              <div class="tl-title">Monitoring check — /teacher P99 at 2.8s</div>
+              <div class="tl-sub">Within threshold. Routine check.</div>
+              <div class="tl-time-sm">25 min ago · 10:36am</div>
+            </div>
+          </div>
+          <div class="triage-tl-row">
+            <div class="tl-dot-sm" style="border-color:var(--mint);">✅</div>
+            <div class="tl-body">
+              <div class="tl-title">/play cold-start resolved</div>
+              <div class="tl-sub">Prior incident closed. Root cause: container warm-up delay.</div>
+              <div class="tl-time-sm">1h 19 min ago · 9:42am</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action row -->
+        <div class="action-row">
+          <button class="action-btn primary">Acknowledge</button>
+          <button class="action-btn ghost">Add note</button>
+          <button class="action-btn ghost">View logs</button>
+          <button class="action-btn danger">Escalate</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: MOBILE -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>📱 Owner Route Canonical — Mobile (390px)</strong>
+    Alert banner at top (warning shown). 3×2 KPI grid. Triage queue rows. Route/content health bar list. All-clear state when queue empty. 4-tab bottom nav (Console / Routes / Alerts / Settings).
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <!-- Topbar -->
+        <div class="mob-topbar">
+          <div class="mob-logo">Wonder<span>Quest</span></div>
+          <div style="font-size:10px;color:var(--blue);font-weight:600;">Platform Ops</div>
+        </div>
+
+        <!-- Tab strip -->
+        <div class="mob-tab-strip">
+          <div class="mob-tab active">Console</div>
+          <div class="mob-tab">Routes</div>
+          <div class="mob-tab">Content</div>
+          <div class="mob-tab">Alerts</div>
+        </div>
+
+        <!-- Alert banner -->
+        <div class="mob-alert warning">
+          <div class="alert-dot warning"></div>
+          <div>/teacher latency elevated · P99 &gt; 3s · 8 sessions</div>
+        </div>
+
+        <!-- KPI grid 3×2 -->
+        <div class="mob-kpi-grid">
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Active users</div>
+            <div class="mob-kpi-val">3,214</div>
+            <div class="mob-kpi-delta up">↑ +12%</div>
+          </div>
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Sessions</div>
+            <div class="mob-kpi-val">12.8k</div>
+            <div class="mob-kpi-delta up">↑ on track</div>
+          </div>
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Route health</div>
+            <div class="mob-kpi-val" style="font-size:14px;"><span style="color:var(--amber);">●</span> 94%</div>
+            <div class="mob-kpi-delta down">↓ degraded</div>
+          </div>
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Content</div>
+            <div class="mob-kpi-val" style="font-size:14px;"><span style="color:var(--mint);">●</span> 99%</div>
+            <div class="mob-kpi-delta" style="color:var(--ops-mid);">→ ok</div>
+          </div>
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Open triage</div>
+            <div class="mob-kpi-val critical">3</div>
+            <div class="mob-kpi-delta down">↑ +2</div>
+          </div>
+          <div class="mob-kpi-cell">
+            <div class="mob-kpi-label">Resolved</div>
+            <div class="mob-kpi-val">7</div>
+            <div class="mob-kpi-delta up">↑ today</div>
+          </div>
+        </div>
+
+        <!-- Body -->
+        <div class="mob-body">
+          <!-- Triage rows -->
+          <div class="mob-section-title">Open triage (3)</div>
+          <div class="mob-triage-row">
+            <div class="mob-triage-sev tsev-critical"></div>
+            <div class="mob-triage-body">
+              <div class="mob-triage-title">/teacher route latency spike</div>
+              <div class="mob-triage-sub">Critical · P99 &gt; 3s · 14 min ago</div>
+            </div>
+            <div class="triage-badge tbadge-critical" style="flex-shrink:0;">Critical</div>
+            <div class="mob-triage-arrow">›</div>
+          </div>
+          <div class="mob-triage-row">
+            <div class="mob-triage-sev tsev-warning"></div>
+            <div class="mob-triage-body">
+              <div class="mob-triage-title">G2–3 content broken images</div>
+              <div class="mob-triage-sub">Warning · 3 questions · 2h ago</div>
+            </div>
+            <div class="triage-badge tbadge-warning" style="flex-shrink:0;">Warning</div>
+            <div class="mob-triage-arrow">›</div>
+          </div>
+          <div class="mob-triage-row">
+            <div class="mob-triage-sev tsev-info"></div>
+            <div class="mob-triage-body">
+              <div class="mob-triage-title">Parent onboarding drop-off</div>
+              <div class="mob-triage-sub">Info · Step 3 rate down 8% · 4h ago</div>
+            </div>
+            <div class="triage-badge tbadge-info" style="flex-shrink:0;">Info</div>
+            <div class="mob-triage-arrow">›</div>
+          </div>
+
+          <!-- Health bars -->
+          <div class="mob-section-title" style="margin-top:4px;">Route &amp; content health</div>
+          <div class="mob-health-row">
+            <div class="mob-health-item">
+              <div class="mob-health-label">/play</div>
+              <div class="mob-health-track"><div class="mob-health-fill hfill-green" style="width:99%;"></div></div>
+              <div class="mob-health-pct" style="color:var(--mint);">99%</div>
+            </div>
+            <div class="mob-health-item">
+              <div class="mob-health-label">/parent</div>
+              <div class="mob-health-track"><div class="mob-health-fill hfill-green" style="width:98%;"></div></div>
+              <div class="mob-health-pct" style="color:var(--mint);">98%</div>
+            </div>
+            <div class="mob-health-item">
+              <div class="mob-health-label">/teacher</div>
+              <div class="mob-health-track"><div class="mob-health-fill hfill-amber" style="width:94%;"></div></div>
+              <div class="mob-health-pct" style="color:var(--amber);">94%</div>
+            </div>
+            <div class="mob-health-item">
+              <div class="mob-health-label">G2–3 content</div>
+              <div class="mob-health-track"><div class="mob-health-fill hfill-amber" style="width:86%;"></div></div>
+              <div class="mob-health-pct" style="color:var(--amber);">86%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="mob-bnav-wrap">
+          <div class="mob-bnav">
+            <div class="mob-bnav-tab active"><div class="mob-bnav-icon">⚙️</div>Console</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">🗺️</div>Routes</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">🔔</div>Alerts</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">👤</div>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: KPI STRIP + HEALTH GRID -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>📊 KPI Strip + Health Grid — Spec</strong>
+    6-cell strip always visible below topbar. Health grid in detail panel (right). Green ≥95% · Amber 80–95% · Red &lt;80%. Critical cells pulse via CSS animation. Clicking a cell opens that route's triage detail.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">KPI Strip + Health Grid</div>
+    <div class="spec-sub">Route: <code>/owner</code> — above-the-fold at all times.</div>
+
+    <div class="spec-section">
+      <h3>KPI Cells (6)</h3>
+      <table class="spec-table">
+        <thead><tr><th>#</th><th>Label</th><th>Source</th><th>Delta</th><th>Critical rule</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>Active users</td><td>Real-time concurrent sessions</td><td>vs yesterday same time</td><td>None</td></tr>
+          <tr><td>2</td><td>Sessions today</td><td>Rolling 24h session count</td><td>vs 7-day avg</td><td>None</td></tr>
+          <tr><td>3</td><td>Route health</td><td>Min health across all routes</td><td>Named degraded route</td><td>&lt;80% → red pulse</td></tr>
+          <tr><td>4</td><td>Content health</td><td>% content passing QA checks</td><td>vs yesterday</td><td>&lt;80% → red pulse</td></tr>
+          <tr><td>5</td><td>Open triage</td><td>Count of open triage items</td><td>vs 8am today</td><td>&gt;0 critical → red pulse</td></tr>
+          <tr><td>6</td><td>Resolved today</td><td>Count of closed triage items</td><td>Absolute today</td><td>None</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Health color thresholds</h3>
+      <table class="spec-table">
+        <thead><tr><th>Range</th><th>Color</th><th>Fill</th></tr></thead>
+        <tbody>
+          <tr><td>≥ 95%</td><td>Green</td><td><code>#58e8c1</code></td></tr>
+          <tr><td>80–94%</td><td>Amber</td><td><code>#f59e0b</code></td></tr>
+          <tr><td>&lt; 80%</td><td>Red</td><td><code>#ff7b6b</code> + pulse animation</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: ALERT QUEUE + TRIAGE -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>🚨 Alert Queue + Triage Detail — Spec</strong>
+    Left queue sorted: critical → warning → info → resolved. Each row: 3px severity bar + icon + title + sub + badge. Selected row loads right-panel detail. Critical alert: non-dismissible until triage item resolved. 15 min unacknowledged → push notification.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Alert Queue + Triage Detail</div>
+    <div class="spec-sub">Left queue on desktop. Full-screen push on mobile.</div>
+
+    <div class="spec-section">
+      <h3>Alert severity levels</h3>
+      <table class="spec-table">
+        <thead><tr><th>Level</th><th>Color</th><th>Dismissible?</th><th>Auto-page?</th></tr></thead>
+        <tbody>
+          <tr><td>Critical</td><td><code>#ff7b6b</code> + pulse</td><td>No — must resolve triage</td><td>Yes · 15 min unacked</td></tr>
+          <tr><td>Warning</td><td><code>#f59e0b</code></td><td>Yes — creates monitoring note</td><td>No</td></tr>
+          <tr><td>Info</td><td><code>#58a6ff</code></td><td>Yes</td><td>No</td></tr>
+          <tr><td>Resolved</td><td><code>#58e8c1</code></td><td>Auto-dismiss after 5s</td><td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Triage detail panel</h3>
+      <div class="spec-row"><div class="spec-row-desc">Header: alert title + severity + opened time + ack status.<br>Health snapshot: bar per route/content area (6 cells).<br>Incident timeline: newest first, 3 event types (alert fired, monitoring check, prior resolution).<br>Action row: Acknowledge · Add note · View logs · Escalate.<br>Critical = Acknowledge required before Dismiss is available.</div></div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Source files merged</h3>
+      <div class="spec-row"><div class="spec-row-desc">owner-console-v2.html · owner-alert-queue-v2.html · owner-kpi-strip-v2.html · owner-triage-detail.html · owner-gate.html</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: ALL-CLEAR + SPEC -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>✅ All-Clear State + Full Spec</strong>
+    When triage queue is empty: green all-clear empty state, last-resolved timestamp, 7-day resolved stats. KPI strip still shows (active users / sessions / health all green). Alert banner slot hidden. Crisp and calm.
+  </div>
+
+  <div style="padding:32px 40px;display:flex;justify-content:center;">
+    <!-- Desktop all-clear demo -->
+    <div style="background:var(--ops);border:1px solid var(--ops4);border-radius:16px;width:100%;max-width:800px;overflow:hidden;">
+      <!-- topbar mini -->
+      <div style="background:var(--ops2);border-bottom:1px solid var(--ops4);display:flex;align-items:center;justify-content:space-between;padding:12px 24px;">
+        <div style="font-size:13px;font-weight:700;color:var(--ops-text);">Wonder<span style="color:var(--blue);">Quest</span> — Owner</div>
+        <span class="ops-badge">Platform Ops</span>
+      </div>
+      <!-- KPI strip all green -->
+      <div style="display:grid;grid-template-columns:repeat(6,1fr);border-bottom:1px solid var(--ops4);background:var(--ops2);">
+        <div class="kpi-cell"><div class="kpi-label">Active users</div><div class="kpi-val">3,214</div><div class="kpi-delta up">↑ +12%</div></div>
+        <div class="kpi-cell"><div class="kpi-label">Sessions today</div><div class="kpi-val">12,847</div><div class="kpi-delta up">↑ on track</div></div>
+        <div class="kpi-cell"><div class="kpi-label">Route health</div><div class="kpi-val"><span class="kpi-status-dot dot-green"></span>99%</div><div class="kpi-delta neutral">→ all clear</div></div>
+        <div class="kpi-cell"><div class="kpi-label">Content health</div><div class="kpi-val"><span class="kpi-status-dot dot-green"></span>99%</div><div class="kpi-delta neutral">→ nominal</div></div>
+        <div class="kpi-cell"><div class="kpi-label">Open triage</div><div class="kpi-val" style="color:var(--mint);">0</div><div class="kpi-delta up">✓ all clear</div></div>
+        <div class="kpi-cell"><div class="kpi-label">Resolved today</div><div class="kpi-val">7</div><div class="kpi-delta up">↑ great day</div></div>
+      </div>
+      <!-- All clear -->
+      <div class="all-clear">
+        <div class="all-clear-icon">✅</div>
+        <div class="all-clear-title">All clear — no open triage items</div>
+        <div class="all-clear-sub">All routes and content areas are healthy.<br>Last resolved: /play cold-start · 1h 19 min ago</div>
+        <div style="display:flex;gap:24px;margin-top:8px;">
+          <div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--mint);">7</div><div style="font-size:10px;color:var(--ops-mid);">Resolved today</div></div>
+          <div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--ops-text);">23 min</div><div style="font-size:10px;color:var(--ops-mid);">Avg resolve time</div></div>
+          <div style="text-align:center;"><div style="font-size:20px;font-weight:700;color:var(--ops-text);">0</div><div style="font-size:10px;color:var(--ops-mid);">Critical this week</div></div>
+        </div>
+        <div class="all-clear-time">Last checked: 11:01am · Auto-refresh every 60s</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="spec-panel">
+    <div class="spec-title">Owner Route — Full Spec</div>
+    <div class="spec-sub">Route: <code>/owner</code> · Theme: dark ops · Font: Sora</div>
+
+    <div class="spec-section">
+      <h3>Design tokens</h3>
+      <table class="spec-table">
+        <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+        <tbody>
+          <tr><td>bg</td><td><code>#0d1117</code></td><td>Page background</td></tr>
+          <tr><td>surface</td><td><code>#161b22</code></td><td>Topbar, queue col, cards</td></tr>
+          <tr><td>border</td><td><code>#30363d</code></td><td>All borders</td></tr>
+          <tr><td>blue</td><td><code>#58a6ff</code></td><td>Active tab, primary CTA, info badge</td></tr>
+          <tr><td>mint</td><td><code>#58e8c1</code></td><td>Health green, resolved, up delta</td></tr>
+          <tr><td>coral</td><td><code>#ff7b6b</code></td><td>Critical alert, down delta, open triage</td></tr>
+          <tr><td>amber</td><td><code>#f59e0b</code></td><td>Warning alert, amber health</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>
