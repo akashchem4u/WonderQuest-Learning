@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Access Manager v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #e8e3da; color: #1a1a2e; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #d6cfc4; color: #2c7a6e; transition: background .2s; }
+  .tab.active { background: #2c7a6e; color: #fff; }
+  .tab:hover:not(.active) { background: #c8c0b4; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 720px; background: #f5f0e8; border-radius: 36px; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.18), 0 0 0 2px #d6cfc4; flex-shrink: 0; position: relative; }
+  .phone-label { font-size: 11px; color: #2c7a6e; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Screen chrome ── */
+  .status-bar { height: 44px; background: #f0ebe0; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; }
+  .status-bar-time { font-size: 14px; font-weight: 700; color: #1a1a2e; }
+  .status-bar-icons { font-size: 12px; color: #6a6a7e; }
+
+  /* ── Nav header ── */
+  .nav-header { background: #2c7a6e; color: #fff; padding: 16px 20px 20px; }
+  .nav-back { font-size: 12px; color: rgba(255,255,255,.7); font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 4px; }
+  .nav-title { font-size: 20px; font-weight: 700; }
+  .nav-sub { font-size: 13px; color: rgba(255,255,255,.75); margin-top: 2px; }
+
+  /* ── Section label ── */
+  .section-lbl { font-size: 11px; font-weight: 700; color: #6a7a76; text-transform: uppercase; letter-spacing: .08em; padding: 16px 20px 8px; }
+
+  /* ── Child card ── */
+  .child-card { margin: 0 16px 10px; background: #fff; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 12px rgba(0,0,0,.06); cursor: pointer; border: 2px solid transparent; transition: border-color .2s, box-shadow .2s; }
+  .child-card.active-child { border-color: #2c7a6e; box-shadow: 0 4px 16px rgba(44,122,110,.2); }
+  .child-avatar { width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+  .child-info { flex: 1; }
+  .child-name { font-size: 15px; font-weight: 700; color: #1a1a2e; }
+  .child-detail { font-size: 12px; color: #7a7a8e; margin-top: 2px; }
+  .child-badge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+  .badge-active { background: #e6f5f2; color: #2c7a6e; }
+  .badge-linked { background: #fef6e4; color: #c07800; }
+  .badge-unlinked { background: #fee; color: #cc3333; }
+
+  /* ── Action row ── */
+  .action-row { padding: 8px 16px; }
+  .action-btn { width: 100%; padding: 14px 16px; border-radius: 14px; border: 1.5px solid #d0ccc4; background: #fff; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: #2c7a6e; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background .15s; }
+  .action-btn:hover { background: #edf5f3; }
+  .action-btn .ab-icon { font-size: 18px; }
+  .action-btn .ab-text { flex: 1; text-align: left; }
+  .action-btn .ab-arrow { color: #b0b0c0; font-size: 16px; }
+
+  /* ── Divider ── */
+  .divider { height: 1px; background: #e8e3d8; margin: 4px 20px; }
+
+  /* ── Link status card ── */
+  .link-status { margin: 12px 16px; border-radius: 16px; padding: 16px; }
+  .link-ok { background: #e8f5f2; border: 1.5px solid rgba(44,122,110,.25); }
+  .link-warn { background: #fef6e4; border: 1.5px solid rgba(192,120,0,.3); }
+  .link-error { background: #fff0f0; border: 1.5px solid rgba(204,51,51,.25); }
+  .link-status h4 { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .link-ok h4 { color: #1e6058; }
+  .link-warn h4 { color: #8a5500; }
+  .link-error h4 { color: #993333; }
+  .link-status p { font-size: 13px; line-height: 1.5; }
+  .link-ok p { color: #2e7a70; }
+  .link-warn p { color: #8a5500; }
+  .link-error p { color: #993333; }
+  .link-cta { display: inline-block; margin-top: 10px; padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 700; border: none; cursor: pointer; font-family: 'Sora', sans-serif; }
+  .link-cta-teal { background: #2c7a6e; color: #fff; }
+  .link-cta-warn { background: #c07800; color: #fff; }
+  .link-cta-err { background: #cc3333; color: #fff; }
+
+  /* ── Notification toggles ── */
+  .notif-row { margin: 0 16px 0; background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.05); margin-bottom: 10px; }
+  .notif-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f0ece6; }
+  .notif-item:last-child { border-bottom: none; }
+  .notif-icon { font-size: 20px; flex-shrink: 0; }
+  .notif-label { flex: 1; }
+  .notif-label h4 { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+  .notif-label p { font-size: 12px; color: #7a7a8e; margin-top: 2px; }
+  .toggle { width: 44px; height: 26px; border-radius: 13px; background: #d0ccc4; position: relative; cursor: pointer; transition: background .2s; flex-shrink: 0; }
+  .toggle.on { background: #2c7a6e; }
+  .toggle::after { content: ''; position: absolute; width: 20px; height: 20px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: left .2s; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+  .toggle.on::after { left: 21px; }
+
+  /* ── Account hygiene items ── */
+  .hygiene-list { margin: 0 16px; background: #fff; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,.05); overflow: hidden; }
+  .hygiene-item { padding: 14px 16px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid #f0ece6; cursor: pointer; }
+  .hygiene-item:last-child { border-bottom: none; }
+  .hi-icon { font-size: 20px; flex-shrink: 0; }
+  .hi-text { flex: 1; }
+  .hi-text h4 { font-size: 14px; font-weight: 600; color: #1a1a2e; }
+  .hi-text p { font-size: 12px; color: #7a7a8e; margin-top: 2px; }
+  .hi-arrow { color: #b0b0c0; font-size: 16px; }
+  .hi-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 20px; background: #fee; color: #cc3333; }
+
+  /* ── Error card ── */
+  .error-card { margin: 12px 16px; background: #fff0f0; border: 1.5px solid rgba(204,51,51,.2); border-radius: 16px; padding: 16px; }
+  .error-card h4 { font-size: 14px; font-weight: 700; color: #993333; margin-bottom: 6px; }
+  .error-card p { font-size: 13px; color: #993333; line-height: 1.5; margin-bottom: 12px; }
+  .error-card .steps { font-size: 12px; color: #7a3333; padding-left: 16px; }
+  .error-card .steps li { margin-bottom: 4px; }
+
+  /* ── Bottom sheet mockup ── */
+  .bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: #fff; border-radius: 24px 24px 0 0; padding: 20px; box-shadow: 0 -8px 32px rgba(0,0,0,.15); }
+  .sheet-handle { width: 40px; height: 4px; background: #d0ccc4; border-radius: 2px; margin: 0 auto 16px; }
+  .sheet-title { font-size: 16px; font-weight: 700; margin-bottom: 14px; }
+
+  /* ── Spec ── */
+  .spec-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #e0dbd4; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #2c7a6e; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #6a7a76; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #e8e3d8; }
+  td { padding: 8px 8px; border-bottom: 1px solid #f0ece6; color: #4a4a5e; vertical-align: top; }
+  td:first-child { color: #1a1a2e; font-weight: 600; }
+  code { background: #f0ece6; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #2c7a6e; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('child-switch')">Child Switching</button>
+  <button class="tab" onclick="show('relink')">Relink / Fix Link</button>
+  <button class="tab" onclick="show('notifications')">Notifications</button>
+  <button class="tab" onclick="show('hygiene')">Account Hygiene</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ CHILD SWITCHING -->
+<div id="child-switch" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Child Switching</strong><br>
+    Route: <code>/parent/account/children</code>. Active child persists in <code>localStorage.activeChildId</code>.
+    Switching reloads practice-detail and progress widgets for the selected child. Add-child deeplinks to
+    <code>/parent/account/link-child</code> wizard. Max 6 children per parent account (show add button disabled with tooltip if at limit).
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Multi-child switcher -->
+    <div>
+      <div class="phone-label">Multi-child family — switch active child</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">9:41</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="nav-header">
+          <div class="nav-back">← Home</div>
+          <div class="nav-title">My Children</div>
+          <div class="nav-sub">Tap a child to switch focus</div>
+        </div>
+
+        <div class="section-lbl">Active child</div>
+        <div class="child-card active-child">
+          <div class="child-avatar" style="background:#e6f5f2;">🐠</div>
+          <div class="child-info">
+            <div class="child-name">Maya</div>
+            <div class="child-detail">Ocean World · 3-day streak 🔥</div>
+          </div>
+          <span class="child-badge badge-active">Active</span>
+        </div>
+
+        <div class="section-lbl">Other children</div>
+        <div class="child-card">
+          <div class="child-avatar" style="background:#fef6e4;">🦁</div>
+          <div class="child-info">
+            <div class="child-name">Arjun</div>
+            <div class="child-detail">Dream World · 1-day streak 🔥</div>
+          </div>
+          <span class="child-badge badge-linked">Linked</span>
+        </div>
+        <div class="child-card">
+          <div class="child-avatar" style="background:#fce8e8;">🐼</div>
+          <div class="child-info">
+            <div class="child-name">Lily</div>
+            <div class="child-detail">Not started yet</div>
+          </div>
+          <span class="child-badge badge-unlinked">No account</span>
+        </div>
+
+        <div class="divider" style="margin-top:12px;"></div>
+        <div class="action-row" style="padding-top:12px;">
+          <button class="action-btn">
+            <span class="ab-icon">➕</span>
+            <span class="ab-text">Add another child</span>
+            <span class="ab-arrow">›</span>
+          </button>
+        </div>
+
+        <!-- Confirm switch bottom sheet -->
+        <div class="bottom-sheet" style="padding-bottom:32px;">
+          <div class="sheet-handle"></div>
+          <div class="sheet-title">Switch to Arjun?</div>
+          <div style="font-size:13px;color:#7a7a8e;margin-bottom:16px;">Your view will update to show Arjun's progress and today's activities.</div>
+          <div style="display:flex;gap:10px;">
+            <button style="flex:1;padding:14px;border-radius:14px;border:1.5px solid #d0ccc4;background:#fff;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;color:#6a6a7e;cursor:pointer;">Cancel</button>
+            <button style="flex:1;padding:14px;border-radius:14px;border:none;background:#2c7a6e;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#fff;cursor:pointer;">Switch to Arjun</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Single-child family -->
+    <div>
+      <div class="phone-label">Single child — simplified view</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">9:41</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="nav-header">
+          <div class="nav-back">← Home</div>
+          <div class="nav-title">My Account</div>
+          <div class="nav-sub">Manage your family</div>
+        </div>
+
+        <div class="section-lbl">Your child</div>
+        <div class="child-card active-child">
+          <div class="child-avatar" style="background:#e6f5f2;">🐠</div>
+          <div class="child-info">
+            <div class="child-name">Maya</div>
+            <div class="child-detail">Ocean World · 3-day streak 🔥</div>
+          </div>
+          <span class="child-badge badge-active">Active</span>
+        </div>
+
+        <div class="section-lbl">Family options</div>
+        <div class="action-row">
+          <button class="action-btn" style="margin-bottom:8px;">
+            <span class="ab-icon">👤</span>
+            <span class="ab-text">Edit Maya's profile</span>
+            <span class="ab-arrow">›</span>
+          </button>
+        </div>
+        <div class="action-row" style="padding-top:0;">
+          <button class="action-btn">
+            <span class="ab-icon">➕</span>
+            <span class="ab-text">Add another child</span>
+            <span class="ab-arrow">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ RELINK / FIX LINK -->
+<div id="relink" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Relink / Fix Link</strong><br>
+    Child account states: <code>linked</code> (school + parent matched), <code>parent_only</code> (no school record),
+    <code>school_only</code> (teacher linked, parent not yet), <code>broken_link</code> (school changed or record mismatch).
+    Fix-link wizard: <code>/parent/account/link-child?childId=:id&amp;mode=relink</code>.
+    Teacher re-invite route: <code>POST /parent/request-teacher-link</code>.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- All good state -->
+    <div>
+      <div class="phone-label">Link OK — fully connected</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← My Children</div>
+          <div class="nav-title">Maya's Link</div>
+          <div class="nav-sub">School + family connection</div>
+        </div>
+
+        <div class="link-status link-ok" style="margin-top:16px;">
+          <h4>✅ Fully Connected</h4>
+          <p>Maya's account is linked to Riverside Elementary and your family account. Her teacher can see progress and send activities.</p>
+        </div>
+
+        <div class="section-lbl">Connection details</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">🏫</div>
+            <div class="notif-label">
+              <h4>Riverside Elementary</h4>
+              <p>2nd Grade · Ms. Chen's class</p>
+            </div>
+            <div style="color:#2c7a6e;font-size:16px;">✓</div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">👩‍👧</div>
+            <div class="notif-label">
+              <h4>Your family account</h4>
+              <p>parent@email.com</p>
+            </div>
+            <div style="color:#2c7a6e;font-size:16px;">✓</div>
+          </div>
+        </div>
+
+        <div class="action-row" style="margin-top:8px;">
+          <button class="action-btn">
+            <span class="ab-icon">🔄</span>
+            <span class="ab-text">Re-sync with school</span>
+            <span class="ab-arrow">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Broken link -->
+    <div>
+      <div class="phone-label">Broken link — school record mismatch</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header" style="background:#b83a3a;">
+          <div class="nav-back">← My Children</div>
+          <div class="nav-title">Maya's Link</div>
+          <div class="nav-sub">Action needed</div>
+        </div>
+
+        <div class="link-status link-error" style="margin-top:16px;">
+          <h4>⚠️ School Link Broken</h4>
+          <p>Maya's school record couldn't be matched. This usually happens after a class change or school transfer. Fix it to restore her teacher's activities and progress sharing.</p>
+          <button class="link-cta link-cta-err">Fix link now</button>
+        </div>
+
+        <div class="error-card">
+          <h4>What might have happened</h4>
+          <p>Common causes for a broken link:</p>
+          <ul class="steps">
+            <li>Maya moved to a new class or teacher</li>
+            <li>School updated their student records</li>
+            <li>Account email doesn't match school records</li>
+            <li>School's subscription changed</li>
+          </ul>
+        </div>
+
+        <div class="action-row">
+          <button class="action-btn">
+            <span class="ab-icon">📧</span>
+            <span class="ab-text">Email Maya's teacher</span>
+            <span class="ab-arrow">›</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Parent only, no school -->
+    <div>
+      <div class="phone-label">Parent-only account — no school link</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header" style="background:#8a6500;">
+          <div class="nav-back">← My Children</div>
+          <div class="nav-title">Arjun's Link</div>
+          <div class="nav-sub">Connect to school</div>
+        </div>
+
+        <div class="link-status link-warn" style="margin-top:16px;">
+          <h4>📚 No School Connected</h4>
+          <p>Arjun's account is family-only. Connect to his school to unlock teacher-led activities, personalised support, and progress sharing with his teacher.</p>
+          <button class="link-cta link-cta-warn">Connect school account</button>
+        </div>
+
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">👩‍👧</div>
+            <div class="notif-label">
+              <h4>Family account</h4>
+              <p>parent@email.com · Active</p>
+            </div>
+            <div style="color:#2c7a6e;font-size:16px;">✓</div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">🏫</div>
+            <div class="notif-label">
+              <h4>School account</h4>
+              <p>Not connected yet</p>
+            </div>
+            <div style="color:#d0ccc4;font-size:16px;">–</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ NOTIFICATIONS -->
+<div id="notifications" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Notification Control</strong><br>
+    Preferences stored in <code>parent_notification_prefs</code> table. PATCH <code>/parent/notifications/prefs</code> on
+    every toggle change. Push token managed by mobile OS; <code>notif_opt_in</code> requires OS permission check before enabling.
+    Email digest: daily at 7 PM local time if any activity since last digest. Never send more than 1 email per day.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Full notification control -->
+    <div>
+      <div class="phone-label">Notification preferences</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← Account</div>
+          <div class="nav-title">Notifications</div>
+          <div class="nav-sub">For Maya</div>
+        </div>
+
+        <div class="section-lbl">Activity alerts</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">🎉</div>
+            <div class="notif-label">
+              <h4>Practice done</h4>
+              <p>When Maya completes today's activities</p>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">🔥</div>
+            <div class="notif-label">
+              <h4>Streak milestones</h4>
+              <p>3-day, 7-day, 14-day streaks</p>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">🏆</div>
+            <div class="notif-label">
+              <h4>Badge unlocks</h4>
+              <p>When Maya earns a new badge</p>
+            </div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <div class="section-lbl">Teacher updates</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">📝</div>
+            <div class="notif-label">
+              <h4>New teacher note</h4>
+              <p>When Ms. Chen adds a note for you</p>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">📚</div>
+            <div class="notif-label">
+              <h4>New practice activities</h4>
+              <p>When new home activities are sent</p>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <div class="section-lbl">Email digest</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">📧</div>
+            <div class="notif-label">
+              <h4>Daily summary email</h4>
+              <p>Each evening if Maya played today</p>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">📊</div>
+            <div class="notif-label">
+              <h4>Weekly progress email</h4>
+              <p>Every Sunday — skills & highlights</p>
+            </div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+
+        <div style="padding:16px;font-size:12px;color:#9a9aaa;text-align:center;">
+          Sent to parent@email.com · <span style="color:#2c7a6e;cursor:pointer;">Change email</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- All notifications off (silent mode) -->
+    <div>
+      <div class="phone-label">All notifications off — silent mode</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← Account</div>
+          <div class="nav-title">Notifications</div>
+          <div class="nav-sub">For Maya</div>
+        </div>
+
+        <div style="margin:20px 16px;background:#fef6e4;border:1.5px solid rgba(192,120,0,.3);border-radius:14px;padding:14px 16px;">
+          <div style="font-size:14px;font-weight:700;color:#8a5500;margin-bottom:4px;">🔕 All notifications off</div>
+          <div style="font-size:13px;color:#8a5500;line-height:1.5;">You won't be notified when Maya plays or when her teacher sends activities. Turn on at least one to stay connected.</div>
+        </div>
+
+        <div class="section-lbl">Activity alerts</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">🎉</div>
+            <div class="notif-label"><h4>Practice done</h4><p>When Maya completes activities</p></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+          <div class="notif-item">
+            <div class="notif-icon">🔥</div>
+            <div class="notif-label"><h4>Streak milestones</h4><p>3-day, 7-day streaks</p></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+        <div class="section-lbl">Teacher updates</div>
+        <div class="notif-row">
+          <div class="notif-item">
+            <div class="notif-icon">📝</div>
+            <div class="notif-label"><h4>New teacher note</h4><p>From Ms. Chen</p></div>
+            <div class="toggle" onclick="this.classList.toggle('on')"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ACCOUNT HYGIENE -->
+<div id="hygiene" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Account Hygiene</strong><br>
+    Surface issues that need parent attention: unverified email, expired school link, duplicate child profiles,
+    un-accepted teacher invite. Each item has a severity badge and direct fix action. Delete-child-profile requires
+    two-step confirmation and cannot be undone (data retained for 30 days per FERPA, then purged).
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Issues present -->
+    <div>
+      <div class="phone-label">Account hygiene — issues to resolve</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← Account</div>
+          <div class="nav-title">Account Settings</div>
+          <div class="nav-sub">2 items need attention</div>
+        </div>
+
+        <div style="margin:16px 16px 4px;background:#fff0f0;border:1.5px solid rgba(204,51,51,.2);border-radius:14px;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+          <div style="font-size:20px;">⚠️</div>
+          <div style="font-size:13px;color:#993333;font-weight:600;">2 account issues need your attention</div>
+        </div>
+
+        <div class="section-lbl">Needs attention</div>
+        <div class="hygiene-list" style="margin-bottom:12px;">
+          <div class="hygiene-item">
+            <div class="hi-icon">📧</div>
+            <div class="hi-text">
+              <h4>Email not verified</h4>
+              <p>Verify to keep your account secure</p>
+            </div>
+            <span class="hi-badge">Action needed</span>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">🔗</div>
+            <div class="hi-text">
+              <h4>Lily has no account</h4>
+              <p>Set up Lily's WonderQuest account</p>
+            </div>
+            <span class="hi-badge">Pending</span>
+          </div>
+        </div>
+
+        <div class="section-lbl">Account management</div>
+        <div class="hygiene-list">
+          <div class="hygiene-item">
+            <div class="hi-icon">🔑</div>
+            <div class="hi-text"><h4>Change password</h4><p>Last changed 6 months ago</p></div>
+            <div class="hi-arrow">›</div>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">📱</div>
+            <div class="hi-text"><h4>Manage devices</h4><p>2 devices signed in</p></div>
+            <div class="hi-arrow">›</div>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">🗑️</div>
+            <div class="hi-text">
+              <h4 style="color:#cc3333;">Remove a child</h4>
+              <p>Unlink child from this account</p>
+            </div>
+            <div class="hi-arrow">›</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clean state -->
+    <div>
+      <div class="phone-label">All clear — no issues</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← Account</div>
+          <div class="nav-title">Account Settings</div>
+          <div class="nav-sub">Everything looks good</div>
+        </div>
+
+        <div style="margin:20px 16px;background:#e8f5f2;border:1.5px solid rgba(44,122,110,.25);border-radius:14px;padding:16px;text-align:center;">
+          <div style="font-size:32px;margin-bottom:6px;">✅</div>
+          <div style="font-size:15px;font-weight:700;color:#1e6058;margin-bottom:4px;">All good!</div>
+          <div style="font-size:13px;color:#2e7a70;">Your account is set up and connected.</div>
+        </div>
+
+        <div class="section-lbl">Account management</div>
+        <div class="hygiene-list">
+          <div class="hygiene-item">
+            <div class="hi-icon">📧</div>
+            <div class="hi-text"><h4>Email address</h4><p>parent@email.com · Verified ✓</p></div>
+            <div class="hi-arrow">›</div>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">🔑</div>
+            <div class="hi-text"><h4>Change password</h4><p>Last changed 2 months ago</p></div>
+            <div class="hi-arrow">›</div>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">📱</div>
+            <div class="hi-text"><h4>Manage devices</h4><p>1 device signed in</p></div>
+            <div class="hi-arrow">›</div>
+          </div>
+          <div class="hygiene-item">
+            <div class="hi-icon">🗑️</div>
+            <div class="hi-text">
+              <h4 style="color:#cc3333;">Remove a child</h4>
+              <p>Unlink child from this account</p>
+            </div>
+            <div class="hi-arrow">›</div>
+          </div>
+        </div>
+
+        <div style="padding:20px 16px 0;font-size:12px;color:#9a9aaa;text-align:center;line-height:1.6;">
+          Your child's learning data is protected under FERPA.<br>
+          <span style="color:#2c7a6e;cursor:pointer;">View privacy policy</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete confirmation bottom sheet -->
+    <div>
+      <div class="phone-label">Remove child — two-step confirmation</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">9:41</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="nav-header">
+          <div class="nav-back">← Account Settings</div>
+          <div class="nav-title">Remove Child</div>
+          <div class="nav-sub">This cannot be undone</div>
+        </div>
+
+        <div style="padding:24px 20px;">
+          <div style="font-size:40px;text-align:center;margin-bottom:16px;">⚠️</div>
+          <div style="font-size:17px;font-weight:700;color:#1a1a2e;text-align:center;margin-bottom:8px;">Remove Maya from your account?</div>
+          <div style="font-size:14px;color:#7a7a8e;text-align:center;line-height:1.6;margin-bottom:20px;">Maya's progress and account won't be deleted. Her school account will still exist. You'll lose access to her activities from this account.</div>
+
+          <div style="background:#fff0f0;border:1.5px solid rgba(204,51,51,.2);border-radius:14px;padding:14px 16px;margin-bottom:20px;">
+            <div style="font-size:13px;color:#993333;font-weight:700;margin-bottom:6px;">What happens:</div>
+            <div style="font-size:13px;color:#993333;line-height:1.6;">
+              • You'll no longer see Maya's progress<br>
+              • Teacher's notes won't reach you<br>
+              • Data is retained for 30 days, then deleted<br>
+              • Maya's school account is unaffected
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <button style="padding:14px;border-radius:14px;border:none;background:#cc3333;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#fff;cursor:pointer;">Yes, remove Maya</button>
+            <button style="padding:14px;border-radius:14px;border:1.5px solid #d0ccc4;background:#fff;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;color:#6a6a7e;cursor:pointer;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — parent-access-manager-v2</strong><br>
+    Full route map, link states, notification payload, and account hygiene check matrix.
+  </div>
+
+  <div class="spec-section">
+    <h3>// ROUTES</h3>
+    <table>
+      <tr><th>Route</th><th>Purpose</th></tr>
+      <tr><td><code>/parent/account/children</code></td><td>Child switcher list</td></tr>
+      <tr><td><code>/parent/account/link-child</code></td><td>Add new child wizard</td></tr>
+      <tr><td><code>/parent/account/link-child?childId=:id&amp;mode=relink</code></td><td>Fix broken link wizard</td></tr>
+      <tr><td><code>/parent/notifications/prefs</code></td><td>PATCH notification preferences</td></tr>
+      <tr><td><code>/parent/account/settings</code></td><td>Account hygiene overview</td></tr>
+      <tr><td><code>/parent/account/remove-child/:childId</code></td><td>Remove child confirmation</td></tr>
+      <tr><td><code>/parent/request-teacher-link</code></td><td>POST request teacher re-invite</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// CHILD LINK STATES</h3>
+    <table>
+      <tr><th>State</th><th>Badge</th><th>Color</th><th>Action CTA</th></tr>
+      <tr><td><code>linked</code></td><td>Active</td><td>teal <code>#e6f5f2</code></td><td>Re-sync</td></tr>
+      <tr><td><code>parent_only</code></td><td>No school</td><td>amber <code>#fef6e4</code></td><td>Connect school</td></tr>
+      <tr><td><code>school_only</code></td><td>Linked</td><td>amber <code>#fef6e4</code></td><td>Accept invite</td></tr>
+      <tr><td><code>broken_link</code></td><td>Fix needed</td><td>red <code>#fee</code></td><td>Fix link now</td></tr>
+      <tr><td><code>no_account</code></td><td>No account</td><td>red <code>#fee</code></td><td>Set up account</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// NOTIFICATION PREFS PAYLOAD</h3>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Default</th></tr>
+      <tr><td><code>push_practice_done</code></td><td>boolean</td><td>true</td></tr>
+      <tr><td><code>push_streak_milestone</code></td><td>boolean</td><td>true</td></tr>
+      <tr><td><code>push_badge_unlock</code></td><td>boolean</td><td>false</td></tr>
+      <tr><td><code>push_teacher_note</code></td><td>boolean</td><td>true</td></tr>
+      <tr><td><code>push_new_activities</code></td><td>boolean</td><td>true</td></tr>
+      <tr><td><code>email_daily_digest</code></td><td>boolean</td><td>true</td></tr>
+      <tr><td><code>email_weekly_summary</code></td><td>boolean</td><td>false</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// ACCOUNT HYGIENE CHECKS</h3>
+    <table>
+      <tr><th>Check</th><th>Severity</th><th>Auto-detect</th><th>Fix action</th></tr>
+      <tr><td>Email unverified</td><td>High</td><td>Yes</td><td>Resend verification</td></tr>
+      <tr><td>Broken school link</td><td>High</td><td>Yes</td><td>Relink wizard</td></tr>
+      <tr><td>Child has no account</td><td>Medium</td><td>Yes</td><td>Setup wizard</td></tr>
+      <tr><td>Teacher invite pending</td><td>Medium</td><td>Yes</td><td>Accept or re-request</td></tr>
+      <tr><td>Password older than 6 months</td><td>Low</td><td>Yes</td><td>Change password</td></tr>
+      <tr><td>All notifications off</td><td>Low</td><td>Yes</td><td>Nudge to turn one on</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>parent-bg</td><td><code>#f5f0e8</code></td><td>Phone screen background</td></tr>
+      <tr><td>parent-nav</td><td><code>#2c7a6e</code></td><td>Nav header, primary CTA</td></tr>
+      <tr><td>parent-font</td><td>Sora</td><td>All text on parent surfaces</td></tr>
+      <tr><td>ok-bg</td><td><code>#e8f5f2</code></td><td>Link OK status card</td></tr>
+      <tr><td>warn-bg</td><td><code>#fef6e4</code></td><td>Link warn status card</td></tr>
+      <tr><td>error-bg</td><td><code>#fff0f0</code></td><td>Link error status card</td></tr>
+      <tr><td>status-bar-bg</td><td><code>#f0ebe0</code></td><td>iOS-style status bar</td></tr>
+      <tr><td>card-bg</td><td><code>#fff</code></td><td>All list/card backgrounds</td></tr>
+      <tr><td>divider</td><td><code>#f0ece6</code></td><td>List item separators</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// SAFETY RULES</h3>
+    <table>
+      <tr><th>Rule</th><th>Detail</th></tr>
+      <tr><td>Remove child: two-step</td><td>Confirmation screen + explicit button tap, no accidental delete</td></tr>
+      <tr><td>Data retention</td><td>30 days post-removal per FERPA, then purged — show to parent</td></tr>
+      <tr><td>Max children</td><td>6 per parent account; add button disabled with tooltip at limit</td></tr>
+      <tr><td>Active child persistence</td><td><code>localStorage.activeChildId</code> survives app restart</td></tr>
+      <tr><td>Email digests</td><td>Max 1 per day; only sent if child had activity since last digest</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Dashboard Mobile Canonical v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #dde4ec; color: #1a2a3e; min-height: 100vh; }
+
+  /* ── Tab bar ── */
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; }
+  .tab { padding: 8px 14px; border-radius: 20px; border: none; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; background: #c8d4e0; color: #2a5080; transition: background .2s; }
+  .tab.active { background: #2a5080; color: #fff; }
+  .tab:hover:not(.active) { background: #b8c8d8; }
+
+  /* ── Engineering hint ── */
+  .eng-hint { background: #fff8dc; border-left: 4px solid #f0c030; border-radius: 8px; padding: 12px 16px; margin: 16px; font-family: 'Courier New', monospace; font-size: 11px; color: #5a4000; }
+  .eng-hint strong { color: #3a2800; }
+
+  /* ── Panel ── */
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* ── Phone frame ── */
+  .phone-wrap { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+  .phone { width: 375px; min-height: 720px; background: #f0f4f8; border-radius: 36px; overflow: hidden; box-shadow: 0 16px 60px rgba(0,0,0,.18), 0 0 0 2px #c8d4e0; flex-shrink: 0; position: relative; display: flex; flex-direction: column; }
+  .phone-label { font-size: 11px; color: #2a5080; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Status bar ── */
+  .status-bar { height: 44px; background: #e4eaf2; display: flex; align-items: center; padding: 0 20px; justify-content: space-between; flex-shrink: 0; }
+  .status-bar-time { font-size: 14px; font-weight: 700; color: #1a2a3e; }
+  .status-bar-icons { font-size: 12px; color: #6a7a8e; }
+
+  /* ── Hero nav bar ── */
+  .hero-bar { background: #2a5080; padding: 16px 20px 20px; flex-shrink: 0; }
+  .hero-greeting { font-size: 12px; color: rgba(255,255,255,.65); font-weight: 600; margin-bottom: 2px; }
+  .hero-name { font-size: 20px; font-weight: 700; color: #fff; }
+  .hero-sub { font-size: 13px; color: rgba(255,255,255,.7); margin-top: 2px; }
+  .hero-kpi-row { display: flex; gap: 8px; margin-top: 14px; }
+  .hero-kpi { flex: 1; background: rgba(255,255,255,.12); border-radius: 12px; padding: 10px 8px; text-align: center; }
+  .hero-kpi-val { font-size: 20px; font-weight: 700; color: #fff; }
+  .hero-kpi-lbl { font-size: 10px; color: rgba(255,255,255,.65); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; margin-top: 2px; }
+
+  /* ── Scroll body ── */
+  .scroll-body { flex: 1; overflow-y: auto; }
+
+  /* ── Section label ── */
+  .section-lbl { font-size: 11px; font-weight: 700; color: #6a7a8e; text-transform: uppercase; letter-spacing: .08em; padding: 14px 20px 8px; }
+
+  /* ── Lane cards (S/W/S trio) ── */
+  .lane-row { display: flex; gap: 8px; padding: 0 16px; margin-bottom: 6px; }
+  .lane-card { flex: 1; border-radius: 14px; padding: 12px 10px; text-align: center; cursor: pointer; }
+  .lane-flag { background: #fce8e8; border: 2px solid rgba(154,42,42,.25); }
+  .lane-watch { background: #fef6e4; border: 2px solid rgba(192,120,0,.25); }
+  .lane-strong { background: #e8f5ee; border: 2px solid rgba(26,128,80,.25); }
+  .lane-card-val { font-size: 22px; font-weight: 700; }
+  .lane-flag .lane-card-val { color: #9a2a2a; }
+  .lane-watch .lane-card-val { color: #c07800; }
+  .lane-strong .lane-card-val { color: #1a8050; }
+  .lane-card-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; margin-top: 3px; }
+  .lane-flag .lane-card-lbl { color: #9a2a2a; }
+  .lane-watch .lane-card-lbl { color: #c07800; }
+  .lane-strong .lane-card-lbl { color: #1a8050; }
+
+  /* ── Student row ── */
+  .student-row { margin: 0 16px 8px; background: #fff; border-radius: 14px; padding: 12px 14px; display: flex; align-items: center; gap: 12px; box-shadow: 0 1px 6px rgba(0,0,0,.06); cursor: pointer; border-left: 4px solid transparent; }
+  .sr-flag { border-left-color: #9a2a2a; }
+  .sr-watch { border-left-color: #c07800; }
+  .sr-strong { border-left-color: #1a8050; }
+  .sr-avatar { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+  .sr-info { flex: 1; }
+  .sr-name { font-size: 14px; font-weight: 700; color: #1a2a3e; }
+  .sr-detail { font-size: 12px; color: #6a7a8e; margin-top: 2px; }
+  .sr-badge { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; flex-shrink: 0; }
+  .badge-flag { background: #fce8e8; color: #9a2a2a; }
+  .badge-watch { background: #fef6e4; color: #c07800; }
+  .badge-strong { background: #e8f5ee; color: #1a8050; }
+
+  /* ── Mini bar chart ── */
+  .mini-bar-row { display: flex; gap: 3px; align-items: flex-end; height: 20px; }
+  .mini-bar { width: 6px; border-radius: 2px; }
+  .mini-bar.support { background: #e07070; }
+  .mini-bar.progress { background: #f0c030; }
+  .mini-bar.strength { background: #50b880; }
+
+  /* ── Quick action rail ── */
+  .quick-rail { display: flex; gap: 8px; padding: 0 16px; overflow-x: auto; scrollbar-width: none; margin-bottom: 12px; }
+  .quick-rail::-webkit-scrollbar { display: none; }
+  .qa-btn { flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 5px; background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 1px 6px rgba(0,0,0,.06); cursor: pointer; min-width: 70px; border: none; font-family: 'Sora', sans-serif; }
+  .qa-icon { font-size: 22px; }
+  .qa-label { font-size: 10px; font-weight: 700; color: #2a5080; text-align: center; line-height: 1.3; }
+
+  /* ── Recent interventions ── */
+  .interv-row { margin: 0 16px 8px; background: #fff; border-radius: 14px; padding: 12px 14px; box-shadow: 0 1px 6px rgba(0,0,0,.06); display: flex; align-items: flex-start; gap: 10px; }
+  .interv-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .interv-text { flex: 1; }
+  .interv-text h4 { font-size: 13px; font-weight: 700; color: #1a2a3e; }
+  .interv-text p { font-size: 12px; color: #6a7a8e; margin-top: 2px; }
+  .interv-time { font-size: 11px; color: #9a9aaa; flex-shrink: 0; }
+
+  /* ── Today divider ── */
+  .today-divider { display: flex; align-items: center; gap: 8px; padding: 6px 16px; }
+  .today-divider::before, .today-divider::after { content: ''; flex: 1; height: 1px; background: #d8e0ea; }
+  .today-divider span { font-size: 10px; font-weight: 700; color: #f0d070; background: #2a5080; padding: 2px 10px; border-radius: 20px; text-transform: uppercase; letter-spacing: .08em; }
+
+  /* ── Student detail header ── */
+  .student-detail-header { background: #2a5080; padding: 14px 20px 18px; }
+  .sdh-back { font-size: 12px; color: rgba(255,255,255,.65); font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 4px; }
+  .sdh-student-row { display: flex; align-items: center; gap: 12px; }
+  .sdh-avatar { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.15); display: flex; align-items: center; justify-content: center; font-size: 20px; }
+  .sdh-name { font-size: 18px; font-weight: 700; color: #fff; }
+  .sdh-tier { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 20px; margin-top: 3px; display: inline-block; }
+  .sdh-flag-tier { background: rgba(154,42,42,.4); color: #ffb0b0; }
+
+  /* ── Skill card ── */
+  .skill-card { margin: 0 16px 8px; background: #fff; border-radius: 14px; padding: 14px 14px; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+  .skill-card h4 { font-size: 13px; font-weight: 700; color: #1a2a3e; margin-bottom: 8px; }
+  .skill-progress-bar { height: 8px; background: #e8eef4; border-radius: 4px; overflow: hidden; }
+  .spb-fill { height: 100%; border-radius: 4px; }
+  .spb-support { background: #e07070; }
+  .spb-progress { background: #f0c030; }
+  .spb-strength { background: #50b880; }
+  .skill-tier-label { font-size: 11px; font-weight: 700; margin-top: 4px; }
+  .stl-support { color: #9a2a2a; }
+  .stl-progress { color: #c07800; }
+  .stl-strength { color: #1a8050; }
+
+  /* ── Spec ── */
+  .spec-section { background: #fff; border-radius: 12px; padding: 20px; margin-bottom: 20px; border: 1px solid #d8e0ea; }
+  .spec-section h3 { font-family: 'Courier New', monospace; font-size: 13px; color: #2a5080; margin-bottom: 12px; letter-spacing: .06em; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; color: #6a7a8e; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding: 6px 8px; border-bottom: 1px solid #e0e8f0; }
+  td { padding: 8px 8px; border-bottom: 1px solid #eef2f6; color: #4a5a6e; vertical-align: top; }
+  td:first-child { color: #1a2a3e; font-weight: 600; }
+  code { background: #e8eef4; border-radius: 4px; padding: 2px 6px; font-family: 'Courier New', monospace; font-size: 11px; color: #2a5080; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('teacher-home')">Teacher Home</button>
+  <button class="tab" onclick="show('roster-summary')">Roster Summary</button>
+  <button class="tab" onclick="show('student-context')">Student Context</button>
+  <button class="tab" onclick="show('quick-actions')">Quick Actions</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ TEACHER HOME -->
+<div id="teacher-home" class="panel active">
+  <div class="eng-hint">
+    <strong>Engineering · Teacher Home — mobile canonical</strong><br>
+    True between-class home. NOT a reduced desktop. Route: <code>/teacher/home</code>.
+    Data loads from <code>GET /teacher/:id/dashboard-summary</code>: KPIs, SNS counts, top-3 support students, today's interventions.
+    Quick-action rail persists across scroll (fixed bottom bar). TODAY divider: gold chip <code>#f0d070</code>, only on current-day entries.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Primary teacher home -->
+    <div>
+      <div class="phone-label">Teacher home — standard active day</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">8:47</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="hero-bar">
+          <div class="hero-greeting">Good morning,</div>
+          <div class="hero-name">Ms. Chen 👋</div>
+          <div class="hero-sub">2nd Grade · Riverside Elementary</div>
+          <div class="hero-kpi-row">
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">24</div>
+              <div class="hero-kpi-lbl">Students</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">18</div>
+              <div class="hero-kpi-lbl">Active today</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">3</div>
+              <div class="hero-kpi-lbl">Need focus</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <!-- SNS trio -->
+          <div class="section-lbl">Class overview</div>
+          <div class="lane-row">
+            <div class="lane-card lane-flag">
+              <div class="lane-card-val">3</div>
+              <div class="lane-card-lbl">🚩 Flag</div>
+            </div>
+            <div class="lane-card lane-watch">
+              <div class="lane-card-val">5</div>
+              <div class="lane-card-lbl">👁 Watch</div>
+            </div>
+            <div class="lane-card lane-strong">
+              <div class="lane-card-val">16</div>
+              <div class="lane-card-lbl">💪 Strong</div>
+            </div>
+          </div>
+
+          <!-- Priority students -->
+          <div class="section-lbl">Needs attention now</div>
+          <div class="student-row sr-flag">
+            <div class="sr-avatar" style="background:#fce8e8;">👦</div>
+            <div class="sr-info">
+              <div class="sr-name">Marcus T.</div>
+              <div class="sr-detail">Support · 3 wks · Phonics</div>
+            </div>
+            <span class="sr-badge badge-flag">Flag</span>
+          </div>
+          <div class="student-row sr-flag">
+            <div class="sr-avatar" style="background:#fce8e8;">👧</div>
+            <div class="sr-info">
+              <div class="sr-name">Aisha K.</div>
+              <div class="sr-detail">Support · 2 wks · Reading fluency</div>
+            </div>
+            <span class="sr-badge badge-flag">Flag</span>
+          </div>
+          <div class="student-row sr-watch">
+            <div class="sr-avatar" style="background:#fef6e4;">👦</div>
+            <div class="sr-info">
+              <div class="sr-name">Dylan R.</div>
+              <div class="sr-detail">Support · 1 wk · Writing</div>
+            </div>
+            <span class="sr-badge badge-watch">Watch</span>
+          </div>
+
+          <!-- Quick action rail -->
+          <div class="section-lbl">Quick actions</div>
+          <div class="quick-rail">
+            <button class="qa-btn">
+              <span class="qa-icon">📝</span>
+              <span class="qa-label">Add note</span>
+            </button>
+            <button class="qa-btn">
+              <span class="qa-icon">📚</span>
+              <span class="qa-label">Assign activity</span>
+            </button>
+            <button class="qa-btn">
+              <span class="qa-icon">👥</span>
+              <span class="qa-label">Full roster</span>
+            </button>
+            <button class="qa-btn">
+              <span class="qa-icon">📊</span>
+              <span class="qa-label">Class report</span>
+            </button>
+            <button class="qa-btn">
+              <span class="qa-icon">📧</span>
+              <span class="qa-label">Message parents</span>
+            </button>
+          </div>
+
+          <!-- Today's interventions -->
+          <div class="section-lbl">Recent activity</div>
+          <div class="today-divider"><span>Today</span></div>
+
+          <div class="interv-row">
+            <div class="interv-dot" style="background:#e07070;"></div>
+            <div class="interv-text">
+              <h4>Marcus T. — Support pattern</h4>
+              <p>Phonics: 3 consecutive sessions in support tier</p>
+            </div>
+            <div class="interv-time">8:12 AM</div>
+          </div>
+          <div class="interv-row">
+            <div class="interv-dot" style="background:#50b880;"></div>
+            <div class="interv-text">
+              <h4>Sofia M. — Moved to Strength</h4>
+              <p>Writing: graduated from Watch to Strong tier</p>
+            </div>
+            <div class="interv-time">7:58 AM</div>
+          </div>
+
+          <div style="height:20px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- All-clear state -->
+    <div>
+      <div class="phone-label">All-clear — no flagged students</div>
+      <div class="phone">
+        <div class="status-bar">
+          <span class="status-bar-time">8:47</span>
+          <span class="status-bar-icons">●●● 📶 🔋</span>
+        </div>
+        <div class="hero-bar">
+          <div class="hero-greeting">Good morning,</div>
+          <div class="hero-name">Ms. Chen 👋</div>
+          <div class="hero-sub">2nd Grade · Riverside Elementary</div>
+          <div class="hero-kpi-row">
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">24</div>
+              <div class="hero-kpi-lbl">Students</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">22</div>
+              <div class="hero-kpi-lbl">Active today</div>
+            </div>
+            <div class="hero-kpi">
+              <div class="hero-kpi-val">0</div>
+              <div class="hero-kpi-lbl" style="color:#8ee8c0;">Flagged</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="scroll-body">
+          <div class="lane-row" style="margin-top:14px;">
+            <div class="lane-card lane-flag" style="opacity:.5;">
+              <div class="lane-card-val">0</div>
+              <div class="lane-card-lbl">🚩 Flag</div>
+            </div>
+            <div class="lane-card lane-watch" style="opacity:.6;">
+              <div class="lane-card-val">2</div>
+              <div class="lane-card-lbl">👁 Watch</div>
+            </div>
+            <div class="lane-card lane-strong">
+              <div class="lane-card-val">22</div>
+              <div class="lane-card-lbl">💪 Strong</div>
+            </div>
+          </div>
+
+          <div style="margin:20px 16px;background:#e8f5ee;border:1.5px solid rgba(26,128,80,.25);border-radius:14px;padding:18px;text-align:center;">
+            <div style="font-size:32px;margin-bottom:8px;">🌟</div>
+            <div style="font-size:16px;font-weight:700;color:#1a6040;margin-bottom:4px;">Class is thriving!</div>
+            <div style="font-size:13px;color:#2a7050;line-height:1.5;">No students flagged right now. 22 students active today — great engagement!</div>
+          </div>
+
+          <div class="section-lbl">Quick actions</div>
+          <div class="quick-rail">
+            <button class="qa-btn"><span class="qa-icon">👥</span><span class="qa-label">Full roster</span></button>
+            <button class="qa-btn"><span class="qa-icon">📊</span><span class="qa-label">Class report</span></button>
+            <button class="qa-btn"><span class="qa-icon">📧</span><span class="qa-label">Message parents</span></button>
+            <button class="qa-btn"><span class="qa-icon">📚</span><span class="qa-label">Assign activity</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ ROSTER SUMMARY -->
+<div id="roster-summary" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Roster Summary</strong><br>
+    Full 24-student list sorted by: Flag first → Watch → Strong → alphabetical within tier.
+    Route: <code>/teacher/roster</code>. Mini bar chart: last 5 weeks of tier history per student (5 bars, 6px each).
+    Tapping a row routes to <code>/teacher/student/:id</code>.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Full roster -->
+    <div>
+      <div class="phone-label">Full class roster — sorted by tier</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">8:47</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="hero-bar" style="padding-bottom:14px;">
+          <div class="hero-back" style="font-size:12px;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;">← Home</div>
+          <div class="hero-name">Class Roster</div>
+          <div class="hero-sub">24 students · 3 Flag · 5 Watch · 16 Strong</div>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="display:flex;gap:6px;padding:10px 16px;overflow-x:auto;scrollbar-width:none;">
+          <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:none;background:#2a5080;color:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">All</button>
+          <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(154,42,42,.3);background:#fce8e8;color:#9a2a2a;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">🚩 Flag (3)</button>
+          <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(192,120,0,.3);background:#fef6e4;color:#c07800;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">👁 Watch (5)</button>
+          <button style="flex-shrink:0;padding:5px 12px;border-radius:20px;border:1.5px solid rgba(26,128,80,.3);background:#e8f5ee;color:#1a8050;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;">💪 Strong (16)</button>
+        </div>
+
+        <div style="overflow-y:auto;max-height:530px;padding-bottom:12px;">
+          <!-- Flag students -->
+          <div style="padding:6px 20px 4px;font-size:10px;font-weight:700;color:#9a2a2a;text-transform:uppercase;letter-spacing:.07em;">🚩 Flag</div>
+          <div class="student-row sr-flag">
+            <div class="sr-avatar" style="background:#fce8e8;">👦</div>
+            <div class="sr-info">
+              <div class="sr-name">Marcus T.</div>
+              <div class="sr-detail">Phonics · 3 wks support</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar support" style="height:16px;"></div>
+              <div class="mini-bar support" style="height:14px;"></div>
+              <div class="mini-bar support" style="height:18px;"></div>
+              <div class="mini-bar support" style="height:20px;"></div>
+              <div class="mini-bar support" style="height:17px;"></div>
+            </div>
+          </div>
+          <div class="student-row sr-flag">
+            <div class="sr-avatar" style="background:#fce8e8;">👧</div>
+            <div class="sr-info">
+              <div class="sr-name">Aisha K.</div>
+              <div class="sr-detail">Reading fluency · 2 wks support</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar progress" style="height:12px;"></div>
+              <div class="mini-bar support" style="height:15px;"></div>
+              <div class="mini-bar support" style="height:18px;"></div>
+              <div class="mini-bar support" style="height:16px;"></div>
+              <div class="mini-bar support" style="height:20px;"></div>
+            </div>
+          </div>
+          <div class="student-row sr-flag">
+            <div class="sr-avatar" style="background:#fce8e8;">👦</div>
+            <div class="sr-info">
+              <div class="sr-name">Leo B.</div>
+              <div class="sr-detail">Math reasoning · 2 wks support</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar strength" style="height:14px;"></div>
+              <div class="mini-bar progress" style="height:11px;"></div>
+              <div class="mini-bar support" style="height:16px;"></div>
+              <div class="mini-bar support" style="height:18px;"></div>
+              <div class="mini-bar support" style="height:20px;"></div>
+            </div>
+          </div>
+
+          <!-- Watch students -->
+          <div style="padding:10px 20px 4px;font-size:10px;font-weight:700;color:#c07800;text-transform:uppercase;letter-spacing:.07em;">👁 Watch</div>
+          <div class="student-row sr-watch">
+            <div class="sr-avatar" style="background:#fef6e4;">👦</div>
+            <div class="sr-info">
+              <div class="sr-name">Dylan R.</div>
+              <div class="sr-detail">Writing · 1 wk support</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar strength" style="height:16px;"></div>
+              <div class="mini-bar progress" style="height:14px;"></div>
+              <div class="mini-bar progress" style="height:16px;"></div>
+              <div class="mini-bar progress" style="height:18px;"></div>
+              <div class="mini-bar support" style="height:20px;"></div>
+            </div>
+          </div>
+          <div class="student-row sr-watch">
+            <div class="sr-avatar" style="background:#fef6e4;">👧</div>
+            <div class="sr-info">
+              <div class="sr-name">Priya S.</div>
+              <div class="sr-detail">Comprehension · 1 wk support</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar strength" style="height:18px;"></div>
+              <div class="mini-bar strength" style="height:16px;"></div>
+              <div class="mini-bar progress" style="height:14px;"></div>
+              <div class="mini-bar progress" style="height:17px;"></div>
+              <div class="mini-bar support" style="height:20px;"></div>
+            </div>
+          </div>
+
+          <!-- Strong students (abbreviated) -->
+          <div style="padding:10px 20px 4px;font-size:10px;font-weight:700;color:#1a8050;text-transform:uppercase;letter-spacing:.07em;">💪 Strong (16)</div>
+          <div class="student-row sr-strong">
+            <div class="sr-avatar" style="background:#e8f5ee;">👧</div>
+            <div class="sr-info">
+              <div class="sr-name">Sofia M.</div>
+              <div class="sr-detail">Writing · moved up this week 🎉</div>
+            </div>
+            <div class="mini-bar-row">
+              <div class="mini-bar progress" style="height:12px;"></div>
+              <div class="mini-bar progress" style="height:14px;"></div>
+              <div class="mini-bar progress" style="height:16px;"></div>
+              <div class="mini-bar strength" style="height:18px;"></div>
+              <div class="mini-bar strength" style="height:20px;"></div>
+            </div>
+          </div>
+          <div style="padding:10px 20px;font-size:12px;color:#6a7a8e;text-align:center;">+ 15 more strong students</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ STUDENT CONTEXT -->
+<div id="student-context" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Student Context (mobile)</strong><br>
+    Pushed from roster row tap. Route: <code>/teacher/student/:id</code>. Shows 3 top skills by tier, 5-week trend bar,
+    intervention log (last 5 entries), and quick-add note/activity form. Back button returns to roster or home.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Support student detail -->
+    <div>
+      <div class="phone-label">Student context — Flag tier</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">8:47</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="student-detail-header">
+          <div class="sdh-back">← Roster</div>
+          <div class="sdh-student-row">
+            <div class="sdh-avatar">👦</div>
+            <div>
+              <div class="sdh-name">Marcus T.</div>
+              <span class="sdh-tier sdh-flag-tier">🚩 Flag · 3 weeks support</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="overflow-y:auto;max-height:570px;padding-bottom:12px;">
+          <div class="section-lbl">Skill tiers this week</div>
+          <div class="skill-card">
+            <h4>Phonics patterns</h4>
+            <div class="skill-progress-bar"><div class="spb-fill spb-support" style="width:25%;"></div></div>
+            <div class="skill-tier-label stl-support">Support tier · 3 weeks</div>
+          </div>
+          <div class="skill-card">
+            <h4>Reading fluency</h4>
+            <div class="skill-progress-bar"><div class="spb-fill spb-support" style="width:30%;"></div></div>
+            <div class="skill-tier-label stl-support">Support tier · 2 weeks</div>
+          </div>
+          <div class="skill-card">
+            <h4>Story comprehension</h4>
+            <div class="skill-progress-bar"><div class="spb-fill spb-progress" style="width:55%;"></div></div>
+            <div class="skill-tier-label stl-progress">Progress tier</div>
+          </div>
+
+          <div class="section-lbl">5-week trend</div>
+          <div style="margin:0 16px 12px;background:#fff;border-radius:14px;padding:14px;box-shadow:0 1px 6px rgba(0,0,0,.06);">
+            <div style="display:flex;gap:6px;align-items:flex-end;height:48px;margin-bottom:8px;">
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;background:#50b880;border-radius:3px;height:28px;"></div>
+                <div style="font-size:9px;color:#6a7a8e;">W1</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;background:#f0c030;border-radius:3px;height:22px;"></div>
+                <div style="font-size:9px;color:#6a7a8e;">W2</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;background:#e07070;border-radius:3px;height:36px;"></div>
+                <div style="font-size:9px;color:#6a7a8e;">W3</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;background:#e07070;border-radius:3px;height:40px;"></div>
+                <div style="font-size:9px;color:#6a7a8e;">W4</div>
+              </div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;">
+                <div style="width:100%;background:#e07070;border-radius:3px;height:44px;"></div>
+                <div style="font-size:9px;color:#6a7a8e;">W5</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:12px;font-size:10px;color:#6a7a8e;">
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#50b880;border-radius:2px;display:inline-block;"></span>Strong</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#f0c030;border-radius:2px;display:inline-block;"></span>Progress</span>
+              <span style="display:flex;align-items:center;gap:4px;"><span style="width:8px;height:8px;background:#e07070;border-radius:2px;display:inline-block;"></span>Support</span>
+            </div>
+          </div>
+
+          <div class="section-lbl">Intervention log</div>
+          <div class="today-divider"><span>Today</span></div>
+          <div class="interv-row">
+            <div class="interv-dot" style="background:#e07070;"></div>
+            <div class="interv-text">
+              <h4>Support pattern auto-flagged</h4>
+              <p>3rd week in support tier: Phonics</p>
+            </div>
+            <div class="interv-time">8:12 AM</div>
+          </div>
+          <div class="interv-row">
+            <div class="interv-dot" style="background:#2a5080;"></div>
+            <div class="interv-text">
+              <h4>Ms. Chen added a note</h4>
+              <p>"Struggling with blends — try extra phonics practice at home"</p>
+            </div>
+            <div class="interv-time">Yesterday</div>
+          </div>
+
+          <!-- Quick action at bottom -->
+          <div class="section-lbl">Add note or activity</div>
+          <div style="margin:0 16px 12px;">
+            <textarea style="width:100%;border:1.5px solid #d0dce8;border-radius:12px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;color:#1a2a3e;background:#fff;resize:none;height:72px;" placeholder="Add a note for Marcus or his parent…"></textarea>
+            <div style="display:flex;gap:8px;margin-top:8px;">
+              <button style="flex:1;padding:12px;border-radius:12px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;color:#fff;cursor:pointer;">Save note</button>
+              <button style="flex:1;padding:12px;border-radius:12px;border:1.5px solid #2a5080;background:#fff;font-family:'Sora',sans-serif;font-weight:600;font-size:14px;color:#2a5080;cursor:pointer;">Assign activity</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ QUICK ACTIONS -->
+<div id="quick-actions" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Quick Action Rail</strong><br>
+    5 always-visible action shortcuts in horizontal scroll rail. Each opens a bottom sheet or routes to sub-screen.
+    "Add note" and "Assign activity" are context-aware — if a student was recently viewed, pre-populate that student.
+    "Message parents" opens multi-select parent list.
+  </div>
+  <div class="phone-wrap">
+
+    <!-- Quick action bottom sheets -->
+    <div>
+      <div class="phone-label">Quick action — Add note bottom sheet</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">8:47</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div class="hero-bar" style="padding-bottom:14px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:2px;">2nd Grade · Ms. Chen</div>
+          <div style="font-size:18px;font-weight:700;color:#fff;">Teacher Home</div>
+        </div>
+
+        <!-- Dimmed content behind sheet -->
+        <div style="padding:16px;opacity:.4;pointer-events:none;">
+          <div class="lane-row">
+            <div class="lane-card lane-flag"><div class="lane-card-val">3</div><div class="lane-card-lbl">🚩 Flag</div></div>
+            <div class="lane-card lane-watch"><div class="lane-card-val">5</div><div class="lane-card-lbl">👁 Watch</div></div>
+            <div class="lane-card lane-strong"><div class="lane-card-val">16</div><div class="lane-card-lbl">💪 Strong</div></div>
+          </div>
+        </div>
+
+        <!-- Bottom sheet overlay -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;padding:20px 20px 32px;box-shadow:0 -8px 32px rgba(0,0,0,.15);">
+          <div style="width:40px;height:4px;background:#d8e0ea;border-radius:2px;margin:0 auto 16px;"></div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Add a note</div>
+          <div style="font-size:12px;color:#6a7a8e;margin-bottom:14px;">For Marcus T. · or change student ↓</div>
+
+          <!-- Student selector -->
+          <div style="display:flex;align-items:center;gap:10px;background:#f0f4f8;border-radius:12px;padding:10px 14px;margin-bottom:12px;cursor:pointer;">
+            <div style="width:32px;height:32px;background:#fce8e8;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;">👦</div>
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:#1a2a3e;">Marcus T.</div>
+              <div style="font-size:11px;color:#6a7a8e;">Flag · Phonics</div>
+            </div>
+            <div style="color:#6a7a8e;">›</div>
+          </div>
+
+          <!-- Note type -->
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button style="flex:1;padding:8px;border-radius:10px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;color:#fff;">📝 Note</button>
+            <button style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#2a5080;">📧 Parent msg</button>
+            <button style="flex:1;padding:8px;border-radius:10px;border:1.5px solid #d0dce8;background:#fff;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;color:#2a5080;">📚 Activity</button>
+          </div>
+
+          <textarea style="width:100%;border:1.5px solid #d0dce8;border-radius:12px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;color:#1a2a3e;resize:none;height:80px;" placeholder="Type your note here…"></textarea>
+
+          <button style="width:100%;margin-top:10px;padding:14px;border-radius:14px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;color:#fff;cursor:pointer;">Save note</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Message parents multi-select -->
+    <div>
+      <div class="phone-label">Quick action — Message parents</div>
+      <div class="phone">
+        <div class="status-bar"><span class="status-bar-time">8:47</span><span class="status-bar-icons">●●● 📶 🔋</span></div>
+        <div style="background:#2a5080;padding:14px 20px 16px;">
+          <div style="font-size:12px;color:rgba(255,255,255,.65);font-weight:600;margin-bottom:4px;">← Home</div>
+          <div style="font-size:18px;font-weight:700;color:#fff;">Message Parents</div>
+          <div style="font-size:13px;color:rgba(255,255,255,.7);margin-top:2px;">Select recipients</div>
+        </div>
+
+        <!-- Pre-selected: flag+watch parents -->
+        <div style="padding:10px 16px;background:#fef6e4;display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:12px;color:#c07800;font-weight:600;">🚩👁 Flag + Watch parents pre-selected (8)</div>
+          <div style="font-size:12px;color:#c07800;cursor:pointer;font-weight:700;">Clear</div>
+        </div>
+
+        <div style="overflow-y:auto;max-height:400px;">
+          <div style="padding:6px 20px 4px;font-size:10px;font-weight:700;color:#9a2a2a;text-transform:uppercase;letter-spacing:.07em;">🚩 Flag parents</div>
+          <div style="margin:0 16px 6px;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06);">
+            <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #f0f4f8;">
+              <div style="width:20px;height:20px;background:#2a5080;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;">✓</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Marcus T.'s parent</div><div style="font-size:11px;color:#6a7a8e;">parent@example.com</div></div>
+            </div>
+            <div style="padding:12px 14px;display:flex;align-items:center;gap:10px;">
+              <div style="width:20px;height:20px;background:#2a5080;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#fff;flex-shrink:0;">✓</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:700;">Aisha K.'s parent</div><div style="font-size:11px;color:#6a7a8e;">parent2@example.com</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;bottom:0;left:0;right:0;padding:16px 20px 32px;background:#fff;border-top:1px solid #e0eaf4;">
+          <textarea style="width:100%;border:1.5px solid #d0dce8;border-radius:12px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;resize:none;height:64px;" placeholder="Write your message…"></textarea>
+          <button style="width:100%;margin-top:10px;padding:14px;border-radius:14px;border:none;background:#2a5080;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;color:#fff;cursor:pointer;">Send to 8 parents</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ SPEC -->
+<div id="spec" class="panel">
+  <div class="eng-hint">
+    <strong>Engineering · Spec Reference — teacher-dashboard-mobile-canonical-v2</strong><br>
+    This is the true mobile home, not a reduced desktop. Designed for between-class use.
+  </div>
+
+  <div class="spec-section">
+    <h3>// ROUTES</h3>
+    <table>
+      <tr><th>Route</th><th>Purpose</th></tr>
+      <tr><td><code>/teacher/home</code></td><td>Mobile canonical home</td></tr>
+      <tr><td><code>/teacher/roster</code></td><td>Full student roster</td></tr>
+      <tr><td><code>/teacher/student/:id</code></td><td>Individual student context</td></tr>
+      <tr><td><code>GET /teacher/:id/dashboard-summary</code></td><td>KPIs, SNS counts, top-3 support</td></tr>
+      <tr><td><code>POST /teacher/note</code></td><td>Add student/parent note</td></tr>
+      <tr><td><code>POST /teacher/message</code></td><td>Multi-parent message</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// SNS TIER DEFINITIONS</h3>
+    <table>
+      <tr><th>Tier</th><th>Left-border</th><th>Condition</th><th>Action priority</th></tr>
+      <tr><td>🚩 Flag</td><td><code>#9a2a2a</code></td><td>Support tier ≥ 2 consecutive weeks</td><td>Highest — show first</td></tr>
+      <tr><td>👁 Watch</td><td><code>#c07800</code></td><td>Support tier 1 week</td><td>Medium — show second</td></tr>
+      <tr><td>💪 Strong</td><td><code>#1a8050</code></td><td>Strength tier current week</td><td>Low — shown last</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// QUICK ACTION RAIL</h3>
+    <table>
+      <tr><th>Action</th><th>Tap behavior</th><th>Context-aware?</th></tr>
+      <tr><td>Add note</td><td>Bottom sheet, pre-filled with last-viewed student</td><td>Yes</td></tr>
+      <tr><td>Assign activity</td><td>Bottom sheet, student picker + activity selector</td><td>Yes</td></tr>
+      <tr><td>Full roster</td><td>Route to <code>/teacher/roster</code></td><td>No</td></tr>
+      <tr><td>Class report</td><td>Route to <code>/teacher/class-summary</code></td><td>No</td></tr>
+      <tr><td>Message parents</td><td>Multi-select sheet, flag+watch pre-selected</td><td>Auto-selects</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// DESIGN TOKENS</h3>
+    <table>
+      <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+      <tr><td>teacher-bg</td><td><code>#f0f4f8</code></td><td>Screen background (cool steel)</td></tr>
+      <tr><td>teacher-nav</td><td><code>#2a5080</code></td><td>Hero bar, primary CTA</td></tr>
+      <tr><td>teacher-font</td><td>Sora</td><td>All text</td></tr>
+      <tr><td>flag-border</td><td><code>#9a2a2a</code></td><td>Left border on flag rows</td></tr>
+      <tr><td>watch-border</td><td><code>#c07800</code></td><td>Left border on watch rows</td></tr>
+      <tr><td>strong-border</td><td><code>#1a8050</code></td><td>Left border on strong rows</td></tr>
+      <tr><td>today-divider</td><td><code>#f0d070</code> on <code>#2a5080</code></td><td>TODAY chip in intervention log</td></tr>
+    </table>
+  </div>
+
+  <div class="spec-section">
+    <h3>// KEY DIFFERENCES FROM DESKTOP</h3>
+    <table>
+      <tr><th>Feature</th><th>Mobile canonical</th><th>Desktop</th></tr>
+      <tr><td>Layout</td><td>Single column, vertical scroll</td><td>3-col (student / detail / notes)</td></tr>
+      <tr><td>Student list</td><td>Top 3 flag/watch on home; full roster on tap</td><td>Always-visible left lane</td></tr>
+      <tr><td>Note entry</td><td>Bottom sheet</td><td>Inline right-panel form</td></tr>
+      <tr><td>Skill detail</td><td>Full screen after tap</td><td>Center panel inline</td></tr>
+      <tr><td>Filter controls</td><td>Horizontal scroll chips</td><td>Filter bar + sort dropdown</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
