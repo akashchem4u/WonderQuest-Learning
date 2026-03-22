@@ -727,3 +727,98 @@ Important:
   - home has two distinct treatment vars: `--home-trust-bg` (cream, first-time/parent visits) and `--home-energy-bg` (cosmic, returning child with active quest) — switch at the app shell level, not per-component
   - live status strip in `home-launcher-refined.html` specifies 30s poll + AbortController timeout + graceful hide-on-failure behavior
   - parent access manager is an inline accordion, not a drawer/modal — avoids z-index stacking issues on mobile; see Tab 2 engineering note
+
+## Next Engineering Requests
+
+The current live gaps are now narrower. Keep the next design work focused on
+the remaining visible alpha-close / beta-start surfaces. Do not reopen owner or
+teacher work this round unless engineering asks.
+
+### Priority 17: Child Quickstart Compression
+
+The live child route still has too many stacked decisions before the child or
+grown-up can launch into play. We need a faster first-screen structure that
+feels more like a game entry than a form.
+
+Please design:
+
+- one compressed first screen for `/child`
+- clear split between:
+  - new child
+  - returning child
+- progressive reveal after the first decision
+- stronger sticky primary CTA behavior
+- larger visual band cards
+- calmer returning-child quick path
+- mobile version
+
+Suggested deliverable:
+
+- `child-quickstart-v2.html`
+
+Important:
+
+- fewer stacked cards before action
+- should feel faster than current `child-setup.html`
+- do not remove the band/avatar/PIN concepts; just stage them better
+
+### Priority 18: Parent Summary Rail
+
+The live parent route is richer now, but the first glance still needs a cleaner,
+more decisive summary structure. We need one visible top summary rail that
+answers the parent questions immediately before the deeper cards.
+
+Please design:
+
+- parent top summary rail for the active child
+- one clear child switcher
+- one summary for:
+  - how the child is doing right now
+  - what changed recently
+  - what to try next at home
+- compact weekly signal row
+- mobile version
+
+Suggested deliverable:
+
+- `parent-summary-rail.html`
+
+Important:
+
+- this should reduce card fatigue
+- this is not another full dashboard
+- should pair with `parent-family-center.html` and `parent-skill-detail.html`
+
+### Priority 19: Mobile Route Shells
+
+We now have enough route references that the missing gap is cross-route mobile
+coherence. We need a reusable phone-shell guide so home, parent, teacher, and
+owner feel like one product family on smaller screens.
+
+Please design:
+
+- reusable mobile shell pattern
+- top nav / header guidance
+- sticky action zone guidance
+- bottom safe-area behavior
+- home mobile launcher shell
+- parent mobile shell
+- teacher mobile shell
+- owner mobile shell
+
+Suggested deliverable:
+
+- `mobile-route-shells.html`
+
+Important:
+
+- this is shell guidance, not full route redesign
+- use existing route assets as reference inputs
+- bias toward implementation rules, not decorative variations
+
+### Round Rules
+
+- keep polling this file only
+- keep new deliverables at the top level of `ui-agent/`
+- do not reopen generic component work unless engineering asks
+- focus on the shortest path to visible route improvement
