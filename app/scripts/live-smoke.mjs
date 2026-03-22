@@ -110,7 +110,7 @@ async function main() {
   const firstQuestion = session.questions[0];
 
   const wrongAnswer = firstQuestion.answers.find(
-    (answer) => answer !== "10",
+    (answer) => answer !== firstQuestion.correctAnswer,
   );
 
   const retry = await postJson(baseUrl, "/api/play/answer", {
@@ -124,7 +124,7 @@ async function main() {
   const recovery = await postJson(baseUrl, "/api/play/answer", {
     sessionId: session.sessionId,
     questionKey: firstQuestion.questionKey,
-    answer: "10",
+    answer: firstQuestion.correctAnswer,
     attempt: 999,
     timeSpentMs: 1800,
   });
