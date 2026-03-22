@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Family Onboarding Manager v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cream:   #f5f0e8;
+      --cream2:  #ede7d9;
+      --teal:    #2c7a6e;
+      --teal-lt: #3d9e8f;
+      --teal-bg: rgba(44,122,110,.08);
+      --cosmic:  #100b2e;
+      --gold:    #ffd166;
+      --violet:  #9b72ff;
+      --mint:    #58e8c1;
+      --coral:   #ff7b6b;
+      --ink:     #1c1c1e;
+      --mid:     #4b5563;
+      --faint:   #9ca3af;
+      --white:   #ffffff;
+    }
+    body { font-family: 'Sora', sans-serif; background: #e8e2d6; min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff; border-bottom: 1.5px solid #ddd8ce;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 14px 20px;
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--faint); background: transparent; border: none;
+      border-bottom: 3px solid transparent; cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--teal); border-bottom-color: var(--teal); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--teal); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #92670e; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* Mobile wrap */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; gap: 32px; flex-wrap: wrap; }
+    .phone-frame {
+      width: 375px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); border: 1px solid #ddd8ce;
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #fff; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--cream); min-height: 780px; position: relative; overflow: hidden; }
+
+    /* ── ONBOARDING STEP CHROME ── */
+    .ob-topbar {
+      background: #fff; border-bottom: 1px solid #ddd8ce;
+      display: flex; align-items: center; gap: 12px; padding: 46px 16px 12px;
+    }
+    .ob-back { font-size: 18px; color: var(--faint); cursor: pointer; }
+    .ob-step-track { flex: 1; height: 4px; background: #e8e2d6; border-radius: 4px; overflow: hidden; }
+    .ob-step-fill { height: 100%; border-radius: 4px; background: var(--teal); transition: width .4s; }
+    .ob-step-label { font-size: 11px; color: var(--faint); flex-shrink: 0; }
+
+    /* Body scroll */
+    .ob-body { padding: 24px 20px 100px; display: flex; flex-direction: column; gap: 20px; }
+
+    /* Step heading */
+    .ob-heading { font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 900; color: var(--ink); line-height: 1.2; }
+    .ob-subheading { font-size: 13px; color: var(--mid); line-height: 1.6; margin-top: 6px; }
+
+    /* Input field */
+    .ob-input {
+      width: 100%; padding: 14px 16px; border-radius: 12px;
+      border: 1.5px solid #ddd8ce; background: #fff;
+      font-family: 'Sora', sans-serif; font-size: 15px; color: var(--ink);
+      outline: none; transition: border-color .2s;
+    }
+    .ob-input:focus { border-color: var(--teal); }
+    .ob-input-label { font-size: 11px; font-weight: 600; color: var(--mid); margin-bottom: 6px; }
+
+    /* Band picker */
+    .band-picker { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .band-option {
+      border-radius: 14px; padding: 14px 14px; cursor: pointer;
+      border: 2px solid transparent; transition: all .2s;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .band-option.p0 { background: rgba(255,209,102,.1); border-color: rgba(255,209,102,.3); }
+    .band-option.p0.selected { border-color: var(--gold); background: rgba(255,209,102,.18); box-shadow: 0 2px 12px rgba(255,209,102,.2); }
+    .band-option.p1 { background: rgba(155,114,255,.08); border-color: rgba(155,114,255,.25); }
+    .band-option.p1.selected { border-color: var(--violet); background: rgba(155,114,255,.15); }
+    .band-option.p2 { background: rgba(88,232,193,.08); border-color: rgba(88,232,193,.22); }
+    .band-option.p2.selected { border-color: var(--mint); }
+    .band-option.p3 { background: rgba(255,123,107,.08); border-color: rgba(255,123,107,.22); }
+    .band-option.p3.selected { border-color: var(--coral); }
+    .band-emoji { font-size: 22px; }
+    .band-text {}
+    .band-name { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .band-age { font-size: 10px; color: var(--mid); margin-top: 1px; }
+
+    /* Character picker */
+    .char-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .char-option {
+      aspect-ratio: 1; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 28px; cursor: pointer; border: 2.5px solid transparent;
+      background: rgba(0,0,0,.04); transition: all .2s;
+    }
+    .char-option.selected {
+      border-color: var(--teal); background: rgba(44,122,110,.08);
+      box-shadow: 0 2px 12px rgba(44,122,110,.2);
+    }
+
+    /* PIN entry */
+    .pin-display {
+      display: flex; gap: 12px; justify-content: center; margin: 8px 0;
+    }
+    .pin-dot {
+      width: 20px; height: 20px; border-radius: 50%;
+      border: 2px solid #ddd8ce; background: transparent; transition: all .2s;
+    }
+    .pin-dot.filled { background: var(--teal); border-color: var(--teal); }
+    .numpad {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px;
+    }
+    .numkey {
+      height: 52px; border-radius: 12px; background: #fff; border: 1px solid #ddd8ce;
+      font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: var(--ink);
+      cursor: pointer; transition: background .15s; display: flex; align-items: center; justify-content: center;
+    }
+    .numkey:hover { background: var(--cream2); }
+    .numkey.del { font-size: 16px; color: var(--faint); }
+    .numkey.empty { visibility: hidden; }
+
+    /* Confirmation card */
+    .confirm-card {
+      background: #fff; border-radius: 16px; padding: 18px 16px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.06); border: 1px solid rgba(0,0,0,.05);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .confirm-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--teal); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+    .confirm-body { flex: 1; }
+    .confirm-name { font-size: 16px; font-weight: 800; color: var(--ink); font-family: 'Nunito', sans-serif; }
+    .confirm-band { font-size: 11px; font-weight: 600; color: var(--teal); margin-top: 2px; }
+    .confirm-edit { font-size: 12px; color: var(--teal); cursor: pointer; }
+
+    /* CTA bar */
+    .ob-cta-bar {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #ddd8ce;
+      padding: 14px 20px 28px; display: flex; flex-direction: column; gap: 8px;
+    }
+    .ob-cta-primary {
+      display: block; width: 100%; padding: 15px;
+      background: var(--teal); color: #fff;
+      font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700;
+      border-radius: 14px; border: none; cursor: pointer; text-align: center;
+    }
+    .ob-cta-primary:disabled { background: #ddd8ce; color: var(--faint); cursor: not-allowed; }
+    .ob-cta-ghost {
+      display: block; width: 100%; padding: 11px;
+      background: transparent; color: var(--mid);
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500;
+      border-radius: 14px; border: 1px solid #ddd8ce; cursor: pointer; text-align: center;
+    }
+
+    /* Welcome screen */
+    .welcome-screen {
+      background: var(--cream); min-height: 780px; position: relative;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 40px 28px 100px; gap: 16px;
+    }
+    .welcome-icon { font-size: 64px; }
+    .welcome-title { font-family: 'Nunito', sans-serif; font-size: 26px; font-weight: 900; color: var(--ink); line-height: 1.2; }
+    .welcome-title span { color: var(--teal); }
+    .welcome-sub { font-size: 13px; color: var(--mid); line-height: 1.7; max-width: 280px; }
+    .welcome-cta { display: block; width: 100%; padding: 16px; background: var(--teal); color: #fff; font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; border-radius: 14px; border: none; cursor: pointer; margin-top: 8px; }
+    .trust-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .trust-item { font-size: 10px; color: var(--faint); display: flex; align-items: center; gap: 4px; }
+
+    /* Add child button */
+    .add-child-btn {
+      display: flex; align-items: center; gap: 12px;
+      background: rgba(44,122,110,.06); border: 1.5px dashed rgba(44,122,110,.3);
+      border-radius: 14px; padding: 14px 16px; cursor: pointer; transition: background .2s;
+    }
+    .add-child-btn:hover { background: rgba(44,122,110,.1); }
+    .add-icon { width: 40px; height: 40px; border-radius: 50%; background: rgba(44,122,110,.12); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .add-text { font-size: 14px; font-weight: 700; color: var(--teal); }
+    .add-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; background: var(--cream); min-height: 100vh; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--teal); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-row-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+    .spec-row-desc { font-size: 12px; color: var(--mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #f0ece4; }
+    .spec-table th { color: var(--faint); font-weight: 600; background: #faf7f2; }
+    .spec-table td { color: var(--ink); }
+    .spec-table td code { background: var(--teal-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--teal); }
+
+    @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .float { animation: floatY 3s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Welcome Screen</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Step 1 — Child Name</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Step 2 — Band + Avatar</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Step 3 — PIN + Confirm</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Add Another Child</button>
+</div>
+
+<!-- TAB 1: WELCOME -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>👋 Family Onboarding — Welcome Screen</strong>
+    First screen for new parents after sign-up. Warm, reassuring. Logo + big welcome message. Three trust badges below. Single CTA: "Set up your child". No login friction here — parent already signed up. This is child setup, not account setup.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner" style="background:var(--cream);">
+        <div class="welcome-screen">
+          <div class="welcome-icon float">🌟</div>
+          <div class="welcome-title">Welcome to <span>WonderQuest</span></div>
+          <div class="welcome-sub">
+            Let's set up your child's first quest. It takes about 2 minutes — no forms, just a few taps.
+          </div>
+          <button class="welcome-cta">Set up my child →</button>
+          <div class="ob-cta-ghost" style="border-color:transparent;color:var(--teal);font-size:12px;cursor:pointer;margin-top:-4px;">I have a code from a teacher</div>
+          <div class="trust-row">
+            <div class="trust-item">🔒 COPPA safe</div>
+            <div class="trust-item">🚫 No ads</div>
+            <div class="trust-item">🎓 Educator-built</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: STEP 1 — CHILD NAME -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>✏️ Step 1 — Child Name</strong>
+    Simple: "What's your child's name?" Text input. Helper copy: "We'll use this to personalise their quests." No last name required. Suggested name tiles below field for pre-readers (parent fills in). Step indicator: 1 / 3. CTA: "Next →" disabled until field non-empty.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="ob-topbar">
+          <div class="ob-back">‹</div>
+          <div class="ob-step-track"><div class="ob-step-fill" style="width:33%;"></div></div>
+          <div class="ob-step-label">1 of 3</div>
+        </div>
+
+        <div class="ob-body">
+          <div>
+            <div class="ob-heading">What's your child's name? 👋</div>
+            <div class="ob-subheading">We'll use this to make their quests feel personal.</div>
+          </div>
+
+          <div>
+            <div class="ob-input-label">First name (or nickname is fine)</div>
+            <input class="ob-input" type="text" placeholder="e.g. Aria" value="Aria" />
+          </div>
+
+          <div style="font-size:11px;color:var(--faint);">Or tap a suggestion:</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">Emma</button>
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">Leo</button>
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">Mia</button>
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">Noah</button>
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">Sofia</button>
+            <button style="padding:8px 14px;border-radius:20px;border:1.5px solid #ddd8ce;background:#fff;font-size:13px;color:var(--ink);cursor:pointer;font-family:'Sora',sans-serif;">James</button>
+          </div>
+
+          <div style="background:rgba(44,122,110,.06);border-radius:12px;padding:14px 16px;">
+            <div style="font-size:12px;font-weight:700;color:var(--teal);margin-bottom:4px;">🔒 Privacy note</div>
+            <div style="font-size:11px;color:var(--mid);line-height:1.5;">We only store first names. No last name, no photo, no personal data from your child.</div>
+          </div>
+        </div>
+
+        <div class="ob-cta-bar">
+          <button class="ob-cta-primary">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: STEP 2 — BAND + AVATAR -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>🎨 Step 2 — Band Selection + Avatar Picker</strong>
+    Two sections: (1) "How old is Aria?" — 4 band tiles (Pre-K / K–1 / Grade 2–3 / Grade 4–5), each with emoji + age range. (2) "Pick Aria's character" — 8-emoji grid. Both scroll on one screen. Default band = P0 Pre-K. CTA: "Next →" always enabled (defaults pre-selected).
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="ob-topbar">
+          <div class="ob-back">‹</div>
+          <div class="ob-step-track"><div class="ob-step-fill" style="width:66%;"></div></div>
+          <div class="ob-step-label">2 of 3</div>
+        </div>
+
+        <div class="ob-body">
+          <div>
+            <div class="ob-heading">Tell us about Aria 🌟</div>
+            <div class="ob-subheading">This helps us pick the right quests. You can change it anytime.</div>
+          </div>
+
+          <!-- Band picker -->
+          <div>
+            <div class="ob-input-label">How old is Aria?</div>
+            <div class="band-picker">
+              <div class="band-option p0 selected">
+                <div class="band-emoji">🌱</div>
+                <div class="band-text">
+                  <div class="band-name">Pre-K</div>
+                  <div class="band-age">Ages 3–5</div>
+                </div>
+              </div>
+              <div class="band-option p1">
+                <div class="band-emoji">🔮</div>
+                <div class="band-text">
+                  <div class="band-name">Kindergarten–1st</div>
+                  <div class="band-age">Ages 5–7</div>
+                </div>
+              </div>
+              <div class="band-option p2">
+                <div class="band-emoji">🌊</div>
+                <div class="band-text">
+                  <div class="band-name">2nd–3rd grade</div>
+                  <div class="band-age">Ages 7–9</div>
+                </div>
+              </div>
+              <div class="band-option p3">
+                <div class="band-emoji">🔥</div>
+                <div class="band-text">
+                  <div class="band-name">4th–5th grade</div>
+                  <div class="band-age">Ages 9–11</div>
+                </div>
+              </div>
+            </div>
+            <div style="font-size:11px;color:var(--faint);margin-top:8px;">Not sure? Start lower — it adapts automatically.</div>
+          </div>
+
+          <!-- Avatar picker -->
+          <div>
+            <div class="ob-input-label">Pick Aria's character</div>
+            <div class="char-grid">
+              <div class="char-option selected">🐉</div>
+              <div class="char-option">🦊</div>
+              <div class="char-option">🐻</div>
+              <div class="char-option">🦁</div>
+              <div class="char-option">🐬</div>
+              <div class="char-option">🦋</div>
+              <div class="char-option">🦄</div>
+              <div class="char-option">🐯</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ob-cta-bar">
+          <button class="ob-cta-primary">Next →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: STEP 3 — PIN + CONFIRM -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>🔢 Step 3 — PIN + Confirmation</strong>
+    4-digit PIN for child sign-in (not parent account security — just child screen entry). Large numpad. PIN dots at top. "Skip for now" ghost CTA. Confirmation card below on same screen after PIN set. "All done!" CTA launches child play.
+  </div>
+
+  <div class="mobile-wrap">
+    <!-- PIN entry state -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div style="font-size:11px;color:#666;font-family:'Sora',sans-serif;text-align:center;">PIN entry (partially filled)</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-inner">
+          <div class="ob-topbar">
+            <div class="ob-back">‹</div>
+            <div class="ob-step-track"><div class="ob-step-fill" style="width:100%;"></div></div>
+            <div class="ob-step-label">3 of 3</div>
+          </div>
+
+          <div class="ob-body">
+            <div>
+              <div class="ob-heading">Set Aria's PIN 🔢</div>
+              <div class="ob-subheading">Aria will use this to sign in on shared devices. 4 digits — keep it simple!</div>
+            </div>
+
+            <div class="pin-display">
+              <div class="pin-dot filled"></div>
+              <div class="pin-dot filled"></div>
+              <div class="pin-dot"></div>
+              <div class="pin-dot"></div>
+            </div>
+
+            <div class="numpad">
+              <div class="numkey">1</div>
+              <div class="numkey">2</div>
+              <div class="numkey">3</div>
+              <div class="numkey">4</div>
+              <div class="numkey">5</div>
+              <div class="numkey">6</div>
+              <div class="numkey">7</div>
+              <div class="numkey">8</div>
+              <div class="numkey">9</div>
+              <div class="numkey empty"></div>
+              <div class="numkey">0</div>
+              <div class="numkey del">⌫</div>
+            </div>
+          </div>
+
+          <div class="ob-cta-bar">
+            <button class="ob-cta-primary" disabled>Set PIN</button>
+            <button class="ob-cta-ghost">Skip for now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confirmation state -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div style="font-size:11px;color:#666;font-family:'Sora',sans-serif;text-align:center;">Confirmation screen</div>
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-inner" style="background:var(--cream);">
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:580px;padding:40px 24px;gap:18px;text-align:center;">
+            <div class="float" style="font-size:64px;">🌟</div>
+            <div style="font-family:'Nunito',sans-serif;font-size:26px;font-weight:900;color:var(--ink);">All set, Aria! 🎉</div>
+            <div style="font-size:13px;color:var(--mid);line-height:1.7;">Aria's first quest is ready. Hand the device to Aria — or tap below to start together.</div>
+
+            <div class="confirm-card" style="width:100%;text-align:left;">
+              <div class="confirm-avatar">🐉</div>
+              <div class="confirm-body">
+                <div class="confirm-name">Aria</div>
+                <div class="confirm-band">Pre-K · Counting World</div>
+              </div>
+              <div class="confirm-edit">Edit</div>
+            </div>
+
+            <button class="ob-cta-primary" style="width:100%;margin-top:4px;">Start Aria's first quest 🚀</button>
+            <div style="font-size:12px;color:var(--faint);cursor:pointer;">Add another child first</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: ADD ANOTHER CHILD -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>➕ Add Another Child</strong>
+    After first child confirmed, parent sees their dashboard with child summary card + "Add another child" entry. Same 3-step flow repeats. Max 4 children shown in chip strip before "+N more". No limit enforced in UI — just visual overflow rule.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div style="background:#fff;border-bottom:1px solid #ddd8ce;display:flex;align-items:center;justify-content:space-between;padding:46px 16px 12px;">
+          <div style="font-size:14px;font-weight:700;color:var(--ink);">Wonder<span style="color:var(--teal);">Quest</span></div>
+          <div style="font-size:11px;color:var(--teal);font-weight:600;">Parent</div>
+        </div>
+
+        <div style="padding:16px;display:flex;flex-direction:column;gap:14px;padding-bottom:80px;">
+          <div style="font-size:13px;font-weight:700;color:var(--ink);">Your children</div>
+
+          <!-- Existing child card -->
+          <div class="confirm-card">
+            <div class="confirm-avatar">🐉</div>
+            <div class="confirm-body">
+              <div class="confirm-name">Aria</div>
+              <div class="confirm-band">Pre-K · Counting World</div>
+            </div>
+            <div style="font-size:20px;color:var(--faint);">›</div>
+          </div>
+
+          <div class="confirm-card" style="opacity:.7;">
+            <div class="confirm-avatar" style="background:var(--violet);">🦊</div>
+            <div class="confirm-body">
+              <div class="confirm-name">Leo</div>
+              <div class="confirm-band">K–1 · Adding World</div>
+            </div>
+            <div style="font-size:20px;color:var(--faint);">›</div>
+          </div>
+
+          <!-- Add another child -->
+          <div class="add-child-btn">
+            <div class="add-icon">➕</div>
+            <div>
+              <div class="add-text">Add another child</div>
+              <div class="add-sub">Takes about 2 minutes</div>
+            </div>
+          </div>
+
+          <!-- Invite teacher -->
+          <div style="background:rgba(44,122,110,.05);border:1px solid rgba(44,122,110,.15);border-radius:14px;padding:14px 16px;display:flex;gap:12px;align-items:center;">
+            <div style="font-size:24px;">🏫</div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;color:var(--ink);">Connect Aria's teacher</div>
+              <div style="font-size:11px;color:var(--mid);margin-top:2px;">Share progress with classroom. Enter a class code.</div>
+            </div>
+            <div style="font-size:20px;color:var(--faint);">›</div>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd8ce;display:flex;justify-content:space-around;padding:10px 0 22px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--teal);">
+            <div style="font-size:20px;">🏠</div>Home
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--faint);">
+            <div style="font-size:20px;">📚</div>Skills
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--faint);">
+            <div style="font-size:20px;">👨‍👩‍👧</div>Family
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;color:var(--faint);">
+            <div style="font-size:20px;">⚙️</div>Settings
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Spec notes inline -->
+    <div class="spec-panel" style="background:transparent;padding:0;max-width:340px;">
+      <div class="spec-section">
+        <h3>Onboarding flow steps</h3>
+        <table class="spec-table">
+          <thead><tr><th>Step</th><th>Fields</th><th>CTA</th></tr></thead>
+          <tbody>
+            <tr><td>Welcome</td><td>None</td><td>Set up my child</td></tr>
+            <tr><td>1 / 3</td><td>Child first name, optional suggestion tiles</td><td>Next → (disabled if empty)</td></tr>
+            <tr><td>2 / 3</td><td>Band (4 tiles), avatar (8 emoji)</td><td>Next → (always enabled, defaults pre-selected)</td></tr>
+            <tr><td>3 / 3</td><td>4-digit PIN numpad, skip option</td><td>Set PIN / Skip for now</td></tr>
+            <tr><td>Confirm</td><td>Summary card (avatar + name + band)</td><td>Start first quest / Add another child</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

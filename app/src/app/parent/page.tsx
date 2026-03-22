@@ -779,20 +779,60 @@ export default function ParentAccessPage() {
                   </div>
                 </div>
 
-                <div className="parent-summary-switcher" role="tablist" aria-label="Linked children">
+                <div className="parent-chip-strip" role="tablist" aria-label="Linked children">
                   {result.linkedChildren.map((child) => (
                     <button
                       aria-selected={activeChildId === child.id}
-                      className={`parent-summary-switch ${activeChildId === child.id ? "is-active" : ""}`}
+                      className={`parent-chip-button ${activeChildId === child.id ? "is-active" : ""}`}
                       key={child.id}
                       onClick={() => setSelectedChildId(child.id)}
                       role="tab"
                       type="button"
                     >
-                      <span aria-hidden="true">{getAvatarSymbol(child.avatarKey)}</span>
-                      {child.displayName}
+                      <span className="parent-chip-avatar" aria-hidden="true">
+                        {getAvatarSymbol(child.avatarKey)}
+                      </span>
+                      <span className="parent-chip-copy">
+                        <strong>{child.displayName}</strong>
+                        <small>{getBandLabel(child.launchBandCode)}</small>
+                      </span>
                     </button>
                   ))}
+                </div>
+
+                <article className="parent-kpi-card">
+                  <div className="parent-kpi-compact-grid">
+                    <div className="parent-kpi-compact-cell">
+                      <span>Time playing</span>
+                      <strong>{formatMinutes(activeChildDashboard.totalTimeSpentMs)}</strong>
+                      <small>{activeChildDashboard.completedSessions} finished sessions</small>
+                    </div>
+                    <div className="parent-kpi-compact-cell">
+                      <span>Effective time</span>
+                      <strong>{formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}</strong>
+                      <small>{formatPercent(activeChildDashboard.averageEffectiveness)} productive play</small>
+                    </div>
+                    <div className="parent-kpi-compact-cell">
+                      <span>Skills practiced</span>
+                      <strong>{activeSkillOptions.length}</strong>
+                      <small>{activeChildDashboard.strengths.length} growing strengths</small>
+                    </div>
+                    <div className="parent-kpi-compact-cell">
+                      <span>Next up</span>
+                      <strong>{activeChildDashboard.recommendedFocus}</strong>
+                      <small>{activeChildDashboard.readinessLabel}</small>
+                    </div>
+                  </div>
+                </article>
+
+                <div className="parent-status-line-banner">
+                  <span className="parent-status-line-dot" aria-hidden="true" />
+                  <div>
+                    <strong>{activeChild.displayName} is making progress this week.</strong>
+                    <p>
+                      Keep the next practice calm and short around {activeChildDashboard.recommendedFocus.toLowerCase()}.
+                    </p>
+                  </div>
                 </div>
 
                 <div className="parent-summary-grid">
