@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Teacher Route Canonical v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --steel:    #f0f4f8;
+      --steel2:   #e4eaf1;
+      --blue:     #2a6ab4;
+      --blue-lt:  #3b82d4;
+      --blue-bg:  rgba(42,106,180,.08);
+      --ink:      #1c1c1e;
+      --mid:      #4b5563;
+      --faint:    #9ca3af;
+      --white:    #ffffff;
+      --gold:     #ffd166;
+      --violet:   #9b72ff;
+      --mint:     #58e8c1;
+      --coral:    #ff7b6b;
+      --amber:    #f59e0b;
+      --radius:   14px;
+      --shadow:   0 2px 10px rgba(0,0,0,.06);
+    }
+    body { font-family: 'Sora', sans-serif; background: #dce4ed; min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: #fff; border-bottom: 1.5px solid #d1dae4;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 14px 20px;
+      font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 500;
+      color: var(--faint); background: transparent; border: none;
+      border-bottom: 3px solid transparent; cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+    .tab-btn:hover:not(.active) { color: var(--blue); }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #92670e; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       DESKTOP LAYOUT
+    ═══════════════════════════════════════ */
+    .desktop-frame { background: var(--steel); min-height: 100vh; }
+    .desktop-topbar {
+      background: #fff; border-bottom: 1px solid #d1dae4;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 36px; height: 58px;
+    }
+    .topbar-logo { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .topbar-logo span { color: var(--blue); }
+    .topbar-center { display: flex; gap: 0; }
+    .topbar-tab {
+      padding: 0 20px; height: 58px; display: flex; align-items: center;
+      font-size: 13px; color: var(--faint); border-bottom: 2px solid transparent;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .topbar-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+    .topbar-right { display: flex; align-items: center; gap: 12px; }
+    .topbar-icon { width: 34px; height: 34px; background: var(--steel); border-radius: 9px; border: 1px solid #d1dae4; display: flex; align-items: center; justify-content: center; font-size: 14px; cursor: pointer; }
+    .teacher-badge { font-size: 11px; font-weight: 600; color: var(--blue); background: var(--blue-bg); padding: 4px 10px; border-radius: 20px; }
+
+    /* Desktop split layout */
+    .desktop-split {
+      display: grid; grid-template-columns: 340px 1fr; min-height: calc(100vh - 58px);
+    }
+
+    /* Left: queue */
+    .queue-col {
+      background: #fff; border-right: 1px solid #d1dae4;
+      display: flex; flex-direction: column;
+    }
+    .queue-header {
+      padding: 18px 20px 12px; border-bottom: 1px solid #eef2f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .queue-header h2 { font-size: 14px; font-weight: 700; color: var(--ink); }
+    .queue-count { font-size: 11px; color: var(--faint); }
+
+    /* Filter row */
+    .filter-row { display: flex; gap: 6px; padding: 10px 16px; overflow-x: auto; scrollbar-width: none; border-bottom: 1px solid #eef2f6; }
+    .filter-row::-webkit-scrollbar { display: none; }
+    .filter-chip {
+      flex-shrink: 0; padding: 5px 12px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; border: 1.5px solid #d1dae4;
+      background: transparent; color: var(--mid); cursor: pointer; transition: all .2s;
+    }
+    .filter-chip.active { background: var(--blue-bg); border-color: var(--blue); color: var(--blue); }
+
+    /* Queue rows */
+    .queue-list { flex: 1; overflow-y: auto; }
+    .queue-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 13px 16px; border-bottom: 1px solid #f0f4f8;
+      cursor: pointer; transition: background .15s; position: relative;
+    }
+    .queue-row:hover { background: #f8fafc; }
+    .queue-row.selected { background: var(--blue-bg); }
+    .severity-bar { width: 3px; border-radius: 2px; align-self: stretch; flex-shrink: 0; min-height: 40px; }
+    .sev-support { background: var(--coral); }
+    .sev-watch { background: var(--amber); }
+    .sev-strong { background: var(--mint); }
+    .row-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .row-body { flex: 1; min-width: 0; }
+    .row-name { font-size: 13px; font-weight: 600; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-skill { font-size: 11px; color: var(--mid); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .row-meta { text-align: right; flex-shrink: 0; }
+    .row-tier { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+    .tier-support { background: rgba(255,123,107,.12); color: #b84a3e; }
+    .tier-watch { background: rgba(245,158,11,.12); color: #92580a; }
+    .tier-strong { background: rgba(88,232,193,.12); color: #1a7a5e; }
+    .row-time { font-size: 10px; color: var(--faint); margin-top: 3px; }
+
+    /* Right: drilldown */
+    .drilldown-col { padding: 28px 32px; overflow-y: auto; }
+    .drilldown-hdr { margin-bottom: 24px; }
+    .drilldown-hdr h2 { font-size: 18px; font-weight: 700; color: var(--ink); }
+    .drilldown-sub { font-size: 12px; color: var(--mid); margin-top: 4px; }
+
+    /* Skill distribution */
+    .dist-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px; }
+    .dist-cell { background: #fff; border-radius: 12px; padding: 14px 16px; box-shadow: var(--shadow); text-align: center; }
+    .dist-count { font-size: 26px; font-weight: 700; color: var(--ink); }
+    .dist-label { font-size: 11px; color: var(--mid); margin-top: 3px; }
+    .dist-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .dot-support { background: var(--coral); }
+    .dot-watch { background: var(--amber); }
+    .dot-strong { background: var(--mint); }
+
+    /* Skill list for drilldown */
+    .skill-section { margin-bottom: 20px; }
+    .skill-section-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+    .skill-section-title.support { color: #b84a3e; }
+    .skill-section-title.watch { color: #92580a; }
+    .skill-section-title.strong { color: #1a7a5e; }
+
+    .student-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px; background: #fff; border-radius: 10px; margin-bottom: 6px;
+      box-shadow: var(--shadow); cursor: pointer; transition: box-shadow .15s;
+    }
+    .student-row:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); }
+    .student-avatar { width: 30px; height: 30px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+    .student-name { flex: 1; font-size: 13px; font-weight: 600; color: var(--ink); }
+    .student-trend { font-size: 11px; color: var(--mid); }
+    .student-action { font-size: 12px; font-weight: 600; color: var(--blue); }
+
+    /* Next action cards */
+    .next-action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+    .next-action-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: var(--shadow); }
+    .na-icon { font-size: 22px; margin-bottom: 8px; }
+    .na-title { font-size: 13px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+    .na-desc { font-size: 11px; color: var(--mid); line-height: 1.5; }
+    .na-cta { margin-top: 10px; padding: 6px 14px; border-radius: 20px; font-size: 12px; font-weight: 600; border: none; cursor: pointer; background: var(--blue-bg); color: var(--blue); }
+
+    /* Timeline */
+    .timeline { display: flex; flex-direction: column; gap: 0; }
+    .tl-row { display: flex; gap: 14px; padding-bottom: 16px; position: relative; }
+    .tl-row::before { content: ''; position: absolute; left: 14px; top: 22px; bottom: 0; width: 1px; background: #e4eaf1; }
+    .tl-row:last-child::before { display: none; }
+    .tl-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; background: var(--steel); border: 2px solid #d1dae4; }
+    .tl-body { flex: 1; padding-top: 4px; }
+    .tl-title { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .tl-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .tl-time { font-size: 10px; color: var(--faint); margin-top: 3px; }
+
+    /* ═══════════════════════════════════════
+       MOBILE FRAME
+    ═══════════════════════════════════════ */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; }
+    .phone-frame {
+      width: 390px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2); border: 1px solid #d1dae4;
+      position: relative;
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #fff; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--steel); min-height: 844px; position: relative; }
+
+    .mob-topbar {
+      background: #fff; border-bottom: 1px solid #d1dae4;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 46px 16px 10px;
+    }
+    .mob-topbar-logo { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .mob-topbar-logo span { color: var(--blue); }
+    .mob-tab-strip {
+      background: #fff; border-bottom: 1px solid #d1dae4;
+      display: flex; overflow-x: auto; scrollbar-width: none;
+    }
+    .mob-tab-strip::-webkit-scrollbar { display: none; }
+    .mob-tab {
+      flex-shrink: 0; padding: 10px 18px;
+      font-size: 12px; font-weight: 500; color: var(--faint);
+      border-bottom: 2px solid transparent; white-space: nowrap; cursor: pointer;
+    }
+    .mob-tab.active { color: var(--blue); border-bottom-color: var(--blue); font-weight: 600; }
+
+    .mob-body { padding: 14px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 12px; }
+
+    /* Mobile queue rows */
+    .mob-queue-row {
+      background: #fff; border-radius: 12px; padding: 14px;
+      display: flex; align-items: center; gap: 10px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06); cursor: pointer;
+    }
+    .mob-sev-bar { width: 3px; align-self: stretch; border-radius: 2px; min-height: 36px; flex-shrink: 0; }
+    .mob-row-body { flex: 1; min-width: 0; }
+    .mob-row-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+    .mob-row-skill { font-size: 11px; color: var(--mid); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .mob-row-tier { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+    .mob-row-arrow { color: var(--faint); font-size: 16px; }
+
+    /* Mobile dist chips */
+    .mob-dist-row { display: flex; gap: 8px; }
+    .mob-dist-chip { flex: 1; background: #fff; border-radius: 10px; padding: 10px; text-align: center; box-shadow: 0 1px 6px rgba(0,0,0,.06); }
+    .mob-dist-count { font-size: 20px; font-weight: 700; color: var(--ink); }
+    .mob-dist-label { font-size: 9px; color: var(--mid); margin-top: 2px; }
+
+    /* Mobile bottom nav */
+    .mob-bnav-wrap {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: #fff; border-top: 1px solid #d1dae4;
+      padding: 8px 0 20px;
+    }
+    .mob-bnav { display: flex; justify-content: space-around; }
+    .mob-bnav-tab { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 9px; color: var(--faint); }
+    .mob-bnav-tab.active { color: var(--blue); }
+    .mob-bnav-icon { font-size: 20px; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; background: var(--steel); min-height: 100vh; }
+    .spec-title { font-size: 18px; font-weight: 700; color: var(--ink); margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: var(--mid); margin-bottom: 24px; }
+    .spec-section { margin-bottom: 24px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--blue); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
+    .spec-row { background: #fff; border-radius: 10px; padding: 12px 16px; margin-bottom: 6px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-row-title { font-size: 13px; font-weight: 600; color: var(--ink); margin-bottom: 3px; }
+    .spec-row-desc { font-size: 12px; color: var(--mid); line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid #f0f4f8; }
+    .spec-table th { color: var(--faint); font-weight: 600; background: #f8fafc; }
+    .spec-table td { color: var(--ink); }
+    .spec-table td code { background: var(--blue-bg); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--blue); }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — Full</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Mobile — Full</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Class Support Queue</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Intervention Timeline</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Filter / Segment Controls</button>
+</div>
+
+<!-- TAB 1: DESKTOP -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>🏫 Teacher Route Canonical — Desktop</strong>
+    Single source of truth for <code>/teacher</code>. Left: class support queue (support→watch→strong sorted). Right: skill drilldown + distribution chips + student rows + next action cards + timeline. Decision-oriented — next action obvious within one screen.
+  </div>
+
+  <div class="desktop-frame">
+    <div class="desktop-topbar">
+      <div class="topbar-logo">Wonder<span>Quest</span> — Teacher</div>
+      <div class="topbar-center">
+        <div class="topbar-tab active">Class Overview</div>
+        <div class="topbar-tab">Skills</div>
+        <div class="topbar-tab">Students</div>
+        <div class="topbar-tab">Interventions</div>
+      </div>
+      <div class="topbar-right">
+        <span class="teacher-badge">Ms. Rivera · Room 14</span>
+        <div class="topbar-icon">🔔</div>
+        <div class="topbar-icon">⚙️</div>
+      </div>
+    </div>
+
+    <div class="desktop-split">
+      <!-- Queue col -->
+      <div class="queue-col">
+        <div class="queue-header">
+          <h2>Support queue</h2>
+          <span class="queue-count">24 students · 6 need support</span>
+        </div>
+        <div class="filter-row">
+          <button class="filter-chip active">All</button>
+          <button class="filter-chip">⚑ Support (6)</button>
+          <button class="filter-chip">👁 Watch (9)</button>
+          <button class="filter-chip">✓ Strong (9)</button>
+        </div>
+        <div class="queue-list">
+          <!-- Support rows -->
+          <div class="queue-row selected">
+            <div class="severity-bar sev-support"></div>
+            <div class="row-avatar" style="background:rgba(255,123,107,.12);">🐯</div>
+            <div class="row-body">
+              <div class="row-name">Marcus T.</div>
+              <div class="row-skill">Letter sounds B/D/P · 3 sessions stuck</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-support">Support</div>
+              <div class="row-time">2h ago</div>
+            </div>
+          </div>
+          <div class="queue-row">
+            <div class="severity-bar sev-support"></div>
+            <div class="row-avatar" style="background:rgba(255,123,107,.12);">🐻</div>
+            <div class="row-body">
+              <div class="row-name">Priya K.</div>
+              <div class="row-skill">Counting backward · needs scaffolding</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-support">Support</div>
+              <div class="row-time">4h ago</div>
+            </div>
+          </div>
+          <div class="queue-row">
+            <div class="severity-bar sev-support"></div>
+            <div class="row-avatar" style="background:rgba(255,123,107,.12);">🐺</div>
+            <div class="row-body">
+              <div class="row-name">Eli R.</div>
+              <div class="row-skill">Adding within 10 · inconsistent</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-support">Support</div>
+              <div class="row-time">6h ago</div>
+            </div>
+          </div>
+          <!-- Watch rows -->
+          <div class="queue-row">
+            <div class="severity-bar sev-watch"></div>
+            <div class="row-avatar" style="background:rgba(245,158,11,.1);">🦊</div>
+            <div class="row-body">
+              <div class="row-name">Aisha M.</div>
+              <div class="row-skill">Rhyming words · slower this week</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-watch">Watch</div>
+              <div class="row-time">1d ago</div>
+            </div>
+          </div>
+          <div class="queue-row">
+            <div class="severity-bar sev-watch"></div>
+            <div class="row-avatar" style="background:rgba(245,158,11,.1);">🐸</div>
+            <div class="row-body">
+              <div class="row-name">Jonas B.</div>
+              <div class="row-skill">Place value · watch for plateau</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-watch">Watch</div>
+              <div class="row-time">1d ago</div>
+            </div>
+          </div>
+          <!-- Strong rows -->
+          <div class="queue-row">
+            <div class="severity-bar sev-strong"></div>
+            <div class="row-avatar" style="background:rgba(88,232,193,.1);">🦁</div>
+            <div class="row-body">
+              <div class="row-name">Sofia L.</div>
+              <div class="row-skill">Counting · strong, ready to stretch</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-strong">Strong</div>
+              <div class="row-time">today</div>
+            </div>
+          </div>
+          <div class="queue-row">
+            <div class="severity-bar sev-strong"></div>
+            <div class="row-avatar" style="background:rgba(88,232,193,.1);">🐬</div>
+            <div class="row-body">
+              <div class="row-name">Noah C.</div>
+              <div class="row-skill">Adding · exceeding K–1 target</div>
+            </div>
+            <div class="row-meta">
+              <div class="row-tier tier-strong">Strong</div>
+              <div class="row-time">today</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Drilldown col -->
+      <div class="drilldown-col">
+        <div class="drilldown-hdr">
+          <h2>Marcus T. — Letter Sounds</h2>
+          <div class="drilldown-sub">Grade K · P0 Gold Band · Last active 2h ago · 3 sessions on this skill</div>
+        </div>
+
+        <!-- Distribution -->
+        <div class="dist-grid">
+          <div class="dist-cell">
+            <div class="dist-count" style="color:#b84a3e;">6</div>
+            <div class="dist-label"><span class="dist-dot dot-support"></span>Need support</div>
+          </div>
+          <div class="dist-cell">
+            <div class="dist-count" style="color:#92580a;">9</div>
+            <div class="dist-label"><span class="dist-dot dot-watch"></span>Watch</div>
+          </div>
+          <div class="dist-cell">
+            <div class="dist-count" style="color:#1a7a5e;">9</div>
+            <div class="dist-label"><span class="dist-dot dot-strong"></span>Strong</div>
+          </div>
+        </div>
+
+        <!-- Next action cards -->
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:12px;">What to do next</div>
+        <div class="next-action-grid">
+          <div class="next-action-card">
+            <div class="na-icon">✍️</div>
+            <div class="na-title">Add an intervention note</div>
+            <div class="na-desc">Note what you observed — context helps track whether support is working.</div>
+            <button class="na-cta">Add note</button>
+          </div>
+          <div class="next-action-card">
+            <div class="na-icon">💬</div>
+            <div class="na-title">Message parent</div>
+            <div class="na-desc">Let the family know — and suggest a try-at-home activity for letter sounds.</div>
+            <button class="na-cta">Message</button>
+          </div>
+          <div class="next-action-card">
+            <div class="na-icon">🎯</div>
+            <div class="na-title">Adjust quest difficulty</div>
+            <div class="na-desc">Temporarily reduce B/D/P mix — isolate B before introducing D.</div>
+            <button class="na-cta">Adjust</button>
+          </div>
+          <div class="next-action-card">
+            <div class="na-icon">👥</div>
+            <div class="na-title">Group with similar peers</div>
+            <div class="na-desc">Priya K. has the same gap — consider a brief paired activity.</div>
+            <button class="na-cta">View group</button>
+          </div>
+        </div>
+
+        <!-- Intervention timeline -->
+        <div style="font-size:13px;font-weight:700;color:var(--ink);margin:20px 0 12px;">Intervention timeline</div>
+        <div class="timeline">
+          <div class="tl-row">
+            <div class="tl-dot">📝</div>
+            <div class="tl-body">
+              <div class="tl-title">Note added by Ms. Rivera</div>
+              <div class="tl-sub">"Confusing B and D — very common. Will monitor for 2 more sessions."</div>
+              <div class="tl-time">Yesterday · 2:30pm</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot">🎮</div>
+            <div class="tl-body">
+              <div class="tl-title">Play session — Letter Sounds</div>
+              <div class="tl-sub">3rd session on this skill. Stayed in support tier.</div>
+              <div class="tl-time">Yesterday · 10:15am</div>
+            </div>
+          </div>
+          <div class="tl-row">
+            <div class="tl-dot" style="background:rgba(88,232,193,.1);border-color:var(--mint);">✓</div>
+            <div class="tl-body">
+              <div class="tl-title">Counting to 10 — moved to Strong</div>
+              <div class="tl-sub">Marcus leveled up on counting. Great progress.</div>
+              <div class="tl-time">3 days ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: MOBILE -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>📱 Teacher Route Canonical — Mobile (390px)</strong>
+    Horizontal scrollable tab strip (Class / Skills / Students / Interventions). Support queue as full-width rows. Tap row → push to student detail screen. Distribution chips at top. Next action + note entry at bottom via bottom sheet.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <!-- Topbar -->
+        <div class="mob-topbar">
+          <div class="mob-topbar-logo">Wonder<span>Quest</span></div>
+          <div style="font-size:11px;color:var(--blue);font-weight:600;">Ms. Rivera · Room 14</div>
+        </div>
+
+        <!-- Tab strip -->
+        <div class="mob-tab-strip">
+          <div class="mob-tab active">Class</div>
+          <div class="mob-tab">Skills</div>
+          <div class="mob-tab">Students</div>
+          <div class="mob-tab">Interventions</div>
+        </div>
+
+        <!-- Body -->
+        <div class="mob-body">
+          <!-- Dist chips -->
+          <div class="mob-dist-row">
+            <div class="mob-dist-chip">
+              <div class="mob-dist-count" style="color:#b84a3e;">6</div>
+              <div class="mob-dist-label">⚑ Support</div>
+            </div>
+            <div class="mob-dist-chip">
+              <div class="mob-dist-count" style="color:#92580a;">9</div>
+              <div class="mob-dist-label">👁 Watch</div>
+            </div>
+            <div class="mob-dist-chip">
+              <div class="mob-dist-count" style="color:#1a7a5e;">9</div>
+              <div class="mob-dist-label">✓ Strong</div>
+            </div>
+          </div>
+
+          <!-- Filter chips -->
+          <div style="display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px;">
+            <button class="filter-chip active" style="font-size:10px;padding:4px 10px;">All</button>
+            <button class="filter-chip" style="font-size:10px;padding:4px 10px;">⚑ Support</button>
+            <button class="filter-chip" style="font-size:10px;padding:4px 10px;">👁 Watch</button>
+            <button class="filter-chip" style="font-size:10px;padding:4px 10px;">✓ Strong</button>
+          </div>
+
+          <!-- Queue rows -->
+          <div class="mob-queue-row">
+            <div class="mob-sev-bar sev-support"></div>
+            <div style="font-size:18px;flex-shrink:0;">🐯</div>
+            <div class="mob-row-body">
+              <div class="mob-row-name">Marcus T.</div>
+              <div class="mob-row-skill">Letter sounds B/D/P · 3 sessions stuck</div>
+            </div>
+            <div class="mob-row-tier tier-support">Support</div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-queue-row">
+            <div class="mob-sev-bar sev-support"></div>
+            <div style="font-size:18px;flex-shrink:0;">🐻</div>
+            <div class="mob-row-body">
+              <div class="mob-row-name">Priya K.</div>
+              <div class="mob-row-skill">Counting backward · needs scaffolding</div>
+            </div>
+            <div class="mob-row-tier tier-support">Support</div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-queue-row">
+            <div class="mob-sev-bar sev-watch"></div>
+            <div style="font-size:18px;flex-shrink:0;">🦊</div>
+            <div class="mob-row-body">
+              <div class="mob-row-name">Aisha M.</div>
+              <div class="mob-row-skill">Rhyming words · slower this week</div>
+            </div>
+            <div class="mob-row-tier tier-watch">Watch</div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-queue-row">
+            <div class="mob-sev-bar sev-strong"></div>
+            <div style="font-size:18px;flex-shrink:0;">🦁</div>
+            <div class="mob-row-body">
+              <div class="mob-row-name">Sofia L.</div>
+              <div class="mob-row-skill">Counting · strong, ready to stretch</div>
+            </div>
+            <div class="mob-row-tier tier-strong">Strong</div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+          <div class="mob-queue-row">
+            <div class="mob-sev-bar sev-strong"></div>
+            <div style="font-size:18px;flex-shrink:0;">🐬</div>
+            <div class="mob-row-body">
+              <div class="mob-row-name">Noah C.</div>
+              <div class="mob-row-skill">Adding · exceeding K–1 target</div>
+            </div>
+            <div class="mob-row-tier tier-strong">Strong</div>
+            <div class="mob-row-arrow">›</div>
+          </div>
+        </div>
+
+        <!-- Bottom nav -->
+        <div class="mob-bnav-wrap">
+          <div class="mob-bnav">
+            <div class="mob-bnav-tab active"><div class="mob-bnav-icon">🏠</div>Home</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">📊</div>Skills</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">👥</div>Students</div>
+            <div class="mob-bnav-tab"><div class="mob-bnav-icon">⚙️</div>Settings</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: CLASS SUPPORT QUEUE -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>📋 Class Support Queue — Spec</strong>
+    Sorted: support first, then watch, then strong. Each row: 3px left severity bar + avatar + name + skill label + tier chip + time. Selected row highlights right-panel drilldown. Filter chips narrow the queue. No accuracy % shown.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Class Support Queue</div>
+    <div class="spec-sub">Left column on desktop. Full-width on mobile. Always sorted support → watch → strong.</div>
+
+    <div class="spec-section">
+      <h3>Row Anatomy</h3>
+      <table class="spec-table">
+        <thead><tr><th>Element</th><th>Value</th><th>Note</th></tr></thead>
+        <tbody>
+          <tr><td>Severity bar</td><td>3px left border</td><td>coral=support, amber=watch, mint=strong</td></tr>
+          <tr><td>Avatar</td><td>Emoji or initials</td><td>34px circle, tinted bg matching tier</td></tr>
+          <tr><td>Name</td><td>Student first name + last initial</td><td>Never full last name</td></tr>
+          <tr><td>Skill label</td><td>Skill name + short context</td><td>Max 40 chars, truncated with ellipsis</td></tr>
+          <tr><td>Tier chip</td><td>Support / Watch / Strong</td><td>Color-coded, top right</td></tr>
+          <tr><td>Time</td><td>Relative: "2h ago", "today", "1d ago"</td><td>Below tier chip</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Sort &amp; Filter rules</h3>
+      <div class="spec-row"><div class="spec-row-desc">Default sort: support first (by urgency), then watch (by recency), then strong (alphabetical).<br>Filter chips narrow to one tier. "All" shows full list.<br>No accuracy % shown — ever. Tier is based on engagement + skill signal, not correct/incorrect ratio.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: INTERVENTION TIMELINE -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>📅 Intervention Timeline — Spec</strong>
+    Per-student chronological log. Three event types: note added, play session, skill state change. Newest first. Timeline lives in the right-panel drilldown on desktop; full-screen push on mobile.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Intervention Timeline</div>
+    <div class="spec-sub">Per-student event log within the drilldown panel.</div>
+
+    <div class="spec-section">
+      <h3>Event Types</h3>
+      <table class="spec-table">
+        <thead><tr><th>Icon</th><th>Type</th><th>Content</th></tr></thead>
+        <tbody>
+          <tr><td>📝</td><td>Note added</td><td>Teacher note text, who added it, timestamp</td></tr>
+          <tr><td>🎮</td><td>Play session</td><td>Skill name, tier at end of session</td></tr>
+          <tr><td>✓</td><td>Skill state change</td><td>"Moved to Strong", "Moved to Support" — teal dot for positive, coral for regression</td></tr>
+          <tr><td>💬</td><td>Parent message sent</td><td>Brief summary of message topic</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Note entry</h3>
+      <div class="spec-row"><div class="spec-row-desc">Tap "Add note" CTA → bottom sheet on mobile, inline form on desktop. Text field (max 200 chars) + Save/Cancel. Note auto-tagged with teacher name + timestamp. No rich text — plain text only.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: FILTER / SEGMENT CONTROLS -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>🔍 Filter / Segment Controls — Spec</strong>
+    Filter row above queue. Three segments: Support / Watch / Strong. Filter by skill name from the skill drilldown view. Segment state persists within the session. "All" is always the default.
+  </div>
+  <div class="spec-panel">
+    <div class="spec-title">Filter &amp; Segment Controls</div>
+    <div class="spec-sub">Filter chips control the queue list. Skill filter drills into specific skill across all students.</div>
+
+    <div class="spec-section">
+      <h3>Filter chips</h3>
+      <table class="spec-table">
+        <thead><tr><th>Chip</th><th>Filters to</th><th>Count shown</th></tr></thead>
+        <tbody>
+          <tr><td>All</td><td>All students</td><td>Total class size</td></tr>
+          <tr><td>⚑ Support</td><td>Support-tier students only</td><td>Support count</td></tr>
+          <tr><td>👁 Watch</td><td>Watch-tier students only</td><td>Watch count</td></tr>
+          <tr><td>✓ Strong</td><td>Strong-tier students only</td><td>Strong count</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Skill filter (from Skills tab)</h3>
+      <div class="spec-row"><div class="spec-row-desc">Tap a skill in the Skills tab → queue narrows to students with that skill active. Pill shows active filter (e.g. "Letter Sounds ×"). Tap × to clear. Queue re-sorts within the skill filter (support first).</div></div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Source files merged</h3>
+      <div class="spec-row"><div class="spec-row-desc">teacher-analytics-v2.html · teacher-intervention-queue.html · teacher-mobile-drilldown.html · teacher-gate.html</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

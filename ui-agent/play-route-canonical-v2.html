@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Play Route Canonical v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Sora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --cosmic:   #100b2e;
+      --cosmic2:  #1a1254;
+      --gold:     #ffd166;
+      --violet:   #9b72ff;
+      --mint:     #58e8c1;
+      --coral:    #ff7b6b;
+      --sky:      #4ab5ff;
+      --white:    #ffffff;
+    }
+    body { font-family: 'Nunito', sans-serif; background: #080618; color: #e2e8f0; min-height: 100vh; }
+
+    /* TABS */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(8,6,24,.97); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex; gap: 6px; padding: 12px 20px; overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex-shrink: 0; padding: 7px 14px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,.1); background: transparent;
+      color: #94a3b8; font-size: 12px; font-family: 'Sora', sans-serif;
+      cursor: pointer; transition: all .2s; white-space: nowrap;
+    }
+    .tab-btn.active { background: var(--gold); color: #1a1a2e; font-weight: 700; border-color: transparent; }
+    .tab-btn:hover:not(.active) { background: rgba(255,255,255,.06); color: #e2e8f0; }
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .hint {
+      background: rgba(255,209,102,.08); border: 1px solid rgba(255,209,102,.25);
+      border-radius: 10px; padding: 12px 16px; margin: 20px 24px;
+      font-size: 11px; color: #fbbf24; line-height: 1.7;
+    }
+    .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+    /* ═══════════════════════════════════════
+       SHARED PLAY CHROME
+    ═══════════════════════════════════════ */
+    .play-frame {
+      background: var(--cosmic); min-height: 600px;
+      position: relative; overflow: hidden;
+    }
+    .star-layer {
+      position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background-image:
+        radial-gradient(1px 1px at 8%  12%, rgba(255,255,255,.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 6%,  rgba(255,255,255,.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 10%, rgba(255,255,255,.6) 0%, transparent 100%),
+        radial-gradient(1px 1px at 85% 20%, rgba(255,255,255,.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 45% 35%, rgba(255,255,255,.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 60%, rgba(255,255,255,.4) 0%, transparent 100%),
+        radial-gradient(2px 2px at 20% 55%, rgba(155,114,255,.3) 0%, transparent 100%),
+        radial-gradient(2px 2px at 65% 75%, rgba(88,232,193,.25) 0%, transparent 100%);
+    }
+
+    /* ── Desktop play layout ── */
+    .desktop-play {
+      padding: 32px 60px 40px;
+      display: grid; grid-template-columns: 1fr 420px; gap: 40px;
+      align-items: start; position: relative; z-index: 5;
+    }
+
+    /* Scene column */
+    .scene-col {}
+    .play-topbar {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px;
+    }
+    .play-logo { font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900; color: #fff; }
+    .play-logo span { color: var(--gold); }
+    .play-progress-wrap { flex: 1; margin: 0 28px; }
+    .play-progress-bar {
+      height: 8px; background: rgba(255,255,255,.12); border-radius: 8px; overflow: hidden;
+    }
+    .play-progress-fill {
+      height: 100%; border-radius: 8px;
+      background: linear-gradient(90deg, var(--violet), var(--mint));
+      transition: width .5s;
+    }
+    .play-stars { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--gold); font-weight: 900; }
+
+    /* Scene card */
+    .scene-card {
+      background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px; padding: 32px; min-height: 320px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; gap: 16px;
+    }
+    .scene-emoji { font-size: 80px; line-height: 1; }
+    .scene-prompt {
+      font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 800;
+      color: #fff; line-height: 1.3; max-width: 380px;
+    }
+    .scene-prompt.prek { font-size: 26px; }
+    .coach-bubble {
+      background: rgba(155,114,255,.15); border: 1px solid rgba(155,114,255,.3);
+      border-radius: 16px; padding: 12px 18px; font-size: 14px; font-weight: 700;
+      color: #c4aeff; display: flex; align-items: center; gap: 10px;
+    }
+    .coach-avatar { font-size: 24px; }
+
+    /* Answer grid column */
+    .answers-col {}
+    .answers-label {
+      font-size: 11px; font-weight: 700; color: rgba(255,255,255,.4);
+      text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 14px;
+    }
+    .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .answer-card {
+      background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.12);
+      border-radius: 18px; padding: 20px 16px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      transition: all .2s; position: relative; overflow: hidden;
+    }
+    .answer-card:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.25); transform: scale(1.02); }
+    .answer-card.selected { border-color: var(--violet); background: rgba(155,114,255,.15); }
+    .answer-card.correct { border-color: var(--mint); background: rgba(88,232,193,.12); }
+    .answer-card.retry { border-color: var(--coral); background: rgba(255,123,107,.1); }
+    .answer-emoji { font-size: 40px; line-height: 1; }
+    .answer-label { font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 800; color: #fff; }
+    .answer-check {
+      position: absolute; top: 8px; right: 10px; font-size: 18px;
+    }
+    .answer-card.correct .answer-check::after { content: '✓'; color: var(--mint); }
+    .answer-card.retry .answer-check::after { content: '✗'; color: var(--coral); }
+
+    /* Sticky CTA bar */
+    .sticky-cta {
+      position: sticky; bottom: 0; z-index: 20;
+      background: linear-gradient(0deg, var(--cosmic) 70%, transparent);
+      padding: 20px 60px 32px; display: flex; justify-content: center;
+    }
+    .cta-btn-primary {
+      padding: 16px 48px; border-radius: 48px; border: none; cursor: pointer;
+      font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900;
+      background: var(--gold); color: #1a1a2e;
+      box-shadow: 0 4px 20px rgba(255,209,102,.35); transition: transform .15s;
+    }
+    .cta-btn-primary:hover { transform: scale(1.03); }
+    .cta-btn-primary:disabled { background: rgba(255,255,255,.15); color: rgba(255,255,255,.3); box-shadow: none; cursor: not-allowed; }
+
+    /* ── Mobile play frames ── */
+    .mobile-wrap { display: flex; justify-content: center; padding: 32px 20px 60px; gap: 40px; flex-wrap: wrap; }
+    .phone-frame {
+      width: 375px; border-radius: 40px; overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,.6); border: 1px solid rgba(255,255,255,.08);
+    }
+    .phone-notch {
+      position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 30px; background: #000; border-radius: 0 0 20px 20px; z-index: 20;
+    }
+    .phone-inner { background: var(--cosmic); min-height: 812px; position: relative; overflow: hidden; }
+
+    /* Mobile play topbar */
+    .mob-play-topbar {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; gap: 12px;
+      padding: 52px 18px 14px;
+    }
+    .mob-back-btn { font-size: 20px; color: rgba(255,255,255,.5); padding: 0 4px; flex-shrink: 0; }
+    .mob-progress-bar { flex: 1; height: 8px; background: rgba(255,255,255,.12); border-radius: 8px; overflow: hidden; }
+    .mob-progress-fill { height: 100%; border-radius: 8px; background: linear-gradient(90deg, var(--violet), var(--mint)); }
+    .mob-stars { font-size: 13px; color: var(--gold); font-weight: 900; flex-shrink: 0; }
+
+    /* Mobile scene */
+    .mob-scene {
+      position: relative; z-index: 5;
+      text-align: center; padding: 20px 20px 14px;
+    }
+    .mob-scene-emoji { font-size: 64px; line-height: 1; margin-bottom: 14px; }
+    .mob-scene-prompt {
+      font-family: 'Nunito', sans-serif; font-size: 20px; font-weight: 800;
+      color: #fff; line-height: 1.25;
+    }
+    .mob-scene-prompt.prek { font-size: 24px; }
+
+    /* Mobile coach */
+    .mob-coach {
+      position: relative; z-index: 5; margin: 10px 18px;
+      background: rgba(155,114,255,.15); border: 1px solid rgba(155,114,255,.3);
+      border-radius: 14px; padding: 10px 14px;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 13px; font-weight: 700; color: #c4aeff;
+    }
+    .mob-coach-avatar { font-size: 22px; }
+
+    /* Mobile answer grid */
+    .mob-answer-grid {
+      position: relative; z-index: 5;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px 18px;
+    }
+    .mob-answer-card {
+      background: rgba(255,255,255,.06); border: 2px solid rgba(255,255,255,.12);
+      border-radius: 16px; padding: 16px 12px; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      transition: all .2s; position: relative;
+    }
+    .mob-answer-card.selected { border-color: var(--violet); background: rgba(155,114,255,.15); }
+    .mob-answer-card.correct { border-color: var(--mint); background: rgba(88,232,193,.12); }
+    .mob-answer-card.retry { border-color: var(--coral); background: rgba(255,123,107,.1); }
+    .mob-answer-emoji { font-size: 32px; line-height: 1; }
+    .mob-answer-label { font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; color: #fff; }
+    .mob-answer-check { position: absolute; top: 6px; right: 8px; font-size: 15px; }
+    .mob-answer-card.correct .mob-answer-check::after { content: '✓'; color: var(--mint); }
+    .mob-answer-card.retry .mob-answer-check::after { content: '✗'; color: var(--coral); }
+
+    /* Mobile sticky CTA */
+    .mob-sticky-cta {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(0deg, var(--cosmic) 65%, transparent);
+      padding: 16px 18px 32px;
+    }
+    .mob-cta-btn {
+      display: block; width: 100%; padding: 16px;
+      background: var(--gold); color: #1a1a2e;
+      font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900;
+      border-radius: 16px; border: none; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(255,209,102,.3); text-align: center;
+    }
+
+    /* Celebration overlay */
+    .celebration-overlay {
+      position: absolute; inset: 0; z-index: 50;
+      background: rgba(16,11,46,.9);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; text-align: center; padding: 32px;
+    }
+    .celebration-stars { font-size: 48px; animation: starPop .5s ease-out; }
+    .celebration-title {
+      font-family: 'Nunito', sans-serif; font-size: 28px; font-weight: 900;
+      color: var(--gold); text-shadow: 0 0 30px rgba(255,209,102,.5);
+    }
+    .celebration-sub { font-size: 14px; color: rgba(255,255,255,.6); }
+    .confetti-row { font-size: 24px; letter-spacing: 4px; animation: fall 1s ease-out; }
+    .celebration-btns { display: flex; gap: 12px; margin-top: 8px; flex-wrap: wrap; justify-content: center; }
+    .cel-btn-primary { padding: 14px 28px; background: var(--gold); color: #1a1a2e; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; border-radius: 48px; border: none; cursor: pointer; }
+    .cel-btn-ghost { padding: 14px 24px; background: rgba(255,255,255,.08); color: #fff; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 600; border-radius: 48px; border: 1px solid rgba(255,255,255,.2); cursor: pointer; }
+
+    /* Spec panel */
+    .spec-panel { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; }
+    .spec-title { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 6px; }
+    .spec-sub { font-size: 13px; color: #94a3b8; margin-bottom: 28px; }
+    .spec-section { margin-bottom: 28px; }
+    .spec-section h3 { font-size: 11px; font-weight: 700; color: var(--gold); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 12px; }
+    .spec-row { background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); border-radius: 12px; padding: 12px 16px; margin-bottom: 8px; }
+    .spec-row-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 3px; }
+    .spec-row-desc { font-size: 12px; color: #94a3b8; line-height: 1.6; }
+    .spec-table { width: 100%; border-collapse: collapse; }
+    .spec-table th, .spec-table td { text-align: left; padding: 10px 14px; font-size: 12px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .spec-table th { color: #94a3b8; font-weight: 600; }
+    .spec-table td { color: #e2e8f0; }
+    .spec-table td code { background: rgba(255,255,255,.06); padding: 2px 6px; border-radius: 4px; font-size: 11px; color: var(--mint); }
+
+    @keyframes starPop { 0%{transform:scale(.3);opacity:0} 70%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
+    @keyframes fall { 0%{transform:translateY(-20px);opacity:0} 100%{transform:translateY(0);opacity:1} }
+    @keyframes correctPop { 0%{transform:scale(.8)} 60%{transform:scale(1.15)} 100%{transform:scale(1)} }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-4px)} 75%{transform:translateX(4px)} }
+    @keyframes floatY { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+    .correct-anim { animation: correctPop .4s ease-out; }
+    .retry-anim { animation: shake .35s ease-out; }
+    .float { animation: floatY 3s ease-in-out infinite; }
+  </style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1',this)">Desktop — K–1</button>
+  <button class="tab-btn" onclick="show('tab2',this)">Desktop — Pre-K</button>
+  <button class="tab-btn" onclick="show('tab3',this)">Mobile — K–1</button>
+  <button class="tab-btn" onclick="show('tab4',this)">Mobile — Pre-K</button>
+  <button class="tab-btn" onclick="show('tab5',this)">Coach · Retry · Celebration</button>
+</div>
+
+<!-- TAB 1: DESKTOP K–1 -->
+<div id="tab1" class="panel active">
+  <div class="hint">
+    <strong>🖥️ Play Route Canonical — Desktop · K–1 (P1 Violet Band)</strong>
+    Single source of truth for <code>/play</code>. Left: scene + prompt + coach bubble. Right: 2×2 answer grid. Bottom: sticky CTA (disabled until card selected). No accuracy %. No lockout on retry. Reading burden low — short prompts, large emoji.
+  </div>
+
+  <div class="play-frame">
+    <div class="star-layer"></div>
+
+    <div class="desktop-play">
+      <!-- Scene col -->
+      <div class="scene-col">
+        <div class="play-topbar">
+          <div class="play-logo">Wonder<span>Quest</span> ✦</div>
+          <div class="play-progress-wrap">
+            <div class="play-progress-bar">
+              <div class="play-progress-fill" style="width:45%;"></div>
+            </div>
+          </div>
+          <div class="play-stars">⭐ 12</div>
+        </div>
+
+        <div class="scene-card">
+          <div class="scene-emoji float">🐣</div>
+          <div class="scene-prompt">
+            Luna the chick has <strong>3 eggs</strong>.<br>
+            She finds <strong>2 more</strong>.<br>
+            How many eggs now?
+          </div>
+          <div class="coach-bubble">
+            <div class="coach-avatar">🦉</div>
+            Count them together — use your fingers!
+          </div>
+        </div>
+      </div>
+
+      <!-- Answers col -->
+      <div class="answers-col">
+        <div class="answers-label">Tap your answer</div>
+        <div class="answer-grid">
+          <div class="answer-card">
+            <div class="answer-emoji">🥚🥚🥚</div>
+            <div class="answer-label">3</div>
+          </div>
+          <div class="answer-card selected">
+            <div class="answer-emoji">🥚🥚🥚🥚🥚</div>
+            <div class="answer-label">5</div>
+            <div class="answer-check"></div>
+          </div>
+          <div class="answer-card">
+            <div class="answer-emoji">🥚🥚🥚🥚</div>
+            <div class="answer-label">4</div>
+          </div>
+          <div class="answer-card">
+            <div class="answer-emoji">🥚🥚🥚🥚🥚🥚</div>
+            <div class="answer-label">6</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sticky-cta">
+      <button class="cta-btn-primary">Check my answer ✦</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: DESKTOP PRE-K -->
+<div id="tab2" class="panel">
+  <div class="hint">
+    <strong>🖥️ Play Route Canonical — Desktop · Pre-K (P0 Gold Band)</strong>
+    Larger emoji, shorter prompt (3–5 words max), larger answer cards, coach more prominent. No multi-step word problems — direct visual questions only. 2×1 card grid (not 2×2) for bigger tap targets.
+  </div>
+
+  <div class="play-frame">
+    <div class="star-layer"></div>
+
+    <div class="desktop-play">
+      <!-- Scene col -->
+      <div class="scene-col">
+        <div class="play-topbar">
+          <div class="play-logo">Wonder<span>Quest</span> ✦</div>
+          <div class="play-progress-wrap">
+            <div class="play-progress-bar">
+              <div class="play-progress-fill" style="width:30%;background:linear-gradient(90deg,var(--gold),#ffb800);"></div>
+            </div>
+          </div>
+          <div class="play-stars">⭐ 7</div>
+        </div>
+
+        <div class="scene-card" style="min-height:360px;">
+          <div class="scene-emoji float" style="font-size:100px;">🐶🐶🐶</div>
+          <div class="scene-prompt prek">
+            How many dogs?
+          </div>
+          <div class="coach-bubble">
+            <div class="coach-avatar">🦉</div>
+            Point and count!
+          </div>
+        </div>
+      </div>
+
+      <!-- Answers col — 2×1 bigger cards -->
+      <div class="answers-col">
+        <div class="answers-label">Tap your answer</div>
+        <div class="answer-grid" style="grid-template-columns:1fr 1fr;gap:18px;">
+          <div class="answer-card" style="padding:28px 16px;min-height:130px;justify-content:center;">
+            <div class="answer-emoji" style="font-size:52px;">2️⃣</div>
+            <div class="answer-label" style="font-size:28px;">2</div>
+          </div>
+          <div class="answer-card correct correct-anim" style="padding:28px 16px;min-height:130px;justify-content:center;">
+            <div class="answer-emoji" style="font-size:52px;">3️⃣</div>
+            <div class="answer-label" style="font-size:28px;">3</div>
+            <div class="answer-check"></div>
+          </div>
+          <div class="answer-card" style="padding:28px 16px;min-height:130px;justify-content:center;">
+            <div class="answer-emoji" style="font-size:52px;">4️⃣</div>
+            <div class="answer-label" style="font-size:28px;">4</div>
+          </div>
+          <div class="answer-card" style="padding:28px 16px;min-height:130px;justify-content:center;">
+            <div class="answer-emoji" style="font-size:52px;">1️⃣</div>
+            <div class="answer-label" style="font-size:28px;">1</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sticky-cta">
+      <button class="cta-btn-primary">Great job! Keep going 🌟</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: MOBILE K–1 -->
+<div id="tab3" class="panel">
+  <div class="hint">
+    <strong>📱 Play Route Canonical — Mobile · K–1 (375px)</strong>
+    Top: progress bar + stars. Scene: emoji + short prompt. Coach bubble below prompt. 2×2 answer grid fills screen. Sticky CTA at bottom with gradient overlay. No bottom nav during active play.
+  </div>
+
+  <div class="mobile-wrap">
+    <!-- Default state -->
+    <div style="text-align:center;margin-bottom:12px;font-size:11px;color:#94a3b8;font-family:'Sora',sans-serif;">Default (no answer selected)</div>
+    <div class="phone-frame" style="position:relative;">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="star-layer"></div>
+
+        <div class="mob-play-topbar">
+          <div class="mob-back-btn">‹</div>
+          <div class="mob-progress-bar"><div class="mob-progress-fill" style="width:45%;"></div></div>
+          <div class="mob-stars">⭐ 12</div>
+        </div>
+
+        <div class="mob-scene">
+          <div class="mob-scene-emoji float">🐣</div>
+          <div class="mob-scene-prompt">Luna has 3 eggs.<br>She finds 2 more.<br>How many now?</div>
+        </div>
+
+        <div class="mob-coach">
+          <div class="mob-coach-avatar">🦉</div>
+          Count them — use your fingers!
+        </div>
+
+        <div class="mob-answer-grid">
+          <div class="mob-answer-card">
+            <div class="mob-answer-emoji">🥚🥚🥚</div>
+            <div class="mob-answer-label">3</div>
+          </div>
+          <div class="mob-answer-card">
+            <div class="mob-answer-emoji">🥚🥚🥚🥚🥚</div>
+            <div class="mob-answer-label">5</div>
+          </div>
+          <div class="mob-answer-card">
+            <div class="mob-answer-emoji">🥚🥚🥚🥚</div>
+            <div class="mob-answer-label">4</div>
+          </div>
+          <div class="mob-answer-card">
+            <div class="mob-answer-emoji">🥚🥚🥚🥚🥚🥚</div>
+            <div class="mob-answer-label">6</div>
+          </div>
+        </div>
+
+        <div class="mob-sticky-cta">
+          <button class="mob-cta-btn" style="background:rgba(255,255,255,.15);color:rgba(255,255,255,.35);" disabled>Tap an answer first</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Correct state -->
+    <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+      <div style="text-align:center;font-size:11px;color:#94a3b8;font-family:'Sora',sans-serif;">Correct answer selected</div>
+      <div class="phone-frame" style="position:relative;">
+        <div class="phone-notch"></div>
+        <div class="phone-inner">
+          <div class="star-layer"></div>
+
+          <div class="mob-play-topbar">
+            <div class="mob-back-btn">‹</div>
+            <div class="mob-progress-bar"><div class="mob-progress-fill" style="width:55%;"></div></div>
+            <div class="mob-stars">⭐ 13</div>
+          </div>
+
+          <div class="mob-scene">
+            <div class="mob-scene-emoji float">🐣</div>
+            <div class="mob-scene-prompt">Luna has 3 eggs.<br>She finds 2 more.<br>How many now?</div>
+          </div>
+
+          <div class="mob-coach">
+            <div class="mob-coach-avatar">🦉</div>
+            Yes! 3 + 2 = 5. Amazing! 🌟
+          </div>
+
+          <div class="mob-answer-grid">
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚</div>
+              <div class="mob-answer-label">3</div>
+            </div>
+            <div class="mob-answer-card correct correct-anim">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">5</div>
+              <div class="mob-answer-check"></div>
+            </div>
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">4</div>
+            </div>
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">6</div>
+            </div>
+          </div>
+
+          <div class="mob-sticky-cta">
+            <button class="mob-cta-btn">Next question →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: MOBILE PRE-K -->
+<div id="tab4" class="panel">
+  <div class="hint">
+    <strong>📱 Play Route Canonical — Mobile · Pre-K (375px)</strong>
+    Even larger emoji, 5-word max prompt (or picture-only), bigger 2×2 cards. Voice coach hint prominent. Coach speaks, child taps. No reading required for the question itself — emoji carries meaning.
+  </div>
+
+  <div class="mobile-wrap">
+    <div class="phone-frame" style="position:relative;">
+      <div class="phone-notch"></div>
+      <div class="phone-inner">
+        <div class="star-layer"></div>
+
+        <div class="mob-play-topbar">
+          <div class="mob-back-btn">‹</div>
+          <div class="mob-progress-bar"><div class="mob-progress-fill" style="width:30%;background:linear-gradient(90deg,var(--gold),#ffb800);"></div></div>
+          <div class="mob-stars">⭐ 7</div>
+        </div>
+
+        <div class="mob-scene" style="padding-bottom:8px;">
+          <div class="mob-scene-emoji float" style="font-size:80px;">🐶🐶🐶</div>
+          <div class="mob-scene-prompt prek">How many dogs?</div>
+        </div>
+
+        <div class="mob-coach">
+          <div class="mob-coach-avatar">🦉</div>
+          Point and count each one!
+        </div>
+
+        <!-- Bigger cards for Pre-K -->
+        <div class="mob-answer-grid" style="grid-template-columns:1fr 1fr;gap:14px;padding:12px 16px;">
+          <div class="mob-answer-card" style="padding:22px 12px;min-height:110px;justify-content:center;">
+            <div class="mob-answer-emoji" style="font-size:42px;">2️⃣</div>
+            <div class="mob-answer-label" style="font-size:24px;">2</div>
+          </div>
+          <div class="mob-answer-card correct correct-anim" style="padding:22px 12px;min-height:110px;justify-content:center;">
+            <div class="mob-answer-emoji" style="font-size:42px;">3️⃣</div>
+            <div class="mob-answer-label" style="font-size:24px;">3</div>
+            <div class="mob-answer-check"></div>
+          </div>
+          <div class="mob-answer-card" style="padding:22px 12px;min-height:110px;justify-content:center;">
+            <div class="mob-answer-emoji" style="font-size:42px;">4️⃣</div>
+            <div class="mob-answer-label" style="font-size:24px;">4</div>
+          </div>
+          <div class="mob-answer-card" style="padding:22px 12px;min-height:110px;justify-content:center;">
+            <div class="mob-answer-emoji" style="font-size:42px;">1️⃣</div>
+            <div class="mob-answer-label" style="font-size:24px;">1</div>
+          </div>
+        </div>
+
+        <div class="mob-sticky-cta">
+          <button class="mob-cta-btn">Great job! Keep going 🌟</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: COACH · RETRY · CELEBRATION -->
+<div id="tab5" class="panel">
+  <div class="hint">
+    <strong>🎉 Coach · Retry · Celebration Integration</strong>
+    All states live in the same route — no route change between prompt → correct → celebration. Coach updates per state. Retry: card gets red ring + shake, coach gives hint, child taps again immediately (no lockout). Celebration overlay appears after session complete.
+  </div>
+
+  <div class="mobile-wrap" style="flex-direction:column;align-items:center;gap:48px;">
+
+    <!-- Retry state -->
+    <div style="text-align:center;">
+      <div style="font-size:11px;color:#94a3b8;font-family:'Sora',sans-serif;margin-bottom:12px;">Retry state — wrong card tapped, shake, coach hints, no lockout</div>
+      <div class="phone-frame" style="position:relative;width:375px;">
+        <div class="phone-notch"></div>
+        <div class="phone-inner" style="min-height:680px;">
+          <div class="star-layer"></div>
+          <div class="mob-play-topbar">
+            <div class="mob-back-btn">‹</div>
+            <div class="mob-progress-bar"><div class="mob-progress-fill" style="width:45%;"></div></div>
+            <div class="mob-stars">⭐ 12</div>
+          </div>
+          <div class="mob-scene">
+            <div class="mob-scene-emoji float">🐣</div>
+            <div class="mob-scene-prompt">Luna has 3 eggs.<br>She finds 2 more.<br>How many now?</div>
+          </div>
+          <div class="mob-coach" style="background:rgba(255,123,107,.12);border-color:rgba(255,123,107,.3);">
+            <div class="mob-coach-avatar">🦉</div>
+            <span style="color:#ffb3ad;">Try again — count all the eggs!</span>
+          </div>
+          <div class="mob-answer-grid">
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚</div>
+              <div class="mob-answer-label">3</div>
+            </div>
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">5</div>
+            </div>
+            <div class="mob-answer-card retry retry-anim">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">4</div>
+              <div class="mob-answer-check"></div>
+            </div>
+            <div class="mob-answer-card">
+              <div class="mob-answer-emoji">🥚🥚🥚🥚🥚🥚</div>
+              <div class="mob-answer-label">6</div>
+            </div>
+          </div>
+          <div class="mob-sticky-cta">
+            <button class="mob-cta-btn" style="background:rgba(255,255,255,.12);color:rgba(255,255,255,.4);" disabled>Tap a different answer</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Celebration overlay -->
+    <div style="text-align:center;">
+      <div style="font-size:11px;color:#94a3b8;font-family:'Sora',sans-serif;margin-bottom:12px;">Session complete — celebration overlay (auto-dismiss or tap)</div>
+      <div class="phone-frame" style="position:relative;width:375px;">
+        <div class="phone-notch"></div>
+        <div class="phone-inner" style="min-height:680px;">
+          <div class="star-layer"></div>
+          <!-- Underlying play screen dimmed -->
+          <div style="position:absolute;inset:0;background:rgba(16,11,46,.88);z-index:40;"></div>
+          <!-- Celebration -->
+          <div class="celebration-overlay">
+            <div class="confetti-row">🎉 ✨ 🌟 ✨ 🎉</div>
+            <div class="celebration-stars">⭐⭐⭐</div>
+            <div class="celebration-title">Quest Complete!</div>
+            <div class="celebration-sub">You earned 3 stars and leveled up 🚀</div>
+            <div style="display:flex;gap:20px;font-size:13px;color:rgba(255,255,255,.6);margin-top:4px;">
+              <span>⏱ 12 min</span>
+              <span>📚 4 skills</span>
+            </div>
+            <div class="celebration-btns">
+              <button class="cel-btn-primary float">Play again 🌟</button>
+              <button class="cel-btn-ghost">Done for now</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Spec table -->
+  <div class="spec-panel">
+    <div class="spec-title">Play Route — State Reference</div>
+    <div class="spec-sub">All states within <code>/play</code> — no route changes between states.</div>
+
+    <div class="spec-section">
+      <h3>Card States</h3>
+      <table class="spec-table">
+        <thead><tr><th>State</th><th>Border</th><th>Background</th><th>Animation</th><th>CTA</th></tr></thead>
+        <tbody>
+          <tr><td>Default</td><td><code>rgba(255,255,255,.12)</code></td><td><code>rgba(255,255,255,.06)</code></td><td>None</td><td>Disabled "Tap an answer first"</td></tr>
+          <tr><td>Selected</td><td><code>#9b72ff</code> violet</td><td><code>rgba(155,114,255,.15)</code></td><td>None</td><td>Enabled "Check my answer ✦"</td></tr>
+          <tr><td>Correct</td><td><code>#58e8c1</code> mint</td><td><code>rgba(88,232,193,.12)</code></td><td>correctPop .4s</td><td>"Next question →"</td></tr>
+          <tr><td>Retry</td><td><code>#ff7b6b</code> coral</td><td><code>rgba(255,123,107,.1)</code></td><td>shake .35s</td><td>Disabled "Tap a different answer"</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-row"><div class="spec-row-desc">❌ No accuracy % shown anywhere<br>❌ No lockout on retry — child taps again immediately<br>❌ No missed-day or attempt-count display<br>✓ Coach bubble updates per state (neutral / coaching hint / celebrate)<br>✓ Celebration overlay auto-dismisses at 3s or on tap<br>✓ No celebration during active question — only on session complete</div></div>
+    </div>
+
+    <div class="spec-section">
+      <h3>Source files merged</h3>
+      <div class="spec-row"><div class="spec-row-desc">play-early-learner.html · play-answer-cards-v2.html · play-session-complete-v2.html · child-return-rewards-v2.html · play-voice-coach.html</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function show(id, btn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+</body>
+</html>

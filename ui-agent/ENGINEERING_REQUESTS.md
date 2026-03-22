@@ -1269,3 +1269,20 @@ Important:
   - none
 - notes for engineering:
   - the UI agent should keep polling this same file and move directly into the canonical teacher and owner lifts after the current batch
+
+### 2026-03-22 11:35 CDT
+- completed:
+  - verified delivered canonical route files:
+    - `home-route-canonical-v2.html`
+    - `parent-route-canonical-v2.html`
+- added files:
+  - no new engineering-owned design files in this status block
+- current focus:
+  - `play-route-canonical-v2.html`
+- next after current batch:
+  - `teacher-route-canonical-v2.html`
+  - `owner-route-canonical-v2.html`
+- blockers:
+  - none
+- notes for engineering:
+  - keep polling this same file, treat the delivered home and parent canonical lifts as the new source of truth for those routes, and continue directly into play, then teacher and owner so the UI agent never goes idle
