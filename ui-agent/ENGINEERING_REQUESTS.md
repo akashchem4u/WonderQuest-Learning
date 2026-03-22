@@ -321,3 +321,116 @@ Rules:
   - `parent-hub-v2.html`, `teacher-analytics-v2.html`, and `owner-console-v2.html` remain the active sources of truth
   - older v1 files are archival references only; do not update them
   - preview-tool files under `.claude/` are not part of the WonderQuest handoff and can be ignored
+
+## Next Engineering Requests
+
+These are the next missing design assets that directly match the current live
+implementation gaps. Do not create another landing page or another generic
+dashboard shell. Focus on route states that engineering can port immediately.
+
+### Priority 7: Voice-First Child Coaching States
+
+The live child play flow now has calmer voice handling, but it still needs a
+stronger visual/audio coaching layer for ages `2–5`.
+
+Please design:
+
+- listen-first prompt state
+- replay / hear-it-again state
+- slow pacing / one-step-at-a-time coaching state
+- "I don't know yet" support state
+- gentle wrong-answer recovery with visual cue
+- explainer card that feels voice-first, not paragraph-first
+- no-audio fallback that still feels friendly and visual
+
+Suggested deliverable:
+
+- `play-voice-coach.html`
+
+Important:
+
+- do not assume independent reading
+- make the primary action obvious
+- keep the tone calm, warm, and non-robotic
+- treat this as a sub-state companion to `play-early-learner.html`, not a new
+  game mode
+
+### Priority 8: Teacher Skill Drilldown
+
+The live teacher route has the overview layer, but it still lacks a clear
+implementation-ready drilldown screen for one selected skill.
+
+Please design:
+
+- selected-skill drilldown view
+- overview card for the chosen skill
+- support vs strength breakdown
+- recent movement / short trend section
+- suggested intervention / next action panel
+- empty state when there is not enough data
+- mobile version of the drilldown
+
+Suggested deliverable:
+
+- `teacher-skill-drilldown.html`
+
+Important:
+
+- this should feel like a focused sub-route under teacher analytics
+- keep it aggregate and privacy-safe
+- do not require full student comparison tables
+
+### Priority 9: Owner Triage Detail View
+
+The live owner route has the top-level console, but it still needs a more
+explicit detail pattern for working one feedback item or one alert cluster.
+
+Please design:
+
+- feedback triage detail panel or drawer
+- issue summary block
+- routing / owner action section
+- related route health context
+- related content health context
+- resolution notes state
+- empty / resolved state
+- mobile version
+
+Suggested deliverable:
+
+- `owner-triage-detail.html`
+
+Important:
+
+- this should pair with `owner-console-v2.html`
+- optimize for "what should the owner do next?"
+- make severity and routing obvious without overloading the layout
+
+### Priority 10: Adult Mobile Patterns
+
+The live app is usable on desktop, but engineering still needs explicit mobile
+reference patterns for adult routes so responsive work does not become guesswork.
+
+Please design:
+
+- parent hub mobile stack
+- teacher analytics mobile stack
+- owner console mobile stack
+- sticky actions / bottom-sheet behavior where useful
+
+Suggested deliverable:
+
+- `adult-mobile-patterns.html`
+
+Important:
+
+- this file should be implementation guidance, not a brand new audience shell
+- keep it tied to the existing parent / teacher / owner references
+
+### Round Rules
+
+- keep polling this file only
+- keep new files at the top level of `ui-agent/`
+- do not recreate preview tooling or dev-server setup unless engineering asks
+- if a requested file overlaps an existing file, produce the new file anyway if
+  the state coverage is meaningfully distinct
