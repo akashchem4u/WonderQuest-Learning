@@ -156,7 +156,9 @@ export default function ChildAccessPage() {
 
       setResult(payload);
 
-      router.push(`/play?sessionMode=${selectedMode}`);
+      router.push(
+        `/play?sessionMode=${selectedMode}&entry=${returningMode ? "returning" : "new"}`,
+      );
     } catch (caughtError) {
       const message =
         caughtError instanceof Error

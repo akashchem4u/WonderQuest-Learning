@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppFrame } from "@/components/app-frame";
 import { FeedbackForm } from "@/components/feedback-form";
-import { ChoiceChip, FieldBlock, ShellCard, StatTile } from "@/components/ui";
+import { FieldBlock, ShellCard, StatTile } from "@/components/ui";
 import { launchBands } from "@/lib/launch-plan";
 
 type ChildDashboard = {
@@ -123,6 +123,86 @@ function getBandLabel(bandCode: string) {
   return launchBands.find((band) => band.code === bandCode)?.label ?? bandCode;
 }
 
+function dedupeSkills<
+  T extends {
+    skillCode: string;
+  },
+>(skills: T[]) {
+  const seen = new Set<string>();
+  return skills.filter((skill) => {
+    if (seen.has(skill.skillCode)) {
+      return false;
+    }
+
+    seen.add(skill.skillCode);
+    return true;
+  });
+}
+
+function describeSkillInParentLanguage(skillCode: string, displayName: string) {
+  const label = `${skillCode} ${displayName}`.toLowerCase();
+
+  if (label.includes("count")) {
+    return "This skill is about matching numbers to real groups of objects and counting one item at a time.";
+  }
+
+  if (label.includes("letter") || label.includes("phonics")) {
+    return "This skill is about hearing a sound, noticing the matching letter, and connecting that sound to a familiar word.";
+  }
+
+  if (label.includes("shape")) {
+    return "This skill is about noticing what makes a shape look the way it does, like corners, sides, and curved edges.";
+  }
+
+  if (label.includes("add")) {
+    return "This skill is about putting small amounts together and noticing how numbers combine.";
+  }
+
+  if (label.includes("read") || label.includes("word")) {
+    return "This skill is about recognizing a word quickly and understanding what it means in the moment.";
+  }
+
+  return "This skill is one of the current building blocks the app is using to judge comfort, accuracy, and growth.";
+}
+
+function buildParentSkillAction(skillCode: string, displayName: string) {
+  const label = `${skillCode} ${displayName}`.toLowerCase();
+
+  if (label.includes("count")) {
+    return "Try one quick count-together moment with toys, snacks, or steps and keep the pace slow.";
+  }
+
+  if (label.includes("letter") || label.includes("phonics")) {
+    return "Pick one familiar letter or sound and point it out in books, labels, or signs for a minute or two.";
+  }
+
+  if (label.includes("shape")) {
+    return "Look for the same shape in the room and name it together before asking your child to point to it.";
+  }
+
+  if (label.includes("add")) {
+    return "Use small groups of objects, like blocks or fruit, and let your child combine them physically.";
+  }
+
+  if (label.includes("read") || label.includes("word")) {
+    return "Repeat one target word in a calm, familiar context and celebrate fast recognition instead of drilling.";
+  }
+
+  return `Keep the next practice short and calm, with one clear goal around ${displayName.toLowerCase()}.`;
+}
+
+function buildParentSkillSignal(masteryRate: number) {
+  if (masteryRate >= 80) {
+    return "This looks like a growing strength.";
+  }
+
+  if (masteryRate >= 60) {
+    return "This is improving, but it still benefits from short guided practice.";
+  }
+
+  return "This still needs gentle support and slower repetition.";
+}
+
 export default function ParentAccessPage() {
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
@@ -134,7 +214,9 @@ export default function ParentAccessPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ParentAccessResponse | null>(null);
+  const [showAccessManager, setShowAccessManager] = useState(true);
   const [selectedChildId, setSelectedChildId] = useState<string | null>(null);
+  const [selectedSkillCode, setSelectedSkillCode] = useState<string | null>(null);
   const activeChildId =
     selectedChildId ??
     result?.linkedChild?.id ??
@@ -150,6 +232,72 @@ export default function ParentAccessPage() {
     result?.childDashboard ??
     null;
   const recentProgressSessions = activeChildDashboard?.recentSessions.slice(-6) ?? [];
+  const familyTotals = result
+    ? result.childDashboards.reduce(
+        (summary, dashboard) => {
+          summary.completedSessions += dashboard.completedSessions;
+          summary.totalTimeSpentMs += dashboard.totalTimeSpentMs;
+          summary.effectiveTimeSpentMs += dashboard.effectiveTimeSpentMs;
+          return summary;
+        },
+        {
+          completedSessions: 0,
+          totalTimeSpentMs: 0,
+          effectiveTimeSpentMs: 0,
+        },
+      )
+    : null;
+  const activeSkillOptions = activeChildDashboard
+    ? dedupeSkills([
+        ...activeChildDashboard.supportAreas,
+        ...activeChildDashboard.strengths,
+      ])
+    : [];
+  const activeSkill =
+    activeSkillOptions.find((skill) => skill.skillCode === selectedSkillCode) ??
+    activeChildDashboard?.supportAreas[0] ??
+    activeChildDashboard?.strengths[0] ??
+    null;
+
+  useEffect(() => {
+    if (!result) {
+      return;
+    }
+
+    const activeId = selectedChildId ?? result.linkedChild?.id ?? result.linkedChildren[0]?.id;
+    const stillValid = activeId
+      ? result.linkedChildren.some((child) => child.id === activeId)
+      : false;
+
+    if (!stillValid) {
+      setSelectedChildId(result.linkedChild?.id ?? result.linkedChildren[0]?.id ?? null);
+    }
+  }, [result, selectedChildId]);
+
+  useEffect(() => {
+    if (!activeChildDashboard) {
+      if (selectedSkillCode !== null) {
+        setSelectedSkillCode(null);
+      }
+      return;
+    }
+
+    const fallbackSkillCode =
+      activeChildDashboard.supportAreas[0]?.skillCode ??
+      activeChildDashboard.strengths[0]?.skillCode ??
+      null;
+
+    if (
+      selectedSkillCode &&
+      activeSkillOptions.some((skill) => skill.skillCode === selectedSkillCode)
+    ) {
+      return;
+    }
+
+    if (fallbackSkillCode !== selectedSkillCode) {
+      setSelectedSkillCode(fallbackSkillCode);
+    }
+  }, [activeChildDashboard, activeSkillOptions, selectedSkillCode]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,6 +333,7 @@ export default function ParentAccessPage() {
         payload.linkedChild?.id ?? payload.linkedChildren[0]?.id ?? null,
       );
       setResult(payload);
+      setShowAccessManager(false);
     } catch (caughtError) {
       setError(
         caughtError instanceof Error
@@ -232,160 +381,191 @@ export default function ParentAccessPage() {
           </div>
         </section>
 
-        <form
-          className="route-grid route-grid-parent"
-          id="parent-access-form"
-          onSubmit={handleSubmit}
-        >
-          <ShellCard
-            className="shell-card-emphasis"
-            eyebrow="Step 1"
-            title="Parent access"
-          >
-            <span className="step-chip">Step 1 · Parent account</span>
-            <div className="field-grid">
-              <FieldBlock
-                autoComplete="username"
-                label="Username"
-                onChange={(event) => setUsername(event.target.value)}
-                placeholder="parent username"
-                value={username}
-              />
-              <FieldBlock
-                autoComplete="current-password"
-                helper="Quick access for the prototype."
-                label="4-digit PIN"
-                maxLength={4}
-                onChange={(event) => setPin(event.target.value)}
-                placeholder="0000"
-                type="password"
-                value={pin}
-              />
-              <FieldBlock
-                helper="Shown in summaries and notifications."
-                label="Display name"
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="Parent name"
-                value={displayName}
-              />
-            </div>
-          </ShellCard>
-
-          <ShellCard
-            className="shell-card-soft"
-            eyebrow="Step 2"
-            title="Link a child profile"
-          >
-            <span className="step-chip">Step 2 · Child link</span>
-            <div className="field-grid">
-              <FieldBlock
-                helper="Use the child username already created in the app."
-                label="Child username"
-                onChange={(event) => setChildUsername(event.target.value)}
-                placeholder="child quest name"
-                value={childUsername}
-              />
-              <FieldBlock
-                label="Relationship"
-                onChange={(event) => setRelationship(event.target.value)}
-                placeholder="parent, guardian, etc."
-                value={relationship}
-              />
-            </div>
-            <p className="soft-copy">
-              You can sign in without linking right away, or connect a child in the
-              same step.
-            </p>
-          </ShellCard>
-
-          <ShellCard
-            className="shell-card-soft"
-            eyebrow="Step 3"
-            title="Notification preferences"
-          >
-            <span className="step-chip">Step 3 · Alerts</span>
-            <div className="choice-column">
-              <button
-                className={`mode-card ${notifyWeekly ? "is-selected" : ""}`}
-                onClick={() => setNotifyWeekly((value) => !value)}
-                type="button"
-              >
-                Weekly summary
-                <span>Time spent, effectiveness, and next focus areas.</span>
-              </button>
-              <button
-                className={`mode-card ${notifyMilestones ? "is-selected" : ""}`}
-                onClick={() => setNotifyMilestones((value) => !value)}
-                type="button"
-              >
-                Milestones and badges
-                <span>Celebrate progress without noisy reminders.</span>
-              </button>
-            </div>
-          </ShellCard>
-
-          <ShellCard
-            className="shell-card-spotlight"
-            eyebrow="Result"
-            title="Parent dashboard"
-          >
-            <ul className="route-list">
-              <li>Subject and domain progress charts.</li>
-              <li>Time spent versus learning effectiveness.</li>
-              <li>Strengths, support areas, and challenge readiness.</li>
-              <li>Feedback capture for bugs, enhancements, and content issues.</li>
-            </ul>
-            {error ? <p className="status-banner status-error">{error}</p> : null}
-            {result ? (
+        {result ? (
+          <section className="route-grid route-grid-parent">
+            <ShellCard
+              className="shell-card-soft"
+              eyebrow="Access manager"
+              title="Family access is ready"
+            >
               <div className="status-panel">
-                <strong>{result.guardian.displayName} is linked.</strong>
+                <strong>{result.guardian.displayName} can see the family view.</strong>
                 <p>
-                  {result.linkedChildren.length} child profile
-                  {result.linkedChildren.length === 1 ? "" : "s"} available in
-                  this parent view.
+                  {result.linkedChildren.length} linked child
+                  {result.linkedChildren.length === 1 ? "" : "ren"} with calm
+                  updates for weekly summaries and milestones.
                 </p>
                 <div className="summary-chip-row">
-                  {result.linkedChildren.map((child) => (
-                    <ChoiceChip
-                      key={child.id}
-                      label={`${child.displayName} · ${getBandLabel(child.launchBandCode)}`}
-                      onClick={() => setSelectedChildId(child.id)}
-                      selected={activeChildId === child.id}
-                      accent="#3e6cff"
-                    />
-                  ))}
+                  {activeChild ? (
+                    <span className="summary-chip">
+                      Active child: {activeChild.displayName}
+                    </span>
+                  ) : null}
+                  <span className="summary-chip">
+                    Weekly summary {notifyWeekly ? "on" : "off"}
+                  </span>
+                  <span className="summary-chip">
+                    Milestones {notifyMilestones ? "on" : "off"}
+                  </span>
                 </div>
-                {activeChild && activeChildDashboard ? (
-                  <div className="parent-insight-grid">
-                    <article className="parent-insight-card">
-                      <span className="parent-insight-label">Readiness</span>
-                      <strong>{activeChildDashboard.readinessLabel}</strong>
-                      <p>
-                        Last session: {formatLastSeen(activeChildDashboard.lastSessionAt)}
-                      </p>
-                    </article>
-                    <article className="parent-insight-card">
-                      <span className="parent-insight-label">Focus next</span>
-                      <strong>{activeChildDashboard.recommendedFocus}</strong>
-                      <p>
-                        Best next support area based on the latest answered
-                        questions.
-                      </p>
-                    </article>
-                  </div>
-                ) : null}
               </div>
-            ) : null}
-            <div className="form-actions">
-              <button className="primary-link button-link" disabled={submitting} type="submit">
-                {submitting ? "Saving..." : "Save parent access"}
-              </button>
-              <Link className="secondary-link" href="/owner">
-                Owner view
-              </Link>
-            </div>
-          </ShellCard>
-        </form>
+              <div className="form-actions">
+                <button
+                  className="secondary-link button-link"
+                  onClick={() => setShowAccessManager((value) => !value)}
+                  type="button"
+                >
+                  {showAccessManager ? "Hide family access form" : "Manage family access"}
+                </button>
+              </div>
+            </ShellCard>
+          </section>
+        ) : null}
+
+        {!result || showAccessManager ? (
+          <form
+            className="route-grid route-grid-parent"
+            id="parent-access-form"
+            onSubmit={handleSubmit}
+          >
+            <ShellCard
+              className="shell-card-emphasis"
+              eyebrow="Step 1"
+              title="Parent access"
+            >
+              <span className="step-chip">Step 1 · Parent account</span>
+              <div className="field-grid">
+                <FieldBlock
+                  autoComplete="username"
+                  label="Username"
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="parent username"
+                  value={username}
+                />
+                <FieldBlock
+                  autoComplete="current-password"
+                  helper="Quick access for the prototype."
+                  label="4-digit PIN"
+                  maxLength={4}
+                  onChange={(event) => setPin(event.target.value)}
+                  placeholder="0000"
+                  type="password"
+                  value={pin}
+                />
+                <FieldBlock
+                  helper="Shown in summaries and notifications."
+                  label="Display name"
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Parent name"
+                  value={displayName}
+                />
+              </div>
+            </ShellCard>
+
+            <ShellCard
+              className="shell-card-soft"
+              eyebrow="Step 2"
+              title="Link a child profile"
+            >
+              <span className="step-chip">Step 2 · Child link</span>
+              <div className="field-grid">
+                <FieldBlock
+                  helper="Use the child username already created in the app."
+                  label="Child username"
+                  onChange={(event) => setChildUsername(event.target.value)}
+                  placeholder="child quest name"
+                  value={childUsername}
+                />
+                <FieldBlock
+                  label="Relationship"
+                  onChange={(event) => setRelationship(event.target.value)}
+                  placeholder="parent, guardian, etc."
+                  value={relationship}
+                />
+              </div>
+              <p className="soft-copy">
+                You can sign in without linking right away, or connect a child in the
+                same step.
+              </p>
+            </ShellCard>
+
+            <ShellCard
+              className="shell-card-soft"
+              eyebrow="Step 3"
+              title="Notification preferences"
+            >
+              <span className="step-chip">Step 3 · Alerts</span>
+              <div className="choice-column">
+                <button
+                  className={`mode-card ${notifyWeekly ? "is-selected" : ""}`}
+                  onClick={() => setNotifyWeekly((value) => !value)}
+                  type="button"
+                >
+                  Weekly summary
+                  <span>Time spent, productive time, and next focus areas.</span>
+                </button>
+                <button
+                  className={`mode-card ${notifyMilestones ? "is-selected" : ""}`}
+                  onClick={() => setNotifyMilestones((value) => !value)}
+                  type="button"
+                >
+                  Milestones and badges
+                  <span>Celebrate progress without noisy reminders.</span>
+                </button>
+              </div>
+            </ShellCard>
+
+            <ShellCard
+              className="shell-card-spotlight"
+              eyebrow="Result"
+              title="Parent dashboard"
+            >
+              <ul className="route-list">
+                <li>How is my child doing right now?</li>
+                <li>What changed recently?</li>
+                <li>What should we try next at home?</li>
+                <li>How do I report a confusing flow or bug?</li>
+              </ul>
+              {error ? <p className="status-banner status-error">{error}</p> : null}
+              {result ? (
+                <div className="status-panel">
+                  <strong>{result.guardian.displayName} is linked.</strong>
+                  <p>
+                    {result.linkedChildren.length} child profile
+                    {result.linkedChildren.length === 1 ? "" : "s"} available in
+                    this family view.
+                  </p>
+                  {activeChild && activeChildDashboard ? (
+                    <div className="parent-insight-grid">
+                      <article className="parent-insight-card">
+                        <span className="parent-insight-label">Child in focus</span>
+                        <strong>{activeChild.displayName}</strong>
+                        <p>
+                          Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}
+                        </p>
+                      </article>
+                      <article className="parent-insight-card">
+                        <span className="parent-insight-label">Try next at home</span>
+                        <strong>{activeChildDashboard.recommendedFocus}</strong>
+                        <p>
+                          The clearest next support area based on the latest play.
+                        </p>
+                      </article>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+              <div className="form-actions">
+                <button className="primary-link button-link" disabled={submitting} type="submit">
+                  {submitting ? "Saving..." : "Save parent access"}
+                </button>
+                <Link className="secondary-link" href="/owner">
+                  Owner view
+                </Link>
+              </div>
+            </ShellCard>
+          </form>
+        ) : null}
 
         {result && activeChild && activeChildDashboard ? (
           <section className="parent-hub-layout">
@@ -404,9 +584,13 @@ export default function ParentAccessPage() {
                   </p>
                 </div>
                 <div className="parent-hub-actions">
-                  <a className="secondary-link" href="#parent-access-form">
+                  <button
+                    className="secondary-link button-link"
+                    onClick={() => setShowAccessManager(true)}
+                    type="button"
+                  >
                     Manage access
-                  </a>
+                  </button>
                   <a className="secondary-link" href="#parent-feedback">
                     Send feedback
                   </a>
@@ -423,15 +607,15 @@ export default function ParentAccessPage() {
                       📊
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>How is {activeChild.displayName} doing?</strong>
-                      <p>
-                        {activeChildDashboard.readinessLabel} with{" "}
-                        {formatPercent(activeChildDashboard.averageEffectiveness)} average
-                        effectiveness and {formatPercent(activeChildDashboard.completionRate)}
-                        {" "}completion.
-                      </p>
+                        <strong>How is {activeChild.displayName} doing?</strong>
+                        <p>
+                          {activeChildDashboard.readinessLabel} with{" "}
+                          {formatPercent(activeChildDashboard.averageEffectiveness)} productive
+                          play and {formatPercent(activeChildDashboard.completionRate)}
+                          {" "}finished sessions in recent activity.
+                        </p>
+                      </div>
                     </div>
-                  </div>
                   <div className="parent-answer-row">
                     <span className="parent-answer-icon" aria-hidden="true">
                       ✨
@@ -450,9 +634,9 @@ export default function ParentAccessPage() {
                       🎯
                     </span>
                     <div className="parent-answer-copy">
-                      <strong>What should we do next?</strong>
-                      <p>
-                        Spend a short session on {activeChildDashboard.recommendedFocus} and
+                        <strong>What should we do next?</strong>
+                        <p>
+                          Spend a short session on {activeChildDashboard.recommendedFocus} and
                         keep the next practice calm and focused.
                       </p>
                     </div>
@@ -460,53 +644,104 @@ export default function ParentAccessPage() {
                 </div>
               </article>
 
-              <article className="parent-next-action-banner">
-                <span className="parent-next-action-icon" aria-hidden="true">
-                  💡
-                </span>
-                <div className="parent-next-action-copy">
-                  <span>Recommended action</span>
-                  <strong>{activeChildDashboard.recommendedFocus}</strong>
-                  <p>
-                    This is the clearest next support area based on the latest
-                    answered prompts and session quality.
-                  </p>
+              <ShellCard
+                className="shell-card-soft"
+                eyebrow="Family center"
+                title="Every linked child, one calmer family view"
+              >
+                <div className="parent-family-summary-row">
+                  <article className="parent-family-summary-card">
+                    <span>Linked children</span>
+                    <strong>{result.linkedChildren.length}</strong>
+                    <p>
+                      {result.linkedChildren.length === 1
+                        ? "One child is linked right now. This keeps the family view simple while you test the flow."
+                        : "Switch children without leaving the parent route and keep the active child obvious."}
+                    </p>
+                  </article>
+                  <article className="parent-family-summary-card">
+                    <span>Family sessions</span>
+                    <strong>{familyTotals?.completedSessions ?? 0}</strong>
+                    <p>Finished sessions across all currently linked children.</p>
+                  </article>
+                  <article className="parent-family-summary-card">
+                    <span>Family time</span>
+                    <strong>
+                      {familyTotals ? formatMinutes(familyTotals.totalTimeSpentMs) : "0 min"}
+                    </strong>
+                    <p>
+                      {familyTotals
+                        ? `${formatMinutes(familyTotals.effectiveTimeSpentMs)} effective time so far.`
+                        : "Family time will appear here as sessions complete."}
+                    </p>
+                  </article>
                 </div>
-                <a className="secondary-link" href="#parent-feedback">
-                  Give context
-                </a>
-              </article>
 
-              <div className="parent-linked-grid">
-                {result.linkedChildren.map((child) => {
-                  const dashboard = result.childDashboards.find(
-                    (item) => item.studentId === child.id,
-                  );
+                <div className="parent-family-card-grid">
+                  {result.linkedChildren.map((child) => {
+                    const dashboard = result.childDashboards.find(
+                      (item) => item.studentId === child.id,
+                    );
 
-                  return (
-                    <button
-                      className={`parent-linked-card ${activeChildId === child.id ? "is-active" : ""}`}
-                      key={child.id}
-                      onClick={() => setSelectedChildId(child.id)}
-                      type="button"
-                    >
-                      <span className="parent-linked-avatar" aria-hidden="true">
-                        {getAvatarSymbol(child.avatarKey)}
-                      </span>
-                      <div className="parent-linked-copy">
-                        <strong>{child.displayName}</strong>
-                        <span>{getBandLabel(child.launchBandCode)}</span>
-                        <small>
-                          {child.totalPoints} pts · Level {child.currentLevel} ·{" "}
+                    return (
+                      <button
+                        className={`parent-family-card ${activeChildId === child.id ? "is-active" : ""}`}
+                        key={child.id}
+                        onClick={() => setSelectedChildId(child.id)}
+                        type="button"
+                      >
+                        <div className="parent-family-card-top">
+                          <span className="parent-linked-avatar" aria-hidden="true">
+                            {getAvatarSymbol(child.avatarKey)}
+                          </span>
+                          <div className="parent-family-card-copy">
+                            <strong>{child.displayName}</strong>
+                            <span>{getBandLabel(child.launchBandCode)}</span>
+                          </div>
+                          {activeChildId === child.id ? (
+                            <span className="parent-family-active-pill">Active</span>
+                          ) : null}
+                        </div>
+                        <p>
                           {dashboard
-                            ? `${dashboard.completedSessions} completed sessions`
-                            : "No sessions yet"}
-                        </small>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
+                            ? `${dashboard.readinessLabel}. Next focus: ${dashboard.recommendedFocus}.`
+                            : "No completed sessions yet, so recommendations will appear after the first play loop."}
+                        </p>
+                        <div className="summary-chip-row">
+                          <span className="summary-chip">
+                            Level {child.currentLevel}
+                          </span>
+                          <span className="summary-chip">
+                            {child.totalPoints} pts
+                          </span>
+                          <span className="summary-chip">
+                            {dashboard
+                              ? `${dashboard.completedSessions} sessions`
+                              : "Just linked"}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="parent-relink-banner">
+                  <div>
+                    <strong>Wrong child linked or family changed?</strong>
+                    <p>
+                      Use the access form to relink calmly. This keeps the active
+                      child clear without hiding the rest of the family view.
+                    </p>
+                  </div>
+                  <button
+                    className="secondary-link button-link"
+                    onClick={() => setShowAccessManager(true)}
+                    type="button"
+                  >
+                    Manage linkage
+                  </button>
+                </div>
+              </ShellCard>
 
               <div className="parent-kpi-row">
                 <StatTile
@@ -515,26 +750,26 @@ export default function ParentAccessPage() {
                   detail={`${activeChild.totalPoints} total points`}
                 />
                 <StatTile
-                  label="This child"
+                  label="Finished sessions"
                   value={`${activeChildDashboard.completedSessions}`}
-                  detail="Completed sessions"
+                  detail="Across recent play"
                 />
                 <StatTile
-                  label="Effective time"
+                  label="Productive time"
                   value={formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}
                   detail={`${formatMinutes(activeChildDashboard.totalTimeSpentMs)} total`}
                 />
                 <StatTile
-                  label="Learning quality"
+                  label="Comfort signal"
                   value={formatPercent(activeChildDashboard.averageEffectiveness)}
-                  detail={`Completion ${formatPercent(activeChildDashboard.completionRate)}`}
+                  detail={`Finished ${formatPercent(activeChildDashboard.completionRate)}`}
                 />
               </div>
 
               <ShellCard
                 className="shell-card-emphasis"
                 eyebrow="Dashboard"
-                title="Child learning snapshot"
+                title={`For ${activeChild.displayName} right now`}
               >
                 <div className="summary-chip-row">
                   <span className="summary-chip">{activeChild.displayName}</span>
@@ -550,10 +785,15 @@ export default function ParentAccessPage() {
                 </div>
                 <div className="mini-grid">
                   <div className="parent-skill-card">
-                    <strong>Strengths</strong>
+                    <strong>Getting more comfortable</strong>
                     <div className="skill-list">
                       {activeChildDashboard.strengths.map((item) => (
-                        <article className="skill-meter" key={item.skillCode}>
+                        <button
+                          className={`skill-meter skill-meter-button ${selectedSkillCode === item.skillCode ? "is-selected" : ""}`}
+                          key={item.skillCode}
+                          onClick={() => setSelectedSkillCode(item.skillCode)}
+                          type="button"
+                        >
                           <div className="skill-meter-row">
                             <strong>{item.displayName}</strong>
                             <span>{item.masteryRate}%</span>
@@ -562,15 +802,20 @@ export default function ParentAccessPage() {
                             <span style={{ width: `${item.masteryRate}%` }} />
                           </div>
                           <small>{item.attempts} answered prompts</small>
-                        </article>
+                        </button>
                       ))}
                     </div>
                   </div>
                   <div className="parent-skill-card">
-                    <strong>Support areas</strong>
+                    <strong>Needs more support</strong>
                     <div className="skill-list">
                       {activeChildDashboard.supportAreas.map((item) => (
-                        <article className="skill-meter" key={item.skillCode}>
+                        <button
+                          className={`skill-meter skill-meter-button ${selectedSkillCode === item.skillCode ? "is-selected" : ""}`}
+                          key={item.skillCode}
+                          onClick={() => setSelectedSkillCode(item.skillCode)}
+                          type="button"
+                        >
                           <div className="skill-meter-row">
                             <strong>{item.displayName}</strong>
                             <span>{item.masteryRate}%</span>
@@ -579,11 +824,69 @@ export default function ParentAccessPage() {
                             <span style={{ width: `${item.masteryRate}%` }} />
                           </div>
                           <small>{item.attempts} answered prompts</small>
-                        </article>
+                        </button>
                       ))}
                     </div>
                   </div>
                 </div>
+              </ShellCard>
+
+              <ShellCard
+                className="shell-card-soft"
+                eyebrow="Skill detail"
+                title={activeSkill ? `${activeSkill.displayName}, explained simply` : "Skill detail"}
+              >
+                {activeSkill ? (
+                  <div className="parent-skill-detail-layout">
+                    <div className="summary-chip-row">
+                      {activeSkillOptions.map((skill) => (
+                        <button
+                          className={`summary-chip parent-skill-switch ${selectedSkillCode === skill.skillCode ? "is-current" : ""}`}
+                          key={skill.skillCode}
+                          onClick={() => setSelectedSkillCode(skill.skillCode)}
+                          type="button"
+                        >
+                          {skill.displayName}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="parent-skill-detail-grid">
+                      <article className="parent-skill-detail-card">
+                        <span>What this means</span>
+                        <strong>{describeSkillInParentLanguage(activeSkill.skillCode, activeSkill.displayName)}</strong>
+                      </article>
+                      <article className="parent-skill-detail-card">
+                        <span>Current signal</span>
+                        <strong>{buildParentSkillSignal(activeSkill.masteryRate)}</strong>
+                        <p>
+                          {activeSkill.masteryRate}% mastery across {activeSkill.attempts} answered prompts.
+                        </p>
+                      </article>
+                      <article className="parent-skill-detail-card">
+                        <span>What to try next at home</span>
+                        <strong>{buildParentSkillAction(activeSkill.skillCode, activeSkill.displayName)}</strong>
+                      </article>
+                    </div>
+
+                    <div className="parent-skill-detail-banner">
+                      <span aria-hidden="true">🏠</span>
+                      <div>
+                        <strong>Keep it short and calm</strong>
+                        <p>
+                          Use one tiny practice moment, then stop while the child
+                          is still feeling successful.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="soft-copy">
+                    A plain-language skill explanation will appear here once a
+                    child has enough activity to show a meaningful support or
+                    strength area.
+                  </p>
+                )}
               </ShellCard>
 
               <ShellCard
@@ -665,7 +968,7 @@ export default function ParentAccessPage() {
                   {" "}
                   {formatMinutes(activeChildDashboard.totalTimeSpentMs)} of total
                   time, and {formatPercent(activeChildDashboard.averageEffectiveness)}
-                  {" "}average effectiveness so far.
+                  {" "}productive play so far.
                 </p>
                 <div className="parent-weekly-stats">
                   <div>
@@ -684,7 +987,7 @@ export default function ParentAccessPage() {
               </article>
 
               <article className="parent-next-step-card">
-                <span className="parent-insight-label">What to do next</span>
+                <span className="parent-insight-label">What to try next at home</span>
                 <strong>{activeChildDashboard.recommendedFocus}</strong>
                 <p>
                   Based on the latest answered prompts, this is the clearest next

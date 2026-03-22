@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Rewards + Return — WonderQuest UI Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:    #100b2e;
+  --surf:  rgba(255,255,255,0.07);
+  --surf2: rgba(255,255,255,0.11);
+  --bord:  rgba(255,255,255,0.10);
+  --text:  #ffffff;
+  --text-2:#c4c0e8;
+  --text-m:#7a74a8;
+  --p0:#ffd166; --p1:#9b72ff; --p2:#58e8c1; --p3:#ff7b6b;
+  --gold:#ffd166; --violet:#9b72ff; --mint:#58e8c1; --coral:#ff7b6b;
+  --font:'Nunito',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#0a0720;color:var(--text);padding:24px;}
+
+/* tabs */
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:24px;border-bottom:1px solid rgba(255,255,255,0.1);padding-bottom:0;}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-m);font-family:var(--font);font-size:13px;font-weight:700;padding:10px 16px;cursor:pointer;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--gold);border-bottom-color:var(--gold);}
+.panel{display:none;}.panel.active{display:block;}
+
+/* eng note */
+.eng-note{background:rgba(255,209,102,0.07);border:1px solid rgba(255,209,102,0.18);border-radius:10px;padding:10px 14px;font-size:12px;color:#ffe08a;margin-bottom:22px;line-height:1.5;}
+.eng-note strong{color:var(--gold);}
+
+/* phone frame */
+.phone{width:375px;min-height:720px;background:var(--bg);border:2px solid rgba(255,255,255,0.12);border-radius:36px;overflow:hidden;position:relative;margin:0 auto;box-shadow:0 24px 80px rgba(0,0,0,0.7);}
+
+/* stars bg */
+.stars-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.star{position:absolute;border-radius:50%;background:#fff;animation:twinkle var(--d,2s) infinite var(--delay,0s);}
+@keyframes twinkle{0%,100%{opacity:.15;}50%{opacity:.7;}}
+
+/* confetti */
+.confetti-wrap{position:absolute;inset:0;pointer-events:none;overflow:hidden;}
+.confetti-piece{position:absolute;width:8px;height:8px;border-radius:2px;animation:confettiFall var(--dur,1.5s) ease-in var(--delay,0s) both;}
+@keyframes confettiFall{0%{transform:translateY(-20px) rotate(0deg);opacity:1;}100%{transform:translateY(780px) rotate(720deg);opacity:0;}}
+
+/* burst rings */
+.burst{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);pointer-events:none;}
+.ring{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);border-radius:50%;border:3px solid;animation:burstRing 0.7s ease-out both;}
+@keyframes burstRing{0%{width:0;height:0;opacity:1;}100%{width:200px;height:200px;opacity:0;}}
+
+/* glow pulse */
+@keyframes glowPulse{0%,100%{box-shadow:0 0 20px rgba(255,209,102,0.4);}50%{box-shadow:0 0 48px rgba(255,209,102,0.9);}}
+@keyframes bounceIn{0%{transform:scale(0.3);opacity:0;}60%{transform:scale(1.15);}80%{transform:scale(0.95);}100%{transform:scale(1);opacity:1;}}
+@keyframes floatUp{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+@keyframes shimmer{0%{background-position:200% center;}100%{background-position:-200% center;}}
+@keyframes popIn{0%{transform:scale(0);opacity:0;}70%{transform:scale(1.2);}100%{transform:scale(1);opacity:1;}}
+@keyframes slideUp{0%{transform:translateY(40px);opacity:0;}100%{transform:translateY(0);opacity:1;}}
+@keyframes waveWobble{0%,100%{transform:rotate(-4deg);}50%{transform:rotate(4deg);}}
+
+/* buttons */
+.btn{font-family:var(--font);font-size:15px;font-weight:800;padding:14px 28px;border-radius:99px;border:none;cursor:pointer;transition:transform .15s,opacity .15s;width:100%;}
+.btn:hover{transform:scale(1.03);opacity:.92;}
+.btn-gold{background:var(--gold);color:#1a0f00;}
+.btn-violet{background:var(--violet);color:#fff;}
+.btn-mint{background:var(--mint);color:#0a2e26;}
+.btn-ghost{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.2);color:var(--text-2);}
+
+/* phone layout helpers */
+.ph-body{padding:0 20px 24px;padding-bottom:90px;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:620px;justify-content:center;gap:14px;position:relative;z-index:2;}
+.ph-bottom{position:absolute;bottom:0;left:0;right:0;padding:12px 20px 20px;background:linear-gradient(transparent,var(--bg) 40%);z-index:10;}
+.ph-big-emoji{font-size:88px;animation:bounceIn .6s cubic-bezier(0.34,1.56,0.64,1) both,floatUp 3s ease-in-out 0.8s infinite;}
+.ph-title{font-size:26px;font-weight:900;line-height:1.2;}
+.ph-sub{font-size:15px;color:var(--text-2);line-height:1.55;max-width:280px;}
+
+/* badge card */
+.badge-card{background:var(--surf2);border:2px solid rgba(255,255,255,0.15);border-radius:20px;padding:20px;width:100%;max-width:280px;display:flex;flex-direction:column;align-items:center;gap:8px;}
+.badge-img{width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:44px;border:4px solid;animation:glowPulse 2s ease-in-out infinite;}
+.badge-name{font-size:16px;font-weight:900;}
+.badge-desc{font-size:12px;color:var(--text-2);line-height:1.5;}
+
+/* collection row */
+.collection-row{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;}
+.trophy{width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:32px;border:2px solid rgba(255,255,255,0.15);background:var(--surf);}
+.trophy.new{animation:popIn .5s cubic-bezier(0.34,1.56,0.64,1) both;}
+.trophy.locked{opacity:.3;filter:grayscale(1);}
+
+/* progress bar */
+.prog-bar{width:100%;height:12px;background:rgba(255,255,255,0.1);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--violet),var(--mint));background-size:200% 100%;animation:shimmer 2s linear infinite;}
+
+/* level badge */
+.level-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(155,114,255,0.15);border:2px solid rgba(155,114,255,0.4);border-radius:99px;padding:8px 18px;font-size:15px;font-weight:800;}
+
+/* activity chip */
+.act-chip{display:inline-flex;align-items:center;gap:6px;background:var(--surf);border:1px solid var(--bord);border-radius:99px;padding:6px 14px;font-size:13px;font-weight:700;color:var(--text-2);}
+
+/* phone row */
+.phone-row{display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;}
+.phone-col .phone-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-m);margin-bottom:10px;}
+</style>
+</head>
+<body>
+
+<div class="eng-note">
+  <strong>child-rewards-return.html</strong> — visual-rich motivation and re-entry states for the child flow. 8 states across 4 tabs: early win / badge earned / level-up / trophy collection / session complete / welcome back after break / resume state / gentle come-back. Pairs with /child and /play — not a new mode. No shame, no pressure — momentum and encouragement only.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('rewards',this)">1 · Win + Badge + Level-Up</button>
+  <button class="tab-btn" onclick="show('collection',this)">2 · Trophy Collection</button>
+  <button class="tab-btn" onclick="show('session',this)">3 · Session Complete</button>
+  <button class="tab-btn" onclick="show('return',this)">4 · Welcome Back + Resume</button>
+</div>
+
+<!-- ══════════════════════════════
+     Panel 1 — Win / Badge / Level-Up
+════════════════════════════════════ -->
+<div id="panel-rewards" class="panel active">
+  <div class="eng-note"><strong>Engineering:</strong> three moment states — shown as brief full-screen overlays during play. Duration: auto-dismiss after 2.5s or on tap. Do not interrupt mid-question; trigger at natural break points (correct answer, set complete, threshold crossed). Mount as a portal over /play.</div>
+
+  <div class="phone-row">
+
+    <!-- A: Early win -->
+    <div class="phone-col">
+      <div class="phone-lbl">A · Early win (first correct answer)</div>
+      <div class="phone">
+        <!-- stars -->
+        <div class="stars-bg" id="stars-a"></div>
+        <!-- confetti light -->
+        <div class="confetti-wrap" id="conf-a"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(88,232,193,0.18) 0%, transparent 70%);">
+          <div class="ph-big-emoji">⭐</div>
+          <div class="ph-title" style="color:var(--mint);">You got it!</div>
+          <div class="ph-sub">That's the first one. Keep going — you're doing great!</div>
+          <div style="display:flex;gap:8px;margin-top:4px;">
+            <div class="act-chip">⭐ +1 star</div>
+          </div>
+        </div>
+        <div class="ph-bottom">
+          <button class="btn btn-mint">Keep going! →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Badge earned -->
+    <div class="phone-col">
+      <div class="phone-lbl">B · Badge earned</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-b"></div>
+        <div class="confetti-wrap" id="conf-b"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(255,209,102,0.2) 0%, transparent 70%);">
+          <div style="font-size:15px;font-weight:800;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;animation:slideUp .4s ease both;">New badge!</div>
+          <div class="badge-card" style="animation:popIn .6s cubic-bezier(0.34,1.56,0.64,1) .1s both;">
+            <div class="badge-img" style="background:rgba(255,209,102,0.15);border-color:var(--gold);">🏅</div>
+            <div class="badge-name">Star Counter</div>
+            <div class="badge-desc">Counted to 20 without any hints. That takes real focus!</div>
+          </div>
+          <div class="ph-sub" style="font-size:13px;">You earned this by counting all the way to 20 on your own 🎉</div>
+        </div>
+        <div class="ph-bottom">
+          <button class="btn btn-gold">Awesome! →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Level-up -->
+    <div class="phone-col">
+      <div class="phone-lbl">C · Level-up moment</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-c"></div>
+        <div class="confetti-wrap" id="conf-c"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(155,114,255,0.25) 0%, transparent 70%);">
+          <div style="font-size:14px;font-weight:800;color:var(--text-2);letter-spacing:.05em;text-transform:uppercase;animation:slideUp .3s ease both;">Level up!</div>
+          <div style="position:relative;animation:bounceIn .7s cubic-bezier(0.34,1.56,0.64,1) .15s both;">
+            <div style="font-size:96px;line-height:1;">🚀</div>
+            <div class="burst">
+              <div class="ring" style="border-color:var(--violet);animation-delay:.05s;"></div>
+              <div class="ring" style="border-color:var(--mint);animation-delay:.2s;"></div>
+              <div class="ring" style="border-color:var(--gold);animation-delay:.35s;"></div>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:6px;animation:slideUp .4s ease .3s both;">
+            <div class="level-badge">
+              <span style="color:var(--text-m);font-size:12px;">Was</span>
+              <span style="text-decoration:line-through;color:var(--text-m);">Level 2</span>
+            </div>
+            <div style="font-size:28px;">↓</div>
+            <div class="level-badge" style="background:rgba(155,114,255,0.25);border-color:var(--violet);font-size:18px;padding:10px 24px;">
+              ⭐ Level 3
+            </div>
+          </div>
+          <div class="ph-sub" style="animation:slideUp .4s ease .45s both;">You're getting really good at counting! New questions are coming your way.</div>
+        </div>
+        <div class="ph-bottom">
+          <button class="btn btn-violet">Let's see what's next →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     Panel 2 — Trophy Collection
+════════════════════════════════════ -->
+<div id="panel-collection" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> two sub-states — (A) trophy earned, new item highlighted; (B) full collection view reachable from the child home screen. Collection is private — no comparison to other players. New trophy has a glow + pulse animation. Locked trophies are desaturated and show a lock icon, not a description (no spoilers).</div>
+
+  <div class="phone-row">
+
+    <!-- A: Trophy earned moment -->
+    <div class="phone-col">
+      <div class="phone-lbl">A · Trophy earned</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-t"></div>
+        <div class="confetti-wrap" id="conf-t"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 20%, rgba(255,123,107,0.2) 0%, transparent 65%);">
+          <div style="font-size:14px;font-weight:800;color:var(--coral);letter-spacing:.05em;text-transform:uppercase;">Trophy unlocked!</div>
+          <div style="animation:popIn .6s cubic-bezier(0.34,1.56,0.64,1) .1s both;">
+            <div style="width:100px;height:100px;border-radius:24px;background:rgba(255,123,107,0.15);border:3px solid var(--coral);display:flex;align-items:center;justify-content:center;font-size:56px;margin:0 auto;animation:glowPulse 2s ease-in-out infinite;box-shadow:0 0 30px rgba(255,123,107,0.4);">🏆</div>
+          </div>
+          <div style="font-size:20px;font-weight:900;">First Adventure!</div>
+          <div class="ph-sub">You finished your very first quest. This trophy is yours forever.</div>
+        </div>
+        <div class="ph-bottom" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:13px;padding:10px;">See my collection</button>
+          <button class="btn btn-gold">Keep playing →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Collection view -->
+    <div class="phone-col">
+      <div class="phone-lbl">B · Full collection</div>
+      <div class="phone">
+        <div style="display:flex;align-items:center;padding:14px 16px 12px;gap:10px;background:rgba(255,255,255,0.04);border-bottom:1px solid var(--bord);position:relative;z-index:2;">
+          <div style="width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:center;font-size:16px;">‹</div>
+          <div style="flex:1;text-align:center;">
+            <div style="font-size:15px;font-weight:900;">My Trophies</div>
+            <div style="font-size:11px;color:var(--text-m);">4 of 12 collected</div>
+          </div>
+          <div style="width:34px;"></div>
+        </div>
+
+        <div style="padding:16px 16px 80px;position:relative;z-index:2;">
+          <!-- progress -->
+          <div style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-2);margin-bottom:6px;font-weight:700;">
+              <span>4 trophies</span><span>12 total</span>
+            </div>
+            <div class="prog-bar"><div class="prog-fill" style="width:33%;"></div></div>
+          </div>
+
+          <!-- grid -->
+          <div class="collection-row" style="margin-bottom:8px;">
+            <div class="trophy" style="border-color:var(--coral);background:rgba(255,123,107,0.12);">🏆</div>
+            <div class="trophy" style="border-color:var(--gold);background:rgba(255,209,102,0.12);">🌟</div>
+            <div class="trophy" style="border-color:var(--mint);background:rgba(88,232,193,0.12);">🎯</div>
+            <div class="trophy new" style="border-color:var(--violet);background:rgba(155,114,255,0.15);box-shadow:0 0 16px rgba(155,114,255,0.5);animation-delay:.1s;">🎖</div>
+          </div>
+          <div style="font-size:11px;color:var(--violet);text-align:center;margin-bottom:14px;font-weight:700;">✨ Just earned!</div>
+
+          <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--text-m);margin-bottom:10px;">Still to find</div>
+          <div class="collection-row">
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+            <div class="trophy locked">🔒</div>
+          </div>
+        </div>
+
+        <div class="ph-bottom" style="padding:10px 16px 18px;">
+          <button class="btn btn-gold" style="font-size:14px;padding:12px;">Keep playing to collect more →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     Panel 3 — Session Complete
+════════════════════════════════════ -->
+<div id="panel-session" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> shown at end of a play session. Stars earned shown large. No accuracy percentage shown to child — just stars and a warm summary. "Play again" is secondary to "All done for now" — respect session limits. One skill highlight max.</div>
+
+  <div class="phone-row">
+
+    <div class="phone-col">
+      <div class="phone-lbl">A · Session complete — great session</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-s"></div>
+        <div class="confetti-wrap" id="conf-s"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 20%, rgba(255,209,102,0.22) 0%, transparent 65%);">
+          <div style="font-size:13px;font-weight:800;color:var(--gold);letter-spacing:.06em;text-transform:uppercase;animation:slideUp .3s ease both;">All done!</div>
+
+          <div style="animation:bounceIn .6s cubic-bezier(0.34,1.56,0.64,1) .1s both;font-size:80px;line-height:1;">🎉</div>
+
+          <div class="ph-title" style="animation:slideUp .35s ease .2s both;">Amazing session, Mia!</div>
+
+          <!-- stars earned -->
+          <div style="display:flex;gap:8px;justify-content:center;margin:4px 0;animation:slideUp .35s ease .3s both;">
+            <span style="font-size:36px;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) .4s both;">⭐</span>
+            <span style="font-size:36px;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) .55s both;">⭐</span>
+            <span style="font-size:36px;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) .7s both;">⭐</span>
+          </div>
+          <div style="font-size:13px;color:var(--gold);font-weight:700;animation:slideUp .35s ease .75s both;">3 stars earned today</div>
+
+          <!-- skill highlight -->
+          <div style="background:var(--surf2);border:1px solid var(--bord);border-radius:14px;padding:12px 16px;width:100%;max-width:260px;text-align:left;animation:slideUp .35s ease .85s both;">
+            <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">You got really good at</div>
+            <div style="font-size:15px;font-weight:800;">Counting to 10 🔢</div>
+          </div>
+        </div>
+
+        <div class="ph-bottom" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:13px;padding:10px;">Play a little more</button>
+          <button class="btn btn-gold">All done for now ✓</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="phone-col">
+      <div class="phone-lbl">B · Session complete — short session</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-ss"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(88,232,193,0.15) 0%, transparent 65%);">
+          <div style="font-size:80px;line-height:1;animation:bounceIn .6s cubic-bezier(0.34,1.56,0.64,1) both;">🌙</div>
+          <div class="ph-title">Good job, Mia!</div>
+          <div class="ph-sub">Even a little bit of practice helps. See you next time!</div>
+
+          <div style="display:flex;gap:8px;justify-content:center;margin:4px 0;">
+            <span style="font-size:32px;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) .3s both;">⭐</span>
+            <span style="font-size:24px;opacity:.3;">⭐</span>
+            <span style="font-size:24px;opacity:.3;">⭐</span>
+          </div>
+          <div style="font-size:13px;color:var(--mint);font-weight:700;">1 star earned — keep it up!</div>
+        </div>
+
+        <div class="ph-bottom">
+          <button class="btn btn-mint">All done ✓</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     Panel 4 — Welcome Back + Resume
+════════════════════════════════════ -->
+<div id="panel-return" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> three return states — (A) welcome back after a break (no shame, just warm); (B) returning child resume (pick up where left off, no score shown, just the next question); (C) gentle "come back" nudge for when the child closed mid-session. None of these should show how many days were missed.</div>
+
+  <div class="phone-row">
+
+    <!-- A: Welcome back after break -->
+    <div class="phone-col">
+      <div class="phone-lbl">A · Welcome back after a break</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-wb"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 25%, rgba(255,209,102,0.15) 0%, transparent 65%);">
+          <div style="font-size:80px;line-height:1;animation:bounceIn .6s cubic-bezier(0.34,1.56,0.64,1) both;animation:waveWobble 1s ease-in-out infinite alternate;">👋</div>
+
+          <div style="font-size:28px;font-weight:900;animation:slideUp .35s ease .2s both;">Welcome back, Mia!</div>
+          <div class="ph-sub" style="animation:slideUp .35s ease .35s both;">We saved your progress. Ready to pick up where you left off?</div>
+
+          <!-- progress summary — no days missed shown -->
+          <div style="background:var(--surf2);border:1px solid var(--bord);border-radius:16px;padding:14px 18px;width:100%;max-width:280px;animation:slideUp .35s ease .45s both;">
+            <div style="font-size:11px;color:var(--text-m);font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px;">Where you left off</div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+              <span style="font-size:24px;">🔢</span>
+              <div><div style="font-size:14px;font-weight:800;">Counting to 20</div><div style="font-size:12px;color:var(--text-m);">Almost there — nearly finished!</div></div>
+            </div>
+            <div class="prog-bar"><div class="prog-fill" style="width:70%;"></div></div>
+          </div>
+
+          <!-- stars collected -->
+          <div style="display:flex;align-items:center;gap:8px;animation:slideUp .35s ease .55s both;">
+            <span style="font-size:22px;">⭐</span>
+            <span style="font-size:14px;font-weight:700;color:var(--gold);">14 stars collected</span>
+          </div>
+        </div>
+
+        <div class="ph-bottom" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:13px;padding:10px;">Start something new</button>
+          <button class="btn btn-gold">Continue where I left off →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- B: Resume state -->
+    <div class="phone-col">
+      <div class="phone-lbl">B · Resume — quick pick-up</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-res"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(155,114,255,0.18) 0%, transparent 65%);">
+          <div style="font-size:72px;line-height:1;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) both;">🦊</div>
+
+          <div style="font-size:24px;font-weight:900;animation:slideUp .3s ease .15s both;">Ready to play?</div>
+          <div class="ph-sub" style="animation:slideUp .3s ease .25s both;">Your quest is waiting for you. Jump back in!</div>
+
+          <!-- next up card -->
+          <div style="background:var(--surf2);border:2px solid rgba(155,114,255,0.3);border-radius:16px;padding:14px 18px;width:100%;max-width:280px;animation:slideUp .3s ease .35s both;">
+            <div style="font-size:11px;color:var(--violet);font-weight:800;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Next up</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <span style="font-size:28px;">🔤</span>
+              <div>
+                <div style="font-size:14px;font-weight:800;">Letter Sounds</div>
+                <div style="font-size:12px;color:var(--text-m);">Question 4 of 8</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ph-bottom">
+          <button class="btn btn-violet">Let's go! →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- C: Gentle come-back -->
+    <div class="phone-col">
+      <div class="phone-lbl">C · Gentle "come back" nudge</div>
+      <div class="phone">
+        <div class="stars-bg" id="stars-cb"></div>
+
+        <div class="ph-body" style="background:radial-gradient(ellipse at 50% 30%, rgba(88,232,193,0.12) 0%, transparent 65%);">
+          <div style="font-size:80px;line-height:1;animation:bounceIn .5s cubic-bezier(0.34,1.56,0.64,1) both;">🌟</div>
+
+          <div style="font-size:24px;font-weight:900;line-height:1.3;animation:slideUp .3s ease .15s both;">Your adventure<br>is waiting, Mia!</div>
+          <div class="ph-sub" style="animation:slideUp .3s ease .25s both;">Your progress is saved. Come back when you're ready — no rush!</div>
+
+          <!-- momentum message — no missed days -->
+          <div style="background:rgba(88,232,193,0.1);border:1px solid rgba(88,232,193,0.2);border-radius:14px;padding:12px 16px;width:100%;max-width:260px;animation:slideUp .3s ease .35s both;">
+            <div style="font-size:14px;font-weight:800;color:var(--mint);margin-bottom:4px;">You're making great progress!</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.5;">14 stars collected. Your counting skills are really growing.</div>
+          </div>
+        </div>
+
+        <div class="ph-bottom" style="display:flex;flex-direction:column;gap:8px;">
+          <button class="btn btn-ghost" style="font-size:13px;padding:10px;">Maybe later</button>
+          <button class="btn btn-mint">Play now →</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+/* generate stars */
+function makeStars(id, count=30){
+  const el = document.getElementById(id);
+  if(!el) return;
+  for(let i=0;i<count;i++){
+    const s = document.createElement('div');
+    s.className='star';
+    const size = Math.random()*2.5+1;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*100}%;left:${Math.random()*100}%;--d:${(Math.random()*2+1.5).toFixed(1)}s;--delay:${(Math.random()*3).toFixed(1)}s;`;
+    el.appendChild(s);
+  }
+}
+['stars-a','stars-b','stars-c','stars-t','stars-s','stars-ss','stars-wb','stars-res','stars-cb'].forEach(id=>makeStars(id));
+
+/* generate confetti */
+const CONFETTI_COLORS=['#ffd166','#9b72ff','#58e8c1','#ff7b6b','#ffffff'];
+function makeConfetti(id, count=28){
+  const el = document.getElementById(id);
+  if(!el) return;
+  for(let i=0;i<count;i++){
+    const c=document.createElement('div');
+    c.className='confetti-piece';
+    c.style.cssText=`left:${Math.random()*100}%;background:${CONFETTI_COLORS[Math.floor(Math.random()*CONFETTI_COLORS.length)]};--dur:${(Math.random()*1+1.2).toFixed(1)}s;--delay:${(Math.random()*1.2).toFixed(2)}s;border-radius:${Math.random()>.5?'50%':'2px'};`;
+    el.appendChild(c);
+  }
+}
+['conf-a','conf-b','conf-c','conf-t','conf-s'].forEach(id=>makeConfetti(id));
+</script>
+</body>
+</html>

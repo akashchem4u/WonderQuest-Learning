@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Family Center — WonderQuest UI Agent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #f5f0e8;
+  --surface:  #fffdf8;
+  --surface2: #f0ebe0;
+  --surface3: #e8e2d8;
+  --border:   rgba(0,0,0,0.07);
+  --border-em:rgba(0,0,0,0.12);
+  --text:     #1a1a2e;
+  --text-2:   #5a5a72;
+  --text-m:   #9a9aac;
+  --blue:     #4361ee;
+  --green:    #2d9b5a;
+  --orange:   #e76f51;
+  --yellow:   #f4a261;
+  --red:      #e63946;
+  --p0: #ffd166; --p1: #9b72ff; --p2: #58e8c1; --p3: #ff7b6b;
+  --font: 'Sora', sans-serif;
+  --r: 10px; --rlg: 16px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font);background:#e8e3db;color:var(--text);padding:24px;}
+
+/* tabs */
+.tab-bar{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:24px;border-bottom:1px solid var(--border-em);padding-bottom:0;}
+.tab-btn{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-2);font-family:var(--font);font-size:13px;font-weight:500;padding:10px 16px;cursor:pointer;margin-bottom:-1px;transition:all .15s;white-space:nowrap;}
+.tab-btn:hover{color:var(--text);}
+.tab-btn.active{color:var(--blue);border-bottom-color:var(--blue);}
+.panel{display:none;}.panel.active{display:block;}
+
+/* eng note */
+.eng-note{background:rgba(67,97,238,0.06);border:1px solid rgba(67,97,238,0.15);border-radius:var(--r);padding:10px 14px;font-size:12px;color:#3050cc;margin-bottom:20px;line-height:1.5;}
+.eng-note strong{color:var(--blue);}
+
+/* page shell */
+.shell{display:grid;grid-template-columns:220px 1fr;min-height:640px;background:var(--surface);border:1px solid var(--border-em);border-radius:var(--rlg);overflow:hidden;box-shadow:0 2px 20px rgba(0,0,0,0.07);}
+.sidebar{background:var(--surface2);border-right:1px solid var(--border);padding:20px 0;}
+.sidebar-logo{font-size:15px;font-weight:700;color:var(--text);padding:0 18px 14px;border-bottom:1px solid var(--border);margin-bottom:12px;}
+.sidebar-logo span{color:var(--blue);}
+.s-sect{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-m);padding:10px 18px 4px;}
+.s-item{display:flex;align-items:center;gap:10px;padding:9px 18px;font-size:13px;color:var(--text-2);cursor:pointer;border-left:3px solid transparent;transition:all .12s;}
+.s-item:hover{color:var(--text);background:rgba(0,0,0,0.03);}
+.s-item.active{color:var(--blue);border-left-color:var(--blue);background:rgba(67,97,238,0.05);}
+
+.main{background:var(--bg);overflow-y:auto;}
+.topbar{display:flex;align-items:center;gap:12px;padding:14px 24px;border-bottom:1px solid var(--border);background:var(--surface);}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-2);}
+.breadcrumb .sep{color:var(--text-m);}
+.breadcrumb .cur{color:var(--text);font-weight:600;}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;}
+.content{padding:24px;}
+
+/* buttons */
+.btn{font-family:var(--font);font-size:13px;font-weight:600;padding:9px 18px;border-radius:var(--r);border:none;cursor:pointer;transition:opacity .15s;}
+.btn:hover{opacity:.85;}
+.btn-blue{background:var(--blue);color:#fff;}
+.btn-ghost{background:rgba(0,0,0,0.04);border:1px solid var(--border-em);color:var(--text-2);}
+.btn-sm{padding:6px 12px;font-size:12px;}
+.btn-danger{background:var(--red);color:#fff;}
+
+/* family summary strip */
+.family-strip{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.family-strip .family-name{font-size:16px;font-weight:700;flex:1;}
+.family-strip .family-name span{color:var(--text-2);font-size:13px;font-weight:400;margin-left:6px;}
+.fam-stat{text-align:center;}
+.fam-stat .val{font-size:20px;font-weight:700;color:var(--blue);}
+.fam-stat .lbl{font-size:11px;color:var(--text-m);margin-top:1px;}
+
+/* child cards grid */
+.child-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;margin-bottom:20px;}
+
+/* child card */
+.child-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);overflow:hidden;cursor:pointer;transition:box-shadow .15s,transform .12s;}
+.child-card:hover{box-shadow:0 4px 20px rgba(0,0,0,0.09);transform:translateY(-1px);}
+.child-card.selected{border-color:var(--blue);box-shadow:0 0 0 2px rgba(67,97,238,0.2);}
+.cc-header{padding:16px 18px 12px;display:flex;align-items:center;gap:14px;}
+.cc-avatar{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:3px solid transparent;}
+.cc-meta{flex:1;}
+.cc-name{font-size:15px;font-weight:700;color:var(--text);}
+.cc-band{font-size:11px;color:var(--text-2);margin-top:2px;}
+.cc-status{margin-left:auto;}
+.cc-body{padding:0 18px 16px;}
+.cc-stats{display:flex;gap:14px;margin-bottom:12px;}
+.cc-stat .val{font-size:17px;font-weight:700;color:var(--text);}
+.cc-stat .lbl{font-size:10px;color:var(--text-m);margin-top:1px;}
+.cc-rec{background:var(--surface2);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--text-2);line-height:1.5;}
+.cc-rec strong{color:var(--text);display:block;margin-bottom:2px;}
+.selected-tag{display:inline-flex;align-items:center;gap:4px;background:rgba(67,97,238,0.08);border:1px solid rgba(67,97,238,0.2);color:var(--blue);font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;}
+
+/* chip */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;}
+.chip-green{background:rgba(45,155,90,0.1);color:var(--green);}
+.chip-orange{background:rgba(231,111,81,0.1);color:var(--orange);}
+.chip-blue{background:rgba(67,97,238,0.08);color:var(--blue);}
+.chip-muted{background:rgba(0,0,0,0.05);color:var(--text-m);}
+
+/* relink panel */
+.relink-panel{background:rgba(231,111,81,0.05);border:1px solid rgba(231,111,81,0.2);border-radius:var(--rlg);padding:20px 24px;margin-bottom:20px;}
+.relink-title{font-size:15px;font-weight:700;color:var(--orange);margin-bottom:8px;}
+.relink-desc{font-size:13px;color:var(--text-2);line-height:1.55;margin-bottom:14px;}
+.relink-steps{list-style:none;margin-bottom:16px;}
+.relink-steps li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(231,111,81,0.1);font-size:13px;color:var(--text-2);}
+.relink-steps li:last-child{border-bottom:none;}
+.step-num{width:22px;height:22px;border-radius:50%;background:var(--orange);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+
+/* empty state */
+.empty-shell{display:flex;flex-direction:column;align-items:center;text-align:center;padding:56px 24px;gap:10px;}
+.empty-icon{font-size:52px;margin-bottom:4px;}
+.empty-title{font-size:18px;font-weight:700;}
+.empty-desc{font-size:14px;color:var(--text-2);max-width:320px;line-height:1.6;}
+
+/* mobile frame */
+.mob-frame{width:375px;min-height:720px;background:var(--bg);border:2px solid var(--border-em);border-radius:28px;overflow:hidden;margin:0 auto;position:relative;box-shadow:0 16px 50px rgba(0,0,0,0.1);}
+.mob-tb{display:flex;align-items:center;padding:14px 16px 12px;gap:10px;background:var(--surface);border-bottom:1px solid var(--border);}
+.mob-back{width:34px;height:34px;border-radius:50%;background:rgba(0,0,0,0.04);border:1px solid var(--border-em);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.mob-tb-txt .title{font-size:14px;font-weight:700;color:var(--text);}
+.mob-tb-txt .sub{font-size:11px;color:var(--text-m);margin-top:1px;}
+.mob-body{padding:14px 16px;padding-bottom:80px;}
+.mob-bottom{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 14px;display:flex;gap:8px;box-shadow:0 -2px 12px rgba(0,0,0,0.05);}
+.mob-cc{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;}
+.mob-cc.selected{border-color:var(--blue);background:rgba(67,97,238,0.03);}
+</style>
+</head>
+<body>
+
+<div class="eng-note">
+  <strong>parent-family-center.html</strong> — family management layer for the parent route. 5 states: Multi-Child Overview (main), Active Child selected, Wrong Child / Relink, Single Child Empty state, Mobile 375px. Route: <code>/parent/family</code>. Focus: "which child am I looking at?" and "what should I do next for this child?" — calm and trustworthy, not gamified.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('overview',this)">1 · Multi-Child Overview</button>
+  <button class="tab-btn" onclick="show('selected',this)">2 · Active Child Selected</button>
+  <button class="tab-btn" onclick="show('relink',this)">3 · Wrong Child / Relink</button>
+  <button class="tab-btn" onclick="show('empty',this)">4 · Single Child Empty</button>
+  <button class="tab-btn" onclick="show('mobile',this)">5 · Mobile (375px)</button>
+</div>
+
+<!-- ═══════════════════════════════
+     Panel 1 — Multi-Child Overview
+═══════════════════════════════════ -->
+<div id="panel-overview" class="panel active">
+  <div class="eng-note"><strong>Engineering:</strong> default state when parent has 2+ children linked. No child pre-selected. Tapping a card moves to Panel 2 (selected state). Family summary strip shows aggregate across all children.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-sect">Family</div>
+      <div class="s-item active">👨‍👩‍👧‍👦 Family Center</div>
+      <div class="s-item">📊 Hub</div>
+      <div class="s-item">📈 Progress</div>
+      <div class="s-sect">Settings</div>
+      <div class="s-item">🔔 Notifications</div>
+      <div class="s-item">⚙️ Account</div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <div class="breadcrumb"><span class="cur">Family Center</span></div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">+ Add child</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <!-- family strip -->
+        <div class="family-strip">
+          <div class="family-name">The Johnson Family <span>2 children linked</span></div>
+          <div class="fam-stat"><div class="val">4</div><div class="lbl">Days active this week</div></div>
+          <div class="fam-stat"><div class="val" style="color:var(--green)">2</div><div class="lbl">On track</div></div>
+          <div class="fam-stat"><div class="val" style="color:var(--orange)">1</div><div class="lbl">Needs attention</div></div>
+        </div>
+
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-m);margin-bottom:12px;">Select a child to see their progress</div>
+
+        <!-- child cards -->
+        <div class="child-grid">
+
+          <!-- child 1 -->
+          <div class="child-card">
+            <div class="cc-header">
+              <div class="cc-avatar" style="background:rgba(155,114,255,0.12);border-color:var(--p1);">🦊</div>
+              <div class="cc-meta">
+                <div class="cc-name">Mia</div>
+                <div class="cc-band">K–1 · Age 6</div>
+              </div>
+              <div class="cc-status"><span class="chip chip-green">On track</span></div>
+            </div>
+            <div class="cc-body">
+              <div class="cc-stats">
+                <div class="cc-stat"><div class="val">78%</div><div class="lbl">Accuracy</div></div>
+                <div class="cc-stat"><div class="val">4</div><div class="lbl">Day streak</div></div>
+                <div class="cc-stat"><div class="val">62 min</div><div class="lbl">This week</div></div>
+              </div>
+              <div class="cc-rec"><strong>Next: Try phonics blending</strong>Mia's weakest area — 5 min makes a difference.</div>
+            </div>
+          </div>
+
+          <!-- child 2 -->
+          <div class="child-card">
+            <div class="cc-header">
+              <div class="cc-avatar" style="background:rgba(255,209,102,0.12);border-color:var(--p0);">🐯</div>
+              <div class="cc-meta">
+                <div class="cc-name">Leo</div>
+                <div class="cc-band">Pre-K · Age 4</div>
+              </div>
+              <div class="cc-status"><span class="chip chip-orange">1 area needs support</span></div>
+            </div>
+            <div class="cc-body">
+              <div class="cc-stats">
+                <div class="cc-stat"><div class="val">65%</div><div class="lbl">Accuracy</div></div>
+                <div class="cc-stat"><div class="val">2</div><div class="lbl">Day streak</div></div>
+                <div class="cc-stat"><div class="val">28 min</div><div class="lbl">This week</div></div>
+              </div>
+              <div class="cc-rec"><strong>Next: Counting practice</strong>Leo is working on counting to 10 — short sessions help.</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     Panel 2 — Active Child Selected
+═══════════════════════════════════ -->
+<div id="panel-selected" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> Mia selected — card gets blue ring + "Viewing" chip. Sidebar shows child-level nav items below. Recommendation panel expands inline. "Switch child" button always visible in topbar.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-sect">Family</div>
+      <div class="s-item active">👨‍👩‍👧‍👦 Family Center</div>
+      <div class="s-item">📊 Mia's Hub</div>
+      <div class="s-item">📈 Mia's Progress</div>
+      <div class="s-sect">Settings</div>
+      <div class="s-item">🔔 Notifications</div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <div class="breadcrumb">
+          <span>Family Center</span><span class="sep">›</span><span class="cur">Mia</span>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">Switch child</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="family-strip" style="margin-bottom:16px;">
+          <div class="family-name">The Johnson Family <span>2 children linked</span></div>
+          <div class="fam-stat"><div class="val">4</div><div class="lbl">Days active</div></div>
+          <div class="fam-stat"><div class="val" style="color:var(--green)">2</div><div class="lbl">On track</div></div>
+        </div>
+
+        <div class="child-grid">
+          <!-- Mia — selected -->
+          <div class="child-card selected">
+            <div class="cc-header">
+              <div class="cc-avatar" style="background:rgba(155,114,255,0.12);border-color:var(--p1);">🦊</div>
+              <div class="cc-meta">
+                <div class="cc-name">Mia</div>
+                <div class="cc-band">K–1 · Age 6</div>
+              </div>
+              <div class="cc-status"><span class="selected-tag">✓ Viewing</span></div>
+            </div>
+            <div class="cc-body">
+              <div class="cc-stats">
+                <div class="cc-stat"><div class="val">78%</div><div class="lbl">Accuracy</div></div>
+                <div class="cc-stat"><div class="val">4</div><div class="lbl">Day streak</div></div>
+                <div class="cc-stat"><div class="val">62 min</div><div class="lbl">This week</div></div>
+              </div>
+              <div class="cc-rec" style="background:rgba(67,97,238,0.06);border:1px solid rgba(67,97,238,0.12);">
+                <strong style="color:var(--blue);">Next: Try phonics blending</strong>
+                Mia's weakest area. 5 min today would help a lot.
+              </div>
+              <div style="margin-top:10px;display:flex;gap:8px;">
+                <button class="btn btn-blue btn-sm" style="flex:1;">See full report</button>
+                <button class="btn btn-ghost btn-sm">Skills</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Leo — not selected -->
+          <div class="child-card">
+            <div class="cc-header">
+              <div class="cc-avatar" style="background:rgba(255,209,102,0.12);border-color:var(--p0);">🐯</div>
+              <div class="cc-meta">
+                <div class="cc-name">Leo</div>
+                <div class="cc-band">Pre-K · Age 4</div>
+              </div>
+              <div class="cc-status"><span class="chip chip-orange">1 needs support</span></div>
+            </div>
+            <div class="cc-body">
+              <div class="cc-stats">
+                <div class="cc-stat"><div class="val">65%</div><div class="lbl">Accuracy</div></div>
+                <div class="cc-stat"><div class="val">2</div><div class="lbl">Day streak</div></div>
+              </div>
+              <div style="margin-top:10px;">
+                <button class="btn btn-ghost btn-sm" style="width:100%;">Switch to Leo →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     Panel 3 — Wrong Child / Relink
+═══════════════════════════════════ -->
+<div id="panel-relink" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> triggered when parent taps "This isn't my child" or child PIN belongs to someone else. Show relink steps inline — do not navigate away. After successful relink, return to overview with correct child shown.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-sect">Family</div>
+      <div class="s-item active">👨‍👩‍👧‍👦 Family Center</div>
+      <div class="s-item">📊 Hub</div>
+    </nav>
+    <div class="main">
+      <div class="topbar">
+        <div class="breadcrumb"><span>Family Center</span><span class="sep">›</span><span class="cur">Relink Child</span></div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">← Back</button>
+        </div>
+      </div>
+      <div class="content">
+
+        <div class="relink-panel">
+          <div class="relink-title">⚠️ This doesn't look right</div>
+          <div class="relink-desc">
+            The child currently linked to your account may not be yours. This can happen if someone else set up their account using the same device. Let's sort it out — it only takes a moment.
+          </div>
+          <ol class="relink-steps">
+            <li><div class="step-num">1</div><div>Ask your child to enter their 4-digit PIN on the next screen to confirm their identity.</div></li>
+            <li><div class="step-num">2</div><div>If the PIN is wrong or your child doesn't recognise this account, tap "This is the wrong child" to unlink and start fresh.</div></li>
+            <li><div class="step-num">3</div><div>Once unlinked, you'll be asked to re-enter your child's name and set a new PIN together.</div></li>
+          </ol>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-blue">Confirm with PIN →</button>
+            <button class="btn btn-ghost" style="color:var(--orange);border-color:rgba(231,111,81,0.2);">This is the wrong child</button>
+          </div>
+        </div>
+
+        <!-- current linked child summary -->
+        <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-m);margin-bottom:10px;">Currently linked child</div>
+        <div class="child-card" style="max-width:320px;cursor:default;">
+          <div class="cc-header">
+            <div class="cc-avatar" style="background:rgba(155,114,255,0.12);border-color:rgba(231,111,81,0.4);">🦊</div>
+            <div class="cc-meta">
+              <div class="cc-name">Unknown child</div>
+              <div class="cc-band">K–1 · Linked 3 days ago</div>
+            </div>
+            <div class="cc-status"><span class="chip" style="background:rgba(231,111,81,0.1);color:var(--orange);">⚠ Unverified</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     Panel 4 — Single Child Empty
+═══════════════════════════════════ -->
+<div id="panel-empty" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> parent has exactly one child linked. Show calm single-child layout — no grid needed, no "switch child" affordance. Just the one child's summary and the next recommended action. Add-second-child CTA is secondary, not prominent.</div>
+
+  <div class="shell">
+    <nav class="sidebar">
+      <div class="sidebar-logo">WonderQuest <span>Parent</span></div>
+      <div class="s-sect">Family</div>
+      <div class="s-item active">👨‍👩‍👧‍👦 Family Center</div>
+      <div class="s-item">📊 Mia's Hub</div>
+      <div class="s-item">📈 Progress</div>
+      <div class="s-sect">Settings</div>
+      <div class="s-item">🔔 Notifications</div>
+    </nav>
+    <div class="main" style="display:flex;flex-direction:column;">
+      <div class="topbar">
+        <div class="breadcrumb"><span class="cur">Family Center</span></div>
+        <div class="topbar-actions">
+          <button class="btn btn-ghost btn-sm">+ Add child</button>
+        </div>
+      </div>
+      <div class="content" style="max-width:520px;">
+
+        <!-- Single child card — full width, calm -->
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--rlg);padding:24px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;">
+            <div style="width:64px;height:64px;border-radius:50%;background:rgba(155,114,255,0.12);border:3px solid var(--p1);display:flex;align-items:center;justify-content:center;font-size:32px;">🦊</div>
+            <div>
+              <div style="font-size:18px;font-weight:700;">Mia</div>
+              <div style="font-size:12px;color:var(--text-2);margin-top:2px;">K–1 · Age 6 · Last played 2 days ago</div>
+              <span class="chip chip-green" style="margin-top:4px;">On track</span>
+            </div>
+          </div>
+          <div style="display:flex;gap:16px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--border);">
+            <div><div style="font-size:20px;font-weight:700;color:var(--blue);">78%</div><div style="font-size:11px;color:var(--text-m);">Accuracy</div></div>
+            <div><div style="font-size:20px;font-weight:700;">4</div><div style="font-size:11px;color:var(--text-m);">Day streak</div></div>
+            <div><div style="font-size:20px;font-weight:700;">62 min</div><div style="font-size:11px;color:var(--text-m);">This week</div></div>
+          </div>
+          <!-- next recommended action -->
+          <div style="background:rgba(67,97,238,0.06);border:1px solid rgba(67,97,238,0.12);border-radius:var(--r);padding:12px 14px;margin-bottom:14px;">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--blue);margin-bottom:4px;">What to do next</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:4px;">Try 5 min of phonics blending with Mia</div>
+            <div style="font-size:12px;color:var(--text-2);line-height:1.5;">This is Mia's current support area. A short session today would help a lot.</div>
+          </div>
+          <button class="btn btn-blue" style="width:100%;">See Mia's full report →</button>
+        </div>
+
+        <div style="text-align:center;padding:12px 0;">
+          <span style="font-size:13px;color:var(--text-m);">Have another child?</span>
+          <button class="btn btn-ghost btn-sm" style="margin-left:8px;">Link a second child</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════
+     Panel 5 — Mobile
+═══════════════════════════════════ -->
+<div id="panel-mobile" class="panel">
+  <div class="eng-note"><strong>Engineering:</strong> 375px. Multi-child layout collapses to stacked cards. Selected child gets a blue highlighted card at top. Family summary strip becomes a compact row. Bottom bar: switch child (ghost) + "See report" (filled).</div>
+
+  <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+
+    <!-- State A: overview -->
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:10px;">A · Family overview</div>
+      <div class="mob-frame">
+        <div class="mob-tb" style="justify-content:space-between;">
+          <div class="mob-tb-txt"><div class="title">Family Center</div><div class="sub">2 children linked</div></div>
+          <button class="btn btn-ghost btn-sm" style="font-size:11px;">+ Add</button>
+        </div>
+        <div class="mob-body" style="background:var(--bg);">
+          <!-- family strip compact -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+            <div style="font-size:13px;font-weight:700;">The Johnson Family</div>
+            <div style="display:flex;gap:12px;">
+              <div style="text-align:center;"><div style="font-size:15px;font-weight:700;color:var(--green);">2</div><div style="font-size:10px;color:var(--text-m);">On track</div></div>
+              <div style="text-align:center;"><div style="font-size:15px;font-weight:700;color:var(--orange);">1</div><div style="font-size:10px;color:var(--text-m);">Needs attention</div></div>
+            </div>
+          </div>
+
+          <!-- child cards stacked -->
+          <div class="mob-cc">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(155,114,255,0.12);border:2px solid var(--p1);display:flex;align-items:center;justify-content:center;font-size:22px;">🦊</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Mia</div><div style="font-size:11px;color:var(--text-2);">K–1 · 78% accuracy</div></div>
+              <span class="chip chip-green">On track</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-2);background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;"><strong style="display:block;color:var(--text);margin-bottom:2px;">Next: phonics blending</strong>5 min makes a difference.</div>
+            <button class="btn btn-blue btn-sm" style="width:100%;">See Mia's report →</button>
+          </div>
+
+          <div class="mob-cc">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(255,209,102,0.12);border:2px solid var(--p0);display:flex;align-items:center;justify-content:center;font-size:22px;">🐯</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Leo</div><div style="font-size:11px;color:var(--text-2);">Pre-K · 65% accuracy</div></div>
+              <span class="chip chip-orange">1 needs support</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-2);background:var(--surface2);border-radius:8px;padding:8px 10px;margin-bottom:10px;line-height:1.5;"><strong style="display:block;color:var(--text);margin-bottom:2px;">Next: counting practice</strong>Short sessions help.</div>
+            <button class="btn btn-ghost btn-sm" style="width:100%;">See Leo's report →</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B: selected -->
+    <div>
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#888;margin-bottom:10px;">B · Child selected</div>
+      <div class="mob-frame">
+        <div class="mob-tb">
+          <div class="mob-back">‹</div>
+          <div class="mob-tb-txt"><div class="title">Mia's Progress</div><div class="sub">K–1 · On track</div></div>
+          <span class="selected-tag" style="margin-left:auto;">✓ Viewing</span>
+        </div>
+        <div class="mob-body" style="background:var(--bg);">
+          <div class="mob-cc selected">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;">
+              <div style="width:44px;height:44px;border-radius:50%;background:rgba(155,114,255,0.12);border:2px solid var(--p1);display:flex;align-items:center;justify-content:center;font-size:22px;">🦊</div>
+              <div style="flex:1;"><div style="font-size:14px;font-weight:700;">Mia</div><div style="font-size:11px;color:var(--text-2);">K–1 · Last played 2 days ago</div></div>
+              <span class="chip chip-green">On track</span>
+            </div>
+            <div style="display:flex;gap:14px;margin-bottom:10px;">
+              <div style="text-align:center;"><div style="font-size:18px;font-weight:700;color:var(--blue);">78%</div><div style="font-size:10px;color:var(--text-m);">Accuracy</div></div>
+              <div style="text-align:center;"><div style="font-size:18px;font-weight:700;">4</div><div style="font-size:10px;color:var(--text-m);">Streak</div></div>
+              <div style="text-align:center;"><div style="font-size:18px;font-weight:700;">62 min</div><div style="font-size:10px;color:var(--text-m);">This week</div></div>
+            </div>
+            <div style="font-size:12px;background:rgba(67,97,238,0.07);border:1px solid rgba(67,97,238,0.15);border-radius:8px;padding:8px 10px;line-height:1.5;"><strong style="color:var(--blue);display:block;margin-bottom:2px;">Next: phonics blending</strong>Mia's support area. 5 min today helps.</div>
+          </div>
+
+          <!-- Leo unselected smaller -->
+          <div class="mob-cc" style="opacity:.7;">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;border-radius:50%;background:rgba(255,209,102,0.12);border:2px solid var(--p0);display:flex;align-items:center;justify-content:center;font-size:18px;">🐯</div>
+              <div style="flex:1;"><div style="font-size:13px;font-weight:600;">Leo</div><div style="font-size:11px;color:var(--text-2);">Pre-K</div></div>
+              <button class="btn btn-ghost btn-sm" style="font-size:11px;">Switch</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mob-bottom">
+          <button class="btn btn-ghost btn-sm" style="flex:1;">Switch child</button>
+          <button class="btn btn-blue" style="flex:2;">See full report</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function show(id,btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

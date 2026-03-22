@@ -262,6 +262,31 @@ function buildCoachCopy(
   };
 }
 
+function buildWelcomeBackCopy(
+  displayName: string,
+  launchBandCode: string,
+  progression: SessionPayload["progression"] | null,
+) {
+  if (launchBandCode === "PREK") {
+    return {
+      title: `Welcome back, ${displayName}!`,
+      body: "Your helper is ready, your stars are saved, and we can do one small step at a time.",
+    };
+  }
+
+  if (launchBandCode === "K1") {
+    return {
+      title: `Welcome back, ${displayName}!`,
+      body: "Your points, badges, and quick wins are waiting right where you left them.",
+    };
+  }
+
+  return {
+    title: `Welcome back, ${displayName}.`,
+    body: `Your progress is still here: ${progression?.totalPoints ?? 0} points, ${progression?.badgeCount ?? 0} badges, and ${progression?.trophyCount ?? 0} trophies.`,
+  };
+}
+
 function pickChildVoice(
   voices: SpeechSynthesisVoice[],
   launchBandCode: string,
@@ -402,6 +427,8 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
 export default function PlayClient() {
   const searchParams = useSearchParams();
   const sessionMode = searchParams.get("sessionMode") ?? "guided-quest";
+  const entryMode = searchParams.get("entry") ?? "new";
+  const returningEntry = entryMode === "returning";
 
   const [session, setSession] = useState<SessionPayload | null>(null);
   const [progression, setProgression] = useState<SessionPayload["progression"] | null>(
@@ -419,6 +446,7 @@ export default function PlayClient() {
   const [coachMode, setCoachMode] = useState<"listen" | "clue" | "support">(
     "listen",
   );
+  const [playedWelcomeVoice, setPlayedWelcomeVoice] = useState(false);
 
   useEffect(() => {
     const voiceSupported =
@@ -477,6 +505,7 @@ export default function PlayClient() {
         setSession(payload);
         setProgression(payload.progression);
         setCoachMode("listen");
+        setPlayedWelcomeVoice(false);
         setQuestionStartedAt(Date.now());
       } catch (caughtError) {
         if (!active) {
@@ -558,6 +587,32 @@ export default function PlayClient() {
 
     speakText(answerState.explainer.script, "support");
   }, [answerState, voiceEnabled, availableVoices]);
+
+  useEffect(() => {
+    if (!session || !voiceEnabled || !returningEntry || playedWelcomeVoice) {
+      return;
+    }
+
+    if (!isEarlyLearnerBand(session.student.launchBandCode)) {
+      return;
+    }
+
+    const welcomeBackCopy = buildWelcomeBackCopy(
+      session.student.displayName,
+      session.student.launchBandCode,
+      progression,
+    );
+
+    speakText(`${welcomeBackCopy.title} ${welcomeBackCopy.body}`, "support");
+    setPlayedWelcomeVoice(true);
+  }, [
+    availableVoices,
+    playedWelcomeVoice,
+    progression,
+    returningEntry,
+    session,
+    voiceEnabled,
+  ]);
 
   async function submitAnswer(answer: string) {
     if (!session || !currentQuestion) {
@@ -683,6 +738,11 @@ export default function PlayClient() {
     ? questionTags.slice(0, 2)
     : questionTags;
   const celebrationCopy = buildCelebrationCopy(currentQuestion);
+  const welcomeBackCopy = buildWelcomeBackCopy(
+    session.student.displayName,
+    session.student.launchBandCode,
+    progression,
+  );
   const promptCue = buildPromptCue(currentQuestion, currentScene);
   const coachCopy = buildCoachCopy(currentQuestion, currentScene, coachMode);
   const coachSteps = buildCoachSteps(currentQuestion);
@@ -774,8 +834,8 @@ export default function PlayClient() {
                 <strong>{earlyLearnerMode ? "Quest complete!" : "Session complete."}</strong>
                 <p>
                   {earlyLearnerMode
-                    ? `${session.student.displayName} finished all ${session.questions.length} quick challenge steps.`
-                    : `${session.student.displayName} finished the current loop with ${progression?.totalPoints ?? 0} total points and level ${progression?.currentLevel ?? 1}.`}
+                    ? `${session.student.displayName} finished all ${session.questions.length} quick challenge steps${returningEntry ? " and kept the same saved rewards moving forward" : ""}.`
+                    : `${session.student.displayName} finished the current loop with ${progression?.totalPoints ?? 0} total points and level ${progression?.currentLevel ?? 1}${returningEntry ? ", with progress picked up exactly where it was left" : ""}.`}
                 </p>
                 <div className="summary-chip-row">
                   <span className="summary-chip">
@@ -824,6 +884,22 @@ export default function PlayClient() {
                     </span>
                   ))}
                 </div>
+                {returningEntry ? (
+                  <div className={`returning-quest-banner ${earlyLearnerMode ? "is-early" : ""}`}>
+                    <div className="returning-quest-copy">
+                      <span className="kid-prompt-label">
+                        {earlyLearnerMode ? "Welcome back" : "Saved progress"}
+                      </span>
+                      <strong>{welcomeBackCopy.title}</strong>
+                      <p>{welcomeBackCopy.body}</p>
+                    </div>
+                    <div className="returning-quest-stats">
+                      <span>{progression?.totalPoints ?? 0} pts</span>
+                      <span>{progression?.badgeCount ?? 0} badges</span>
+                      <span>{progression?.trophyCount ?? 0} trophies</span>
+                    </div>
+                  </div>
+                ) : null}
                 {earlyLearnerMode ? (
                   <div className="question-support-row question-support-row-early">
                     <div className="support-copy">

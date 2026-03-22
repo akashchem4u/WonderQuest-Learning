@@ -161,6 +161,47 @@ Suggested deliverable:
 
 - `landing-page.html`
 
+## Priority 7: Background + Palette Systems
+
+The live app is still too dependent on one shared atmospheric background. We
+need audience-specific background systems and clearer palette separation so the
+routes stop feeling like variants of the same page.
+
+Please design or extend:
+
+- child route background system
+  - use a deeper play-world treatment
+  - layered radial glows, sky or quest texture, stronger magical contrast
+  - works for `child-setup.html`, `play-early-learner.html`, and `play-voice-coach.html`
+- parent route palette system
+  - warm-neutral paper or cream backgrounds
+  - calm teal / sage accents
+  - very light texture that feels quiet and trustworthy
+- teacher route palette system
+  - cool instructional background
+  - pale blue / steel field
+  - crisp semantic colors for watch, support, and progress states
+- owner route palette system
+  - dark ops background
+  - graphite / near-black shell
+  - stronger cyan / green / amber / red status colors for triage and route health
+- landing route background variants
+  - at least 2 hero / launcher background directions that feel intentional
+  - one calmer trust-led version
+  - one more product-energy version
+
+Important:
+
+- extend `design-system.css` with route-scoped background and palette tokens
+- define fallback treatments for loading, empty, alert, and success states per audience
+- mobile versions must preserve contrast and not become muddy when gradients compress
+- do not make everything cream + green; we need stronger audience separation
+
+Suggested deliverables:
+
+- `audience-backgrounds.html`
+- updates to `design-system.css`
+
 ## Delivery Format
 
 For each new file:
@@ -184,6 +225,7 @@ Still being improved live:
 - home route redesign
 - deeper parent route maturity
 - richer child visual-first play states
+- stronger audience-specific background separation
 
 The best next design work is the missing route and state coverage above.
 
@@ -546,3 +588,20 @@ Important:
 - keep new deliverables at the top level of `ui-agent/`
 - do not reopen landing, teacher, or owner shell work unless engineering asks
 - bias toward implementation-ready route states, not decorative extras
+
+## Status Updates
+
+### 2026-03-22 — Priorities 11–13 complete
+
+- completed: all three priorities from the new Next Engineering Requests block are delivered
+- added files:
+  - `parent-family-center.html` — 5 states: multi-child overview (family summary strip + child cards grid with per-child recommendation), active child selected (blue ring + "Viewing" chip + expanded rec panel + switch affordance), wrong child / relink (inline relink steps + unverified child card), single child empty state (calm full-width layout, add-second-child CTA secondary), mobile 375px (State A stacked cards + State B selected with sticky bottom bar) (Priority 11)
+  - `parent-skill-detail.html` — 4 states: skill detail (plain-language explanation + level bar + "going well" / "still learning" / "try at home" sections — no tables, no grade language), recent movement (5-week simple bar chart + week-by-week rows + reassurance callout), low-data empty (Variant A: too early / 2 sessions; Variant B: not yet started), mobile 375px (single column, "try at home" most prominent, share-with-teacher CTA) (Priority 12)
+  - `child-rewards-return.html` — 8 states across 4 tabs: early win / badge earned / level-up with burst rings; trophy earned + full collection view (locked trophies desaturated, no spoilers); session complete great / session complete short — stars shown, no accuracy %; welcome back after break / resume quick pick-up / gentle come-back nudge — no missed-days count shown anywhere (Priority 13)
+- current focus: polling for next engineering check-in
+- blockers: none
+- notes for engineering:
+  - `parent-family-center.html` route: /parent/family — child switcher on mobile is sticky bottom bar + card tap; sheet variant derivable from adult-mobile-patterns.html if preferred
+  - `parent-skill-detail.html` route: /parent/skills/:skill-id — reach via tap on skill row in parent-hub-v2 or parent-family-center; "Share with teacher" CTA is a stub for now
+  - `child-rewards-return.html` all 8 states are full-screen portal overlays over /play or /child — not new routes; auto-dismiss after 2.5s or on tap; never interrupt mid-question
+  - child reward states show zero accuracy numbers and zero missed-day counts by design — framing is stars earned and momentum only, never performance deficit or absence shaming
