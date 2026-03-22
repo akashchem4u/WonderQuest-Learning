@@ -1114,10 +1114,21 @@ export default function PlayClient() {
             {finished ? (
               <div className="status-panel status-success celebration-panel">
                 {earlyLearnerMode ? (
-                  <div className="celebration-burst" aria-hidden="true">
-                    <span>✨</span>
-                    <span>🏆</span>
-                    <span>✨</span>
+                  <div className="finished-quest-hero">
+                    <div className="finished-quest-mascot" aria-hidden="true">
+                      {getAvatarSymbol(session.student.avatarKey)}
+                    </div>
+                    <div className="finished-quest-copy">
+                      <span className="kid-prompt-label">
+                        {returningEntry ? "Saved progress" : "Quest complete"}
+                      </span>
+                      <strong>{session.student.displayName} finished the quest!</strong>
+                      <p>
+                        {returningEntry
+                          ? "The stars, badges, and trophies stayed right where they were. You can come back for another short quest any time."
+                          : "That whole quest is done. The stars and rewards are saved, and you can do another short round whenever you are ready."}
+                      </p>
+                    </div>
                   </div>
                 ) : null}
                 <strong>{earlyLearnerMode ? "Quest complete!" : "Session complete."}</strong>
@@ -1126,25 +1137,55 @@ export default function PlayClient() {
                     ? `${session.student.displayName} finished all ${session.questions.length} quick challenge steps${returningEntry ? " and kept the same saved rewards moving forward" : ""}.`
                     : `${session.student.displayName} finished the current loop with ${progression?.totalPoints ?? 0} total points and level ${progression?.currentLevel ?? 1}${returningEntry ? ", with progress picked up exactly where it was left" : ""}.`}
                 </p>
-                <div className="summary-chip-row">
-                  <span className="summary-chip">
-                    Level {progression?.currentLevel ?? 1}
-                  </span>
-                  <span className="summary-chip">
-                    {progression?.totalPoints ?? 0} points
-                  </span>
-                  <span className="summary-chip">
-                    {progression?.badgeCount ?? 0} badges ·{" "}
-                    {progression?.trophyCount ?? 0} trophies
-                  </span>
-                </div>
+                {earlyLearnerMode ? (
+                  <div className="finished-quest-strip">
+                    <div className="finished-quest-stat">
+                      <span>Level</span>
+                      <strong>{progression?.currentLevel ?? 1}</strong>
+                    </div>
+                    <div className="finished-quest-stat">
+                      <span>Stars</span>
+                      <strong>{progression?.totalPoints ?? 0}</strong>
+                    </div>
+                    <div className="finished-quest-stat">
+                      <span>Rewards</span>
+                      <strong>
+                        {progression?.badgeCount ?? 0} badges · {progression?.trophyCount ?? 0} trophies
+                      </strong>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="summary-chip-row">
+                    <span className="summary-chip">
+                      Level {progression?.currentLevel ?? 1}
+                    </span>
+                    <span className="summary-chip">
+                      {progression?.totalPoints ?? 0} points
+                    </span>
+                    <span className="summary-chip">
+                      {progression?.badgeCount ?? 0} badges ·{" "}
+                      {progression?.trophyCount ?? 0} trophies
+                    </span>
+                  </div>
+                )}
+                {earlyLearnerMode ? (
+                  <div className="finished-quest-note">
+                    <strong>Next step</strong>
+                    <p>A grown-up can start one more short quest now or come back later with the same saved progress.</p>
+                  </div>
+                ) : null}
                 <div className="form-actions">
                   <Link className="primary-link" href="/child">
-                    Play again
+                    {earlyLearnerMode ? "Start another short quest" : "Play again"}
                   </Link>
-                  <Link className="secondary-link" href="/parent">
-                    Parent view
+                  <Link className="secondary-link" href={earlyLearnerMode ? "/child" : "/parent"}>
+                    {earlyLearnerMode ? "Take a break" : "Parent view"}
                   </Link>
+                  {earlyLearnerMode ? (
+                    <Link className="secondary-link" href="/parent">
+                      Parent view
+                    </Link>
+                  ) : null}
                 </div>
               </div>
             ) : (
