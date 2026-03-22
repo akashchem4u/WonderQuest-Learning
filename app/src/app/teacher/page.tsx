@@ -157,6 +157,14 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         ? `${overview.supportAreas[0].launchBandCode} band · ${overview.supportAreas[0].masteryRate}% mastery · ${overview.supportAreas[0].attempts} attempts`
                         : "More learner sessions are needed before a clear support lane appears."}
                     </p>
+                    {overview.supportAreas[0] ? (
+                      <Link
+                        className="secondary-link teacher-detail-link"
+                        href={`/teacher/skills/${overview.supportAreas[0].launchBandCode}/${overview.supportAreas[0].skillCode}`}
+                      >
+                        Open skill drilldown
+                      </Link>
+                    ) : null}
                   </article>
                   <article className="parent-insight-card">
                     <span className="parent-insight-label">Suggested teacher move</span>
@@ -241,7 +249,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         {skillChooser.map((skill) => (
                           <Link
                             className={`summary-chip teacher-skill-link ${skill.skillCode === selectedSkill.skillCode ? "is-current" : ""}`}
-                            href={`/teacher?skill=${skill.skillCode}`}
+                            href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
                             key={skill.skillCode}
                           >
                             {skill.displayName}
@@ -286,6 +294,12 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                       <div className="progress-rail" aria-hidden="true">
                         <span style={{ width: `${skill.masteryRate}%` }} />
                       </div>
+                      <Link
+                        className="secondary-link teacher-detail-link"
+                        href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
+                      >
+                        Inspect this skill
+                      </Link>
                     </article>
                   ))}
                 </div>
@@ -306,6 +320,12 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                       <div className="progress-rail" aria-hidden="true">
                         <span style={{ width: `${skill.masteryRate}%` }} />
                       </div>
+                      <Link
+                        className="secondary-link teacher-detail-link"
+                        href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
+                      >
+                        Inspect this skill
+                      </Link>
                     </article>
                   ))}
                 </div>

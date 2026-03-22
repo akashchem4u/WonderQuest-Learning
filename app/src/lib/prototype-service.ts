@@ -1299,6 +1299,144 @@ export async function getTeacherOverview() {
   };
 }
 
+function buildTeacherTrendLabel(masteryRate: number) {
+  if (masteryRate >= 80) {
+    return "class confidence is building";
+  }
+
+  if (masteryRate >= 60) {
+    return "showing mixed consistency";
+  }
+
+  return "still needs guided support";
+}
+
+function buildTeacherRecommendedAction(displayName: string, masteryRate: number) {
+  if (masteryRate >= 80) {
+    return `Use ${displayName} as a warm-up confidence win, then shift class time to the next support lane.`;
+  }
+
+  if (masteryRate >= 60) {
+    return `Run a short guided block for ${displayName}, then watch first-try success in the next session cycle.`;
+  }
+
+  return `Plan a slower teacher-led pass on ${displayName} with one-step support, quick retries, and visible examples.`;
+}
+
+export async function getTeacherSkillDetail(skillCode: string) {
+  const overview = await getTeacherOverview();
+  const skill =
+    overview.skillSummary.find((item) => item.skillCode === skillCode) ?? null;
+
+  if (!skill) {
+    throw new Error("Selected skill detail is not available yet.");
+  }
+
+  const learnerBreakdown = await db.query(
+    `
+      select
+        cs.student_id,
+        round(
+          100.0 * count(*) filter (where sr.correct) / nullif(count(sr.id), 0),
+          1
+        ) as mastery_rate
+      from public.session_results sr
+      join public.skills sk
+        on sk.id = sr.skill_id
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.student_profiles sp
+        on sp.id = cs.student_id
+      where sk.code = $1
+        and sp.tester_flag = false
+      group by cs.student_id
+      order by mastery_rate asc
+    `,
+    [skillCode],
+  );
+
+  const tierCounts = {
+    support: 0,
+    watch: 0,
+    onTrack: 0,
+    strong: 0,
+  };
+
+  learnerBreakdown.rows.forEach((row) => {
+    const masteryRate = Number(row.mastery_rate ?? 0);
+
+    if (masteryRate >= 80) {
+      tierCounts.strong += 1;
+    } else if (masteryRate >= 65) {
+      tierCounts.onTrack += 1;
+    } else if (masteryRate >= 45) {
+      tierCounts.watch += 1;
+    } else {
+      tierCounts.support += 1;
+    }
+  });
+
+  const recentSkillActivity = await db.query(
+    `
+      select
+        cs.id,
+        cs.session_mode,
+        cs.started_at,
+        sr.correct,
+        sr.first_try,
+        sr.remediation_triggered,
+        sr.time_spent_ms,
+        sp.launch_band_code
+      from public.session_results sr
+      join public.skills sk
+        on sk.id = sr.skill_id
+      join public.challenge_sessions cs
+        on cs.id = sr.session_id
+      join public.student_profiles sp
+        on sp.id = cs.student_id
+      where sk.code = $1
+        and sp.tester_flag = false
+      order by cs.started_at desc
+      limit 8
+    `,
+    [skillCode],
+  );
+
+  const peerSkills = [
+    ...overview.supportAreas.slice(0, 4),
+    ...overview.strengthAreas.slice(0, 4),
+  ].filter(
+    (item, index, items) =>
+      items.findIndex((candidate) => candidate.skillCode === item.skillCode) ===
+      index,
+  );
+
+  return {
+    overview,
+    skill,
+    tierCounts,
+    peerSkills,
+    firstTryRate: Math.round(
+      (skill.firstTryCount / Math.max(skill.attempts, 1)) * 100,
+    ),
+    trendLabel: buildTeacherTrendLabel(skill.masteryRate),
+    recommendedAction: buildTeacherRecommendedAction(
+      skill.displayName,
+      skill.masteryRate,
+    ),
+    recentSkillActivity: recentSkillActivity.rows.map((row) => ({
+      id: row.id as string,
+      sessionMode: row.session_mode as string,
+      launchBandCode: row.launch_band_code as string,
+      startedAt: row.started_at as string,
+      correct: Boolean(row.correct),
+      firstTry: Boolean(row.first_try),
+      remediationTriggered: Boolean(row.remediation_triggered),
+      timeSpentMs: Number(row.time_spent_ms ?? 0),
+    })),
+  };
+}
+
 export async function getOwnerTriageDetail(feedbackId: string) {
   const result = await db.query(
     `
