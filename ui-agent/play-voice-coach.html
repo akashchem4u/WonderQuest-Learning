@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Voice Coach — UI Reference</title>
+<link rel="stylesheet" href="design-system.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Bitter:wght@800&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0d0f14; font-family: 'Nunito', sans-serif; color: white; min-height: 100vh; }
+
+  .tab-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,15,20,0.97); backdrop-filter: blur(16px);
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    padding: 12px 24px; display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.12);
+    background: transparent; color: #94a3b8; font-size: 12px; font-family: 'Nunito', sans-serif;
+    cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn.active { background: #ffd166; color: #1a1a2e; font-weight: 700; border-color: transparent; }
+  .tab-btn:hover:not(.active) { background: rgba(255,255,255,0.06); color: #e2e8f0; }
+
+  .hint {
+    background: rgba(255,193,7,0.1); border: 1px solid rgba(255,193,7,0.3);
+    border-radius: 10px; padding: 12px 16px; margin: 16px 20px;
+    font-size: 11px; color: #fbbf24; line-height: 1.6; font-family: 'Sora', sans-serif;
+  }
+  .hint strong { display: block; margin-bottom: 4px; font-size: 12px; }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── Shared play shell (375px phone frame) ── */
+  .phone-wrap {
+    display: flex; justify-content: center;
+    padding: 24px; background: #0d0f14;
+  }
+  .phone {
+    width: 375px; min-height: 700px;
+    background: #100b2e; border-radius: 36px;
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 32px 64px rgba(0,0,0,0.6);
+    overflow: hidden; position: relative;
+    display: flex; flex-direction: column;
+  }
+
+  /* Star bg */
+  .stars {
+    position: absolute; inset: 0; pointer-events: none; z-index: 0;
+    background-image:
+      radial-gradient(1px 1px at 15% 20%, rgba(255,255,255,0.6) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 15%, rgba(255,255,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 40% 60%, rgba(255,255,255,0.5) 0%, transparent 100%),
+      radial-gradient(1px 1px at 70% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 55% 35%, rgba(155,114,255,0.3) 0%, transparent 100%),
+      radial-gradient(2px 2px at 25% 75%, rgba(88,232,193,0.25) 0%, transparent 100%);
+  }
+
+  .phone-inner {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column;
+    flex: 1; padding: 24px 20px 28px;
+    gap: 0;
+  }
+
+  /* Progress bar */
+  .progress-row { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; }
+  .progress-track {
+    flex: 1; height: 5px; border-radius: 3px; background: rgba(255,255,255,0.1);
+  }
+  .progress-fill { height: 100%; border-radius: 3px; background: #ffd166; }
+  .question-num { font-size: 11px; color: rgba(255,255,255,0.4); font-weight: 700; }
+
+  /* ── Listen-first state ── */
+  .listen-icon-wrap {
+    display: flex; justify-content: center; align-items: center;
+    flex: 1; flex-direction: column; gap: 16px;
+  }
+  .listen-ripple {
+    position: relative; width: 140px; height: 140px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ripple-ring {
+    position: absolute; border-radius: 50%; border: 2px solid rgba(255,209,102,0.3);
+    animation: rippleOut 2s ease-out infinite;
+  }
+  .ripple-ring:nth-child(1) { width: 100%; height: 100%; animation-delay: 0s; }
+  .ripple-ring:nth-child(2) { width: 75%; height: 75%; animation-delay: 0.4s; }
+  .ripple-ring:nth-child(3) { width: 50%; height: 50%; animation-delay: 0.8s; }
+  @keyframes rippleOut {
+    0% { transform: scale(0.8); opacity: 1; }
+    100% { transform: scale(1.3); opacity: 0; }
+  }
+  .listen-core {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: linear-gradient(135deg, #ffd166, #ff9f43);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px; position: relative; z-index: 1;
+    box-shadow: 0 8px 24px rgba(255,209,102,0.4);
+  }
+  .listen-label {
+    font-size: 20px; font-weight: 900; color: white; text-align: center;
+    line-height: 1.3;
+  }
+  .listen-sublabel {
+    font-size: 13px; color: rgba(255,255,255,0.5); text-align: center;
+    margin-top: -8px;
+  }
+
+  /* Big tap button */
+  .tap-btn {
+    display: block; width: 100%; padding: 20px;
+    border-radius: 22px; border: none; cursor: pointer;
+    font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900;
+    text-align: center; transition: transform 0.15s cubic-bezier(0.34,1.56,0.64,1);
+    margin-top: 16px;
+  }
+  .tap-btn:active { transform: scale(0.95); }
+  .tap-btn.gold { background: linear-gradient(135deg, #ffd166, #ff9f43); color: #1a1a2e; }
+  .tap-btn.ghost {
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.15);
+    color: rgba(255,255,255,0.7); font-size: 15px; padding: 15px;
+  }
+  .tap-btn.mint { background: linear-gradient(135deg, #58e8c1, #38bfa3); color: #0d2b22; }
+
+  /* Wave bars (audio playing) */
+  .wave-bars {
+    display: flex; align-items: center; justify-content: center;
+    gap: 5px; height: 40px;
+  }
+  .wave-bar {
+    width: 5px; border-radius: 3px; background: #ffd166;
+    animation: waveBounce 0.8s ease-in-out infinite;
+  }
+  .wave-bar:nth-child(1) { height: 16px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { height: 28px; animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { height: 36px; animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { height: 24px; animation-delay: 0.15s; }
+  .wave-bar:nth-child(5) { height: 32px; animation-delay: 0.05s; }
+  .wave-bar:nth-child(6) { height: 20px; animation-delay: 0.25s; }
+  .wave-bar:nth-child(7) { height: 14px; animation-delay: 0.1s; }
+  @keyframes waveBounce {
+    0%,100% { transform: scaleY(0.5); opacity: 0.7; }
+    50% { transform: scaleY(1.3); opacity: 1; }
+  }
+
+  /* Owl coach */
+  .owl-wrap {
+    display: flex; flex-direction: column; align-items: center;
+    margin-bottom: 12px;
+  }
+  .owl-bubble {
+    background: rgba(255,255,255,0.08); border: 1.5px solid rgba(255,255,255,0.15);
+    border-radius: 20px 20px 20px 4px;
+    padding: 14px 18px; font-size: 15px; font-weight: 800;
+    color: white; text-align: center; line-height: 1.4;
+    max-width: 260px; margin-bottom: 10px;
+  }
+  .owl-emoji { font-size: 56px; filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4)); }
+
+  /* Answer grid */
+  .answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 8px; }
+  .answer-btn {
+    padding: 16px 10px; border-radius: 18px;
+    border: 2px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.07);
+    color: white; font-family: 'Nunito', sans-serif; font-size: 22px; font-weight: 900;
+    cursor: pointer; text-align: center; transition: all 0.15s;
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .answer-btn .ans-emoji { font-size: 36px; }
+  .answer-btn .ans-label { font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 700; }
+  .answer-btn.highlight { border-color: #ffd166; background: rgba(255,209,102,0.12); }
+
+  /* Recovery gentle */
+  .recovery-icon { font-size: 72px; text-align: center; margin: 20px 0 10px; }
+  .recovery-title { font-size: 26px; font-weight: 900; color: white; text-align: center; margin-bottom: 8px; }
+  .recovery-sub { font-size: 14px; color: rgba(255,255,255,0.55); text-align: center; line-height: 1.5; margin-bottom: 20px; }
+  .correct-reveal {
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 20px; padding: 16px;
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+  }
+  .correct-emoji { font-size: 48px; }
+  .correct-text { font-size: 15px; font-weight: 800; color: rgba(255,255,255,0.8); }
+  .correct-answer { font-size: 22px; font-weight: 900; color: #ffd166; }
+
+  /* Slow pacing */
+  .step-wrap { margin-bottom: 16px; }
+  .step-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 14px; border-radius: 16px;
+    background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.08);
+    margin-bottom: 8px;
+  }
+  .step-row.active {
+    background: rgba(255,209,102,0.1); border-color: rgba(255,209,102,0.3);
+  }
+  .step-dot {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.15);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 900; flex-shrink: 0; color: rgba(255,255,255,0.4);
+  }
+  .step-dot.active { background: #ffd166; border-color: #ffd166; color: #1a1a2e; }
+  .step-dot.done { background: #58e8c1; border-color: #58e8c1; color: #0d2b22; font-size: 14px; }
+  .step-text { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.5); }
+  .step-text.active { color: white; }
+  .step-emoji { font-size: 24px; margin-left: auto; }
+
+  /* I don't know */
+  .idk-card {
+    background: rgba(88,232,193,0.08); border: 1.5px solid rgba(88,232,193,0.2);
+    border-radius: 22px; padding: 20px; margin-bottom: 16px; text-align: center;
+  }
+  .idk-emoji { font-size: 56px; margin-bottom: 10px; }
+  .idk-title { font-size: 20px; font-weight: 900; color: #58e8c1; margin-bottom: 8px; }
+  .idk-body { font-size: 13px; color: rgba(255,255,255,0.6); line-height: 1.6; }
+
+  /* Explainer voice-first */
+  .explainer-card {
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(88,232,193,0.2);
+    border-radius: 22px; padding: 18px; margin-bottom: 14px;
+  }
+  .explainer-header {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 14px;
+  }
+  .explainer-owl { font-size: 40px; }
+  .explainer-title { font-size: 15px; font-weight: 900; color: #58e8c1; }
+  .explainer-sub { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+  .explainer-steps { display: flex; flex-direction: column; gap: 10px; }
+  .ex-step {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px; border-radius: 14px; background: rgba(255,255,255,0.04);
+  }
+  .ex-step-num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: rgba(88,232,193,0.15); color: #58e8c1;
+    font-size: 11px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .ex-step-content { flex: 1; }
+  .ex-step-text { font-size: 13px; font-weight: 800; color: rgba(255,255,255,0.8); }
+  .ex-step-visual { font-size: 22px; }
+  .play-again-bar {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 14px; border-radius: 14px;
+    background: rgba(255,255,255,0.06); border: 1.5px solid rgba(255,255,255,0.1);
+    margin-top: 10px; cursor: pointer;
+  }
+  .play-again-icon { font-size: 20px; }
+  .play-again-label { font-size: 14px; font-weight: 800; color: rgba(255,255,255,0.7); }
+
+  /* No-audio friendly */
+  .no-audio-banner {
+    background: rgba(245,158,11,0.1); border: 1.5px solid rgba(245,158,11,0.25);
+    border-radius: 14px; padding: 10px 14px;
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 16px; font-size: 12px; font-weight: 700; color: #fbbf24;
+  }
+  .visual-prompt {
+    background: rgba(255,255,255,0.07); border: 1.5px solid rgba(255,255,255,0.1);
+    border-radius: 20px; padding: 20px; text-align: center; margin-bottom: 14px;
+  }
+  .visual-prompt-emoji { font-size: 72px; margin-bottom: 8px; }
+  .visual-prompt-text { font-size: 13px; color: rgba(255,255,255,0.6); }
+  .quantity-answer {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 14px 10px; border-radius: 18px;
+    border: 2px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.07);
+    cursor: pointer;
+  }
+  .qty-dots { display: flex; flex-wrap: wrap; gap: 3px; justify-content: center; }
+  .qty-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffd166; }
+  .qty-number { font-size: 28px; font-weight: 900; color: white; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="switchTab('listen')">Listen-First</button>
+  <button class="tab-btn" onclick="switchTab('replay')">Replay</button>
+  <button class="tab-btn" onclick="switchTab('slow')">Slow Pacing</button>
+  <button class="tab-btn" onclick="switchTab('idk')">I Don't Know</button>
+  <button class="tab-btn" onclick="switchTab('recovery')">Gentle Recovery</button>
+  <button class="tab-btn" onclick="switchTab('explainer')">Explainer</button>
+  <button class="tab-btn" onclick="switchTab('noaudio')">No-Audio Friendly</button>
+</div>
+
+<!-- ═══════════ TAB 1: LISTEN-FIRST ═══════════ -->
+<div class="panel active" id="tab-listen">
+  <div class="hint">
+    <strong>Eng Note — Listen-first prompt state</strong>
+    Screen appears before any answer buttons are shown. The audio plays automatically on mount.
+    Primary visual = animated ripple rings around a large speaker/ear emoji. Child waits while listening.
+    After audio completes (or tap), answer buttons fade in below. Do NOT show answer buttons during playback — force attention on listening. Delay: 1.8–2.5s depending on question audio length.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:40%"></div></div>
+          <div class="question-num">4 / 10</div>
+        </div>
+
+        <div class="listen-icon-wrap">
+          <div class="listen-ripple">
+            <div class="ripple-ring"></div>
+            <div class="ripple-ring"></div>
+            <div class="ripple-ring"></div>
+            <div class="listen-core">👂</div>
+          </div>
+          <div class="listen-label">Listen first!</div>
+          <div class="listen-sublabel">Playing the question…</div>
+          <div class="wave-bars" style="margin-top:8px;">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+
+        <div class="tap-btn ghost" style="margin-top:auto;">
+          🔊 Tap to replay
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 2: REPLAY ═══════════ -->
+<div class="panel" id="tab-replay">
+  <div class="hint">
+    <strong>Eng Note — Replay / hear-it-again state</strong>
+    Triggered when child taps the replay button or when >8s passes with no answer selection.
+    Wave bars animate while replaying. Answer buttons stay visible but desaturated/dimmed during replay.
+    "Tap an answer when you're ready" label replaces instructions. Replay counter not shown to child — track internally (max 3 auto-replays before showing the explainer card instead).
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:40%"></div></div>
+          <div class="question-num">4 / 10</div>
+        </div>
+
+        <!-- Replay active -->
+        <div style="text-align:center; margin: 16px 0 12px;">
+          <div class="wave-bars" style="justify-content:center;">
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+          </div>
+          <div style="font-size:13px; color:rgba(255,255,255,0.4); margin-top:8px; font-weight:700;">Playing again…</div>
+        </div>
+
+        <!-- Answer grid — dimmed during replay -->
+        <div class="answer-grid" style="opacity:0.45; pointer-events:none;">
+          <div class="answer-btn"><div class="ans-emoji">🐱</div><div class="ans-label">cat</div></div>
+          <div class="answer-btn"><div class="ans-emoji">🐶</div><div class="ans-label">dog</div></div>
+          <div class="answer-btn"><div class="ans-emoji">🐸</div><div class="ans-label">frog</div></div>
+          <div class="answer-btn"><div class="ans-emoji">🐻</div><div class="ans-label">bear</div></div>
+        </div>
+
+        <div style="text-align:center; margin-top:14px; font-size:12px; color:rgba(255,255,255,0.35); font-weight:700;">
+          Tap an answer when you're ready
+        </div>
+
+        <button class="tap-btn ghost" style="margin-top:auto;">
+          🔊 Hear it again
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 3: SLOW PACING ═══════════ -->
+<div class="panel" id="tab-slow">
+  <div class="hint">
+    <strong>Eng Note — Slow pacing / one-step-at-a-time coaching</strong>
+    Triggered automatically for questions the child got wrong last time, or for new question types.
+    Breaks the question into 2–3 visual steps. Each step is highlighted one at a time after a short delay.
+    The owl coach bubble introduces the steps. Steps appear with a gentle fade-in at ~1.2s intervals.
+    "Let's try it!" CTA only appears after all steps are shown. Do not rush the pacing.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:30%"></div></div>
+          <div class="question-num">3 / 10</div>
+        </div>
+
+        <div class="owl-wrap">
+          <div class="owl-bubble">Let's go step by step! 🌟</div>
+          <div class="owl-emoji">🦉</div>
+        </div>
+
+        <div class="step-wrap">
+          <div class="step-row">
+            <div class="step-dot done">✓</div>
+            <div class="step-text">Look at the picture</div>
+            <div class="step-emoji">🖼️</div>
+          </div>
+          <div class="step-row active">
+            <div class="step-dot active">2</div>
+            <div class="step-text active">Listen to the question</div>
+            <div class="step-emoji" style="opacity:1;">👂</div>
+          </div>
+          <div class="step-row" style="opacity:0.4;">
+            <div class="step-dot">3</div>
+            <div class="step-text">Pick your answer</div>
+            <div class="step-emoji">👆</div>
+          </div>
+        </div>
+
+        <!-- Current active step visual -->
+        <div style="text-align:center; margin-bottom:16px;">
+          <div class="wave-bars" style="justify-content:center; margin-bottom:6px;">
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+            <div class="wave-bar" style="background:#9b72ff;"></div>
+          </div>
+          <div style="font-size:12px; color:rgba(255,255,255,0.4); font-weight:700;">Listening…</div>
+        </div>
+
+        <button class="tap-btn ghost" style="margin-top:auto; opacity:0.4;" disabled>
+          Let's try it! →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 4: I DON'T KNOW ═══════════ -->
+<div class="panel" id="tab-idk">
+  <div class="hint">
+    <strong>Eng Note — "I don't know yet" support state</strong>
+    Triggered by a dedicated "I don't know" button that always appears below the answer grid (small, ghost style).
+    Not a failure state — framed positively as "that's okay, let's find out together."
+    Shows: reassuring owl, brief hint (visual or audio), then transitions to a simplified version of the question.
+    Do NOT show the correct answer directly — guide toward it. Auto-advance after 3s if no interaction.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:55%"></div></div>
+          <div class="question-num">6 / 10</div>
+        </div>
+
+        <div class="idk-card">
+          <div class="idk-emoji">🤔</div>
+          <div class="idk-title">That's okay!</div>
+          <div class="idk-body">Let's listen again and look for a clue. You've got this!</div>
+        </div>
+
+        <!-- Hint visual clue -->
+        <div style="background:rgba(255,255,255,0.05); border:1.5px solid rgba(255,255,255,0.1); border-radius:18px; padding:16px; text-align:center; margin-bottom:14px;">
+          <div style="font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:0.1em; color:rgba(255,255,255,0.35); margin-bottom:10px;">Here's a clue</div>
+          <div style="font-size:52px; margin-bottom:8px;">🐶</div>
+          <div class="wave-bars" style="justify-content:center; margin-bottom:6px;">
+            <div class="wave-bar" style="height:14px; background:#9b72ff;"></div>
+            <div class="wave-bar" style="height:22px; background:#9b72ff;"></div>
+            <div class="wave-bar" style="height:18px; background:#9b72ff;"></div>
+            <div class="wave-bar" style="height:26px; background:#9b72ff;"></div>
+            <div class="wave-bar" style="height:16px; background:#9b72ff;"></div>
+          </div>
+          <div style="font-size:11px; color:rgba(255,255,255,0.4); font-weight:700;">Hear the hint</div>
+        </div>
+
+        <button class="tap-btn gold" style="margin-top:auto;">
+          Try again! 🌟
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 5: GENTLE RECOVERY ═══════════ -->
+<div class="panel" id="tab-recovery">
+  <div class="hint">
+    <strong>Eng Note — Gentle wrong-answer recovery with visual cue</strong>
+    No red X, no harsh buzzer. "Oops!" with a soft thinking emoji. Show the correct answer visually large.
+    Correct answer appears with a gentle bounceIn animation. Audio says the correct answer aloud automatically.
+    "Let's try the next one" is the primary CTA — do not linger on wrong answers.
+    The visual cue (big emoji of correct answer) reinforces learning without rubbing in the mistake.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:60%"></div></div>
+          <div class="question-num">6 / 10</div>
+        </div>
+
+        <div class="recovery-icon">🤭</div>
+        <div class="recovery-title">Oops! Almost!</div>
+        <div class="recovery-sub">The answer was…</div>
+
+        <div class="correct-reveal">
+          <div class="correct-emoji">🐶</div>
+          <div>
+            <div class="correct-text">It's a…</div>
+            <div class="correct-answer">Dog!</div>
+          </div>
+          <div style="margin-left:auto; font-size:24px;">🔊</div>
+        </div>
+
+        <!-- Visual reinforcement -->
+        <div style="background:rgba(255,255,255,0.05); border-radius:18px; padding:14px; text-align:center; margin-bottom:14px;">
+          <div style="font-size:64px; margin-bottom:4px;">🐶</div>
+          <div style="font-size:22px; font-weight:900; color:rgba(255,255,255,0.8);">D-O-G</div>
+        </div>
+
+        <button class="tap-btn gold" style="margin-top:auto;">
+          Next question →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 6: EXPLAINER ═══════════ -->
+<div class="panel" id="tab-explainer">
+  <div class="hint">
+    <strong>Eng Note — Explainer card (voice-first, not paragraph-first)</strong>
+    Shows after 3+ wrong attempts on same skill or child taps "help me understand."
+    OWL mascot leads. No paragraph text — each step is one sentence max with a big emoji.
+    Steps reveal one at a time (child taps to advance). Replay audio button always visible.
+    Final step shows the answer clearly. "Got it!" CTA after all steps shown.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:70%"></div></div>
+          <div class="question-num">7 / 10</div>
+        </div>
+
+        <div class="explainer-card">
+          <div class="explainer-header">
+            <div class="explainer-owl">🦉</div>
+            <div>
+              <div class="explainer-title">Let me explain!</div>
+              <div class="explainer-sub">Tap each step to go forward</div>
+            </div>
+          </div>
+
+          <div class="explainer-steps">
+            <div class="ex-step">
+              <div class="ex-step-num">1</div>
+              <div class="ex-step-content">
+                <div class="ex-step-text">The question asked: what sound does this make?</div>
+              </div>
+              <div class="ex-step-visual">❓</div>
+            </div>
+            <div class="ex-step" style="background:rgba(255,209,102,0.08); border-radius:14px;">
+              <div class="ex-step-num" style="background:rgba(255,209,102,0.2); color:#ffd166;">2</div>
+              <div class="ex-step-content">
+                <div class="ex-step-text" style="color:white;">This animal makes the "woof" sound</div>
+              </div>
+              <div class="ex-step-visual">🐶</div>
+            </div>
+            <div class="ex-step" style="opacity:0.4;">
+              <div class="ex-step-num">3</div>
+              <div class="ex-step-content">
+                <div class="ex-step-text">So the answer is… dog!</div>
+              </div>
+              <div class="ex-step-visual">🐾</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="play-again-bar">
+          <div class="play-again-icon">🔊</div>
+          <div class="play-again-label">Hear it again</div>
+        </div>
+
+        <button class="tap-btn ghost" style="margin-top:auto; opacity:0.5;" disabled>
+          Got it! →
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 7: NO-AUDIO FRIENDLY ═══════════ -->
+<div class="panel" id="tab-noaudio">
+  <div class="hint">
+    <strong>Eng Note — No-audio fallback that feels friendly and visual</strong>
+    Non-blocking amber banner at top. The question text is shown prominently (large, not dense).
+    Answer buttons show quantity dots instead of just numbers — visual counting aid.
+    "Turn audio on" link always in the banner — easy to re-enable. Wave bar icons replaced with a muted speaker icon.
+    All prompts shift to visual-only but do NOT feel broken or degraded — just a different mode.
+  </div>
+  <div class="phone-wrap">
+    <div class="phone">
+      <div class="stars"></div>
+      <div class="phone-inner">
+        <div class="no-audio-banner">
+          <span style="font-size:16px;">🔇</span>
+          <span style="flex:1;">No audio · visual mode</span>
+          <span style="color:#ffd166; cursor:pointer; font-size:11px;">Turn on 🔊</span>
+        </div>
+
+        <div class="progress-row">
+          <div class="progress-track"><div class="progress-fill" style="width:50%"></div></div>
+          <div class="question-num">5 / 10</div>
+        </div>
+
+        <!-- Visual-only question -->
+        <div class="visual-prompt">
+          <div class="visual-prompt-emoji">🍎🍎🍎</div>
+          <div style="font-size:26px; font-weight:900; color:white; margin-top:6px;">How many apples?</div>
+        </div>
+
+        <!-- Answer buttons with quantity dots -->
+        <div class="answer-grid">
+          <div class="quantity-answer">
+            <div class="qty-dots">
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+            </div>
+            <div class="qty-number">2</div>
+          </div>
+          <div class="quantity-answer" style="border-color:rgba(255,209,102,0.3); background:rgba(255,209,102,0.08);">
+            <div class="qty-dots">
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+            </div>
+            <div class="qty-number" style="color:#ffd166;">3</div>
+          </div>
+          <div class="quantity-answer">
+            <div class="qty-dots">
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+            </div>
+            <div class="qty-number">4</div>
+          </div>
+          <div class="quantity-answer">
+            <div class="qty-dots">
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+              <div class="qty-dot"></div>
+            </div>
+            <div class="qty-number">5</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b =>
+    b.classList.toggle('active', b.getAttribute('onclick').includes(id))
+  );
+  document.querySelectorAll('.panel').forEach(p =>
+    p.classList.toggle('active', p.id === 'tab-' + id)
+  );
+}
+</script>
+</body>
+</html>

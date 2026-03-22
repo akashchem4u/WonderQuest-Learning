@@ -1072,6 +1072,25 @@ export async function getOwnerOverview() {
     `,
   );
 
+  const feedbackByReviewStatus = await db.query(
+    `
+      select
+        coalesce(ft.review_status, 'pending') as review_status,
+        count(*) as feedback_count
+      from public.feedback_items fi
+      join public.feedback_triage ft
+        on ft.feedback_id = fi.id
+      left join public.guardian_profiles gp
+        on gp.id = fi.guardian_id
+      left join public.student_profiles sp
+        on sp.id = fi.student_id
+      where coalesce(gp.tester_flag, false) = false
+        and coalesce(sp.tester_flag, false) = false
+      group by coalesce(ft.review_status, 'pending')
+      order by feedback_count desc, review_status asc
+    `,
+  );
+
   const recentFeedback = await db.query(
     `
       select
@@ -1082,8 +1101,11 @@ export async function getOwnerOverview() {
         fi.created_at,
         ft.ai_category,
         ft.urgency,
+        ft.confidence,
+        ft.impacted_area,
         ft.routing_target,
-        ft.summary
+        ft.summary,
+        ft.review_status
       from public.feedback_items fi
       join public.feedback_triage ft
         on ft.feedback_id = fi.id
@@ -1136,6 +1158,10 @@ export async function getOwnerOverview() {
       category: row.ai_category as string,
       count: Number(row.feedback_count ?? 0),
     })),
+    feedbackByReviewStatus: feedbackByReviewStatus.rows.map((row) => ({
+      reviewStatus: row.review_status as string,
+      count: Number(row.feedback_count ?? 0),
+    })),
     recentFeedback: recentFeedback.rows.map((row) => ({
       id: row.id as string,
       submittedByRole: row.submitted_by_role as string,
@@ -1144,8 +1170,14 @@ export async function getOwnerOverview() {
       createdAt: row.created_at as string,
       category: row.ai_category as string,
       urgency: row.urgency as string,
+      confidence:
+        row.confidence === null || row.confidence === undefined
+          ? null
+          : Number(row.confidence),
+      impactedArea: (row.impacted_area as string | undefined) ?? null,
       routingTarget: row.routing_target as string,
       summary: row.summary as string,
+      reviewStatus: (row.review_status as string | undefined) ?? "pending",
     })),
   };
 }
@@ -1181,8 +1213,12 @@ export async function getTeacherOverview() {
         sk.code as skill_code,
         sk.display_name,
         sk.launch_band_code,
+        count(distinct cs.student_id) as learner_count,
         count(sr.id) as attempts,
         count(*) filter (where sr.correct) as correct_attempts,
+        count(*) filter (where sr.first_try) as first_try_count,
+        count(*) filter (where sr.remediation_triggered) as remediation_count,
+        round(avg(sr.time_spent_ms) / 1000.0, 1) as avg_seconds,
         round(
           100.0 * count(*) filter (where sr.correct) / nullif(count(sr.id), 0),
           1
@@ -1222,8 +1258,15 @@ export async function getTeacherOverview() {
     skillCode: row.skill_code as string,
     displayName: row.display_name as string,
     launchBandCode: row.launch_band_code as string,
+    learnerCount: Number(row.learner_count ?? 0),
     attempts: Number(row.attempts ?? 0),
     correctAttempts: Number(row.correct_attempts ?? 0),
+    firstTryCount: Number(row.first_try_count ?? 0),
+    remediationCount: Number(row.remediation_count ?? 0),
+    averageSeconds:
+      row.avg_seconds === null || row.avg_seconds === undefined
+        ? 0
+        : Number(row.avg_seconds),
     masteryRate: Number(row.mastery_rate ?? 0),
   }));
 
@@ -1238,6 +1281,7 @@ export async function getTeacherOverview() {
       displayName: row.display_name as string,
       studentCount: Number(row.student_count ?? 0),
     })),
+    skillSummary: mappedSummary,
     supportAreas: mappedSummary.slice(0, 6),
     strengthAreas: [...mappedSummary]
       .sort((left, right) => right.masteryRate - left.masteryRate)
@@ -1252,6 +1296,66 @@ export async function getTeacherOverview() {
           ? null
           : Number(row.effectiveness_score),
     })),
+  };
+}
+
+export async function getOwnerTriageDetail(feedbackId: string) {
+  const result = await db.query(
+    `
+      select
+        fi.id,
+        fi.submitted_by_role,
+        fi.source_channel,
+        fi.message,
+        fi.created_at,
+        ft.ai_category,
+        ft.urgency,
+        ft.confidence,
+        ft.impacted_area,
+        ft.routing_target,
+        ft.summary,
+        ft.review_status,
+        ft.reviewer_note,
+        sp.display_name as student_display_name
+      from public.feedback_items fi
+      join public.feedback_triage ft
+        on ft.feedback_id = fi.id
+      left join public.guardian_profiles gp
+        on gp.id = fi.guardian_id
+      left join public.student_profiles sp
+        on sp.id = fi.student_id
+      where fi.id = $1
+        and coalesce(gp.tester_flag, false) = false
+        and coalesce(sp.tester_flag, false) = false
+      limit 1
+    `,
+    [feedbackId],
+  );
+
+  const row = result.rows[0];
+
+  if (!row) {
+    throw new Error("That triage item is not available.");
+  }
+
+  return {
+    id: row.id as string,
+    submittedByRole: row.submitted_by_role as string,
+    sourceChannel: row.source_channel as string,
+    message: row.message as string,
+    createdAt: row.created_at as string,
+    category: row.ai_category as string,
+    urgency: row.urgency as string,
+    confidence:
+      row.confidence === null || row.confidence === undefined
+        ? null
+        : Number(row.confidence),
+    impactedArea: (row.impacted_area as string | undefined) ?? null,
+    routingTarget: row.routing_target as string,
+    summary: row.summary as string,
+    reviewStatus: (row.review_status as string | undefined) ?? "pending",
+    reviewerNote: (row.reviewer_note as string | undefined) ?? null,
+    studentDisplayName: (row.student_display_name as string | undefined) ?? null,
   };
 }
 

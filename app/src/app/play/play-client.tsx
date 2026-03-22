@@ -203,6 +203,65 @@ function buildShortSupportLine(script: string) {
   return firstSentence ? `${firstSentence}.` : script;
 }
 
+function buildCoachSteps(question: SessionQuestion) {
+  if (question.questionKey === "prek_count_ducks_3") {
+    return [
+      "Listen to the question.",
+      "Count each duck one time.",
+      "Tap the group that matches.",
+    ];
+  }
+
+  if (question.questionKey === "prek_letter_b_ball") {
+    return [
+      "Listen for the letter sound.",
+      "Look for the big letter B.",
+      "Tap the matching card.",
+    ];
+  }
+
+  if (question.questionKey === "prek_shape_circle") {
+    return [
+      "Look for the round shape.",
+      "Find the one with no corners.",
+      "Tap the circle card.",
+    ];
+  }
+
+  return [
+    "Listen first.",
+    "Look for the clue.",
+    "Tap your best answer.",
+  ];
+}
+
+function buildCoachCopy(
+  question: SessionQuestion,
+  scene: QuestionVisualScene | null,
+  mode: "listen" | "clue" | "support",
+) {
+  const helper = scene?.helper ?? buildPromptCue(question, scene);
+
+  if (mode === "clue") {
+    return {
+      title: "Let me show the clue.",
+      body: helper,
+    };
+  }
+
+  if (mode === "support") {
+    return {
+      title: "It is okay to need help.",
+      body: "We can slow down, listen again, and do one small step at a time.",
+    };
+  }
+
+  return {
+    title: "Let us listen together.",
+    body: "Hear it slowly, then look carefully before you tap.",
+  };
+}
+
 function pickChildVoice(
   voices: SpeechSynthesisVoice[],
   launchBandCode: string,
@@ -274,6 +333,24 @@ function getVoiceSettings(launchBandCode: string, intent: "prompt" | "support") 
 }
 
 function renderAnswerContent(question: SessionQuestion, answer: string) {
+  if (question.questionKey === "prek_count_ducks_3" && /^\d+$/.test(answer)) {
+    return (
+      <>
+        <div className="answer-visual-stack">
+          <div className="answer-token-row" aria-hidden="true">
+            {Array.from({ length: Number(answer) }, (_, index) => (
+              <span className="answer-token" key={`${answer}-${index}`}>
+                🦆
+              </span>
+            ))}
+          </div>
+          <strong>{answer}</strong>
+        </div>
+        <small>Count the ducks, then tap the matching group.</small>
+      </>
+    );
+  }
+
   if (question.questionKey === "prek_shape_circle") {
     return (
       <>
@@ -339,6 +416,9 @@ export default function PlayClient() {
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [coachMode, setCoachMode] = useState<"listen" | "clue" | "support">(
+    "listen",
+  );
 
   useEffect(() => {
     const voiceSupported =
@@ -396,6 +476,7 @@ export default function PlayClient() {
 
         setSession(payload);
         setProgression(payload.progression);
+        setCoachMode("listen");
         setQuestionStartedAt(Date.now());
       } catch (caughtError) {
         if (!active) {
@@ -514,8 +595,10 @@ export default function PlayClient() {
 
       if (payload.correct) {
         setAttempt(1);
+        setCoachMode("listen");
       } else {
         setAttempt((value) => value + 1);
+        setCoachMode("support");
         setQuestionStartedAt(Date.now());
       }
     } catch (caughtError) {
@@ -543,6 +626,7 @@ export default function PlayClient() {
     setCurrentIndex((value) => value + 1);
     setAttempt(1);
     setAnswerState(null);
+    setCoachMode("listen");
     setQuestionStartedAt(Date.now());
   }
 
@@ -600,6 +684,8 @@ export default function PlayClient() {
     : questionTags;
   const celebrationCopy = buildCelebrationCopy(currentQuestion);
   const promptCue = buildPromptCue(currentQuestion, currentScene);
+  const coachCopy = buildCoachCopy(currentQuestion, currentScene, coachMode);
+  const coachSteps = buildCoachSteps(currentQuestion);
 
   return (
     <AppFrame audience="kid" currentPath="/child">
@@ -762,6 +848,65 @@ export default function PlayClient() {
                         Voice read-aloud is not available in this browser.
                       </span>
                     )}
+                  </div>
+                ) : null}
+                {earlyLearnerMode ? (
+                  <div className={`voice-coach-card voice-coach-${coachMode}`}>
+                    <div className="voice-coach-header">
+                      <span className="voice-coach-icon" aria-hidden="true">
+                        {coachMode === "support" ? "🦉" : coachMode === "clue" ? "💡" : "🎧"}
+                      </span>
+                      <div className="voice-coach-copy">
+                        <span className="kid-prompt-label">
+                          {coachMode === "support"
+                            ? "Need a little help?"
+                            : coachMode === "clue"
+                              ? "Try the clue"
+                              : "Listen first"}
+                        </span>
+                        <strong>{coachCopy.title}</strong>
+                        <p>{coachCopy.body}</p>
+                      </div>
+                    </div>
+                    <div className="voice-coach-steps">
+                      {coachSteps.map((step, index) => (
+                        <div className="voice-coach-step" key={`${currentQuestion.questionKey}-${step}`}>
+                          <span className="voice-coach-step-index">{index + 1}</span>
+                          <span>{step}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="voice-coach-actions">
+                      {voiceEnabled ? (
+                        <button
+                          className="secondary-link button-link"
+                          onClick={() => {
+                            setCoachMode("listen");
+                            speakText(
+                              buildReadAloudText(currentQuestion, currentScene),
+                              "prompt",
+                            );
+                          }}
+                          type="button"
+                        >
+                          Hear it again
+                        </button>
+                      ) : null}
+                      <button
+                        className="secondary-link button-link"
+                        onClick={() => setCoachMode("clue")}
+                        type="button"
+                      >
+                        Show the clue
+                      </button>
+                      <button
+                        className="secondary-link button-link"
+                        onClick={() => setCoachMode("support")}
+                        type="button"
+                      >
+                        I don&apos;t know yet
+                      </button>
+                    </div>
                   </div>
                 ) : null}
                 <div className="progress-rail" aria-hidden="true">

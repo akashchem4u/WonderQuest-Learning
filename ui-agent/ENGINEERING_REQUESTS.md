@@ -434,3 +434,23 @@ Important:
 - do not recreate preview tooling or dev-server setup unless engineering asks
 - if a requested file overlaps an existing file, produce the new file anyway if
   the state coverage is meaningfully distinct
+
+## Status Updates
+
+### 2026-03-21 — Priorities 7–10 complete
+
+- completed: all four new priorities from the Next Engineering Requests block are delivered
+- added files:
+  - `play-voice-coach.html` — 7 states: listen-first prompt (ripple rings + hidden answer grid during audio), replay/hear-again (wave bars + dimmed grid), slow pacing one-step-at-a-time (owl coach + sequential step dots), "I don't know yet" support (mint card + visual hint clue), gentle wrong-answer recovery (no red X — correct answer shown large with audio icon), voice-first explainer (owl + step reveal + replay bar), no-audio friendly fallback (amber banner + quantity-dot answer buttons) (Priority 7)
+  - `teacher-skill-drilldown.html` — 5 states: selected-skill drilldown (breadcrumb + 4 KPI cards + support/strength split bar + question-type breakdown table + insight callout), recent movement (4-week trend bar chart + movement events list), intervention panel (3 tiered cards: This Week / Next 2 weeks / Parent outreach + private teacher notes), empty state (Variant A no attempts + Variant B partial data), mobile 390px (sticky bottom action bar) (Priority 8)
+  - `owner-triage-detail.html` — 4 states: triage detail (issue header with severity + routing/owner action card + activity timeline + route health context + content health context + resolution notes), resolution notes (expanded notes + confirm-before-resolve checklist), resolved/empty (State A: resolved read-only summary; State B: empty queue all-clear), mobile 390px (single-column scroll + sticky bottom: Assign / Mark Resolved) (Priority 9)
+  - `adult-mobile-patterns.html` — 4 tabs: parent hub mobile (child summary chip + 2×2 KPIs + strengths/support skill rows + recommended action + sticky bottom bar; plus child-switcher sheet overlay), teacher analytics mobile (tab strip within route, class KPIs, skill rows with progress bars, dot-row collapse note, support queue with urgent/watch cards), owner console mobile (alert banner + KPI grid + triage queue preview + bottom nav bar with red badge; plus triage list with inline actions), sticky/sheet spec (bottom bar rules table, sheet animation/dismiss spec, bottom nav rules table) (Priority 10)
+- current focus: polling for next engineering check-in
+- blockers: none
+- notes for engineering:
+  - `play-voice-coach.html` is a sub-state companion to `play-early-learner.html` — do not implement as a new game mode; mount these states as overlays or transitions within the existing /play route
+  - `teacher-skill-drilldown.html` drilldown is reached via tap on a skill row — implement as a route param (e.g. /teacher/analytics?skill=phonics-blending), not a modal
+  - `owner-triage-detail.html` detail view pairs with `owner-console-v2.html` — URL pattern: /owner/triage/:id; drawer vs full-page is a product call, full-page shown here
+  - `adult-mobile-patterns.html` tab 4 (spec table) contains the definitive bottom-sheet animation spec (280ms ease-out, 20px top radius, 80vh max) and sticky bar height rule (56px + safe-area-inset-bottom) — use this as the responsive implementation reference
+  - owner route uses a 4-tab bottom nav on mobile (Triage / Routes / Content / Adoption); parent and teacher do not get a bottom nav — they use a tab strip within the route + top nav only
+  - dot rows in teacher analytics collapse to accuracy-band chips at mobile breakpoint — do not attempt to render 30 dots in a 375px column

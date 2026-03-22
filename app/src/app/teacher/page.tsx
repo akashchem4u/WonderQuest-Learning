@@ -8,9 +8,31 @@ import TeacherGate from "./teacher-gate";
 
 export const dynamic = "force-dynamic";
 
-export default async function TeacherPage() {
+type TeacherPageProps = {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+function getSingleSearchParam(value: string | string[] | undefined) {
+  return typeof value === "string" ? value : value?.[0];
+}
+
+function dedupeSkills<T extends { skillCode: string }>(skills: T[]) {
+  const seen = new Set<string>();
+  return skills.filter((skill) => {
+    if (seen.has(skill.skillCode)) {
+      return false;
+    }
+
+    seen.add(skill.skillCode);
+    return true;
+  });
+}
+
+export default async function TeacherPage({ searchParams }: TeacherPageProps) {
   const configured = isTeacherAccessConfigured();
   const unlocked = await hasTeacherAccess();
+  const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedSkillCode = getSingleSearchParam(resolvedSearchParams.skill);
 
   if (!unlocked) {
     return (
@@ -49,6 +71,32 @@ export default async function TeacherPage() {
         : "Teacher dashboard is not available.";
   }
 
+  const selectedSkill = overview
+    ? overview.skillSummary.find((skill) => skill.skillCode === selectedSkillCode) ??
+      overview.supportAreas[0] ??
+      overview.strengthAreas[0] ??
+      overview.skillSummary[0] ??
+      null
+    : null;
+  const skillChooser = overview
+    ? dedupeSkills([
+        ...overview.supportAreas.slice(0, 4),
+        ...overview.strengthAreas.slice(0, 4),
+      ]).slice(0, 8)
+    : [];
+  const selectedSkillFirstTryRate = selectedSkill
+    ? Math.round(
+        (selectedSkill.firstTryCount / Math.max(selectedSkill.attempts, 1)) * 100,
+      )
+    : 0;
+  const selectedSkillTrendLabel = selectedSkill
+    ? selectedSkill.masteryRate >= 80
+      ? "class confidence is building"
+      : selectedSkill.masteryRate >= 60
+        ? "showing mixed consistency"
+        : "still needs guided support"
+    : "waiting for more practice";
+
   return (
     <AppFrame audience="teacher" currentPath="/teacher">
       <main className="page-shell">
@@ -64,6 +112,9 @@ export default async function TeacherPage() {
               <span className="summary-chip">Aggregate only</span>
               <span className="summary-chip">No peer comparison</span>
               <span className="summary-chip">Classroom-ready signals</span>
+              {selectedSkill ? (
+                <span className="summary-chip">{selectedSkill.displayName}</span>
+              ) : null}
             </div>
           </div>
           <div className="hero-route-summary">
@@ -124,6 +175,92 @@ export default async function TeacherPage() {
             </section>
 
             <section className="tracks owner-grid">
+              <ShellCard className="shell-card-emphasis" eyebrow="Skill drilldown" title={selectedSkill ? selectedSkill.displayName : "Choose a skill to inspect"}>
+                {selectedSkill ? (
+                  <div className="teacher-drilldown-stack">
+                    <div className="teacher-drilldown-topline">
+                      <div>
+                        <span className="parent-insight-label">
+                          {selectedSkill.launchBandCode}
+                        </span>
+                        <strong>{selectedSkill.masteryRate}% mastery</strong>
+                        <p>{selectedSkillTrendLabel}</p>
+                      </div>
+                      <div className="summary-chip-row">
+                        <span className="summary-chip">
+                          {selectedSkill.learnerCount} learners
+                        </span>
+                        <span className="summary-chip">
+                          {selectedSkill.attempts} attempts
+                        </span>
+                        <span className="summary-chip">
+                          {selectedSkill.averageSeconds.toFixed(1)}s avg response
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="teacher-drilldown-metrics">
+                      <article className="teacher-drilldown-card">
+                        <span>Correct answers</span>
+                        <strong>{selectedSkill.correctAttempts}</strong>
+                        <p>Questions landed correctly across the current dataset.</p>
+                      </article>
+                      <article className="teacher-drilldown-card">
+                        <span>First-try success</span>
+                        <strong>{selectedSkillFirstTryRate}%</strong>
+                        <p>How often learners get it right before support is needed.</p>
+                      </article>
+                      <article className="teacher-drilldown-card">
+                        <span>Remediation moments</span>
+                        <strong>{selectedSkill.remediationCount}</strong>
+                        <p>Support was triggered this many times for the selected skill.</p>
+                      </article>
+                    </div>
+
+                    <div className="teacher-drilldown-banner">
+                      <div className="teacher-drilldown-banner-icon" aria-hidden="true">
+                        🎯
+                      </div>
+                      <div>
+                        <strong>Suggested next move</strong>
+                        <p>
+                          {selectedSkill.masteryRate >= 80
+                            ? `Use ${selectedSkill.displayName} as a confidence-building warm-up and then shift to the next support lane.`
+                            : selectedSkill.masteryRate >= 60
+                              ? `Run a short guided block for ${selectedSkill.displayName} and watch first-try success in the next session cycle.`
+                              : `Plan a slower teacher-led pass on ${selectedSkill.displayName} with one-step support and quick retries.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="teacher-drilldown-switcher">
+                      <span className="teacher-drilldown-switcher-label">
+                        Change focus
+                      </span>
+                      <div className="summary-chip-row">
+                        {skillChooser.map((skill) => (
+                          <Link
+                            className={`summary-chip teacher-skill-link ${skill.skillCode === selectedSkill.skillCode ? "is-current" : ""}`}
+                            href={`/teacher?skill=${skill.skillCode}`}
+                            key={skill.skillCode}
+                          >
+                            {skill.displayName}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="teacher-empty-state">
+                    <strong>No skill drilldown is available yet</strong>
+                    <p>
+                      More learner sessions are needed before a selected-skill view
+                      can show real classroom movement.
+                    </p>
+                  </div>
+                )}
+              </ShellCard>
+
               <ShellCard className="shell-card-soft" eyebrow="Band mix" title="Learners by launch band">
                 <div className="summary-chip-row">
                   {overview.byBand.map((band) => (
@@ -190,6 +327,11 @@ export default async function TeacherPage() {
                             ? "in progress"
                             : `${session.effectivenessScore}% effective`}
                         </span>
+                        {selectedSkill ? (
+                          <span className="summary-chip">
+                            Focus: {selectedSkill.displayName}
+                          </span>
+                        ) : null}
                       </div>
                     </article>
                   ))}
