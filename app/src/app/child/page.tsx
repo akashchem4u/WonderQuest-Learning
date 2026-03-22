@@ -65,12 +65,25 @@ export default function ChildAccessPage() {
 
   const avatars = useMemo(() => getAvatarsForBand(selectedBand), [selectedBand]);
   const earlyLearnerBand = selectedBand === "PREK" || selectedBand === "K1";
+  const pinDigits = [0, 1, 2, 3];
 
   useEffect(() => {
     if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
       setSelectedAvatar(avatars[0]?.avatar_key ?? "");
     }
   }, [avatars, selectedAvatar]);
+
+  function appendPinDigit(digit: string) {
+    setPin((current) => (current.length >= 4 ? current : `${current}${digit}`));
+  }
+
+  function removePinDigit() {
+    setPin((current) => current.slice(0, -1));
+  }
+
+  function clearPin() {
+    setPin("");
+  }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -204,17 +217,6 @@ export default function ChildAccessPage() {
                 value={username}
               />
               <FieldBlock
-                autoComplete="current-password"
-                helper="Four digits only for the first prototype."
-                label="4-digit PIN"
-                maxLength={4}
-                name="pin"
-                onChange={(event) => setPin(event.target.value)}
-                placeholder="0000"
-                type="password"
-                value={pin}
-              />
-              <FieldBlock
                 helper="Shown inside the game world."
                 label="Display name"
                 name="displayName"
@@ -222,6 +224,48 @@ export default function ChildAccessPage() {
                 placeholder="what we call you"
                 value={displayName}
               />
+            </div>
+            <div className="pin-panel">
+              <div className="pin-panel-header">
+                <strong>4-digit PIN</strong>
+                <span>
+                  {earlyLearnerBand
+                    ? "Tap four numbers for the grown-up setup step."
+                    : "Tap four numbers for quick sign-in next time."}
+                </span>
+              </div>
+              <div className="pin-display" aria-label="PIN display">
+                {pinDigits.map((index) => (
+                  <span className={`pin-cell ${pin[index] ? "has-value" : ""}`} key={index}>
+                    {pin[index] ? "•" : ""}
+                  </span>
+                ))}
+              </div>
+              <div className="numpad">
+                {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                  <button
+                    className="numpad-btn"
+                    key={digit}
+                    onClick={() => appendPinDigit(digit)}
+                    type="button"
+                  >
+                    {digit}
+                  </button>
+                ))}
+                <button className="numpad-btn numpad-btn-quiet" onClick={clearPin} type="button">
+                  Clear
+                </button>
+                <button className="numpad-btn" onClick={() => appendPinDigit("0")} type="button">
+                  0
+                </button>
+                <button
+                  className="numpad-btn numpad-btn-quiet"
+                  onClick={removePinDigit}
+                  type="button"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </ShellCard>
 
