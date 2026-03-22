@@ -10,6 +10,7 @@ type SessionQuestion = {
   questionKey: string;
   prompt: string;
   answers: string[];
+  correctAnswer: string;
   explainerKey: string;
   subject: string;
   skill: string;
@@ -114,71 +115,174 @@ function getWordPreview(answer: string): WordPreview {
       return { icon: "🐐", helper: "goat" };
     case "gold":
       return { icon: "🥇", helper: "gold" };
+    case "ball":
+      return { icon: "⚽", helper: "ball" };
+    case "bat":
+      return { icon: "🦇", helper: "bat" };
+    case "map":
+      return { icon: "🗺️", helper: "map" };
+    case "cap":
+      return { icon: "🧢", helper: "cap" };
+    case "van":
+      return { icon: "🚐", helper: "van" };
+    case "net":
+      return { icon: "🥅", helper: "net" };
+    case "kick":
+      return { icon: "🥾", helper: "kick" };
+    case "team":
+      return { icon: "👥", helper: "team" };
+    case "run":
+      return { icon: "🏃", helper: "run" };
+    case "pass":
+      return { icon: "🎯", helper: "pass" };
     default:
       return { icon: "✨", helper: answer };
   }
 }
 
+function isCountSkill(question: SessionQuestion) {
+  return question.skill === "count-to-3";
+}
+
+function isLetterSkill(question: SessionQuestion) {
+  return question.skill === "letter-b-recognition";
+}
+
+function isShapeSkill(question: SessionQuestion) {
+  return question.skill === "shape-circle";
+}
+
+function isShortASkill(question: SessionQuestion) {
+  return question.skill === "short-a-sound";
+}
+
+function isAddToTenSkill(question: SessionQuestion) {
+  return question.skill === "add-to-10";
+}
+
+function isReadSimpleWordSkill(question: SessionQuestion) {
+  return question.skill === "read-simple-word";
+}
+
+function getCountSceneToken(question: SessionQuestion) {
+  const prompt = question.prompt.toLowerCase();
+
+  if (prompt.includes("duck")) return "🦆";
+  if (prompt.includes("fish")) return "🐟";
+  if (prompt.includes("star")) return "⭐";
+  if (prompt.includes("ball")) return "⚽";
+  if (prompt.includes("apple")) return "🍎";
+  if (prompt.includes("kite")) return "🪁";
+  return "✨";
+}
+
+function getSceneReferenceWord(question: SessionQuestion) {
+  const words =
+    question.prompt
+      .toLowerCase()
+      .match(/[a-z]+/g)
+      ?.filter(
+        (word) =>
+          ![
+            "tap",
+            "the",
+            "letter",
+            "which",
+            "word",
+            "has",
+            "short",
+            "sound",
+            "pick",
+            "what",
+            "is",
+            "how",
+            "many",
+            "do",
+            "you",
+            "see",
+            "find",
+            "correct",
+            "a",
+            "an",
+            "of",
+          ].includes(word),
+      ) ?? [];
+
+  return words.at(-1) ?? question.correctAnswer.toLowerCase();
+}
+
 function buildQuestionVisualScene(question: SessionQuestion) {
-  switch (question.questionKey) {
-    case "prek_count_ducks_3":
-      return {
-        title: "Count the ducks",
-        helper: "Point and count each duck one time.",
-        tokens: ["🦆", "🦆", "🦆"],
-      } satisfies QuestionVisualScene;
-    case "prek_letter_b_ball":
-      return {
-        title: "Find the big letter B",
-        helper: "Listen, then tap the matching letter.",
-      } satisfies QuestionVisualScene;
-    case "prek_shape_circle":
-      return {
-        title: "Find the circle",
-        helper: "Look for the round shape with no corners.",
-      } satisfies QuestionVisualScene;
-    case "k1_short_a_cat":
-      return {
-        title: "Find the short a word",
-        helper: "Say cat. Listen for the short a sound.",
-      } satisfies QuestionVisualScene;
-    case "k1_add_6_4":
-      return {
-        title: "Add to ten",
-        helper: "Start with six, add four more, then tap the total.",
-      } satisfies QuestionVisualScene;
-    case "k1_first_word_goal":
-      return {
-        title: "Read the word goal",
-        helper: "Look at each word card, then tap goal.",
-      } satisfies QuestionVisualScene;
-    default:
-      return null;
+  if (isCountSkill(question)) {
+    return {
+      title: "Count the pictures",
+      helper: "Point and count each picture one time.",
+      tokens: Array.from(
+        { length: Number(question.correctAnswer) || 0 },
+        () => getCountSceneToken(question),
+      ),
+    } satisfies QuestionVisualScene;
   }
+
+  if (isLetterSkill(question)) {
+    return {
+      title: `Find the letter ${question.correctAnswer}`,
+      helper: "Listen first, then tap the matching letter.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isShapeSkill(question)) {
+    return {
+      title: "Find the circle",
+      helper: "Look for the round shape with no corners.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isShortASkill(question)) {
+    return {
+      title: "Find the short a word",
+      helper: "Say the word, listen for the short a sound, then tap the match.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isAddToTenSkill(question)) {
+    return {
+      title: "Add and tap the total",
+      helper: "Start with the first number, add more, then tap the answer.",
+    } satisfies QuestionVisualScene;
+  }
+
+  if (isReadSimpleWordSkill(question)) {
+    return {
+      title: `Read the word ${question.correctAnswer}`,
+      helper: "Look at each card, then tap the word that matches.",
+    } satisfies QuestionVisualScene;
+  }
+
+  return null;
 }
 
 function buildSceneClass(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") {
+  if (isCountSkill(question)) {
     return "scene-count";
   }
 
-  if (question.questionKey === "prek_letter_b_ball") {
+  if (isLetterSkill(question)) {
     return "scene-letter";
   }
 
-  if (question.questionKey === "prek_shape_circle") {
+  if (isShapeSkill(question)) {
     return "scene-shape";
   }
 
-  if (question.questionKey === "k1_short_a_cat") {
+  if (isShortASkill(question)) {
     return "scene-phonics";
   }
 
-  if (question.questionKey === "k1_add_6_4") {
+  if (isAddToTenSkill(question)) {
     return "scene-score";
   }
 
-  if (question.questionKey === "k1_first_word_goal") {
+  if (isReadSimpleWordSkill(question)) {
     return "scene-reading";
   }
 
@@ -229,24 +333,24 @@ function buildPromptCue(question: SessionQuestion, scene: QuestionVisualScene | 
     return scene.helper;
   }
 
-  if (question.subject === "math") {
-    return "Look carefully and tap the answer you see.";
-  }
-
-  if (question.questionKey === "k1_short_a_cat") {
+  if (isShortASkill(question)) {
     return "Say cat, then tap the word that sounds the same.";
   }
 
-  if (question.questionKey === "k1_add_6_4") {
+  if (isAddToTenSkill(question)) {
     return "Count up from six, then tap the total.";
   }
 
-  if (question.questionKey === "k1_first_word_goal") {
-    return "Read each card, then tap the word goal.";
+  if (isReadSimpleWordSkill(question)) {
+    return `Read each card, then tap ${question.correctAnswer}.`;
   }
 
   if (question.subject === "early-literacy") {
     return "Listen first, then tap the right letter or word.";
+  }
+
+  if (question.subject === "math") {
+    return "Look carefully and tap the answer you see.";
   }
 
   return "Listen, look, and tap your choice.";
@@ -283,23 +387,23 @@ function buildShortSupportLine(script: string) {
 }
 
 function buildCoachSteps(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") {
+  if (isCountSkill(question)) {
     return [
       "Listen to the question.",
-      "Count each duck one time.",
+      "Count each picture one time.",
       "Tap the group that matches.",
     ];
   }
 
-  if (question.questionKey === "prek_letter_b_ball") {
+  if (isLetterSkill(question)) {
     return [
       "Listen for the letter sound.",
-      "Look for the big letter B.",
+      `Look for the letter ${question.correctAnswer}.`,
       "Tap the matching card.",
     ];
   }
 
-  if (question.questionKey === "prek_shape_circle") {
+  if (isShapeSkill(question)) {
     return [
       "Look for the round shape.",
       "Find the one with no corners.",
@@ -307,7 +411,7 @@ function buildCoachSteps(question: SessionQuestion) {
     ];
   }
 
-  if (question.questionKey === "k1_short_a_cat") {
+  if (isShortASkill(question)) {
     return [
       "Say cat with me.",
       "Listen for the short a sound.",
@@ -315,7 +419,7 @@ function buildCoachSteps(question: SessionQuestion) {
     ];
   }
 
-  if (question.questionKey === "k1_add_6_4") {
+  if (isAddToTenSkill(question)) {
     return [
       "Start with six.",
       "Add four more.",
@@ -323,10 +427,10 @@ function buildCoachSteps(question: SessionQuestion) {
     ];
   }
 
-  if (question.questionKey === "k1_first_word_goal") {
+  if (isReadSimpleWordSkill(question)) {
     return [
       "Look at the word cards.",
-      "Find the word goal.",
+      `Find the word ${question.correctAnswer}.`,
       "Tap the matching card.",
     ];
   }
@@ -518,25 +622,25 @@ function getVoiceSettings(launchBandCode: string, intent: "prompt" | "support") 
 }
 
 function renderAnswerContent(question: SessionQuestion, answer: string) {
-  if (question.questionKey === "prek_count_ducks_3" && /^\d+$/.test(answer)) {
+  if (isCountSkill(question) && /^\d+$/.test(answer)) {
     return (
       <>
         <div className="answer-visual-stack">
           <div className="answer-token-row" aria-hidden="true">
             {Array.from({ length: Number(answer) }, (_, index) => (
               <span className="answer-token" key={`${answer}-${index}`}>
-                🦆
+                {getCountSceneToken(question)}
               </span>
             ))}
           </div>
           <strong>{answer}</strong>
         </div>
-        <small>Count the ducks, then tap the matching group.</small>
+        <small>Count the pictures, then tap the matching group.</small>
       </>
     );
   }
 
-  if (question.questionKey === "prek_shape_circle") {
+  if (isShapeSkill(question)) {
     return (
       <>
         <div className="answer-visual-stack">
@@ -548,7 +652,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
     );
   }
 
-  if (question.questionKey === "prek_letter_b_ball") {
+  if (isLetterSkill(question)) {
     return (
       <>
         <div className="answer-visual-stack">
@@ -562,10 +666,7 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
     );
   }
 
-  if (
-    question.questionKey === "k1_short_a_cat" ||
-    question.questionKey === "k1_first_word_goal"
-  ) {
+  if (isShortASkill(question) || isReadSimpleWordSkill(question)) {
     const preview = getWordPreview(answer);
 
     return (
@@ -604,27 +705,27 @@ function renderAnswerContent(question: SessionQuestion, answer: string) {
 }
 
 function buildAnswerCardVariant(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") {
+  if (isCountSkill(question)) {
     return "count";
   }
 
-  if (question.questionKey === "k1_add_6_4") {
+  if (isAddToTenSkill(question)) {
     return "count";
   }
 
-  if (question.questionKey === "prek_letter_b_ball") {
+  if (isLetterSkill(question)) {
     return "letter";
   }
 
-  if (question.questionKey === "k1_short_a_cat") {
+  if (isShortASkill(question)) {
     return "picture";
   }
 
-  if (question.questionKey === "prek_shape_circle") {
+  if (isShapeSkill(question)) {
     return "shape";
   }
 
-  if (question.questionKey === "k1_first_word_goal") {
+  if (isReadSimpleWordSkill(question)) {
     return "picture";
   }
 
@@ -640,28 +741,28 @@ function buildAnswerCardVariant(question: SessionQuestion) {
 }
 
 function buildAnswerTapCue(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") {
-    return "Tap the duck group that matches.";
+  if (isCountSkill(question)) {
+    return "Tap the picture group that matches.";
   }
 
-  if (question.questionKey === "prek_letter_b_ball") {
+  if (isLetterSkill(question)) {
     return "Tap the letter you hear.";
   }
 
-  if (question.questionKey === "k1_short_a_cat") {
+  if (isShortASkill(question)) {
     return "Tap the word that sounds like cat.";
   }
 
-  if (question.questionKey === "prek_shape_circle") {
+  if (isShapeSkill(question)) {
     return "Tap the round shape.";
   }
 
-  if (question.questionKey === "k1_add_6_4") {
+  if (isAddToTenSkill(question)) {
     return "Tap the total after six and four more.";
   }
 
-  if (question.questionKey === "k1_first_word_goal") {
-    return "Tap the word that says goal.";
+  if (isReadSimpleWordSkill(question)) {
+    return `Tap the word that says ${question.correctAnswer}.`;
   }
 
   if (question.subject === "early-literacy") {
@@ -676,12 +777,12 @@ function buildAnswerTapCue(question: SessionQuestion) {
 }
 
 function buildQuestNodeLabel(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") return "Count";
-  if (question.questionKey === "prek_letter_b_ball") return "Letter";
-  if (question.questionKey === "prek_shape_circle") return "Shape";
-  if (question.questionKey === "k1_short_a_cat") return "Sound";
-  if (question.questionKey === "k1_add_6_4") return "Add";
-  if (question.questionKey === "k1_first_word_goal") return "Read";
+  if (isCountSkill(question)) return "Count";
+  if (isLetterSkill(question)) return "Letter";
+  if (isShapeSkill(question)) return "Shape";
+  if (isShortASkill(question)) return "Sound";
+  if (isAddToTenSkill(question)) return "Add";
+  if (isReadSimpleWordSkill(question)) return "Read";
 
   if (question.subject === "math") return "Math";
   if (question.subject === "early-literacy") return "Word";
@@ -690,12 +791,12 @@ function buildQuestNodeLabel(question: SessionQuestion) {
 }
 
 function buildQuestNodeIcon(question: SessionQuestion) {
-  if (question.questionKey === "prek_count_ducks_3") return "🦆";
-  if (question.questionKey === "prek_letter_b_ball") return "🔤";
-  if (question.questionKey === "prek_shape_circle") return "⭕";
-  if (question.questionKey === "k1_short_a_cat") return "🐱";
-  if (question.questionKey === "k1_add_6_4") return "⚽";
-  if (question.questionKey === "k1_first_word_goal") return "🥅";
+  if (isCountSkill(question)) return getCountSceneToken(question);
+  if (isLetterSkill(question)) return "🔤";
+  if (isShapeSkill(question)) return "⭕";
+  if (isShortASkill(question)) return "🐱";
+  if (isAddToTenSkill(question)) return "⚽";
+  if (isReadSimpleWordSkill(question)) return "📖";
 
   if (question.subject === "math") return "🔢";
   if (question.subject === "early-literacy") return "📚";
@@ -1666,32 +1767,36 @@ export default function PlayClient() {
                           </span>
                         ))}
                       </div>
-                    ) : currentQuestion.questionKey === "prek_letter_b_ball" ? (
+                    ) : isLetterSkill(currentQuestion) ? (
                       <div className="visual-token-grid letter-word-scene" aria-hidden="true">
                         <div className="visual-token visual-token-word">
-                          <span className="letter-scene-token">B</span>
-                          <small>starts like ball</small>
+                          <span className="letter-scene-token">{currentQuestion.correctAnswer}</span>
+                          <small>listen for the letter</small>
                         </div>
                         <div className="visual-token visual-token-word">
-                          <span className="emoji-scene-token">⚽</span>
-                          <small>ball</small>
+                          <span className="emoji-scene-token">
+                            {getWordPreview(getSceneReferenceWord(currentQuestion)).icon}
+                          </span>
+                          <small>{getSceneReferenceWord(currentQuestion)}</small>
                         </div>
                       </div>
-                    ) : currentQuestion.questionKey === "k1_short_a_cat" ? (
+                    ) : isShortASkill(currentQuestion) ? (
                       <div className="visual-token-grid letter-word-scene" aria-hidden="true">
                         <div className="visual-token visual-token-word">
-                          <span className="emoji-scene-token">🐱</span>
-                          <small>cat</small>
+                          <span className="emoji-scene-token">
+                            {getWordPreview(currentQuestion.correctAnswer).icon}
+                          </span>
+                          <small>{currentQuestion.correctAnswer}</small>
                         </div>
                         <div className="visual-token visual-token-word">
                           <span className="letter-scene-token">a</span>
                           <small>short a sound</small>
                         </div>
                       </div>
-                    ) : currentQuestion.questionKey === "k1_add_6_4" ? (
+                    ) : isAddToTenSkill(currentQuestion) ? (
                       <div className="score-scene" aria-hidden="true">
                         <div className="score-scene-row">
-                          {Array.from({ length: 6 }, (_, index) => (
+                          {Array.from({ length: Number(currentQuestion.prompt.match(/\d+/)?.[0] ?? 0) }, (_, index) => (
                             <span className="score-token" key={`score-six-${index}`}>
                               ⚽
                             </span>
@@ -1699,21 +1804,25 @@ export default function PlayClient() {
                         </div>
                         <span className="score-scene-plus">+</span>
                         <div className="score-scene-row">
-                          {Array.from({ length: 4 }, (_, index) => (
+                          {Array.from({ length: Number(currentQuestion.prompt.match(/\d+/g)?.[1] ?? 0) }, (_, index) => (
                             <span className="score-token" key={`score-four-${index}`}>
                               ⚽
                             </span>
                           ))}
                         </div>
                       </div>
-                    ) : currentQuestion.questionKey === "k1_first_word_goal" ? (
+                    ) : isReadSimpleWordSkill(currentQuestion) ? (
                       <div className="visual-token-grid letter-word-scene" aria-hidden="true">
                         <div className="visual-token visual-token-word">
-                          <span className="emoji-scene-token">🥅</span>
-                          <small>goal</small>
+                          <span className="emoji-scene-token">
+                            {getWordPreview(currentQuestion.correctAnswer).icon}
+                          </span>
+                          <small>{currentQuestion.correctAnswer}</small>
                         </div>
                         <div className="visual-token visual-token-word">
-                          <span className="letter-scene-token">GOAL</span>
+                          <span className="letter-scene-token">
+                            {currentQuestion.correctAnswer.toUpperCase()}
+                          </span>
                           <small>read the whole word</small>
                         </div>
                       </div>
@@ -1721,7 +1830,7 @@ export default function PlayClient() {
                       <div className="letter-scene" aria-hidden="true">
                         <span>B</span>
                       </div>
-                    ) : currentQuestion.questionKey === "prek_shape_circle" ? (
+                    ) : isShapeSkill(currentQuestion) ? (
                       <div className="shape-scene" aria-hidden="true">
                         <span className="shape-preview shape-circle" />
                       </div>

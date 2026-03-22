@@ -1,10 +1,10 @@
 import { db } from "@/lib/db";
 import {
-  getAvatarByKey,
   getExplainerByKey,
   getQuestionByKey,
-  sampleQuestions,
-} from "@/lib/launch-data";
+  getSampleQuestions,
+} from "@/lib/content-bank";
+import { getAvatarByKey } from "@/lib/launch-data";
 import {
   assertChildAccessAllowed,
   clearChildAccessFailures,
@@ -115,7 +115,9 @@ function shuffleArray<T>(items: T[]) {
 }
 
 function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
-  const pool = sampleQuestions.filter((item) => item.launch_band === launchBandCode);
+  const pool = getSampleQuestions().filter(
+    (item) => item.launch_band === launchBandCode,
+  );
 
   if (sessionMode === "self-directed-challenge") {
     return [...pool].sort((left, right) => {
@@ -134,6 +136,57 @@ function getSessionQuestionPool(launchBandCode: string, sessionMode: string) {
 
     return left.subject.localeCompare(right.subject);
   });
+}
+
+function selectSessionQuestions(launchBandCode: string, sessionMode: string) {
+  const pool = getSessionQuestionPool(launchBandCode, sessionMode);
+
+  if (pool.length <= 3) {
+    return pool;
+  }
+
+  if (sessionMode === "self-directed-challenge") {
+    return shuffleArray(pool.slice(0, Math.min(pool.length, 6))).slice(0, 3);
+  }
+
+  return shuffleArray(pool).slice(0, 3);
+}
+
+function buildRequestedFocus(questionKeys: string[], sessionMode: string) {
+  return JSON.stringify({
+    type: "question-sequence",
+    sessionMode,
+    questionKeys,
+  });
+}
+
+function getRequestedQuestionSequence(
+  requestedFocus: string | null | undefined,
+  launchBandCode: string,
+  sessionMode: string,
+  totalQuestions: number,
+) {
+  try {
+    const parsed = JSON.parse(requestedFocus ?? "{}") as {
+      questionKeys?: unknown;
+    };
+
+    if (Array.isArray(parsed.questionKeys)) {
+      const sanitized = parsed.questionKeys
+        .filter((item): item is string => typeof item === "string" && item.length > 0)
+        .slice(0, totalQuestions);
+
+      if (sanitized.length) {
+        return sanitized;
+      }
+    }
+  } catch {
+    // Fall back to the deterministic launch order for older sessions.
+  }
+
+  return getSessionQuestionPool(launchBandCode, sessionMode)
+    .slice(0, totalQuestions)
+    .map((item) => item.question_key);
 }
 
 function levelFromPoints(points: number) {
@@ -376,6 +429,7 @@ function buildQuestionCard(questionKey: string) {
     questionKey: question.question_key,
     prompt: question.prompt,
     answers: shuffleArray([question.correct_answer, ...question.distractors]),
+    correctAnswer: question.correct_answer,
     explainerKey: question.explainer_key,
     subject: question.subject,
     skill: question.skill,
@@ -719,12 +773,12 @@ export async function createPlaySession(input: PlaySessionInput) {
 
   await ensureProgressionState(studentRow.id as string);
 
-  const questions = getSessionQuestionPool(
+  const selectedQuestions = selectSessionQuestions(
     studentRow.launch_band_code as string,
     sessionMode,
-  )
-    .slice(0, 3)
-    .map((item) => buildQuestionCard(item.question_key));
+  );
+  const questionKeys = selectedQuestions.map((item) => item.question_key);
+  const questions = selectedQuestions.map((item) => buildQuestionCard(item.question_key));
 
   const session = await db.query(
     `
@@ -742,7 +796,7 @@ export async function createPlaySession(input: PlaySessionInput) {
       input.studentId,
       sessionMode,
       studentRow.preferred_theme_code ?? null,
-      sessionMode,
+      buildRequestedFocus(questionKeys, sessionMode),
       questions.length,
     ],
   );
@@ -779,6 +833,7 @@ export async function answerQuestion(input: AnswerInput) {
         cs.student_id,
         cs.total_questions,
         cs.session_mode,
+        cs.requested_focus,
         sp.launch_band_code
       from public.challenge_sessions cs
       join public.student_profiles sp
@@ -801,12 +856,12 @@ export async function answerQuestion(input: AnswerInput) {
 
   await ensureProgressionState(input.studentId);
 
-  const questionSequence = getSessionQuestionPool(
+  const questionSequence = getRequestedQuestionSequence(
+    (session.rows[0].requested_focus as string | undefined) ?? null,
     session.rows[0].launch_band_code as string,
     (session.rows[0].session_mode as string) || "guided-quest",
-  )
-    .slice(0, Number(session.rows[0].total_questions ?? 0))
-    .map((item) => item.question_key);
+    Number(session.rows[0].total_questions ?? 0),
+  );
 
   const completed = await db.query(
     `

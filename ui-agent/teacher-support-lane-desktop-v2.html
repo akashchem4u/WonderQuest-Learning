@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Support Lane Desktop v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', 'Segoe UI', sans-serif; background: #1a1f2e; color: #e0e6f0; }
+
+  .tabs { display: flex; gap: 6px; padding: 16px 16px 0; flex-wrap: wrap; background: #111520; }
+  .tab { padding: 8px 14px; border-radius: 8px 8px 0 0; background: #1e2433; border: none; cursor: pointer; font-family: inherit; font-size: 13px; font-weight: 600; color: #888; }
+  .tab.active { background: #0d1117; color: #e0e6f0; }
+  .panel { display: none; padding: 20px 16px 40px; background: #0d1117; min-height: 600px; }
+  .panel.active { display: block; }
+
+  .hint { background: #1a1400; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 20px; font-size: 12px; color: #c8a832; line-height: 1.6; }
+  .hint strong { color: #ffd166; }
+
+  /* Desktop frame wrapper */
+  .desktop-frame { background: #f0f4f8; border-radius: 16px; border: 6px solid #2a3040; box-shadow: 0 12px 40px rgba(0,0,0,0.5); overflow: hidden; font-family: 'Sora','Segoe UI',sans-serif; }
+  .frame-label { font-size: 11px; font-weight: 700; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .desktop-inner { overflow-x: auto; min-width: 960px; }
+
+  /* Top nav bar */
+  .top-nav { background: #fff; border-bottom: 1px solid #d0dae4; padding: 0 24px; display: flex; align-items: center; height: 52px; gap: 24px; }
+  .top-nav-logo { font-size: 15px; font-weight: 900; color: #1c2430; }
+  .top-nav-link { font-size: 13px; font-weight: 600; color: #607080; padding: 0 4px; cursor: pointer; }
+  .top-nav-link.active { color: #2a5080; border-bottom: 2px solid #2a5080; height: 52px; display: flex; align-items: center; }
+  .top-nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+  .top-nav-avatar { width: 30px; height: 30px; border-radius: 50%; background: #2a5080; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #fff; }
+
+  /* 3-col layout */
+  .three-col { display: grid; grid-template-columns: 220px 1fr 320px; height: calc(100vh - 52px); min-height: 640px; }
+
+  /* Left: student lanes */
+  .lane-col { border-right: 1px solid #d0dae4; overflow-y: auto; background: #f0f4f8; }
+  .lane-col-hdr { padding: 14px 16px 10px; border-bottom: 1px solid #d0dae4; background: #fff; position: sticky; top: 0; z-index: 5; }
+  .lane-col-title { font-size: 12px; font-weight: 800; color: #1c2430; }
+  .lane-col-count { font-size: 11px; color: #607080; margin-top: 1px; }
+
+  .lane-section { padding: 8px 0; }
+  .lane-section-hdr { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; padding: 6px 16px 4px; }
+  .lane-item { display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer; border-left: 3px solid transparent; }
+  .lane-item:hover { background: #e4eaf0; }
+  .lane-item.selected { background: #e4eaf0; border-left-color: #2a5080; }
+  .lane-item.flag { border-left-color: transparent; }
+  .lane-item.flag.selected { border-left-color: #9a1a1a; background: #fff8f8; }
+  .lane-item.watch.selected { border-left-color: #c07800; background: #fffcf0; }
+  .lane-item.strong.selected { border-left-color: #1a8050; background: #f0fff8; }
+  .lane-avatar { width: 26px; height: 26px; border-radius: 50%; background: #e4eaf0; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 800; color: #2a5080; flex-shrink: 0; }
+  .lane-name { font-size: 12px; font-weight: 700; color: #1c2430; }
+  .lane-meta { font-size: 10px; color: #607080; }
+  .lane-badge { margin-left: auto; font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 8px; flex-shrink: 0; }
+  .badge-flag { background: #fff0f0; color: #9a1a1a; }
+  .badge-watch { background: #fff8e8; color: #7a5000; }
+  .badge-strong { background: #e8f8f0; color: #1a6040; }
+
+  /* Center: selected student detail */
+  .detail-col { overflow-y: auto; background: #f0f4f8; padding: 20px 24px; }
+  .detail-student-hdr { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .detail-avatar-lg { width: 48px; height: 48px; border-radius: 50%; background: #e4eaf0; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 800; color: #2a5080; flex-shrink: 0; }
+  .detail-name { font-size: 18px; font-weight: 800; color: #1c2430; }
+  .detail-meta { font-size: 12px; color: #607080; margin-top: 2px; }
+  .detail-actions { margin-left: auto; display: flex; gap: 8px; }
+  .d-btn { padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; font-family: inherit; border: none; }
+  .d-btn-primary { background: #2a5080; color: #fff; }
+  .d-btn-secondary { background: #e4eaf0; color: #2a5080; }
+
+  /* Skill cards */
+  .skill-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .skill-card { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 12px 14px; }
+  .skill-card.flag-card { border-left: 3px solid #9a2a2a; background: #fff8f8; }
+  .skill-card.strong-card { border-left: 3px solid #1a8050; }
+  .skill-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 4px; }
+  .skill-name { font-size: 13px; font-weight: 700; color: #1c2430; margin-bottom: 4px; }
+  .skill-sub { font-size: 11px; color: #607080; }
+
+  /* Progress bar */
+  .progress-bar-wrap { margin-top: 6px; }
+  .progress-bar-bg { height: 6px; background: #e4eaf0; border-radius: 3px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* Week chart */
+  .week-chart { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 14px; margin-bottom: 16px; }
+  .chart-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #607080; margin-bottom: 10px; }
+  .chart-bars { display: flex; align-items: flex-end; gap: 8px; height: 56px; }
+  .chart-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .chart-bar { border-radius: 3px 3px 0 0; width: 100%; }
+  .chart-day { font-size: 9px; color: #9ab0c4; font-weight: 700; }
+
+  /* Intervention log */
+  .intv-log { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .intv-log-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #607080; margin-bottom: 10px; }
+  .intv-entry { display: flex; gap: 10px; padding-bottom: 10px; margin-bottom: 10px; border-bottom: 1px solid #e4eaf0; }
+  .intv-entry:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+  .intv-entry-icon { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+  .intv-entry-body { flex: 1; }
+  .intv-entry-text { font-size: 12px; color: #1c2430; font-weight: 600; line-height: 1.4; }
+  .intv-entry-meta { font-size: 11px; color: #9ab0c4; margin-top: 2px; }
+
+  /* Right: intervention summary + quick add */
+  .right-col { border-left: 1px solid #d0dae4; overflow-y: auto; background: #fff; }
+  .right-col-hdr { padding: 14px 16px 10px; border-bottom: 1px solid #d0dae4; background: #fff; position: sticky; top: 0; z-index: 5; }
+  .right-col-title { font-size: 12px; font-weight: 800; color: #1c2430; }
+  .right-col-sub { font-size: 11px; color: #607080; margin-top: 1px; }
+
+  /* Quick-add note form */
+  .quick-add { padding: 14px 16px; border-bottom: 1px solid #e4eaf0; }
+  .quick-add-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: #607080; margin-bottom: 6px; }
+  .quick-add-input { width: 100%; background: #f0f4f8; border: 1px solid #d0dae4; border-radius: 8px; padding: 8px 12px; font-size: 12px; font-family: inherit; color: #1c2430; resize: none; outline: none; line-height: 1.5; }
+  .quick-add-input:focus { border-color: #2a5080; }
+  .quick-add-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .qa-btn { flex: 1; padding: 7px; border-radius: 7px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; border: none; }
+  .qa-btn-primary { background: #2a5080; color: #fff; }
+  .qa-btn-secondary { background: #e4eaf0; color: #2a5080; }
+
+  /* Right col intervention list */
+  .r-intv-row { display: flex; gap: 10px; padding: 10px 16px; border-bottom: 1px solid #e4eaf0; }
+  .r-intv-icon { font-size: 14px; flex-shrink: 0; margin-top: 2px; }
+  .r-intv-body { flex: 1; }
+  .r-intv-text { font-size: 12px; color: #2a3040; font-weight: 600; line-height: 1.4; }
+  .r-intv-meta { font-size: 10px; color: #9ab0c4; margin-top: 2px; }
+  .r-intv-today { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #c09010; background: #fff8e0; border-radius: 4px; padding: 1px 5px; }
+
+  /* Spec */
+  .spec-h2 { font-size: 13px; font-weight: 700; color: #e0e6f0; margin: 20px 0 8px; }
+  .spec-note { font-size: 12px; color: #778899; line-height: 1.7; margin-bottom: 12px; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px; }
+  .spec-table th { text-align: left; padding: 8px 10px; background: #141a26; color: #ffd166; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+  .spec-table td { padding: 8px 10px; border-bottom: 1px solid #1e2433; color: #c0c8d8; vertical-align: top; }
+  code { font-family: 'Courier New', monospace; background: #141a26; padding: 1px 6px; border-radius: 4px; font-size: 11px; color: #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('workbench')">3-Col Workbench</button>
+  <button class="tab" onclick="show('filters')">Filters + Sort</button>
+  <button class="tab" onclick="show('empty')">Empty / Low-Data</button>
+  <button class="tab" onclick="show('mobile')">Mobile Condensed</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- ═══ TAB 1: 3-COL WORKBENCH ═══ -->
+<div id="workbench" class="panel active">
+  <div class="hint">
+    <strong>Tab 1 — Desktop 3-Col Support Lane Workbench</strong><br>
+    Left: student lane list (Flag / Watch / Strong sections, selectable rows, left-border state indicator). Center: selected student detail rail (name header + tier skill cards + 5-week tier bar chart + intervention log). Right: quick-add note form + full intervention thread for selected student.
+  </div>
+
+  <div class="frame-label">Desktop · 1280px — Liam K. selected (Flag)</div>
+  <div class="desktop-frame" style="min-width:960px;">
+    <div style="overflow-x:auto;">
+      <div style="min-width:960px;">
+        <!-- Top nav -->
+        <div class="top-nav">
+          <div class="top-nav-logo">🌟 WonderQuest</div>
+          <div class="top-nav-link">Dashboard</div>
+          <div class="top-nav-link active">Support Lane</div>
+          <div class="top-nav-link">Timeline</div>
+          <div class="top-nav-link">Messages</div>
+          <div class="top-nav-right">
+            <div style="font-size:12px;color:#607080;">Ms. Chen · Room 12</div>
+            <div class="top-nav-avatar">MC</div>
+          </div>
+        </div>
+
+        <!-- 3-col -->
+        <div class="three-col">
+          <!-- Left: Student lanes -->
+          <div class="lane-col">
+            <div class="lane-col-hdr">
+              <div class="lane-col-title">Students</div>
+              <div class="lane-col-count">24 total · 11 need attention</div>
+            </div>
+            <!-- Flag section -->
+            <div class="lane-section">
+              <div class="lane-section-hdr" style="color:#c03030;">🚩 Flag (4)</div>
+              <div class="lane-item flag selected">
+                <div class="lane-avatar" style="background:#fff0f0;color:#9a1a1a;">LK</div>
+                <div>
+                  <div class="lane-name">Liam K.</div>
+                  <div class="lane-meta">Fractions · 3 wks</div>
+                </div>
+                <div class="lane-badge badge-flag">3 wks</div>
+              </div>
+              <div class="lane-item flag">
+                <div class="lane-avatar" style="background:#fff0f0;color:#9a1a1a;">RS</div>
+                <div>
+                  <div class="lane-name">Riley S.</div>
+                  <div class="lane-meta">Division · 2 wks</div>
+                </div>
+                <div class="lane-badge badge-flag">2 wks</div>
+              </div>
+              <div class="lane-item flag">
+                <div class="lane-avatar">JD</div>
+                <div>
+                  <div class="lane-name">Jordan D.</div>
+                  <div class="lane-meta">Subtraction · 2 wks</div>
+                </div>
+                <div class="lane-badge badge-flag">2 wks</div>
+              </div>
+              <div class="lane-item flag">
+                <div class="lane-avatar">PP</div>
+                <div>
+                  <div class="lane-name">Priya P.</div>
+                  <div class="lane-meta">Fractions · 2 wks</div>
+                </div>
+                <div class="lane-badge badge-flag">2 wks</div>
+              </div>
+            </div>
+            <!-- Watch section -->
+            <div class="lane-section">
+              <div class="lane-section-hdr" style="color:#a07010;">👁 Watch (7)</div>
+              <div class="lane-item watch">
+                <div class="lane-avatar">AJ</div>
+                <div>
+                  <div class="lane-name">Aisha J.</div>
+                  <div class="lane-meta">Division · 1 wk</div>
+                </div>
+                <div class="lane-badge badge-watch">1 wk</div>
+              </div>
+              <div class="lane-item watch">
+                <div class="lane-avatar">MO</div>
+                <div>
+                  <div class="lane-name">Marcus O.</div>
+                  <div class="lane-meta">Subtraction · 1 wk</div>
+                </div>
+                <div class="lane-badge badge-watch">1 wk</div>
+              </div>
+              <div class="lane-item watch">
+                <div class="lane-avatar" style="font-size:9px;">+5</div>
+                <div><div class="lane-name" style="color:#607080;">5 more watch</div></div>
+              </div>
+            </div>
+            <!-- Strong section (collapsed) -->
+            <div class="lane-section">
+              <div class="lane-section-hdr" style="color:#2a8060;">✓ Strong (13)</div>
+              <div class="lane-item strong">
+                <div class="lane-avatar" style="background:#e8f8f0;color:#1a6040;">MT</div>
+                <div>
+                  <div class="lane-name">Maya T.</div>
+                  <div class="lane-meta">Multiplication</div>
+                </div>
+                <div class="lane-badge badge-strong">Strong</div>
+              </div>
+              <div class="lane-item">
+                <div class="lane-avatar" style="font-size:9px;">+12</div>
+                <div><div class="lane-name" style="color:#607080;">12 more</div></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Center: Student detail -->
+          <div class="detail-col">
+            <div class="detail-student-hdr">
+              <div class="detail-avatar-lg" style="background:#fff0f0;color:#9a1a1a;">LK</div>
+              <div>
+                <div class="detail-name">Liam K.</div>
+                <div class="detail-meta">G2–3 · Mint Band · 🚩 Flagged 3 weeks</div>
+              </div>
+              <div class="detail-actions">
+                <button class="d-btn d-btn-secondary">Message Parent</button>
+                <button class="d-btn d-btn-primary">Resolve Intervention</button>
+              </div>
+            </div>
+
+            <!-- Skill cards -->
+            <div class="skill-grid">
+              <div class="skill-card flag-card">
+                <div class="skill-label" style="color:#c03030;">🚩 Flag — Support Tier</div>
+                <div class="skill-name">Fractions Intro</div>
+                <div class="skill-sub">Support tier · 3 weeks</div>
+                <div class="progress-bar-wrap">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <div style="font-size:10px;color:#9ab0c4;">Nodes completed</div>
+                    <div style="font-size:10px;font-weight:700;color:#9a1a1a;">3/10</div>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width:30%;background:#f0b0b0;"></div>
+                  </div>
+                </div>
+              </div>
+              <div class="skill-card strong-card">
+                <div class="skill-label" style="color:#1a8050;">✓ Strength</div>
+                <div class="skill-name">Addition &amp; Subtraction</div>
+                <div class="skill-sub">Strength tier · 4 weeks</div>
+                <div class="progress-bar-wrap">
+                  <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                    <div style="font-size:10px;color:#9ab0c4;">Nodes completed</div>
+                    <div style="font-size:10px;font-weight:700;color:#1a8050;">8/10</div>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width:80%;background:#88d8b0;"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5-week tier bar chart -->
+            <div class="week-chart">
+              <div class="chart-title">5-Week Tier History — Fractions</div>
+              <div class="chart-bars">
+                <div class="chart-bar-wrap">
+                  <div class="chart-bar" style="height:20px;background:#f0b0b0;"></div>
+                  <div class="chart-day">Wk 1</div>
+                </div>
+                <div class="chart-bar-wrap">
+                  <div class="chart-bar" style="height:18px;background:#f0b0b0;"></div>
+                  <div class="chart-day">Wk 2</div>
+                </div>
+                <div class="chart-bar-wrap">
+                  <div class="chart-bar" style="height:16px;background:#f0b0b0;"></div>
+                  <div class="chart-day">Wk 3</div>
+                </div>
+                <div class="chart-bar-wrap">
+                  <div class="chart-bar" style="height:14px;background:#f0b0b0;"></div>
+                  <div class="chart-day">Wk 4</div>
+                </div>
+                <div class="chart-bar-wrap">
+                  <div class="chart-bar" style="height:13px;background:#f0b0b0;"></div>
+                  <div class="chart-day">Now</div>
+                </div>
+              </div>
+              <div style="font-size:10px;color:#9ab0c4;margin-top:6px;">All 5 weeks in Support tier — flag threshold crossed at Wk 2</div>
+            </div>
+
+            <!-- Intervention log -->
+            <div class="intv-log">
+              <div class="intv-log-title">Intervention Log</div>
+              <div class="intv-entry">
+                <div class="intv-entry-icon">🚩</div>
+                <div class="intv-entry-body">
+                  <div class="intv-entry-text">Auto-flagged: 2+ weeks in support tier</div>
+                  <div class="intv-entry-meta">Today 9:11 AM · System</div>
+                </div>
+              </div>
+              <div class="intv-entry">
+                <div class="intv-entry-icon">📞</div>
+                <div class="intv-entry-body">
+                  <div class="intv-entry-text">Parent contact — spoke with Liam's mom. Will practice fractions at home using pizza fractions idea.</div>
+                  <div class="intv-entry-meta">Yesterday 3:30 PM · Ms. Chen</div>
+                </div>
+              </div>
+              <div class="intv-entry">
+                <div class="intv-entry-icon">📝</div>
+                <div class="intv-entry-body">
+                  <div class="intv-entry-text">Note: Liam engages well in class but the independent practice on digital isn't clicking yet. Working on a different visual approach.</div>
+                  <div class="intv-entry-meta">3 days ago · Ms. Chen</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right: Quick-add + full thread -->
+          <div class="right-col">
+            <div class="right-col-hdr">
+              <div class="right-col-title">Intervention Notes</div>
+              <div class="right-col-sub">Liam K. · Full thread</div>
+            </div>
+            <div class="quick-add">
+              <div class="quick-add-label">Add Note</div>
+              <textarea class="quick-add-input" rows="3" placeholder="Note for Liam's intervention…"></textarea>
+              <div class="quick-add-actions">
+                <button class="qa-btn qa-btn-primary">Save Note</button>
+                <button class="qa-btn qa-btn-secondary">Flag Parent</button>
+                <button class="qa-btn" style="background:#e8f8f0;color:#1a6040;">Resolve</button>
+              </div>
+            </div>
+
+            <!-- Thread -->
+            <div class="r-intv-row">
+              <div class="r-intv-icon">🚩</div>
+              <div class="r-intv-body">
+                <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                  <div class="r-intv-text">Auto-flagged</div>
+                  <div class="r-intv-today">TODAY</div>
+                </div>
+                <div class="r-intv-meta">9:11 AM · System</div>
+              </div>
+            </div>
+            <div class="r-intv-row">
+              <div class="r-intv-icon">📞</div>
+              <div class="r-intv-body">
+                <div class="r-intv-text">Parent contact — spoke with Liam's mom</div>
+                <div class="r-intv-meta">Yesterday 3:30 PM · Ms. Chen</div>
+              </div>
+            </div>
+            <div class="r-intv-row">
+              <div class="r-intv-icon">📝</div>
+              <div class="r-intv-body">
+                <div class="r-intv-text">Liam engages well in class but digital independent practice isn't clicking</div>
+                <div class="r-intv-meta">3 days ago · Ms. Chen</div>
+              </div>
+            </div>
+            <div class="r-intv-row">
+              <div class="r-intv-icon">🎯</div>
+              <div class="r-intv-body">
+                <div class="r-intv-text">Skill assigned: Fractions Intro (visual approach)</div>
+                <div class="r-intv-meta">1 wk ago · Ms. Chen</div>
+              </div>
+            </div>
+            <div class="r-intv-row" style="border:none;">
+              <div class="r-intv-icon">📊</div>
+              <div class="r-intv-body">
+                <div class="r-intv-text">Entered Support tier — Fractions Intro</div>
+                <div class="r-intv-meta">3 wks ago · System</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 2: FILTERS + SORT ═══ -->
+<div id="filters" class="panel">
+  <div class="hint">
+    <strong>Tab 2 — Filters + Sort Controls</strong><br>
+    Filter bar above student lane: filter by tier (Flag/Watch/Strong/All), skill, duration in tier, and active-this-week toggle. Sort options: longest in support / most recent / alphabetical. Applied filters shown as dismissable chips. Reset all button.
+  </div>
+  <div class="frame-label">Desktop · Filters Applied</div>
+  <div class="desktop-frame">
+    <div style="overflow-x:auto;min-width:960px;">
+      <div style="min-width:960px;">
+        <div class="top-nav">
+          <div class="top-nav-logo">🌟 WonderQuest</div>
+          <div class="top-nav-link active">Support Lane</div>
+          <div class="top-nav-right">
+            <div class="top-nav-avatar">MC</div>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="background:#fff;border-bottom:1px solid #d0dae4;padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#607080;letter-spacing:0.07em;">Filter:</div>
+          <div style="padding:5px 12px;border-radius:20px;background:#9a1a1a;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;">🚩 Flag <span style="opacity:0.7;">✕</span></div>
+          <div style="padding:5px 12px;border-radius:20px;background:#e8f0ff;border:1px solid #2a5080;color:#2a5080;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;">Skill: Fractions <span style="opacity:0.7;">✕</span></div>
+          <div style="padding:5px 12px;border-radius:20px;background:#fff8e8;border:1px solid #c07800;color:#7a5000;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;cursor:pointer;">2+ weeks <span style="opacity:0.7;">✕</span></div>
+          <div style="font-size:11px;font-weight:700;color:#9a1a1a;cursor:pointer;margin-left:4px;">Reset all</div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:6px;">
+            <div style="font-size:11px;color:#607080;">Sort:</div>
+            <select style="background:#e4eaf0;border:1px solid #d0dae4;border-radius:6px;padding:4px 8px;font-size:11px;color:#1c2430;font-family:inherit;">
+              <option>Longest in support</option>
+              <option>Most recent</option>
+              <option>Alphabetical</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Results indicator -->
+        <div style="background:#f0f4f8;padding:8px 20px;border-bottom:1px solid #d0dae4;">
+          <div style="font-size:11px;color:#607080;">Showing <strong style="color:#1c2430;">2 students</strong> matching: Flag + Fractions + 2+ weeks</div>
+        </div>
+
+        <div class="three-col" style="min-height:400px;">
+          <div class="lane-col">
+            <div class="lane-col-hdr">
+              <div class="lane-col-title">Filtered Results</div>
+              <div class="lane-col-count">2 of 4 flag students</div>
+            </div>
+            <div class="lane-section">
+              <div class="lane-section-hdr" style="color:#c03030;">🚩 Matching (2)</div>
+              <div class="lane-item flag selected">
+                <div class="lane-avatar" style="background:#fff0f0;color:#9a1a1a;">LK</div>
+                <div><div class="lane-name">Liam K.</div><div class="lane-meta">Fractions · 3 wks</div></div>
+                <div class="lane-badge badge-flag">3 wks</div>
+              </div>
+              <div class="lane-item flag">
+                <div class="lane-avatar" style="background:#fff0f0;color:#9a1a1a;">PP</div>
+                <div><div class="lane-name">Priya P.</div><div class="lane-meta">Fractions · 2 wks</div></div>
+                <div class="lane-badge badge-flag">2 wks</div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-col">
+            <div style="display:flex;align-items:center;gap:10px;padding:16px 0;color:#607080;">
+              <div style="font-size:12px;">Select a student to view details</div>
+            </div>
+          </div>
+          <div class="right-col">
+            <div class="right-col-hdr">
+              <div class="right-col-title">Notes</div>
+              <div class="right-col-sub">Select a student</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 3: EMPTY / LOW-DATA ═══ -->
+<div id="empty" class="panel">
+  <div class="hint">
+    <strong>Tab 3 — Empty / Low-Data States</strong><br>
+    Two states: (1) No students in support or watch — all-clear empty lane (2) New class, no data yet — "waiting for first sessions" state with skeleton loader.
+  </div>
+  <div class="frame-label">Desktop · All-Clear State</div>
+  <div class="desktop-frame" style="margin-bottom:24px;">
+    <div style="overflow-x:auto;min-width:960px;"><div style="min-width:960px;">
+      <div class="top-nav">
+        <div class="top-nav-logo">🌟 WonderQuest</div>
+        <div class="top-nav-link active">Support Lane</div>
+        <div class="top-nav-right"><div class="top-nav-avatar">MC</div></div>
+      </div>
+      <div class="three-col" style="min-height:380px;">
+        <div class="lane-col">
+          <div class="lane-col-hdr"><div class="lane-col-title">Students</div><div class="lane-col-count">24 students</div></div>
+          <div style="padding:32px 16px;text-align:center;">
+            <div style="font-size:28px;margin-bottom:8px;">🌟</div>
+            <div style="font-size:12px;font-weight:700;color:#1c2430;margin-bottom:4px;">No students need attention</div>
+            <div style="font-size:11px;color:#607080;line-height:1.5;">Everyone is in Strength or Next tier this week.</div>
+          </div>
+          <div class="lane-section">
+            <div class="lane-section-hdr" style="color:#2a8060;">✓ Strong (24)</div>
+            <div class="lane-item strong">
+              <div class="lane-avatar" style="background:#e8f8f0;color:#1a6040;">MT</div>
+              <div><div class="lane-name">Maya T.</div><div class="lane-meta">Multiplication</div></div>
+              <div class="lane-badge badge-strong">Strong</div>
+            </div>
+            <div class="lane-item"><div class="lane-avatar" style="font-size:9px;">+23</div><div><div class="lane-name" style="color:#607080;">23 more</div></div></div>
+          </div>
+        </div>
+        <div class="detail-col" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:10px;">
+          <div style="font-size:32px;">🎉</div>
+          <div style="font-size:14px;font-weight:800;color:#1a6040;">Great week, Ms. Chen!</div>
+          <div style="font-size:12px;color:#607080;text-align:center;max-width:280px;">All 24 students are thriving. No support interventions needed this week.</div>
+        </div>
+        <div class="right-col">
+          <div class="right-col-hdr"><div class="right-col-title">Notes</div><div class="right-col-sub">All clear</div></div>
+          <div style="padding:20px 16px;text-align:center;">
+            <div style="font-size:22px;margin-bottom:6px;">✓</div>
+            <div style="font-size:11px;color:#607080;">No active interventions this week</div>
+          </div>
+        </div>
+      </div>
+    </div></div>
+  </div>
+</div>
+
+<!-- ═══ TAB 4: MOBILE CONDENSED ═══ -->
+<div id="mobile" class="panel">
+  <div class="hint">
+    <strong>Tab 4 — Mobile Condensed View</strong><br>
+    On mobile the 3-col collapses: default view shows the student lane list only. Tapping a student pushes a full-screen detail sheet. Same data, simplified hierarchy. Matches teacher-class-summary-mobile-v2 patterns.
+  </div>
+  <div style="display:flex;gap:20px;flex-wrap:wrap;">
+    <div>
+      <div class="frame-label">Mobile — Student Lane</div>
+      <div style="width:375px;background:#f0f4f8;border-radius:40px;border:8px solid #2a3040;box-shadow:0 12px 40px rgba(0,0,0,0.5);overflow:hidden;font-family:'Sora','Segoe UI',sans-serif;">
+        <div style="overflow-y:auto;max-height:700px;">
+          <div style="display:flex;justify-content:space-between;padding:12px 20px 6px;font-size:11px;font-weight:700;color:#607080;background:#f0f4f8;"><span>9:41</span><span>●●● 🔋</span></div>
+          <div style="background:#fff;border-bottom:1px solid #d0dae4;padding:12px 16px;display:flex;align-items:center;gap:10px;">
+            <div><div style="font-size:15px;font-weight:800;color:#1c2430;">Support Lane</div><div style="font-size:11px;color:#607080;">Ms. Chen</div></div>
+            <div style="margin-left:auto;background:#e4eaf0;color:#2a5080;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">Filter</div>
+          </div>
+          <div style="padding:8px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#c03030;">🚩 Flag (4)</div>
+          <div style="margin:0 16px 8px;background:#fff;border:1px solid #d0dae4;border-left:3px solid #9a2a2a;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#9a1a1a;flex-shrink:0;">LK</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#1c2430;">Liam K.</div><div style="font-size:11px;color:#607080;">Fractions · 3 wks</div></div>
+            <div style="font-size:11px;color:#9a1a1a;font-weight:700;">→</div>
+          </div>
+          <div style="margin:0 16px 8px;background:#fff;border:1px solid #d0dae4;border-left:3px solid #9a2a2a;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#e4eaf0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#2a5080;flex-shrink:0;">RS</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#1c2430;">Riley S.</div><div style="font-size:11px;color:#607080;">Division · 2 wks</div></div>
+            <div style="font-size:11px;color:#9a1a1a;font-weight:700;">→</div>
+          </div>
+          <div style="padding:6px 16px 4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.09em;color:#a07010;">👁 Watch (7)</div>
+          <div style="margin:0 16px 8px;background:#fff;border:1px solid #d0dae4;border-left:3px solid #c07800;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:#e4eaf0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:#2a5080;flex-shrink:0;">AJ</div>
+            <div style="flex:1;"><div style="font-size:12px;font-weight:700;color:#1c2430;">Aisha J.</div><div style="font-size:11px;color:#607080;">Division · 1 wk</div></div>
+            <div style="font-size:11px;color:#c07800;font-weight:700;">→</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ TAB 5: SPEC ═══ -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Tab 5 — Spec Notes</strong></div>
+
+  <div class="spec-h2">Layout Grid</div>
+  <table class="spec-table">
+    <tr><th>Column</th><th>Width</th><th>Scroll</th><th>Contents</th></tr>
+    <tr><td>Left — Student Lanes</td><td>220px fixed</td><td>Vertical</td><td>Flag/Watch/Strong sections, selectable rows</td></tr>
+    <tr><td>Center — Student Detail</td><td>1fr (flex)</td><td>Vertical</td><td>Header, skill cards, 5-wk chart, intervention log</td></tr>
+    <tr><td>Right — Notes Panel</td><td>320px fixed</td><td>Vertical</td><td>Quick-add form, full intervention thread</td></tr>
+  </table>
+
+  <div class="spec-h2">Student Lane Sort Order</div>
+  <div class="spec-note">Default: Flag first (sorted by weeks in support desc), then Watch (weeks in support desc), then Strong (alphabetical). Filter and sort controls override this. "Active this week" toggle: hides students with 0 sessions in last 7 days from lane.</div>
+
+  <div class="spec-h2">Filter Options</div>
+  <table class="spec-table">
+    <tr><th>Filter</th><th>Values</th></tr>
+    <tr><td>Tier</td><td>All / Flag / Watch / Strong</td></tr>
+    <tr><td>Skill</td><td>Any skill name in class roster</td></tr>
+    <tr><td>Duration in tier</td><td>1 wk / 2 wks / 3+ wks</td></tr>
+    <tr><td>Active this week</td><td>Toggle: on = hide inactive students</td></tr>
+  </table>
+
+  <div class="spec-h2">Design Tokens</div>
+  <table class="spec-table">
+    <tr><th>Token</th><th>Value</th></tr>
+    <tr><td>Base bg</td><td><code>#f0f4f8</code> cool steel</td></tr>
+    <tr><td>Surface</td><td><code>#ffffff</code></td></tr>
+    <tr><td>Surface alt</td><td><code>#e4eaf0</code></td></tr>
+    <tr><td>Border</td><td><code>#d0dae4</code></td></tr>
+    <tr><td>Accent</td><td><code>#2a5080</code> deep navy</td></tr>
+    <tr><td>Flag left-border</td><td><code>#9a2a2a</code></td></tr>
+    <tr><td>Watch left-border</td><td><code>#c07800</code></td></tr>
+    <tr><td>Strong left-border</td><td><code>#1a8050</code></td></tr>
+    <tr><td>Selected row bg (flag)</td><td><code>#fff8f8</code></td></tr>
+    <tr><td>TODAY divider</td><td><code>#c09010</code> gold</td></tr>
+    <tr><td>Font</td><td>Sora · all teacher</td></tr>
+    <tr><td>Desktop min-width</td><td>960px</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
