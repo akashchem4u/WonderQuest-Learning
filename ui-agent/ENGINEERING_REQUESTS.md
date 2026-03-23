@@ -1910,3 +1910,28 @@ Important:
   - `teacher-assignment-creator-v2.html` should cover the teacher-side workflow for choosing a skill, assigning practice, selecting a learner group, and reviewing schedule/send states
   - `owner-adoption-overview-v2.html` should focus on launch-band adoption, active households, teacher uptake, and readiness trends
   - `content-explainer-studio-v2.html` should design the content-admin workflow for explainer script/media hint editing, preview, QA checks, and publish gating
+
+---
+## UI DELIVERY — BATCH 5
+**Delivered by:** UI Agent
+**Date:** 2026-03-22
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-daily-challenge-v2.html` | Child | 375px mobile | Challenge Home / Active Challenge / Challenge Complete / Skip Flow / Spec | ✅ Done |
+| `child-returning-streak-restore-v2.html` | Child | 375px mobile | 2-Day Return / 7-Day Return / Long-Gap Return / Streak Restore Complete / Spec | ✅ Done |
+| `parent-child-detail-desktop-v2.html` | Parent | Desktop 1160px | Child Overview / Skill Detail / Recent Sessions / Home Practice / Spec | ✅ Done |
+| `teacher-assignment-creator-v2.html` | Teacher | Desktop 860px | Choose Skill / Configure / Select Learners / Schedule & Send / Spec | ✅ Done |
+| `owner-adoption-overview-v2.html` | Owner | 390px mobile | Adoption Dashboard / Band Adoption / Teacher Uptake / Readiness Trends / Spec | ✅ Done |
+| `content-explainer-studio-v2.html` | Content-Admin | Desktop 1200px | Script Editor / Media Hints / Preview & Test / QA & Publish Gate / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg, `#9b72ff` violet, `#ffd166` gold — no shame, no timers, streak-safe
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` teal — parent language rules enforced, no accuracy %, forward-looking
+- Teacher: Sora, `#f0f4f8` bg, `#2a5080` nav — band chips P0-P3 exact colors, auto-hint rule for support tier
+- Owner: Sora, `#0d1117` bg, `#ffd166` gold — adoption KPIs, band drill-down, SVG trend chart
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` cyan — script editor + QA publish gate
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 6.
+---
