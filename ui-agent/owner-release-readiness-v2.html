@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Release Readiness v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060a10; font-family: 'Sora', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 780px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+.tab-btn { background: #0d1117; color: #ffd166; border: 1.5px solid #2a2a1a; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #ffd166; color: #1a0f00; border-color: #ffd166; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Phone frame */
+.phone { width: 390px; background: #0d1117; border-radius: 40px; border: 3px solid #1e2a3a; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.7); margin: 0 auto; min-height: 720px; display: flex; flex-direction: column; }
+.status-bar { background: #080e16; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: #5a7090; }
+.phone-header { background: #080e16; padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e2a3a; }
+.header-title { font-size: 15px; font-weight: 700; color: #e8e0d0; flex: 1; }
+.header-date { font-size: 11px; color: #6080a0; }
+
+/* GO / NO-GO hero */
+.go-hero { text-align: center; padding: 24px 20px 18px; }
+.go-indicator { width: 100px; height: 100px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 36px; font-weight: 700; margin: 0 auto 12px; animation: hero-pulse 2s ease-in-out infinite; }
+.go-green { background: linear-gradient(135deg, #1a5030, #0e2a18); border: 4px solid #50c880; color: #80ff90; box-shadow: 0 0 30px rgba(80,200,128,.4); }
+@keyframes hero-pulse { 0%,100% { box-shadow: 0 0 20px rgba(80,200,128,.3); } 50% { box-shadow: 0 0 40px rgba(80,200,128,.6); } }
+.go-red { background: linear-gradient(135deg, #3a1010, #1a0808); border: 4px solid #ff6060; color: #ff9090; box-shadow: 0 0 30px rgba(255,80,80,.4); animation: red-pulse 1.5s ease-in-out infinite; }
+@keyframes red-pulse { 0%,100% { box-shadow: 0 0 20px rgba(255,80,80,.3); } 50% { box-shadow: 0 0 40px rgba(255,80,80,.6); } }
+.go-label { font-size: 26px; font-weight: 700; }
+.go-sublabel { font-size: 13px; color: #6080a0; margin-top: 4px; }
+
+/* Readiness score */
+.readiness-score { background: #131c28; border-radius: 14px; margin: 0 14px 14px; padding: 14px; display: flex; align-items: center; gap: 14px; }
+.score-circle { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.score-ok { background: #0e2a18; border: 3px solid #50c880; color: #80ff90; }
+.score-warn { background: #1e1800; border: 3px solid #f0c030; color: #f0c030; }
+.score-info { flex: 1; }
+.score-title { font-size: 13px; font-weight: 700; color: #e8e0d0; }
+.score-sub { font-size: 11px; color: #6080a0; margin-top: 3px; }
+.score-bar { height: 6px; background: #1e2a3a; border-radius: 4px; overflow: hidden; margin-top: 8px; }
+.score-fill { height: 100%; border-radius: 4px; }
+
+/* Checklist */
+.checklist { padding: 0 14px; }
+.check-section { margin-bottom: 12px; }
+.check-section-label { font-size: 11px; font-weight: 700; color: #6080a0; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+.check-row { display: flex; align-items: center; gap: 10px; padding: 9px 12px; background: #131c28; border-radius: 10px; margin-bottom: 6px; border: 1px solid #1e2a3a; }
+.check-icon { font-size: 16px; flex-shrink: 0; }
+.check-text { flex: 1; font-size: 12px; color: #c0c8d0; }
+.check-status-ok { color: #50c880; font-size: 14px; flex-shrink: 0; }
+.check-status-fail { color: #ff6060; font-size: 14px; flex-shrink: 0; }
+.check-status-warn { color: #f0c030; font-size: 14px; flex-shrink: 0; }
+.check-status-pending { color: #6080a0; font-size: 14px; flex-shrink: 0; }
+.check-row.fail-row { border-color: #5a1818; background: #1e0808; }
+.check-row.warn-row { border-color: #3a2800; background: #1e1800; }
+.check-detail { font-size: 10px; color: #6080a0; margin-top: 2px; }
+.check-detail.red { color: #ff8080; }
+.check-detail.amber { color: #f0c030; }
+
+/* Blocker list */
+.blocker-summary { margin: 0 14px 12px; }
+.blocker-count-row { display: flex; gap: 10px; margin-bottom: 12px; }
+.blocker-kpi { background: #131c28; border-radius: 12px; padding: 12px 14px; flex: 1; text-align: center; }
+.blocker-kpi .b-val { font-size: 24px; font-weight: 700; }
+.blocker-kpi .b-lbl { font-size: 10px; color: #6080a0; margin-top: 3px; }
+.blocker-card { background: #131c28; border-radius: 14px; border: 1px solid #1e2a3a; padding: 14px; margin: 0 14px 12px; }
+.blocker-card.p0 { border-color: #5a1818; background: #1a0808; }
+.blocker-card.p1 { border-color: #3a2800; background: #1a1200; }
+.blocker-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.blocker-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.badge-p0 { background: #5a1818; color: #ff9090; }
+.badge-p1 { background: #3a2800; color: #f0c030; }
+.blocker-title { font-size: 13px; font-weight: 700; color: #e8e0d0; flex: 1; }
+.blocker-meta { font-size: 11px; color: #6080a0; margin-bottom: 6px; }
+.blocker-actions { display: flex; gap: 8px; }
+.b-btn { background: #1e2a3a; border: 1px solid #2a3a50; border-radius: 10px; padding: 5px 12px; font-size: 11px; color: #6080a0; font-family: 'Sora', sans-serif; cursor: pointer; }
+.b-btn-gold { background: #ffd166; color: #1a0f00; border: none; border-radius: 10px; padding: 5px 12px; font-size: 11px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; }
+
+/* Route health compact */
+.route-row { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #131c28; border-radius: 10px; margin: 0 14px 6px; border-left: 3px solid transparent; }
+.route-ok { border-left-color: #50c880; }
+.route-degraded { border-left-color: #f0c030; }
+.route-down { border-left-color: #ff6060; }
+.route-name { font-size: 12px; font-weight: 600; color: #c0c8d0; flex: 1; }
+.route-status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-ok { background: #50c880; }
+.dot-warn { background: #f0c030; }
+.dot-down { background: #ff6060; animation: blink .8s step-start infinite; }
+@keyframes blink { 0%,100% { opacity:1; } 50% { opacity:.2; } }
+.route-latency { font-size: 10px; color: #6080a0; }
+.route-status-chip { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 6px; }
+.chip-ok { background: #0e2a18; color: #50c880; }
+.chip-degraded { background: #1e1800; color: #f0c030; }
+.chip-down { background: #1e0808; color: #ff6060; }
+
+/* Launch checklist (detailed) */
+.launch-section { margin-bottom: 12px; }
+.launch-section-header { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #0d1420; border-bottom: 1px solid #1e2a3a; }
+.launch-section-icon { font-size: 16px; }
+.launch-section-title { font-size: 12px; font-weight: 700; color: #e8e0d0; flex: 1; }
+.launch-section-pct { font-size: 11px; font-weight: 700; }
+.launch-check { display: flex; align-items: center; gap: 8px; padding: 8px 14px 8px 22px; border-bottom: 1px solid #131c28; }
+.launch-check:last-child { border-bottom: none; }
+.lc-icon { font-size: 13px; flex-shrink: 0; }
+.lc-text { font-size: 12px; color: #9090a0; flex: 1; }
+.lc-text.done { color: #50c880; }
+.lc-text.fail { color: #ff8080; }
+.lc-text.pending { color: #6080a0; }
+
+/* Bottom action bar */
+.action-bar { background: #080e16; border-top: 1px solid #1e2a3a; padding: 12px 14px; display: flex; gap: 10px; flex-shrink: 0; }
+.btn-gold { background: #ffd166; color: #1a0f00; border: none; border-radius: 24px; padding: 12px 0; font-size: 14px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-outline { background: transparent; color: #ffd166; border: 2px solid #ffd166; border-radius: 24px; padding: 12px 0; font-size: 14px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-danger { background: #3a1010; color: #ff8080; border: 1.5px solid #6a2020; border-radius: 24px; padding: 12px 0; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+
+/* Spec */
+.spec-wrap { padding: 14px; }
+.spec-section { margin-bottom: 16px; }
+.spec-title { font-size: 12px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spec-table th { background: #131c28; color: #ffd166; padding: 6px 8px; text-align: left; border-bottom: 1px solid #1e2a3a; }
+.spec-table td { color: #9090a0; padding: 5px 8px; border-bottom: 1px solid #0d1117; vertical-align: top; }
+.spec-rule { background: #0d1117; border-left: 3px solid #ffd166; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 11px; color: #9090a0; }
+.spec-rule strong { color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>🚀 owner-release-readiness-v2.html</strong> — Owner ops screen for go/no-go readiness, blocker counts, route health, and launch checklist.<br>
+  <strong>Tabs:</strong> 1 · Go/No-Go Dashboard (big indicator, readiness score bar, checklist: content/QA/routes/feedback/stakeholder) &nbsp;|&nbsp; 2 · Blockers (P0/P1 count KPIs, blocker detail cards with owner+actions) &nbsp;|&nbsp; 3 · Route Health Summary (compact route list, all-clear or degraded states) &nbsp;|&nbsp; 4 · Launch Checklist (detailed multi-section checklist with ✅/❌/pending states) &nbsp;|&nbsp; 5 · Spec (readiness thresholds, go criteria, routes).<br>
+  <strong>Design:</strong> <code>#0d1117</code> bg · Sora · <code>#ffd166</code> accent · 390px owner mobile frame.
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('rr-go')">1 · Go / No-Go</button>
+  <button class="tab-btn" onclick="show('rr-blockers')">2 · Blockers</button>
+  <button class="tab-btn" onclick="show('rr-routes')">3 · Route Health</button>
+  <button class="tab-btn" onclick="show('rr-checklist')">4 · Launch Checklist</button>
+  <button class="tab-btn" onclick="show('rr-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Go/No-Go -->
+<div id="rr-go" class="tab active">
+  <div class="phone">
+    <div class="status-bar"><span>Owner · Release Ops</span><span style="color:#ffd166; font-size:12px;">v1.4.0</span></div>
+    <div class="phone-header">
+      <div class="header-title">Release Readiness</div>
+      <div class="header-date">Mar 22 · 5:07 PM</div>
+    </div>
+    <!-- NO-GO state -->
+    <div class="go-hero">
+      <div class="go-indicator go-red">🚫</div>
+      <div class="go-label" style="color:#ff8080;">NO-GO</div>
+      <div class="go-sublabel">2 blockers must be resolved before launch</div>
+    </div>
+    <div class="readiness-score">
+      <div class="score-circle score-warn">72</div>
+      <div class="score-info">
+        <div class="score-title">Readiness Score: 72 / 100</div>
+        <div class="score-sub">Need ≥ 90 for GO status</div>
+        <div class="score-bar"><div class="score-fill" style="width:72%; background: linear-gradient(90deg, #c07800, #f0c030);"></div></div>
+      </div>
+    </div>
+    <div class="checklist">
+      <div class="check-section-label">Requirements</div>
+      <div class="check-row fail-row">
+        <div class="check-icon">🔴</div>
+        <div style="flex:1;">
+          <div class="check-text">All P0 feedback resolved</div>
+          <div class="check-detail red">1 P0 open · FB-00247 · 3h old</div>
+        </div>
+        <div class="check-status-fail">✗</div>
+      </div>
+      <div class="check-row fail-row">
+        <div class="check-icon">🔴</div>
+        <div style="flex:1;">
+          <div class="check-text">All routes healthy</div>
+          <div class="check-detail red">1 route degraded · /session/start p95 = 2.4s</div>
+        </div>
+        <div class="check-status-fail">✗</div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon">📚</div>
+        <div style="flex:1;">
+          <div class="check-text">Content coverage ≥ 6 Q/node all nodes</div>
+          <div class="check-detail amber">1 node below threshold · Phonics Node 4 (4 Q)</div>
+        </div>
+        <div class="check-status-warn">⚠</div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon">✅</div>
+        <div style="flex:1;">
+          <div class="check-text">QA score ≥ 80% all skills</div>
+          <div class="check-detail">All skills at 82–96%</div>
+        </div>
+        <div class="check-status-ok">✓</div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon">✅</div>
+        <div style="flex:1;">
+          <div class="check-text">No pending bulk imports ≥ 100 rows</div>
+          <div class="check-detail">None outstanding</div>
+        </div>
+        <div class="check-status-ok">✓</div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon">⏳</div>
+        <div style="flex:1;">
+          <div class="check-text">Stakeholder sign-off</div>
+          <div class="check-detail">Awaiting @product_lead</div>
+        </div>
+        <div class="check-status-pending">?</div>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="action-bar">
+      <button class="btn-outline">View Blockers</button>
+      <button class="btn-danger">Block Release</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Blockers -->
+<div id="rr-blockers" class="tab">
+  <div class="phone">
+    <div class="status-bar"><span>Owner · Release Ops</span></div>
+    <div class="phone-header">
+      <div class="header-title">Active Blockers</div>
+    </div>
+    <div class="blocker-summary">
+      <div class="blocker-count-row">
+        <div class="blocker-kpi"><div class="b-val" style="color:#ff6060;">1</div><div class="b-lbl">P0 Blockers</div></div>
+        <div class="blocker-kpi"><div class="b-val" style="color:#f0c030;">1</div><div class="b-lbl">P1 Blockers</div></div>
+        <div class="blocker-kpi"><div class="b-val" style="color:#f0c030;">1</div><div class="b-lbl">Warnings</div></div>
+        <div class="blocker-kpi"><div class="b-val" style="color:#50c880;">5</div><div class="b-lbl">Checks OK</div></div>
+      </div>
+    </div>
+    <div class="blocker-card p0">
+      <div class="blocker-header">
+        <span class="blocker-badge badge-p0">P0 · BLOCKER</span>
+        <div class="blocker-title">Login crash on iOS 17</div>
+      </div>
+      <div class="blocker-meta">FB-00247 · Reported 3h ago · Assigned: Dev @jsmith</div>
+      <div style="font-size:12px; color:#9090a0; line-height:1.4; margin-bottom:8px;">"App crashes immediately on iOS 17.2.1" — 14 reports. On-call investigating WebKit regression.</div>
+      <div class="blocker-actions">
+        <button class="b-btn">View FB-00247</button>
+        <button class="b-btn">Escalate</button>
+        <button class="b-btn-gold">Mark Resolved</button>
+      </div>
+    </div>
+    <div class="blocker-card p1">
+      <div class="blocker-header">
+        <span class="blocker-badge badge-p1">P1 · BLOCKER</span>
+        <div class="blocker-title">/session/start degraded</div>
+      </div>
+      <div class="blocker-meta">INC-0042 · Active 1h 14min · Dev on-call</div>
+      <div style="font-size:12px; color:#9090a0; line-height:1.4; margin-bottom:8px;">p95 latency at 2.4s (target ≤ 1.0s). Err rate 0.4% — degraded not down. Session start succeeding but slow.</div>
+      <div class="blocker-actions">
+        <button class="b-btn">View INC-0042</button>
+        <button class="b-btn-gold">View Route Health</button>
+      </div>
+    </div>
+    <div style="margin:0 14px 12px; background:#1e1800; border:1px solid #3a2800; border-radius:12px; padding:12px;">
+      <div style="font-size:11px; font-weight:700; color:#f0c030; margin-bottom:6px;">⚠️ Warning (not blocking)</div>
+      <div style="font-size:12px; color:#c0a030;">Phonics Node 4 has only 4 questions (target 6). Node may run dry mid-session for some students. Add content or accept for this release.</div>
+      <div style="display:flex; gap:8px; margin-top:8px;">
+        <button class="b-btn" style="font-size:11px;">Add Content</button>
+        <button class="b-btn" style="font-size:11px;">Accept for Release</button>
+      </div>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="action-bar">
+      <button class="btn-outline">Refresh</button>
+      <button class="btn-gold">View Go/No-Go</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Route Health -->
+<div id="rr-routes" class="tab">
+  <div class="phone">
+    <div class="status-bar"><span>Owner · Release Ops</span></div>
+    <div class="phone-header">
+      <div class="header-title">Route Health</div>
+      <div style="font-size:11px; color:#f0c030;">1 degraded</div>
+    </div>
+    <div style="padding:10px 0 4px;">
+      <div style="padding:8px 14px; font-size:11px; font-weight:700; color:#6080a0; text-transform:uppercase; letter-spacing:.5px;">Core Routes</div>
+      <div class="route-row route-degraded">
+        <div class="route-status-dot dot-warn"></div>
+        <div class="route-name">/session/start</div>
+        <div class="route-latency">p95 2.4s</div>
+        <span class="route-status-chip chip-degraded">Degraded</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/session/answer</div>
+        <div class="route-latency">p95 180ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/session/end</div>
+        <div class="route-latency">p95 220ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/auth/login</div>
+        <div class="route-latency">p95 410ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div style="padding:8px 14px; font-size:11px; font-weight:700; color:#6080a0; text-transform:uppercase; letter-spacing:.5px; margin-top:4px;">Content &amp; Data Routes</div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/questions/next</div>
+        <div class="route-latency">p95 95ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/worlds</div>
+        <div class="route-latency">p95 88ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/badges</div>
+        <div class="route-latency">p95 72ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+      <div class="route-row route-ok">
+        <div class="route-status-dot dot-ok"></div>
+        <div class="route-name">/parent/weekly-report</div>
+        <div class="route-latency">p95 310ms</div>
+        <span class="route-status-chip chip-ok">OK</span>
+      </div>
+    </div>
+    <div style="margin:10px 14px; background:#1e1800; border:1px solid #3a2800; border-radius:12px; padding:12px; font-size:12px; color:#c0a030;">
+      ⚠️ /session/start degraded — p95 2.4× target. INC-0042 open. Must resolve before GO.
+    </div>
+    <div style="flex:1;"></div>
+    <div class="action-bar">
+      <button class="btn-outline">View INC-0042</button>
+      <button class="btn-gold">Refresh All</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Launch Checklist -->
+<div id="rr-checklist" class="tab">
+  <div class="phone" style="min-height:760px;">
+    <div class="status-bar"><span>Owner · Release Ops</span></div>
+    <div class="phone-header">
+      <div class="header-title">Launch Checklist · v1.4.0</div>
+    </div>
+    <div style="flex:1; overflow-y:auto;">
+      <!-- Content -->
+      <div class="launch-section">
+        <div class="launch-section-header">
+          <div class="launch-section-icon">📚</div>
+          <div class="launch-section-title">Content Coverage</div>
+          <div class="launch-section-pct" style="color:#f0c030;">75%</div>
+        </div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">All P0 band nodes have ≥ 6 questions</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">All P1 band nodes have ≥ 6 questions</div></div>
+        <div class="launch-check"><div class="lc-icon">⚠️</div><div class="lc-text pending">P2 Phonics Node 4 has 4/6 questions (warning)</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">No bulk imports awaiting owner sign-off</div></div>
+      </div>
+      <!-- QA -->
+      <div class="launch-section">
+        <div class="launch-section-header">
+          <div class="launch-section-icon">🔍</div>
+          <div class="launch-section-title">QA Checks</div>
+          <div class="launch-section-pct" style="color:#50c880;">100%</div>
+        </div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">QA score ≥ 80% all active skills</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">No questions with hard-block failures in active pool</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">Review queue age ≤ 48h for P0/P1 items</div></div>
+      </div>
+      <!-- Routes -->
+      <div class="launch-section">
+        <div class="launch-section-header">
+          <div class="launch-section-icon">🌐</div>
+          <div class="launch-section-title">Route Health</div>
+          <div class="launch-section-pct" style="color:#ff6060;">50%</div>
+        </div>
+        <div class="launch-check"><div class="lc-icon">❌</div><div class="lc-text fail">All core routes healthy (p95 &lt; target)</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">Error rate &lt; 0.5% all routes</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">No active P0 incidents</div></div>
+      </div>
+      <!-- Feedback -->
+      <div class="launch-section">
+        <div class="launch-section-header">
+          <div class="launch-section-icon">📣</div>
+          <div class="launch-section-title">Feedback Queue</div>
+          <div class="launch-section-pct" style="color:#ff6060;">50%</div>
+        </div>
+        <div class="launch-check"><div class="lc-icon">❌</div><div class="lc-text fail">All P0 feedback resolved (1 open · FB-00247)</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">P1 feedback resolve rate ≥ 80%</div></div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">No unrouted critical feedback</div></div>
+      </div>
+      <!-- Stakeholder -->
+      <div class="launch-section">
+        <div class="launch-section-header">
+          <div class="launch-section-icon">🤝</div>
+          <div class="launch-section-title">Stakeholder Sign-off</div>
+          <div class="launch-section-pct" style="color:#6080a0;">33%</div>
+        </div>
+        <div class="launch-check"><div class="lc-icon">✅</div><div class="lc-text done">Content team sign-off · @content_lead</div></div>
+        <div class="launch-check"><div class="lc-icon">⏳</div><div class="lc-text pending">Product sign-off · @product_lead (awaiting)</div></div>
+        <div class="launch-check"><div class="lc-icon">⏳</div><div class="lc-text pending">Engineering sign-off · @eng_lead (awaiting)</div></div>
+      </div>
+    </div>
+    <div class="action-bar">
+      <button class="btn-outline">Export PDF</button>
+      <button class="btn-danger">Hold Release</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="rr-spec" class="tab">
+  <div class="phone" style="min-height:820px;">
+    <div class="status-bar" style="background:#080e16;"><span style="color:#ffd166; font-size:12px;">📋 Release Readiness Spec</span></div>
+    <div class="spec-wrap">
+      <div class="spec-section">
+        <div class="spec-title">Routes / API</div>
+        <table class="spec-table">
+          <tr><th>Endpoint</th><th>Purpose</th></tr>
+          <tr><td>GET /release/readiness</td><td>Full readiness report: score, check results, blockers</td></tr>
+          <tr><td>GET /release/blockers</td><td>Active blockers (P0/P1 feedback + route incidents)</td></tr>
+          <tr><td>GET /release/route-health</td><td>Current route status summary</td></tr>
+          <tr><td>GET /release/checklist</td><td>Full checklist with pass/fail/pending per item</td></tr>
+          <tr><td>POST /release/sign-off</td><td>Record stakeholder sign-off</td></tr>
+          <tr><td>POST /release/hold</td><td>Place release on hold with reason</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">GO Criteria (all must pass)</div>
+        <div class="spec-rule"><strong>P0 feedback:</strong> Zero open P0 feedback items.</div>
+        <div class="spec-rule"><strong>Route health:</strong> All core routes OK (p95 &lt; target, err &lt; 0.5%). Zero degraded routes.</div>
+        <div class="spec-rule"><strong>Content coverage:</strong> All active nodes ≥ 6 questions. Warnings allowed (accept-for-release); criticals (&lt;4) block.</div>
+        <div class="spec-rule"><strong>QA score:</strong> ≥ 80% all active skills. No hard-block failures in active pool.</div>
+        <div class="spec-rule"><strong>Stakeholder sign-off:</strong> All required sign-offs recorded.</div>
+        <div class="spec-rule"><strong>Readiness score:</strong> ≥ 90/100 required for automatic GO.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Readiness Score Formula</div>
+        <table class="spec-table">
+          <tr><th>Check</th><th>Weight</th><th>Fail penalty</th></tr>
+          <tr><td>Zero P0 feedback</td><td>25 pts</td><td>-25 per open P0</td></tr>
+          <tr><td>All routes OK</td><td>25 pts</td><td>-15 degraded / -25 down</td></tr>
+          <tr><td>Content coverage</td><td>20 pts</td><td>-5 per warn / -15 per crit</td></tr>
+          <tr><td>QA score</td><td>20 pts</td><td>-10 if any skill &lt;80%</td></tr>
+          <tr><td>Stakeholder sign-off</td><td>10 pts</td><td>-5 per missing sign-off</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

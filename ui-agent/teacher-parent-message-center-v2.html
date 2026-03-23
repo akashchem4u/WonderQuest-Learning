@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Parent Message Center v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #d8e4ef; font-family: 'Sora', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 900px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 900px; margin-left: auto; margin-right: auto; }
+.tab-btn { background: #e0eaf4; color: #2a5080; border: 1.5px solid #b0c8e0; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Desktop frame */
+.desktop-frame { max-width: 900px; margin: 0 auto; background: #f0f4f8; border-radius: 16px; border: 2px solid #c0d4e8; overflow: hidden; box-shadow: 0 8px 32px rgba(42,80,128,.15); min-height: 600px; display: flex; flex-direction: column; }
+
+/* Top nav */
+.top-nav { background: #2a5080; padding: 0 24px; display: flex; align-items: center; height: 52px; flex-shrink: 0; }
+.nav-brand { color: #fff; font-size: 15px; font-weight: 700; margin-right: 28px; }
+.nav-item { color: rgba(255,255,255,.7); font-size: 13px; padding: 0 14px; height: 100%; display: flex; align-items: center; cursor: pointer; border-bottom: 3px solid transparent; }
+.nav-item.active { color: #fff; border-bottom-color: #ffd166; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-class-chip { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 14px; padding: 4px 12px; font-size: 12px; color: #fff; }
+
+/* 2-col layout for message center */
+.msg-layout { display: flex; flex: 1; min-height: 540px; }
+.msg-list-col { width: 300px; border-right: 1px solid #c0d4e8; background: #e8f0f8; flex-shrink: 0; display: flex; flex-direction: column; }
+.msg-list-header { background: #2a5080; padding: 12px 16px; display: flex; align-items: center; gap: 8px; }
+.msg-list-title { font-size: 13px; font-weight: 700; color: #fff; flex: 1; }
+.compose-btn { background: #ffd166; color: #1a0f00; border: none; border-radius: 16px; padding: 5px 12px; font-size: 11px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; }
+.msg-search { padding: 8px 12px; background: #e0eaf4; border-bottom: 1px solid #c0d4e8; }
+.msg-search input { width: 100%; background: #fff; border: 1px solid #c0d4e8; border-radius: 20px; padding: 6px 12px; font-size: 12px; font-family: 'Sora', sans-serif; color: #1a2a40; }
+.msg-list-scroll { flex: 1; overflow-y: auto; }
+.msg-item { padding: 12px 14px; border-bottom: 1px solid #c0d4e8; cursor: pointer; background: #fff; transition: background .15s; position: relative; }
+.msg-item:hover { background: #f0f4f8; }
+.msg-item.active { background: #e8f0f8; border-left: 3px solid #2a5080; }
+.msg-item.unread { border-left: 3px solid #2c7a6e; }
+.msg-item-top { display: flex; align-items: flex-start; gap: 8px; }
+.msg-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, #2a5080, #4080b0); display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; color: #fff; font-weight: 700; }
+.msg-item-info { flex: 1; min-width: 0; }
+.msg-parent-name { font-size: 12px; font-weight: 700; color: #1a2a40; }
+.msg-student-name { font-size: 10px; color: #5a7090; margin-top: 1px; }
+.msg-preview { font-size: 11px; color: #5a7090; margin-top: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.msg-time { font-size: 10px; color: #8a9ab0; flex-shrink: 0; }
+.msg-badges { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+.badge-draft { background: #fff3d0; color: #9a6a00; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+.badge-unread { background: #d0f0e8; color: #1a6040; font-size: 9px; font-weight: 700; padding: 1px 6px; border-radius: 6px; }
+.unread-dot { position: absolute; top: 12px; right: 14px; width: 8px; height: 8px; border-radius: 50%; background: #2c7a6e; }
+
+/* Message thread */
+.msg-thread-col { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.thread-header { background: #fff; border-bottom: 1px solid #c0d4e8; padding: 12px 20px; display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.thread-parent-info { flex: 1; }
+.thread-parent-name { font-size: 14px; font-weight: 700; color: #1a2a40; }
+.thread-student-chip { font-size: 11px; color: #5a7090; margin-top: 2px; }
+.thread-actions { display: flex; gap: 8px; }
+.thread-btn { background: #f0f4f8; border: 1.5px solid #b0c8e0; border-radius: 16px; padding: 5px 12px; font-size: 11px; color: #2a5080; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; }
+.thread-btn.primary { background: #2a5080; color: #fff; border-color: #2a5080; }
+.thread-messages { flex: 1; overflow-y: auto; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.msg-bubble-wrap { display: flex; gap: 8px; align-items: flex-end; }
+.msg-bubble-wrap.teacher { flex-direction: row-reverse; }
+.bubble-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; font-weight: 700; }
+.ba-teacher { background: #2a5080; color: #fff; }
+.ba-parent { background: #2c7a6e; color: #fff; }
+.bubble { padding: 10px 14px; border-radius: 14px; max-width: 280px; }
+.bubble-teacher { background: #2a5080; color: #fff; border-radius: 14px 14px 0 14px; }
+.bubble-parent { background: #fff; border: 1px solid #c0d4e8; color: #1a2a40; border-radius: 14px 14px 14px 0; }
+.bubble-text { font-size: 13px; line-height: 1.5; }
+.bubble-time { font-size: 10px; margin-top: 4px; opacity: .7; }
+.date-divider { text-align: center; font-size: 11px; color: #8a9ab0; padding: 4px 0; }
+.thread-compose { background: #fff; border-top: 1px solid #c0d4e8; padding: 12px 20px; display: flex; gap: 10px; align-items: flex-end; flex-shrink: 0; }
+.thread-compose textarea { flex: 1; background: #f0f4f8; border: 1.5px solid #c0d4e8; border-radius: 14px; padding: 10px 14px; font-size: 13px; font-family: 'Sora', sans-serif; resize: none; min-height: 50px; color: #1a2a40; }
+.thread-compose textarea:focus { outline: none; border-color: #2a5080; }
+.send-btn { background: #2a5080; color: #fff; border: none; border-radius: 20px; padding: 10px 20px; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex-shrink: 0; }
+
+/* Compose form */
+.compose-wrap { padding: 24px; max-width: 600px; margin: 0 auto; }
+.form-section { background: #fff; border-radius: 14px; border: 1px solid #c0d4e8; padding: 18px; margin-bottom: 16px; }
+.form-section-title { font-size: 13px; font-weight: 700; color: #2a5080; margin-bottom: 14px; }
+.form-row { margin-bottom: 14px; }
+.form-label { font-size: 11px; font-weight: 700; color: #5a7090; text-transform: uppercase; letter-spacing: .5px; display: block; margin-bottom: 5px; }
+.form-input { width: 100%; background: #f0f4f8; border: 1.5px solid #c0d4e8; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Sora', sans-serif; color: #1a2a40; }
+.form-input:focus { outline: none; border-color: #2a5080; }
+.form-select { width: 100%; background: #f0f4f8; border: 1.5px solid #c0d4e8; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Sora', sans-serif; color: #1a2a40; appearance: none; cursor: pointer; }
+.form-textarea { width: 100%; background: #f0f4f8; border: 1.5px solid #c0d4e8; border-radius: 10px; padding: 10px 14px; font-size: 13px; font-family: 'Sora', sans-serif; color: #1a2a40; resize: vertical; min-height: 120px; }
+.form-textarea:focus, .form-select:focus { outline: none; border-color: #2a5080; }
+.contact-safe-note { background: #e8f0f8; border-radius: 10px; padding: 10px 14px; font-size: 12px; color: #5a7090; display: flex; gap: 8px; align-items: flex-start; margin-top: 10px; }
+.compose-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.btn-draft { background: #f0f4f8; color: #2a5080; border: 1.5px solid #b0c8e0; border-radius: 20px; padding: 10px 22px; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; }
+.btn-send { background: #2a5080; color: #fff; border: none; border-radius: 20px; padding: 10px 22px; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; }
+
+/* Queued/scheduled */
+.queued-list { padding: 20px 24px; }
+.queued-item { background: #fff; border-radius: 14px; border: 1px solid #c0d4e8; padding: 14px; margin-bottom: 12px; display: flex; gap: 14px; align-items: flex-start; }
+.queued-icon { font-size: 24px; flex-shrink: 0; }
+.queued-info { flex: 1; }
+.queued-title { font-size: 13px; font-weight: 700; color: #1a2a40; }
+.queued-meta { font-size: 11px; color: #5a7090; margin-top: 2px; }
+.queued-preview { font-size: 12px; color: #5a7090; margin-top: 6px; font-style: italic; line-height: 1.4; }
+.queued-actions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.q-btn { background: #f0f4f8; border: 1px solid #c0d4e8; border-radius: 12px; padding: 4px 12px; font-size: 11px; color: #2a5080; font-family: 'Sora', sans-serif; cursor: pointer; }
+.q-btn-danger { background: #fff0f0; border: 1px solid #e0b0b0; border-radius: 12px; padding: 4px 12px; font-size: 11px; color: #9a2a2a; font-family: 'Sora', sans-serif; cursor: pointer; }
+.schedule-chip { background: #e8f4ff; color: #1a5080; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-bottom: 4px; }
+.draft-chip { background: #fff8e0; color: #9a7a00; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; display: inline-block; margin-bottom: 4px; }
+
+/* Spec */
+.spec-wrap { padding: 20px 24px; }
+.spec-section { margin-bottom: 20px; }
+.spec-title { font-size: 12px; font-weight: 700; color: #2a5080; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.spec-table th { background: #e8f0f8; color: #2a5080; padding: 8px 10px; text-align: left; border-bottom: 1px solid #c0d4e8; font-weight: 700; }
+.spec-table td { color: #2a3a50; padding: 7px 10px; border-bottom: 1px solid #e8f0f8; vertical-align: top; }
+.spec-rule { background: #e8f0f8; border-left: 3px solid #2a5080; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 12px; color: #2a3a50; }
+.spec-rule strong { color: #2a5080; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>✉️ teacher-parent-message-center-v2.html</strong> — Teacher-side surface for parent-facing notes, message threads, scheduled messages. Contact-safe.<br>
+  <strong>Tabs:</strong> 1 · Message List + Thread (2-col: parent contact list + message thread with compose bar) &nbsp;|&nbsp; 2 · Compose New Message (to selector, subject, body, contact-safe note, save draft / send) &nbsp;|&nbsp; 3 · Queued &amp; Scheduled (draft messages, scheduled sends with edit/delete) &nbsp;|&nbsp; 4 · Contact-Safe Rules (what teachers can and can't include — PII, routing) &nbsp;|&nbsp; 5 · Spec (routes, contact-safe matrix, design tokens).<br>
+  <strong>Design:</strong> <code>#f0f4f8</code> bg · Sora · <code>#2a5080</code> nav · Desktop 900px (but readable at 768px+).
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('tm-list')">1 · Messages</button>
+  <button class="tab-btn" onclick="show('tm-compose')">2 · Compose</button>
+  <button class="tab-btn" onclick="show('tm-queue')">3 · Queued</button>
+  <button class="tab-btn" onclick="show('tm-safe')">4 · Contact-Safe</button>
+  <button class="tab-btn" onclick="show('tm-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Message List + Thread -->
+<div id="tm-list" class="tab active">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand">WonderQuest</div>
+      <div class="nav-item">Class</div>
+      <div class="nav-item active">Messages</div>
+      <div class="nav-right"><div class="nav-class-chip">🎓 Ms. Rivera · 2B</div></div>
+    </div>
+    <div class="msg-layout">
+      <div class="msg-list-col">
+        <div class="msg-list-header">
+          <div class="msg-list-title">Parent Messages</div>
+          <button class="compose-btn">+ New</button>
+        </div>
+        <div class="msg-search"><input placeholder="Search parents..." type="text"></div>
+        <div class="msg-list-scroll">
+          <div class="msg-item unread">
+            <div class="unread-dot"></div>
+            <div class="msg-item-top">
+              <div class="msg-avatar">C</div>
+              <div class="msg-item-info">
+                <div class="msg-parent-name">Chen Family</div>
+                <div class="msg-student-name">Maya Chen · 2B</div>
+                <div class="msg-preview">Thank you for the note! We'll practice at home...</div>
+              </div>
+              <div class="msg-time">9:41 AM</div>
+            </div>
+            <div class="msg-badges"><span class="badge-unread">New reply</span></div>
+          </div>
+          <div class="msg-item active">
+            <div class="msg-item-top">
+              <div class="msg-avatar">J</div>
+              <div class="msg-item-info">
+                <div class="msg-parent-name">Johnson Family</div>
+                <div class="msg-student-name">Leo Johnson · 2B</div>
+                <div class="msg-preview">Hi Leo is doing great! Wanted to share...</div>
+              </div>
+              <div class="msg-time">Tue</div>
+            </div>
+          </div>
+          <div class="msg-item">
+            <div class="msg-item-top">
+              <div class="msg-avatar">P</div>
+              <div class="msg-item-info">
+                <div class="msg-parent-name">Park Family</div>
+                <div class="msg-student-name">Sora Park · 2B</div>
+                <div class="msg-preview">Can we schedule a check-in call?</div>
+              </div>
+              <div class="msg-time">Mon</div>
+            </div>
+            <div class="msg-badges"><span class="badge-draft">Draft reply</span></div>
+          </div>
+          <div class="msg-item">
+            <div class="msg-item-top">
+              <div class="msg-avatar">R</div>
+              <div class="msg-item-info">
+                <div class="msg-parent-name">Rodriguez Family</div>
+                <div class="msg-student-name">Carlos Rodriguez · 2B</div>
+                <div class="msg-preview">Thanks! He really enjoyed the activity.</div>
+              </div>
+              <div class="msg-time">Mar 20</div>
+            </div>
+          </div>
+          <div class="msg-item">
+            <div class="msg-item-top">
+              <div class="msg-avatar">W</div>
+              <div class="msg-item-info">
+                <div class="msg-parent-name">Williams Family</div>
+                <div class="msg-student-name">Ava Williams · 2B</div>
+                <div class="msg-preview">Hi Ms. Rivera, Ava mentioned she loved Ocean World.</div>
+              </div>
+              <div class="msg-time">Mar 19</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="msg-thread-col">
+        <div class="thread-header">
+          <div class="thread-parent-info">
+            <div class="thread-parent-name">Johnson Family</div>
+            <div class="thread-student-chip">re: Leo Johnson · 2B · 🚩 Flag Tier</div>
+          </div>
+          <div class="thread-actions">
+            <button class="thread-btn">View Leo's Record</button>
+            <button class="thread-btn primary">+ Add Note</button>
+          </div>
+        </div>
+        <div class="thread-messages">
+          <div class="date-divider">— Mon Mar 21 —</div>
+          <div class="msg-bubble-wrap">
+            <div class="bubble-avatar ba-teacher">MR</div>
+            <div class="bubble bubble-teacher">
+              <div class="bubble-text">Hi! I wanted to reach out about Leo's progress this week. He's been working really hard on phonics blends. I've assigned some extra practice activities — feel free to do them at his own pace!</div>
+              <div class="bubble-time">Ms. Rivera · 3:45 PM</div>
+            </div>
+          </div>
+          <div class="date-divider">— Tue Mar 22 —</div>
+          <div class="msg-bubble-wrap">
+            <div class="bubble-avatar ba-parent">J</div>
+            <div class="bubble bubble-parent">
+              <div class="bubble-text">Thank you so much! Leo has been excited about WonderQuest. We've been doing the blend hunt activity on our walks and he loves it.</div>
+              <div class="bubble-time">Johnson Family · 8:12 AM</div>
+            </div>
+          </div>
+          <div class="msg-bubble-wrap">
+            <div class="bubble-avatar ba-teacher">MR</div>
+            <div class="bubble bubble-teacher">
+              <div class="bubble-text">That's wonderful to hear! Those outdoor activities really help it click. I'll check in again at the end of the week. 🌟</div>
+              <div class="bubble-time">Ms. Rivera · 9:32 AM</div>
+            </div>
+          </div>
+        </div>
+        <div class="thread-compose">
+          <textarea placeholder="Type a message to the Johnson family..." rows="2"></textarea>
+          <button class="send-btn">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Compose New Message -->
+<div id="tm-compose" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand">WonderQuest</div>
+      <div class="nav-item active">Messages</div>
+      <div class="nav-right"><div class="nav-class-chip">🎓 Ms. Rivera · 2B</div></div>
+    </div>
+    <div class="compose-wrap">
+      <div class="form-section">
+        <div class="form-section-title">New Message to Parent</div>
+        <div class="form-row">
+          <label class="form-label">Student</label>
+          <select class="form-select">
+            <option>Maya Chen · 2B</option>
+            <option>Leo Johnson · 2B</option>
+            <option>Sora Park · 2B</option>
+            <option>Carlos Rodriguez · 2B</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label class="form-label">To (Parent / Guardian)</label>
+          <div class="form-input" style="padding:10px 14px; background:#f0f4f8; border:1.5px solid #c0d4e8; border-radius:10px; font-size:13px; color:#2a5080; display:flex; align-items:center; gap:6px;">
+            <span style="font-size:16px;">👤</span> Chen Family <span style="font-size:10px; color:#5a7090; margin-left:6px;">· via WonderQuest (contact-safe)</span>
+          </div>
+        </div>
+        <div class="form-row">
+          <label class="form-label">Subject</label>
+          <input type="text" class="form-input" value="Great progress this week!">
+        </div>
+        <div class="form-row">
+          <label class="form-label">Message</label>
+          <textarea class="form-textarea">Hi! I wanted to share that Maya has been making great progress with her reading this week. She completed two Ocean World quests and earned the Fish Friend badge!
+
+I've assigned a phonics practice activity for the next few days. Even a few minutes at home will really help.
+
+Looking forward to seeing how she does! 🌟</textarea>
+        </div>
+        <div class="contact-safe-note">
+          <span>🔒</span>
+          <div>Messages are delivered through WonderQuest only. No personal email addresses, phone numbers, or home addresses are shared with parents or visible in this form.</div>
+        </div>
+      </div>
+      <div class="compose-actions">
+        <button class="btn-draft">Save Draft</button>
+        <button class="btn-send">Send Message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Queued / Scheduled -->
+<div id="tm-queue" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand">WonderQuest</div>
+      <div class="nav-item active">Messages</div>
+      <div class="nav-right"><div class="nav-class-chip">🎓 Ms. Rivera · 2B</div></div>
+    </div>
+    <div class="queued-list">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+        <div style="font-size:14px; font-weight:700; color:#1a2a40;">Queued &amp; Scheduled Messages</div>
+        <button class="btn-send" style="background:#2a5080; color:#fff; border:none; border-radius:16px; padding:7px 16px; font-size:12px; font-family:'Sora',sans-serif; cursor:pointer;">+ Compose New</button>
+      </div>
+      <!-- Scheduled -->
+      <div style="font-size:12px; font-weight:700; color:#5a7090; text-transform:uppercase; letter-spacing:.5px; margin-bottom:8px;">Scheduled</div>
+      <div class="queued-item">
+        <div class="queued-icon">📅</div>
+        <div class="queued-info">
+          <div><span class="schedule-chip">📅 Scheduled · Fri Mar 25 · 3:00 PM</span></div>
+          <div class="queued-title">End-of-week progress note → Park Family</div>
+          <div class="queued-meta">re: Sora Park · 2B · Ms. Rivera</div>
+          <div class="queued-preview">"Hi! Just wanted to share that Sora has been building great momentum this week with vocabulary skills..."</div>
+          <div class="queued-actions">
+            <button class="q-btn">Edit</button>
+            <button class="q-btn">Preview</button>
+            <button class="q-btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div class="queued-item">
+        <div class="queued-icon">📅</div>
+        <div class="queued-info">
+          <div><span class="schedule-chip">📅 Scheduled · Mon Mar 28 · 9:00 AM</span></div>
+          <div class="queued-title">Weekly check-in → Rodriguez Family</div>
+          <div class="queued-meta">re: Carlos Rodriguez · 2B · Auto-scheduled</div>
+          <div class="queued-preview">"Hi! Starting the week strong — Carlos has a new activity queued for him. Let me know if you have any questions!"</div>
+          <div class="queued-actions">
+            <button class="q-btn">Edit</button>
+            <button class="q-btn-danger">Delete</button>
+          </div>
+        </div>
+      </div>
+      <!-- Drafts -->
+      <div style="font-size:12px; font-weight:700; color:#5a7090; text-transform:uppercase; letter-spacing:.5px; margin:16px 0 8px;">Drafts</div>
+      <div class="queued-item">
+        <div class="queued-icon">📝</div>
+        <div class="queued-info">
+          <div><span class="draft-chip">📝 Draft — not sent</span></div>
+          <div class="queued-title">Reply to Park Family check-in request</div>
+          <div class="queued-meta">re: Sora Park · 2B · Last edited 2h ago</div>
+          <div class="queued-preview">"Hi! Great to hear from you. I'd love to schedule a quick check-in. Would..."</div>
+          <div class="queued-actions">
+            <button class="q-btn">Finish &amp; Send</button>
+            <button class="q-btn">Edit</button>
+            <button class="q-btn-danger">Discard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Contact-Safe Rules -->
+<div id="tm-safe" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand">WonderQuest</div>
+      <div class="nav-item active">Messages</div>
+      <div class="nav-right"><div class="nav-class-chip">🎓 Ms. Rivera · 2B</div></div>
+    </div>
+    <div style="padding:24px; max-width:700px; margin:0 auto;">
+      <div style="font-size:16px; font-weight:700; color:#1a2a40; margin-bottom:16px;">🔒 Contact-Safe Messaging</div>
+      <div style="background:#fff; border-radius:14px; border:1px solid #c0d4e8; padding:18px; margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:700; color:#2a5080; margin-bottom:10px;">What WonderQuest protects</div>
+        <table style="width:100%; border-collapse:collapse; font-size:12px;">
+          <tr style="background:#e8f0f8;"><th style="padding:8px 10px; text-align:left; color:#2a5080; border-bottom:1px solid #c0d4e8;">Item</th><th style="padding:8px 10px; text-align:left; color:#2a5080; border-bottom:1px solid #c0d4e8;">Teachers see</th><th style="padding:8px 10px; text-align:left; color:#2a5080; border-bottom:1px solid #c0d4e8;">Parents see</th></tr>
+          <tr><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Parent email address</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8; color:#9a2a2a;">❌ Never shown</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Their own only</td></tr>
+          <tr><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Parent phone number</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8; color:#9a2a2a;">❌ Never shown</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Their own only</td></tr>
+          <tr><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Home address</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8; color:#9a2a2a;">❌ Never shown</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8; color:#9a2a2a;">❌ Never stored</td></tr>
+          <tr><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Teacher personal email</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8;">Their own only</td><td style="padding:8px 10px; border-bottom:1px solid #e8f0f8; color:#9a2a2a;">❌ Never shown</td></tr>
+          <tr><td style="padding:8px 10px;">Message routing</td><td style="padding:8px 10px;">WonderQuest in-app only</td><td style="padding:8px 10px;">WonderQuest in-app only</td></tr>
+        </table>
+      </div>
+      <div style="background:#fff; border-radius:14px; border:1px solid #c0d4e8; padding:18px; margin-bottom:16px;">
+        <div style="font-size:13px; font-weight:700; color:#2a5080; margin-bottom:10px;">Content guidelines for teachers</div>
+        <div style="background:#e8f0f8; border-left:3px solid #2a5080; border-radius:0 8px 8px 0; padding:8px 12px; margin-bottom:8px; font-size:12px; color:#2a3a50;"><strong>✅ OK to include:</strong> Progress updates, activity assignments, positive observations, schedule reminders, general classroom updates</div>
+        <div style="background:#fff0f0; border-left:3px solid #9a2a2a; border-radius:0 8px 8px 0; padding:8px 12px; margin-bottom:8px; font-size:12px; color:#5a1a1a;"><strong>❌ Do not include:</strong> Grades or test scores, diagnostic labels, comparison to other students, personally identifiable information, external contact info</div>
+        <div style="background:#fffbe6; border-left:3px solid #c07800; border-radius:0 8px 8px 0; padding:8px 12px; font-size:12px; color:#5a3a00;"><strong>⚠️ Route through admin:</strong> Serious concerns, disciplinary matters, medical or SPED topics — use the admin channel, not direct messages</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="tm-spec" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand">WonderQuest</div>
+      <div class="nav-right"><div class="nav-class-chip">🎓 Ms. Rivera · 2B</div></div>
+    </div>
+    <div class="spec-wrap">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div>
+          <div class="spec-section">
+            <div class="spec-title">Routes / API</div>
+            <table class="spec-table">
+              <tr><th>Endpoint</th><th>Purpose</th></tr>
+              <tr><td>GET /messages/threads</td><td>All parent threads for teacher's class</td></tr>
+              <tr><td>GET /messages/threads/:id</td><td>Full message thread</td></tr>
+              <tr><td>POST /messages/send</td><td>Send message to parent (in-app routing)</td></tr>
+              <tr><td>POST /messages/draft</td><td>Save draft</td></tr>
+              <tr><td>POST /messages/schedule</td><td>Schedule message for future send</td></tr>
+              <tr><td>DELETE /messages/draft/:id</td><td>Discard draft</td></tr>
+              <tr><td>GET /messages/queue</td><td>All drafts + scheduled</td></tr>
+            </table>
+          </div>
+          <div class="spec-section">
+            <div class="spec-title">Design Tokens</div>
+            <table class="spec-table">
+              <tr><th>Token</th><th>Value</th></tr>
+              <tr><td>Teacher bg</td><td>#f0f4f8</td></tr>
+              <tr><td>Nav</td><td>#2a5080</td></tr>
+              <tr><td>Message col</td><td>#e8f0f8</td></tr>
+              <tr><td>Bubble teacher</td><td>#2a5080</td></tr>
+              <tr><td>Bubble parent</td><td>#ffffff</td></tr>
+              <tr><td>Parent teal</td><td>#2c7a6e</td></tr>
+            </table>
+          </div>
+        </div>
+        <div>
+          <div class="spec-section">
+            <div class="spec-title">Contact-Safe Rules</div>
+            <div class="spec-rule"><strong>No PII in URLs:</strong> Teacher messages route through /messages/threads/:id — no parent email or phone in any URL param or query string.</div>
+            <div class="spec-rule"><strong>In-app only:</strong> All messages delivered through WonderQuest app. No external email gateway for teacher→parent.</div>
+            <div class="spec-rule"><strong>Teacher sees:</strong> Parent display name + child name only. No email, phone, or address.</div>
+            <div class="spec-rule"><strong>Content filter:</strong> Client-side soft block on grade/test score language. Hard block on personal contact info patterns (email/phone regex).</div>
+            <div class="spec-rule"><strong>Message retention:</strong> 12 months then archived. FERPA-compliant access log.</div>
+          </div>
+          <div class="spec-section">
+            <div class="spec-title">Layout</div>
+            <div class="spec-rule"><strong>Desktop (≥ 768px):</strong> 2-col — 300px list / 1fr thread.</div>
+            <div class="spec-rule"><strong>Mobile (&lt;768px):</strong> Single-col — list view → thread view (back nav). Thread fills screen.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

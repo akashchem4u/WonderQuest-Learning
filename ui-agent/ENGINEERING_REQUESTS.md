@@ -1852,3 +1852,61 @@ Important:
   - `teacher-parent-message-center-v2.html` should be the teacher-side mobile/desktop surface for parent-facing notes, queued messages, and contact-safe actions
   - `owner-release-readiness-v2.html` should be the owner ops screen for go/no-go readiness, blocker counts, route health, and launch checklist state
   - `content-skill-coverage-map-v2.html` should visualize content density by band/skill/node with warn/critical thresholds and edit entry points
+
+---
+## UI DELIVERY — BATCH 4
+**Delivered by:** UI Agent
+**Date:** 2026-03-22
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-badge-collection-v2.html` | Child | 375px mobile | Badge Shelf / Trophy Groups / Badge Detail / Replay Motivation / Spec | ✅ Done |
+| `child-world-journey-mobile-v2.html` | Child | 375px mobile | World Map / World Detail+Node Map / World Complete / Next World Prompt / Spec | ✅ Done |
+| `parent-weekly-report-v2.html` | Parent | 375px mobile | Weekly Summary / Progress Snapshot / Home Practice Ideas / Week Comparison / Spec | ✅ Done |
+| `teacher-parent-message-center-v2.html` | Teacher | 900px desktop | Message List+Thread / Compose New / Queued+Scheduled / Contact-Safe Rules / Spec | ✅ Done |
+| `owner-release-readiness-v2.html` | Owner | 390px mobile | Go/No-Go Dashboard / Blockers / Route Health / Launch Checklist / Spec | ✅ Done |
+| `content-skill-coverage-map-v2.html` | Content-Admin | Desktop wide | Coverage Map / Band Drill-Down / Critical Gaps / Add Content Entry / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg, P0=`#ffd166` / P1=`#9b72ff`
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` nav — parent language rules enforced
+- Teacher: Sora, `#f0f4f8` bg, `#2a5080` nav — contact-safe messaging
+- Owner: Sora, `#0d1117` bg, `#ffd166` accent — GO/NO-GO readiness scoring
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` accent — coverage thresholds + heatmap cells
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 5.
+---
+
+### 2026-03-22 17:18 CDT
+- completed:
+  - verified and preserved Batch 4 delivery:
+    - `child-badge-collection-v2.html`
+    - `child-world-journey-mobile-v2.html`
+    - `parent-weekly-report-v2.html`
+    - `teacher-parent-message-center-v2.html`
+    - `owner-release-readiness-v2.html`
+    - `content-skill-coverage-map-v2.html`
+- current focus:
+  - start Batch 5 immediately
+- next batch:
+  - `child-daily-challenge-v2.html`
+  - `child-returning-streak-restore-v2.html`
+  - `parent-child-detail-desktop-v2.html`
+  - `teacher-assignment-creator-v2.html`
+  - `owner-adoption-overview-v2.html`
+  - `content-explainer-studio-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `child-daily-challenge-v2.html` should show a short, high-energy child challenge surface with one-tap entry, small rewards, and no shame if skipped
+  - `child-returning-streak-restore-v2.html` should handle comeback flows after 2-day, 7-day, and longer gaps with calm recovery framing and streak-safe language
+  - `parent-child-detail-desktop-v2.html` should become the larger-screen companion to weekly report and family summary:
+    - per-child performance
+    - strengths/support areas
+    - recent sessions
+    - recommended next home practice
+  - `teacher-assignment-creator-v2.html` should cover the teacher-side workflow for choosing a skill, assigning practice, selecting a learner group, and reviewing schedule/send states
+  - `owner-adoption-overview-v2.html` should focus on launch-band adoption, active households, teacher uptake, and readiness trends
+  - `content-explainer-studio-v2.html` should design the content-admin workflow for explainer script/media hint editing, preview, QA checks, and publish gating
