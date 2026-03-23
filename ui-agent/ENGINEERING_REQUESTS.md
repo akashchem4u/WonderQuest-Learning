@@ -2173,6 +2173,136 @@ Important:
 **Polling:** UI Agent resuming 5-minute polling for Batch 9.
 ---
 
+## Long Queue Backlog
+
+Use this as the parked backlog behind the current active batch. Do not start
+from this list until the current `next batch` section above is complete.
+
+When the active batch is done:
+
+- preserve the delivered files
+- append a status update block
+- move the next highest-value six items from this backlog into a new active batch
+- keep polling this same file only
+
+### Child Route Backlog
+
+1. `child-avatar-profile-strip-v2.html` — compact avatar and identity strip for child home screens
+2. `child-world-map-desktop-v2.html` — bigger-screen world progression view
+3. `child-badge-detail-overlay-v2.html` — single badge explanation and replay motivation
+4. `child-trophy-room-v2.html` — trophy gallery with locked/unlocked states
+5. `child-streak-saver-overlay-v2.html` — save-the-streak celebration overlay
+6. `child-next-quest-card-v2.html` — fast “what to do next” child card
+7. `child-world-unlock-moment-v2.html` — world unlock reveal state
+8. `child-level-up-overlay-v2.html` — level-up pulse overlay
+9. `child-daily-goals-strip-v2.html` — daily goal strip for child home
+10. `child-quick-replay-picker-v2.html` — replay choice surface for short practice
+11. `child-theme-switcher-v2.html` — controlled theme/favorite-world picker
+12. `child-return-home-mobile-v2.html` — calmer return-home variant after long gap
+13. `child-profile-card-stack-v2.html` — multi-child profile picker for sibling households
+14. `child-win-streak-history-v2.html` — recent reward/streak history in child language
+15. `child-world-node-detail-v2.html` — node detail and reward preview
+16. `child-practice-mode-picker-v2.html` — guided quest vs challenge mode child-facing chooser
+17. `child-offline-placeholder-v2.html` — no-connection child-safe fallback
+18. `child-voice-guide-selector-v2.html` — voice persona choice surface
+
+### Play Route Backlog
+
+19. `play-prek-counting-scene-v2.html` — richer visual counting scene patterns
+20. `play-prek-letter-scene-v2.html` — letter recognition scene with stronger visuals
+21. `play-phonics-listen-match-v2.html` — listen-first phonics interaction
+22. `play-picture-word-reveal-v2.html` — picture-word reveal state
+23. `play-between-questions-pace-v2.html` — between-question transition pacing
+24. `play-session-complete-desktop-v2.html` — large-screen session-complete screen
+25. `play-hint-overlay-tablet-v2.html` — tablet hint overlay with voice-coach dominance
+26. `play-skip-support-flow-v2.html` — “I don’t know yet” support state
+27. `play-progress-ribbon-v2.html` — top progress/ribbon treatment across question modes
+28. `play-question-card-grid-v3.html` — refined answer-card system
+29. `play-explainer-video-frame-v2.html` — video/voice explainer container
+30. `play-audio-replay-dock-v2.html` — stronger audio replay controls
+31. `play-world-backdrop-rotation-v2.html` — route background variations per theme
+32. `play-session-shell-desktop-v2.html` — desktop play shell for older kids
+33. `play-reward-summary-endcap-v2.html` — end-of-session reward recap
+34. `play-prek-shape-scene-v2.html` — shape/pattern scene pack
+35. `play-k1-word-builder-v2.html` — simple word-building interaction
+36. `play-accessibility-focus-mode-v2.html` — larger prompt/choice visibility mode
+
+### Parent Route Backlog
+
+37. `parent-family-home-desktop-v2.html` — full desktop parent hub canonical
+38. `parent-family-home-mobile-v2.html` — strongest compact parent hub
+39. `parent-linked-children-sheet-v2.html` — child switcher sheet
+40. `parent-notification-settings-desktop-v2.html` — desktop notification settings
+41. `parent-quiet-hours-detail-v2.html` — detailed quiet-hours management
+42. `parent-skill-growth-timeline-v2.html` — skill trend timeline
+43. `parent-week-comparison-desktop-v2.html` — week-over-week desktop comparison
+44. `parent-teacher-message-thread-v2.html` — parent-side message thread
+45. `parent-child-goals-planner-v2.html` — home practice/goals planner
+46. `parent-sibling-overview-v2.html` — multi-child household comparison
+47. `parent-settings-mobile-v2.html` — compact mobile settings surface
+48. `parent-link-success-overlay-v2.html` — post-link success state
+49. `parent-no-data-guidance-v2.html` — new family/no sessions yet state
+50. `parent-weekend-routine-builder-v2.html` — family routine planner
+51. `parent-feedback-history-v2.html` — submitted feedback/issues history
+52. `parent-child-detail-mobile-v2.html` — mobile per-child dashboard
+53. `parent-home-practice-history-v2.html` — parent practice history and completion
+54. `parent-support-area-drilldown-v2.html` — support area detail page
+
+### Teacher Route Backlog
+
+55. `teacher-class-home-desktop-v2.html` — teacher route canonical desktop home
+56. `teacher-class-home-mobile-v2.html` — teacher route canonical mobile home
+57. `teacher-assignment-status-board-v2.html` — assignment status overview
+58. `teacher-learner-group-picker-v2.html` — choose learner group flow
+59. `teacher-support-lane-mobile-v2.html` — mobile support-lane detail
+60. `teacher-intervention-plan-editor-v2.html` — intervention planning surface
+61. `teacher-note-capture-mobile-v2.html` — quick note entry on mobile
+62. `teacher-skill-trend-dashboard-v2.html` — class skill trend view
+63. `teacher-student-history-desktop-v2.html` — deeper student history view
+64. `teacher-assignment-review-desktop-v2.html` — review queued/sent assignments
+65. `teacher-queue-empty-state-v2.html` — better empty/low-data teacher state
+66. `teacher-support-priority-board-v2.html` — priority board variant
+67. `teacher-family-contact-log-v2.html` — contact-safe parent communication log
+68. `teacher-in-class-quick-actions-v2.html` — compact quick actions strip
+69. `teacher-student-card-system-v2.html` — reusable teacher learner cards
+70. `teacher-onboarding-empty-state-v2.html` — first-time teacher experience
+71. `teacher-filter-drawer-mobile-v2.html` — mobile filter drawer
+72. `teacher-skill-drilldown-mobile-v2.html` — mobile skill detail route
+
+### Owner Route Backlog
+
+73. `owner-home-desktop-v2.html` — owner route canonical desktop home
+74. `owner-home-mobile-v2.html` — owner route canonical mobile home
+75. `owner-feedback-triage-mobile-v2.html` — compact triage queue variant
+76. `owner-adoption-detail-desktop-v2.html` — adoption drilldown desktop view
+77. `owner-release-gate-banner-v2.html` — release-go/no-go banner system
+78. `owner-route-health-desktop-v2.html` — richer route health desktop
+79. `owner-content-health-desktop-v2.html` — desktop content health dashboard
+80. `owner-feedback-sla-board-v2.html` — SLA and assignee board
+81. `owner-runtime-alert-detail-v2.html` — incident detail page
+82. `owner-beta-tester-overview-v2.html` — tester/adoption mix dashboard
+83. `owner-resolution-workflow-desktop-v2.html` — resolution workflow desktop
+84. `owner-roadmap-priority-board-v2.html` — backlog/priority ops surface
+85. `owner-governance-log-v2.html` — change log and decision tracking
+86. `owner-alert-feed-mobile-v2.html` — alert feed mobile variant
+87. `owner-release-checklist-desktop-v2.html` — detailed release checklist
+88. `owner-feedback-category-mix-v2.html` — category mix view
+
+### Content / Admin Backlog
+
+89. `content-home-desktop-v2.html` — content-admin canonical home
+90. `content-question-browser-mobile-v2.html` — mobile question browser
+91. `content-question-detail-v2.html` — question detail and edit review
+92. `content-question-approval-dashboard-v2.html` — review/approve questions board
+93. `content-import-error-center-v2.html` — import error triage
+94. `content-gap-analysis-desktop-v2.html` — gap analysis view by band/skill
+95. `content-band-coverage-drilldown-v2.html` — coverage drilldown
+96. `content-batch-generation-review-v2.html` — generated batch review board
+97. `content-publish-history-v2.html` — publish history and rollback awareness
+98. `content-media-hint-library-v2.html` — media hint browsing/edit surface
+99. `content-voice-script-review-v2.html` — voice script review queue
+100. `content-beta-readiness-scoreboard-v2.html` — high-level content readiness scoreboard
+
 ### 2026-03-22 22:28 CDT
 - completed:
   - verified and preserved Batch 8 delivery:
