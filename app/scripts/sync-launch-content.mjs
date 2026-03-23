@@ -50,8 +50,35 @@ async function main() {
       loadJson("data/launch/sample_questions.json"),
       loadJson("data/launch/explainers.json"),
     ]);
+    const questionKeys = questions.map((question) => question.question_key);
+    const explainerKeys = explainers.map((explainer) => explainer.explainer_key);
 
     await client.query("begin");
+
+    let prunedExampleItems = 0;
+    let prunedExplainerAssets = 0;
+
+    if (questionKeys.length) {
+      const prunedExamples = await client.query(
+        `
+          delete from public.example_items
+          where not (example_key = any($1::text[]))
+        `,
+        [questionKeys],
+      );
+      prunedExampleItems = prunedExamples.rowCount ?? 0;
+    }
+
+    if (explainerKeys.length) {
+      const prunedExplainers = await client.query(
+        `
+          delete from public.explainer_assets
+          where not (explainer_key = any($1::text[]))
+        `,
+        [explainerKeys],
+      );
+      prunedExplainerAssets = prunedExplainers.rowCount ?? 0;
+    }
 
     for (const explainer of explainers) {
       await client.query(
@@ -170,6 +197,8 @@ async function main() {
         {
           syncedQuestions: questions.length,
           syncedExplainers: explainers.length,
+          prunedExampleItems,
+          prunedExplainerAssets,
           dbExampleItems: Number(counts.rows[0]?.example_items ?? 0),
           dbExplainers: Number(counts.rows[0]?.explainer_assets ?? 0),
         },
