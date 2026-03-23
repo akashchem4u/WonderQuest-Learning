@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Progress Ribbon v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Ribbon component */
+  .ribbon{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;position:relative;z-index:10}
+  .ribbon-band{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0}
+
+  /* P0 Gold */
+  .ribbon-p0{background:rgba(255,209,102,.1);border-bottom:1px solid rgba(255,209,102,.2)}
+  .ribbon-p0 .ribbon-band{background:linear-gradient(90deg,#ffd166,#ffb300)}
+
+  /* P1 Violet */
+  .ribbon-p1{background:rgba(155,114,255,.1);border-bottom:1px solid rgba(155,114,255,.2)}
+  .ribbon-p1 .ribbon-band{background:linear-gradient(90deg,#9b72ff,#7a52dd)}
+
+  /* P2 Mint */
+  .ribbon-p2{background:rgba(88,232,193,.1);border-bottom:1px solid rgba(88,232,193,.2)}
+  .ribbon-p2 .ribbon-band{background:linear-gradient(90deg,#58e8c1,#2ec49a)}
+
+  /* P3 Coral */
+  .ribbon-p3{background:rgba(255,123,107,.1);border-bottom:1px solid rgba(255,123,107,.2)}
+  .ribbon-p3 .ribbon-band{background:linear-gradient(90deg,#ff7b6b,#ff5533)}
+
+  /* Ribbon sections */
+  .r-stars{display:flex;align-items:center;gap:4px;font-weight:900;font-size:14px}
+  .r-stars.gold{color:#ffd166}
+  .r-stars.violet{color:#9b72ff}
+  .r-stars.mint{color:#58e8c1}
+  .r-stars.coral{color:#ff7b6b}
+
+  .r-dots{display:flex;gap:4px;align-items:center}
+  .rdot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.15)}
+  .rdot.done-gold{background:#ffd166}
+  .rdot.done-violet{background:#9b72ff}
+  .rdot.done-mint{background:#58e8c1}
+  .rdot.done-coral{background:#ff7b6b}
+  .rdot.cur{box-shadow:0 0 6px currentColor}
+
+  .r-world{font-size:11px;font-weight:900;padding:3px 8px;border-radius:10px}
+  .r-world.gold{color:#ffd166;background:rgba(255,209,102,.1)}
+  .r-world.violet{color:#9b72ff;background:rgba(155,114,255,.1)}
+  .r-world.mint{color:#58e8c1;background:rgba(88,232,193,.1)}
+  .r-world.coral{color:#ff7b6b;background:rgba(255,123,107,.1)}
+
+  /* Question area below ribbon */
+  .q-area{padding:16px}
+  .q-type-label{display:inline-flex;align-items:center;gap:4px;border-radius:10px;padding:3px 10px;font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .q-type-label.gold{background:rgba(255,209,102,.15);border:1px solid rgba(255,209,102,.3);color:#ffd166}
+  .q-type-label.violet{background:rgba(155,114,255,.15);border:1px solid rgba(155,114,255,.3);color:#9b72ff}
+  .q-type-label.mint{background:rgba(88,232,193,.15);border:1px solid rgba(88,232,193,.3);color:#58e8c1}
+  .q-type-label.coral{background:rgba(255,123,107,.15);border:1px solid rgba(255,123,107,.3);color:#ff7b6b}
+
+  .q-text{font-size:17px;font-weight:900;color:#fff;margin-bottom:12px}
+  .q-stimulus{background:rgba(255,255,255,.05);border-radius:14px;padding:14px;text-align:center;font-size:36px;margin-bottom:12px}
+  .answer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .ans{background:rgba(255,255,255,.07);border-radius:12px;padding:12px 8px;text-align:center;font-size:14px;font-weight:900;cursor:pointer}
+  .ans.a-gold{border:2px solid rgba(255,209,102,.2)}
+  .ans.a-violet{border:2px solid rgba(155,114,255,.2)}
+  .ans.a-mint{border:2px solid rgba(88,232,193,.2)}
+  .ans.a-coral{border:2px solid rgba(255,123,107,.2)}
+
+  /* Ribbon anatomy diagram */
+  .anatomy{padding:16px;margin:0 16px 16px;background:rgba(255,255,255,.04);border-radius:16px}
+  .anatomy-title{font-size:11px;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
+  .anatomy-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .anatomy-item:last-child{border-bottom:none}
+  .a-num{width:20px;height:20px;border-radius:50%;background:#9b72ff;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:900;flex-shrink:0}
+  .a-text{font-size:11px;color:rgba(255,255,255,.6)}
+  .a-bold{font-weight:900;color:#fff}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('p0-gold')">P0 Gold Ribbon</button>
+  <button class="tab" onclick="show('p1-violet')">P1 Violet Ribbon</button>
+  <button class="tab" onclick="show('p2-mint')">P2 Mint Ribbon</button>
+  <button class="tab" onclick="show('p3-coral')">P3 Coral Ribbon</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-progress-ribbon-v2.html</code> — Top progress ribbon · 375px mobile · P0–P3 accent color variants · compact, always visible
+</div>
+
+<!-- P0 GOLD -->
+<div id="p0-gold" class="panel active">
+  <div class="screen">
+    <!-- Ribbon -->
+    <div class="ribbon ribbon-p0">
+      <div class="r-stars gold">⭐ 4</div>
+      <div class="r-dots">
+        <div class="rdot done-gold"></div>
+        <div class="rdot done-gold"></div>
+        <div class="rdot done-gold"></div>
+        <div class="rdot done-gold"></div>
+        <div class="rdot cur done-gold" style="color:#ffd166;box-shadow:0 0 6px #ffd166"></div>
+        <div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div class="r-world gold">🌞 Meadow</div>
+      <div class="ribbon-band"></div>
+    </div>
+    <!-- Context label -->
+    <div style="padding:6px 14px;font-size:10px;color:rgba(255,209,102,.6);font-weight:700;background:rgba(255,209,102,.04)">P0 · Gold · Sight Words</div>
+    <!-- Question area -->
+    <div class="q-area">
+      <div class="q-type-label gold">👁 Sight Words</div>
+      <div class="q-text">Which word says "THE"?</div>
+      <div class="q-stimulus" style="font-size:52px;font-weight:900;color:#ffd166;background:rgba(255,209,102,.08)">the</div>
+      <div class="answer-grid">
+        <div class="ans a-gold">then</div>
+        <div class="ans a-gold" style="background:rgba(255,209,102,.1);border-color:#ffd166">THE</div>
+        <div class="ans a-gold">them</div>
+        <div class="ans a-gold">they</div>
+      </div>
+    </div>
+    <!-- Ribbon anatomy -->
+    <div class="anatomy">
+      <div class="anatomy-title">Ribbon anatomy — P0 Gold</div>
+      <div class="anatomy-item"><div class="a-num">1</div><div class="a-text"><span class="a-bold">Star count</span> — total stars this session</div></div>
+      <div class="anatomy-item"><div class="a-num">2</div><div class="a-text"><span class="a-bold">Progress dots</span> — filled = done, current = glowing</div></div>
+      <div class="anatomy-item"><div class="a-num">3</div><div class="a-text"><span class="a-bold">World indicator</span> — current world name + emoji</div></div>
+      <div class="anatomy-item"><div class="a-num">4</div><div class="a-text"><span class="a-bold">Color band</span> — 3px bottom stripe matches P0 gold</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- P1 VIOLET -->
+<div id="p1-violet" class="panel">
+  <div class="screen">
+    <div class="ribbon ribbon-p1">
+      <div class="r-stars violet">⭐ 6</div>
+      <div class="r-dots">
+        <div class="rdot done-violet"></div><div class="rdot done-violet"></div><div class="rdot done-violet"></div>
+        <div class="rdot done-violet"></div><div class="rdot done-violet"></div><div class="rdot done-violet"></div>
+        <div class="rdot cur done-violet" style="color:#9b72ff;box-shadow:0 0 6px #9b72ff"></div>
+        <div class="rdot"></div>
+      </div>
+      <div class="r-world violet">🌊 Ocean</div>
+      <div class="ribbon-band"></div>
+    </div>
+    <div style="padding:6px 14px;font-size:10px;color:rgba(155,114,255,.6);font-weight:700;background:rgba(155,114,255,.04)">P1 · Violet · Phonics</div>
+    <div class="q-area">
+      <div class="q-type-label violet">🔤 Phonics</div>
+      <div class="q-text">What sound does "ph" make?</div>
+      <div class="q-stimulus" style="font-size:36px;font-weight:900;color:#9b72ff;background:rgba(155,114,255,.08)">ph</div>
+      <div class="answer-grid">
+        <div class="ans a-violet">"puh"</div>
+        <div class="ans a-violet" style="background:rgba(155,114,255,.1);border-color:#9b72ff">"fuh" ✓</div>
+        <div class="ans a-violet">"huh"</div>
+        <div class="ans a-violet">"buh"</div>
+      </div>
+    </div>
+    <div class="anatomy">
+      <div class="anatomy-title">Ribbon anatomy — P1 Violet</div>
+      <div class="anatomy-item"><div class="a-num" style="background:#9b72ff">1</div><div class="a-text"><span class="a-bold">Accent</span> — bg tint + band use P1 violet #9b72ff</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#9b72ff">2</div><div class="a-text"><span class="a-bold">7 dots shown</span> — session has 8 questions, on #7</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#9b72ff">3</div><div class="a-text"><span class="a-bold">Question type</span> — badge below ribbon shows mode</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- P2 MINT -->
+<div id="p2-mint" class="panel">
+  <div class="screen">
+    <div class="ribbon ribbon-p2">
+      <div class="r-stars mint">⭐ 2</div>
+      <div class="r-dots">
+        <div class="rdot done-mint"></div><div class="rdot done-mint"></div>
+        <div class="rdot cur done-mint" style="color:#58e8c1;box-shadow:0 0 6px #58e8c1"></div>
+        <div class="rdot"></div><div class="rdot"></div>
+        <div class="rdot"></div><div class="rdot"></div><div class="rdot"></div>
+      </div>
+      <div class="r-world mint">🌲 Forest</div>
+      <div class="ribbon-band"></div>
+    </div>
+    <div style="padding:6px 14px;font-size:10px;color:rgba(88,232,193,.6);font-weight:700;background:rgba(88,232,193,.04)">P2 · Mint · Vocabulary</div>
+    <div class="q-area">
+      <div class="q-type-label mint">📖 Vocabulary</div>
+      <div class="q-text">What does "enormous" mean?</div>
+      <div class="q-stimulus" style="font-size:24px;font-weight:900;color:#58e8c1;background:rgba(88,232,193,.06)">enormous</div>
+      <div class="answer-grid">
+        <div class="ans a-mint">tiny</div>
+        <div class="ans a-mint" style="background:rgba(88,232,193,.1);border-color:#58e8c1">very big</div>
+        <div class="ans a-mint">colorful</div>
+        <div class="ans a-mint">quiet</div>
+      </div>
+    </div>
+    <div class="anatomy">
+      <div class="anatomy-title">Ribbon anatomy — P2 Mint</div>
+      <div class="anatomy-item"><div class="a-num" style="background:#58e8c1;color:#100b2e">1</div><div class="a-text"><span class="a-bold">Accent</span> — P2 mint #58e8c1 for Forest world</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#58e8c1;color:#100b2e">2</div><div class="a-text"><span class="a-bold">Session start</span> — only 3 dots shown filled (question 3)</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#58e8c1;color:#100b2e">3</div><div class="a-text"><span class="a-bold">World badge</span> — Forest world with 🌲 emoji</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- P3 CORAL -->
+<div id="p3-coral" class="panel">
+  <div class="screen">
+    <div class="ribbon ribbon-p3">
+      <div class="r-stars coral">⭐ 7</div>
+      <div class="r-dots">
+        <div class="rdot done-coral"></div><div class="rdot done-coral"></div><div class="rdot done-coral"></div>
+        <div class="rdot done-coral"></div><div class="rdot done-coral"></div><div class="rdot done-coral"></div>
+        <div class="rdot done-coral"></div>
+        <div class="rdot cur done-coral" style="color:#ff7b6b;box-shadow:0 0 6px #ff7b6b"></div>
+      </div>
+      <div class="r-world coral">🌋 Volcano</div>
+      <div class="ribbon-band"></div>
+    </div>
+    <div style="padding:6px 14px;font-size:10px;color:rgba(255,123,107,.6);font-weight:700;background:rgba(255,123,107,.04)">P3 · Coral · Comprehension</div>
+    <div class="q-area">
+      <div class="q-type-label coral">📝 Comprehension</div>
+      <div class="q-text">Why did the volcano erupt?</div>
+      <div class="q-stimulus" style="font-size:13px;font-weight:700;color:rgba(255,255,255,.7);background:rgba(255,123,107,.06);padding:12px;text-align:left;line-height:1.5">"The volcano had been quiet for years. Then one day the ground shook and fire burst out."</div>
+      <div class="answer-grid">
+        <div class="ans a-coral">It was raining</div>
+        <div class="ans a-coral">It got too hot</div>
+        <div class="ans a-coral" style="background:rgba(255,123,107,.1);border-color:#ff7b6b">The ground shook</div>
+        <div class="ans a-coral">It was cold</div>
+      </div>
+    </div>
+    <div class="anatomy">
+      <div class="anatomy-title">Ribbon anatomy — P3 Coral</div>
+      <div class="anatomy-item"><div class="a-num" style="background:#ff7b6b">1</div><div class="a-text"><span class="a-bold">Accent</span> — P3 coral #ff7b6b for Volcano world</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#ff7b6b">2</div><div class="a-text"><span class="a-bold">Near-complete</span> — 8 of 8 dots filled (last question)</div></div>
+      <div class="anatomy-item"><div class="a-num" style="background:#ff7b6b">3</div><div class="a-text"><span class="a-bold">Star count</span> — 7 stars accumulated, near-perfect session</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-progress-ribbon-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · various accent colors per band</li>
+        <li>Compact ribbon always visible at top of play screens</li>
+      </ul>
+      <h3>Ribbon Elements</h3>
+      <ul>
+        <li>Star count — left, colored to match accent</li>
+        <li>Progress dots — 8 dots, filled = done, current = glowing, empty = locked</li>
+        <li>World indicator — right, world emoji + name</li>
+        <li>Bottom band — 3px stripe in accent color</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>P0 Gold #ffd166:</strong> Meadow world · Sight Words questions</li>
+        <li><strong>P1 Violet #9b72ff:</strong> Ocean world · Phonics questions</li>
+        <li><strong>P2 Mint #58e8c1:</strong> Forest world · Vocabulary questions</li>
+        <li><strong>P3 Coral #ff7b6b:</strong> Volcano world · Comprehension questions</li>
+      </ul>
+      <h3>Design Rules</h3>
+      <ul>
+        <li>Ribbon height: 38px (compact, never distracting)</li>
+        <li>NO timers, NO grade labels shown in ribbon</li>
+        <li>Progress dots never show "wrong" — only done/current/not-yet</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">P0 #ffd166</span>
+        <span class="spec-tag">P1 #9b72ff</span>
+        <span class="spec-tag">P2 #58e8c1</span>
+        <span class="spec-tag">P3 #ff7b6b</span>
+        <span class="spec-tag">375px mobile</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

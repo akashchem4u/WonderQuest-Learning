@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Skill Growth Timeline</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  nav { background: #2c7a6e; color: #fff; padding: 0 16px; height: 56px; display: flex; align-items: center; gap: 12px; }
+  nav .back { font-size: 1.1rem; cursor: pointer; }
+  nav .title { font-weight: 700; font-size: 1rem; }
+  .tabs { display: flex; background: #e8e2d6; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 11px 16px; cursor: pointer; font-size: .78rem; font-weight: 600; color: #5a5a7a; border-bottom: 2.5px solid transparent; white-space: nowrap; }
+  .tab.active { color: #2c7a6e; border-bottom-color: #2c7a6e; background: #f5f0e8; }
+  .panel { display: none; padding: 20px 16px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 12px 14px; font-size: .78rem; margin-bottom: 20px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: .82rem; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 14px; padding: 18px; margin-bottom: 16px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .card h3 { font-size: .9rem; font-weight: 700; color: #2c7a6e; margin-bottom: 14px; }
+  .timeline-scroll { overflow-x: auto; scrollbar-width: none; padding-bottom: 8px; }
+  .timeline-scroll::-webkit-scrollbar { display: none; }
+  .tl-inner { min-width: 540px; }
+  .tl-weeks { display: flex; gap: 0; border-bottom: 1.5px solid #e5e7eb; padding-bottom: 6px; margin-bottom: 12px; }
+  .tl-week { flex: 0 0 90px; text-align: center; font-size: .72rem; color: #9ca3af; font-weight: 600; }
+  .skill-row { margin-bottom: 24px; }
+  .skill-label { font-size: .78rem; font-weight: 700; color: #374151; margin-bottom: 6px; }
+  .svg-wrap { position: relative; height: 60px; }
+  svg.tl-svg { width: 540px; height: 60px; }
+  .tier-pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: .72rem; font-weight: 700; }
+  .tier-opportunity { background: #fef3c7; color: #92400e; }
+  .tier-growing { background: #dbeafe; color: #1e40af; }
+  .tier-strength { background: #dcfce7; color: #166534; }
+  .milestone-legend { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .ml-item { display: flex; align-items: center; gap: 5px; font-size: .72rem; color: #6b7280; }
+  .ml-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .skill-detail-list { display: flex; flex-direction: column; gap: 12px; }
+  .sd-item { padding: 14px; background: #f8f5f0; border-radius: 12px; }
+  .sd-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .sd-name { font-weight: 700; font-size: .9rem; }
+  .progress-bar { height: 8px; background: #e5e7eb; border-radius: 20px; overflow: hidden; margin-bottom: 6px; }
+  .progress-fill { height: 100%; border-radius: 20px; background: linear-gradient(90deg, #2c7a6e, #4ecdc4); }
+  .sd-info { display: flex; justify-content: space-between; font-size: .75rem; color: #6b7280; }
+  .milestone-list { display: flex; flex-direction: column; gap: 12px; }
+  .ms-item { display: flex; gap: 12px; align-items: flex-start; padding: 14px; background: #f8f5f0; border-radius: 12px; }
+  .ms-dot-wrap { display: flex; flex-direction: column; align-items: center; }
+  .ms-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; margin-top: 2px; }
+  .ms-body .ms-title { font-weight: 700; font-size: .85rem; color: #1a1a2e; }
+  .ms-body .ms-date { font-size: .75rem; color: #6b7280; margin-top: 2px; }
+  .ms-body .ms-desc { font-size: .78rem; color: #374151; margin-top: 4px; line-height: 1.5; }
+  .next-focus { background: linear-gradient(135deg, #2c7a6e, #1a5049); color: #fff; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .nf-label { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .8; margin-bottom: 8px; }
+  .nf-skill { font-size: 1.15rem; font-weight: 700; margin-bottom: 6px; }
+  .nf-reason { font-size: .82rem; opacity: .9; line-height: 1.5; margin-bottom: 14px; }
+  .nf-tips { background: rgba(255,255,255,.15); border-radius: 10px; padding: 12px; }
+  .nf-tips-title { font-size: .78rem; font-weight: 700; margin-bottom: 8px; }
+  .nf-tip { font-size: .78rem; opacity: .9; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.1); }
+  .nf-tip:last-child { border: none; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 8px 12px; text-align: left; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="back">←</span>
+  <span class="title">Mia's Skill Growth</span>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('timeline')">Timeline View</div>
+  <div class="tab" onclick="show('detail')">Skill Detail</div>
+  <div class="tab" onclick="show('milestones')">Growth Milestones</div>
+  <div class="tab" onclick="show('focus')">Next Focus Area</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- PANEL 1: Timeline View -->
+<div id="timeline" class="panel active">
+  <div class="hint"><strong>Growth Timeline:</strong> Scroll right to see Mia's skill journey over the past 6 weeks. Milestone dots mark when a skill moved to a new tier.</div>
+  <h2>Mia's Growth Timeline</h2>
+  <p class="sub">6-week view — showing skill trends and tier changes.</p>
+  <div class="card">
+    <h3>📈 Skills Over Time</h3>
+    <div class="timeline-scroll">
+      <div class="tl-inner">
+        <div class="tl-weeks">
+          <div class="tl-week">Wk Feb 10</div>
+          <div class="tl-week">Wk Feb 17</div>
+          <div class="tl-week">Wk Feb 24</div>
+          <div class="tl-week">Wk Mar 3</div>
+          <div class="tl-week">Wk Mar 10</div>
+          <div class="tl-week">Wk Mar 17</div>
+        </div>
+        <!-- Reading Fluency -->
+        <div class="skill-row">
+          <div class="skill-label">Reading Fluency <span class="tier-pill tier-growing">Growing</span></div>
+          <div class="svg-wrap">
+            <svg class="tl-svg" viewBox="0 0 540 60">
+              <polyline points="0,48 90,42 180,36 270,30 360,22 450,16 540,12" fill="none" stroke="#2c7a6e" stroke-width="2.5" stroke-linejoin="round"/>
+              <!-- Tier change marker at week 4 -->
+              <circle cx="270" cy="30" r="7" fill="#ffd166" stroke="#c07800" stroke-width="2"/>
+              <circle cx="450" cy="16" r="5" fill="#2c7a6e"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Number Sense -->
+        <div class="skill-row">
+          <div class="skill-label">Number Sense <span class="tier-pill tier-strength">Strength</span></div>
+          <div class="svg-wrap">
+            <svg class="tl-svg" viewBox="0 0 540 60">
+              <polyline points="0,40 90,34 180,28 270,20 360,14 450,10 540,8" fill="none" stroke="#1a8050" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="270" cy="20" r="7" fill="#ffd166" stroke="#c07800" stroke-width="2"/>
+              <circle cx="450" cy="10" r="5" fill="#1a8050"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Phonics -->
+        <div class="skill-row">
+          <div class="skill-label">Phonics <span class="tier-pill tier-opportunity">Opportunity</span></div>
+          <div class="svg-wrap">
+            <svg class="tl-svg" viewBox="0 0 540 60">
+              <polyline points="0,50 90,50 180,46 270,44 360,40 450,36 540,32" fill="none" stroke="#c07800" stroke-width="2.5" stroke-linejoin="round" stroke-dasharray="5,3"/>
+              <circle cx="450" cy="36" r="5" fill="#c07800"/>
+            </svg>
+          </div>
+        </div>
+        <!-- Vocabulary -->
+        <div class="skill-row">
+          <div class="skill-label">Vocabulary <span class="tier-pill tier-growing">Growing</span></div>
+          <div class="svg-wrap">
+            <svg class="tl-svg" viewBox="0 0 540 60">
+              <polyline points="0,44 90,40 180,38 270,34 360,28 450,24 540,20" fill="none" stroke="#4a90d9" stroke-width="2.5" stroke-linejoin="round"/>
+              <circle cx="360" cy="28" r="7" fill="#ffd166" stroke="#c07800" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="milestone-legend">
+      <div class="ml-item"><div class="ml-dot" style="background:#ffd166;border:2px solid #c07800;"></div>Tier change</div>
+      <div class="ml-item"><div class="ml-dot" style="background:#2c7a6e;"></div>Current level</div>
+      <div class="ml-item"><div class="ml-dot" style="background:#c07800;"></div>Opportunity</div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px;">
+    <span class="tier-pill tier-opportunity" style="padding:6px 14px;font-size:.8rem;">Opportunity — building momentum</span>
+    <span class="tier-pill tier-growing" style="padding:6px 14px;font-size:.8rem;">Growing — on a great path</span>
+    <span class="tier-pill tier-strength" style="padding:6px 14px;font-size:.8rem;">Strength — shining bright</span>
+  </div>
+</div>
+
+<!-- PANEL 2: Skill Detail -->
+<div id="detail" class="panel">
+  <div class="hint"><strong>Skill Detail:</strong> Each skill's current tier and recent growth. All framing is forward-looking — Mia is always on a growth journey.</div>
+  <h2>Skill Detail</h2>
+  <p class="sub">Mia's current standing across all tracked skills.</p>
+  <div class="skill-detail-list">
+    <div class="sd-item">
+      <div class="sd-top">
+        <span class="sd-name">📖 Reading Fluency</span>
+        <span class="tier-pill tier-growing">Growing</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:62%;"></div></div>
+      <div class="sd-info"><span>Strong upward trend this month</span><span>+18 pts this week</span></div>
+    </div>
+    <div class="sd-item">
+      <div class="sd-top">
+        <span class="sd-name">🔢 Number Sense</span>
+        <span class="tier-pill tier-strength">Strength</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:84%;background:linear-gradient(90deg,#1a8050,#4ecdc4);"></div></div>
+      <div class="sd-info"><span>Mia is shining in this area!</span><span>+8 pts this week</span></div>
+    </div>
+    <div class="sd-item">
+      <div class="sd-top">
+        <span class="sd-name">🔤 Phonics</span>
+        <span class="tier-pill tier-opportunity">Opportunity</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:31%;background:linear-gradient(90deg,#c07800,#ffd166);"></div></div>
+      <div class="sd-info"><span>More practice will unlock big gains</span><span>+5 pts this week</span></div>
+    </div>
+    <div class="sd-item">
+      <div class="sd-top">
+        <span class="sd-name">📚 Vocabulary</span>
+        <span class="tier-pill tier-growing">Growing</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:55%;"></div></div>
+      <div class="sd-info"><span>Moved to Growing tier last week!</span><span>+12 pts this week</span></div>
+    </div>
+    <div class="sd-item">
+      <div class="sd-top">
+        <span class="sd-name">✏️ Writing Basics</span>
+        <span class="tier-pill tier-growing">Growing</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" style="width:48%;"></div></div>
+      <div class="sd-info"><span>Steady positive progress</span><span>+9 pts this week</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 3: Growth Milestones -->
+<div id="milestones" class="panel">
+  <div class="hint"><strong>Milestones:</strong> Each dot on the timeline marks a tier change — a moment when Mia's hard work moved a skill to a new level.</div>
+  <h2>Growth Milestones</h2>
+  <p class="sub">Moments when Mia's skills leveled up — every one is worth celebrating!</p>
+  <div class="milestone-list">
+    <div class="ms-item">
+      <div class="ms-dot-wrap"><div class="ms-dot" style="background:#ffd166;border:2px solid #c07800;"></div></div>
+      <div class="ms-body">
+        <div class="ms-title">Number Sense → Strength 🌟</div>
+        <div class="ms-date">March 12, 2026</div>
+        <div class="ms-desc">Mia's number skills moved to Strength tier — she's really shining in this area now!</div>
+      </div>
+    </div>
+    <div class="ms-item">
+      <div class="ms-dot-wrap"><div class="ms-dot" style="background:#ffd166;border:2px solid #c07800;"></div></div>
+      <div class="ms-body">
+        <div class="ms-title">Vocabulary → Growing 📚</div>
+        <div class="ms-date">March 5, 2026</div>
+        <div class="ms-desc">Vocabulary moved from Opportunity to Growing — a big leap forward this week!</div>
+      </div>
+    </div>
+    <div class="ms-item">
+      <div class="ms-dot-wrap"><div class="ms-dot" style="background:#ffd166;border:2px solid #c07800;"></div></div>
+      <div class="ms-body">
+        <div class="ms-title">Reading Fluency → Growing 📖</div>
+        <div class="ms-date">February 24, 2026</div>
+        <div class="ms-desc">Reading speed and comprehension both improved — Mia's on a great reading path!</div>
+      </div>
+    </div>
+    <div class="ms-item">
+      <div class="ms-dot-wrap"><div class="ms-dot" style="background:#2c7a6e;"></div></div>
+      <div class="ms-body">
+        <div class="ms-title">First Week Complete 🎉</div>
+        <div class="ms-date">February 14, 2026</div>
+        <div class="ms-desc">Mia completed her first full week on WonderQuest — a great start to the journey!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 4: Next Focus Area -->
+<div id="focus" class="panel">
+  <div class="hint"><strong>Next Focus:</strong> This is WonderQuest's recommendation for where a little extra practice time will have the biggest positive impact for Mia.</div>
+  <h2>Next Focus Area</h2>
+  <p class="sub">Where Mia is ready to grow next.</p>
+  <div class="next-focus">
+    <div class="nf-label">Recommended Focus</div>
+    <div class="nf-skill">🔤 Phonics</div>
+    <div class="nf-reason">Mia has been building momentum here — a few extra practice sessions this week could move this skill from Opportunity to Growing. She's closer than she thinks!</div>
+    <div class="nf-tips">
+      <div class="nf-tips-title">Ways to support at home:</div>
+      <div class="nf-tip">🎵 Practice letter-sound songs together (5 min)</div>
+      <div class="nf-tip">📖 Pick a book with lots of rhyming words</div>
+      <div class="nf-tip">🎮 Let Mia play the Phonics Quest challenge in the app</div>
+    </div>
+  </div>
+  <div class="card">
+    <h3>🌱 Growth Potential This Week</h3>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#fef3c7;border-radius:10px;">
+        <div>
+          <div style="font-weight:700;font-size:.88rem;color:#92400e;">🔤 Phonics</div>
+          <div style="font-size:.76rem;color:#6b7280;">Ready to level up</div>
+        </div>
+        <span style="font-size:.78rem;font-weight:700;color:#92400e;background:#fef9c3;padding:4px 10px;border-radius:20px;">High potential</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#dbeafe;border-radius:10px;">
+        <div>
+          <div style="font-weight:700;font-size:.88rem;color:#1e40af;">📖 Reading Fluency</div>
+          <div style="font-size:.76rem;color:#6b7280;">Great momentum — keep going!</div>
+        </div>
+        <span style="font-size:.78rem;font-weight:700;color:#1e40af;background:#eff6ff;padding:4px 10px;border-radius:20px;">Keep building</span>
+      </div>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#dcfce7;border-radius:10px;">
+        <div>
+          <div style="font-weight:700;font-size:.88rem;color:#166534;">🔢 Number Sense</div>
+          <div style="font-size:.76rem;color:#6b7280;">Mia's superpower — celebrate it!</div>
+        </div>
+        <span style="font-size:.78rem;font-weight:700;color:#166534;background:#f0fdf4;padding:4px 10px;border-radius:20px;">Strength ⭐</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>Spec:</strong> Design and data contract for skill growth timeline screen.</div>
+  <h2>Specification</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Screen</td><td>parent-skill-growth-timeline-v2</td></tr>
+    <tr><td>Viewport</td><td>375px mobile</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f5f0e8</td></tr>
+    <tr><td>Timeline</td><td>Horizontal scroll, SVG polylines per skill, 6-week range</td></tr>
+    <tr><td>Tier labels</td><td>Opportunity / Growing / Strength (NO accuracy %)</td></tr>
+    <tr><td>Milestone dots</td><td>Yellow dot with orange border = tier change event</td></tr>
+    <tr><td>Framing</td><td>Forward-looking only — no missed-day, no negative comparisons</td></tr>
+    <tr><td>Next focus card</td><td>Dark green gradient, home practice tips, growth potential grid</td></tr>
+    <tr><td>Parent rules enforced</td><td>No % shown, no missed days, positive language throughout</td></tr>
+    <tr><td>Design tokens</td><td>Hint: #2a1f00 / #ffd166</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

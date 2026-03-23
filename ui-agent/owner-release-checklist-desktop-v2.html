@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Release Checklist Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s;white-space:nowrap}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#ffd166;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#ffd166}
+
+.progress-summary{display:flex;gap:12px;margin-bottom:20px}
+.prog-card{flex:1;background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center}
+.prog-val{font-size:24px;font-weight:800}
+.prog-lbl{font-size:11px;color:#7a8a9a;margin-top:4px}
+
+.checklist-group{background:#131c28;border-radius:12px;border:1px solid #1e2630;margin-bottom:14px;overflow:hidden}
+.group-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;user-select:none;transition:background .2s}
+.group-header:hover{background:#1a2535}
+.group-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.group-title{font-size:14px;font-weight:700;color:#e8eaf0;flex:1}
+.group-meta{font-size:11px;color:#7a8a9a}
+.group-progress{display:flex;align-items:center;gap:8px}
+.group-prog-bar{width:80px;height:6px;background:#1e2630;border-radius:3px;overflow:hidden}
+.group-prog-fill{height:100%;border-radius:3px}
+.group-prog-text{font-size:11px;font-weight:700}
+.expand-arrow{font-size:12px;color:#4a5a6a;transition:transform .2s}
+.expanded .expand-arrow{transform:rotate(90deg)}
+.group-body{display:none;border-top:1px solid #1e2630}
+.group-body.open{display:block}
+
+.check-row{display:grid;grid-template-columns:24px 1fr 120px 130px 100px 80px;gap:12px;align-items:center;padding:10px 16px;border-bottom:1px solid #1a2030;font-size:12px}
+.check-row:last-child{border-bottom:none}
+.check-row:hover{background:#1a2535}
+.check-icon{font-size:14px;text-align:center}
+.check-desc{color:#e8eaf0;line-height:1.3}
+.check-notes{font-size:11px;color:#7a8a9a;margin-top:2px}
+.check-owner{display:inline-flex;align-items:center;gap:5px;background:#1a2535;border-radius:20px;padding:4px 10px;font-size:11px;color:#7a8a9a}
+.check-date{font-size:11px;color:#7a8a9a}
+.status-check{color:#22c55e;font-size:16px;font-weight:700}
+.status-warn{color:#f59e0b;font-size:14px}
+.status-fail{color:#ef4444;font-size:14px;animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.4}}
+.status-pend{color:#4a5a6a;font-size:14px}
+.row-status{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700}
+.rs-pass{background:rgba(34,197,94,.15);color:#22c55e}
+.rs-warn{background:rgba(245,158,11,.15);color:#f59e0b}
+.rs-fail{background:rgba(239,68,68,.15);color:#ef4444}
+.rs-pend{background:#1a2535;color:#4a5a6a}
+
+.col-headers{display:grid;grid-template-columns:24px 1fr 120px 130px 100px 80px;gap:12px;padding:8px 16px;font-size:10px;font-weight:700;color:#4a5a6a;letter-spacing:.5px;border-bottom:1px solid #1e2630}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('full')">Full Checklist</div>
+  <div class="tab" onclick="show('content')">Content Section</div>
+  <div class="tab" onclick="show('technical')">Technical Section</div>
+  <div class="tab" onclick="show('signoff')">Stakeholder Sign-offs</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Full Checklist -->
+<div id="full" class="panel active">
+  <div class="hint">Release checklist grouped by domain. Check=passed, Warn=needs attention, Fail=blocker, Pending=not yet verified.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Release <span>Checklist</span></div>
+      <div style="font-size:12px;color:#7a8a9a">v0.9.4-alpha · Target: Mar 25, 2026 &nbsp;|&nbsp; 28 items · 18 passed · 3 failed · 7 pending</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="background:#131c28;color:#ffd166;border:1px solid #ffd166;border-radius:8px;padding:10px 16px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Export PDF</button>
+      <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Re-run Checks</button>
+    </div>
+  </div>
+  <div class="progress-summary">
+    <div class="prog-card"><div class="prog-val" style="color:#22c55e">18</div><div class="prog-lbl">Passed</div></div>
+    <div class="prog-card"><div class="prog-val" style="color:#f59e0b">3</div><div class="prog-lbl">Warnings</div></div>
+    <div class="prog-card"><div class="prog-val" style="color:#ef4444">3</div><div class="prog-lbl">Failed (Blockers)</div></div>
+    <div class="prog-card"><div class="prog-val" style="color:#4a5a6a">4</div><div class="prog-lbl">Pending</div></div>
+    <div class="prog-card"><div class="prog-val">64%</div><div class="prog-lbl">Complete</div></div>
+  </div>
+
+  <!-- Content Group -->
+  <div class="checklist-group">
+    <div class="group-header expanded" onclick="toggleGroup('content-group',this)">
+      <div class="group-icon" style="background:rgba(255,209,102,.15)">📚</div>
+      <div class="group-title">Content</div>
+      <div class="group-meta">5/8 passed · 2 blockers</div>
+      <div class="group-progress">
+        <div class="group-prog-bar"><div class="group-prog-fill" style="width:62%;background:#ffd166"></div></div>
+        <div class="group-prog-text" style="color:#ffd166">62%</div>
+      </div>
+      <div class="expand-arrow">▶</div>
+    </div>
+    <div id="content-group" class="group-body open">
+      <div class="col-headers"><div></div><div>ITEM</div><div>OWNER</div><div>LAST VERIFIED</div><div>NOTES</div><div>STATUS</div></div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Band 1 questions approved and published</div><div class="check-notes">248 questions live</div></div>
+        <div><div class="check-owner">a.singh</div></div>
+        <div class="check-date">Mar 22, 14:00</div>
+        <div class="check-notes">All Q approved</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-warn">⚠</div>
+        <div><div class="check-desc">Band 2 questions — no hard blocks</div><div class="check-notes">14 questions missing correct answer</div></div>
+        <div><div class="check-owner">a.singh</div></div>
+        <div class="check-date">Mar 23, 08:00</div>
+        <div class="check-notes">14 blocks remain</div>
+        <div><span class="row-status rs-fail">FAIL</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Band 1 explainers complete</div><div class="check-notes">62 explainers, 4 pending final review</div></div>
+        <div><div class="check-owner">d.miller</div></div>
+        <div class="check-date">Mar 22, 16:00</div>
+        <div class="check-notes">4 in review</div>
+        <div><span class="row-status rs-warn">WARN</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-fail">✗</div>
+        <div><div class="check-desc">Band 4 coverage ≥6 Q per node</div><div class="check-notes">3 nodes below threshold</div></div>
+        <div><div class="check-owner">a.singh</div></div>
+        <div class="check-date">Mar 23, 09:00</div>
+        <div class="check-notes">3 crit nodes</div>
+        <div><span class="row-status rs-fail">FAIL</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Skill-map data validated</div><div class="check-notes">All skill nodes linked correctly</div></div>
+        <div><div class="check-owner">d.miller</div></div>
+        <div class="check-date">Mar 22, 11:00</div>
+        <div class="check-notes">Validated</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QA Group -->
+  <div class="checklist-group">
+    <div class="group-header expanded" onclick="toggleGroup('qa-group',this)">
+      <div class="group-icon" style="background:rgba(34,197,94,.15)">🧪</div>
+      <div class="group-title">QA</div>
+      <div class="group-meta">6/6 passed · 0 blockers</div>
+      <div class="group-progress">
+        <div class="group-prog-bar"><div class="group-prog-fill" style="width:100%;background:#22c55e"></div></div>
+        <div class="group-prog-text" style="color:#22c55e">100%</div>
+      </div>
+      <div class="expand-arrow">▶</div>
+    </div>
+    <div id="qa-group" class="group-body open">
+      <div class="col-headers"><div></div><div>ITEM</div><div>OWNER</div><div>LAST VERIFIED</div><div>NOTES</div><div>STATUS</div></div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Smoke tests passing on staging</div></div>
+        <div><div class="check-owner">CI/CD</div></div>
+        <div class="check-date">Mar 23, 13:42</div>
+        <div class="check-notes">24/24 passed</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Regression suite — critical paths</div></div>
+        <div><div class="check-owner">p.lee</div></div>
+        <div class="check-date">Mar 23, 10:00</div>
+        <div class="check-notes">120/120 pass</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Mobile device testing — iOS, Android</div></div>
+        <div><div class="check-owner">p.lee</div></div>
+        <div class="check-date">Mar 22, 18:00</div>
+        <div class="check-notes">8 devices tested</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Accessibility audit (WCAG 2.1 AA)</div></div>
+        <div><div class="check-owner">d.miller</div></div>
+        <div class="check-date">Mar 21, 15:00</div>
+        <div class="check-notes">2 minor issues</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Performance budget check</div></div>
+        <div><div class="check-owner">p.lee</div></div>
+        <div class="check-date">Mar 23, 09:00</div>
+        <div class="check-notes">LCP &lt;2.5s ✓</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Security scan — OWASP top 10</div></div>
+        <div><div class="check-owner">r.kumar</div></div>
+        <div class="check-date">Mar 22, 12:00</div>
+        <div class="check-notes">0 critical vulns</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Routes Group -->
+  <div class="checklist-group">
+    <div class="group-header" onclick="toggleGroup('routes-group',this)">
+      <div class="group-icon" style="background:rgba(239,68,68,.15)">🔌</div>
+      <div class="group-title">Routes / Infrastructure</div>
+      <div class="group-meta">4/6 passed · 1 blocker (DOWN)</div>
+      <div class="group-progress">
+        <div class="group-prog-bar"><div class="group-prog-fill" style="width:67%;background:#ef4444"></div></div>
+        <div class="group-prog-text" style="color:#ef4444">67%</div>
+      </div>
+      <div class="expand-arrow">▶</div>
+    </div>
+    <div id="routes-group" class="group-body">
+      <div class="col-headers"><div></div><div>ITEM</div><div>OWNER</div><div>LAST VERIFIED</div><div>NOTES</div><div>STATUS</div></div>
+      <div class="check-row">
+        <div class="check-icon status-fail">✗</div>
+        <div><div class="check-desc">/api/v1/session/resume — operational</div><div class="check-notes">Currently DOWN, INC-0042</div></div>
+        <div><div class="check-owner">r.kumar</div></div>
+        <div class="check-date">14:32 (live)</div>
+        <div class="check-notes">ETA fix: 45min</div>
+        <div><span class="row-status rs-fail">FAIL</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-warn">⚠</div>
+        <div><div class="check-desc">/api/v1/questions/batch — latency OK</div><div class="check-notes">p95 480ms (warn threshold 400ms)</div></div>
+        <div><div class="check-owner">r.kumar</div></div>
+        <div class="check-date">14:30 (live)</div>
+        <div class="check-notes">Degraded</div>
+        <div><span class="row-status rs-warn">WARN</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Auth routes — all operational</div></div>
+        <div><div class="check-owner">r.kumar</div></div>
+        <div class="check-date">14:31 (live)</div>
+        <div class="check-notes">p95 &lt;100ms</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Analytics/tracking routes</div></div>
+        <div><div class="check-owner">d.miller</div></div>
+        <div class="check-date">14:32 (live)</div>
+        <div class="check-notes">p50 18ms</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback Group -->
+  <div class="checklist-group">
+    <div class="group-header" onclick="toggleGroup('feedback-group',this)">
+      <div class="group-icon" style="background:rgba(245,158,11,.15)">💬</div>
+      <div class="group-title">Feedback</div>
+      <div class="group-meta">2/5 passed · 3 pending</div>
+      <div class="group-progress">
+        <div class="group-prog-bar"><div class="group-prog-fill" style="width:40%;background:#f59e0b"></div></div>
+        <div class="group-prog-text" style="color:#f59e0b">40%</div>
+      </div>
+      <div class="expand-arrow">▶</div>
+    </div>
+    <div id="feedback-group" class="group-body">
+      <div class="col-headers"><div></div><div>ITEM</div><div>OWNER</div><div>LAST VERIFIED</div><div>NOTES</div><div>STATUS</div></div>
+      <div class="check-row">
+        <div class="check-icon status-fail">✗</div>
+        <div><div class="check-desc">All P0 feedback resolved</div><div class="check-notes">3 overdue P0 items remain</div></div>
+        <div><div class="check-owner">team</div></div>
+        <div class="check-date">14:35 (live)</div>
+        <div class="check-notes">3 overdue</div>
+        <div><span class="row-status rs-fail">FAIL</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">7-day SLA rate ≥95%</div></div>
+        <div><div class="check-owner">team</div></div>
+        <div class="check-date">Mar 23, 07:00</div>
+        <div class="check-notes">97% this week</div>
+        <div><span class="row-status rs-pass">PASS</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-pend">○</div>
+        <div><div class="check-desc">Beta tester NPS ≥7</div></div>
+        <div><div class="check-owner">a.sharma</div></div>
+        <div class="check-date">—</div>
+        <div class="check-notes">Survey pending</div>
+        <div><span class="row-status rs-pend">PENDING</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stakeholder Group -->
+  <div class="checklist-group">
+    <div class="group-header" onclick="toggleGroup('stakeholder-group',this)">
+      <div class="group-icon" style="background:rgba(88,200,240,.15)">✍</div>
+      <div class="group-title">Stakeholder Sign-offs</div>
+      <div class="group-meta">1/4 signed off · 3 pending</div>
+      <div class="group-progress">
+        <div class="group-prog-bar"><div class="group-prog-fill" style="width:25%;background:#58c8f0"></div></div>
+        <div class="group-prog-text" style="color:#58c8f0">25%</div>
+      </div>
+      <div class="expand-arrow">▶</div>
+    </div>
+    <div id="stakeholder-group" class="group-body">
+      <div class="col-headers"><div></div><div>STAKEHOLDER</div><div>ROLE</div><div>SIGNED</div><div>NOTES</div><div>STATUS</div></div>
+      <div class="check-row">
+        <div class="check-icon status-check">✓</div>
+        <div><div class="check-desc">Engineering Lead</div></div>
+        <div><div class="check-owner">r.kumar</div></div>
+        <div class="check-date">Mar 23, 11:00</div>
+        <div class="check-notes">Approved</div>
+        <div><span class="row-status rs-pass">SIGNED</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-pend">○</div>
+        <div><div class="check-desc">Curriculum Lead</div></div>
+        <div><div class="check-owner">pending</div></div>
+        <div class="check-date">—</div>
+        <div class="check-notes">Awaiting review</div>
+        <div><span class="row-status rs-pend">PENDING</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-pend">○</div>
+        <div><div class="check-desc">Product Owner</div></div>
+        <div><div class="check-owner">a.sharma</div></div>
+        <div class="check-date">—</div>
+        <div class="check-notes">Scheduled Mar 24</div>
+        <div><span class="row-status rs-pend">PENDING</span></div>
+      </div>
+      <div class="check-row">
+        <div class="check-icon status-pend">○</div>
+        <div><div class="check-desc">Marketing / Comms</div></div>
+        <div><div class="check-owner">marketing</div></div>
+        <div class="check-date">—</div>
+        <div class="check-notes">On hold request</div>
+        <div><span class="row-status rs-warn">HOLD</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Content Section -->
+<div id="content" class="panel">
+  <div class="hint">Content section only. Shows question coverage, hard blocks, and explainer status.</div>
+  <div class="page-header">
+    <div class="page-title">Content <span>Checklist</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#22c55e">5</div><div style="font-size:11px;color:#7a8a9a">Passed</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#f59e0b">1</div><div style="font-size:11px;color:#7a8a9a">Warnings</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#ef4444">2</div><div style="font-size:11px;color:#7a8a9a">Blockers</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#58c8f0">0</div><div style="font-size:11px;color:#7a8a9a">Pending</div></div>
+  </div>
+  <div style="background:#2a0808;border:1px solid #ef4444;border-radius:12px;padding:16px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:12px">CONTENT BLOCKERS (2)</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="display:flex;align-items:center;gap:10px"><span style="color:#ef4444;font-size:16px">✗</span><span style="font-size:13px">Band 2: 14 questions missing correct-answer mark</span><button style="margin-left:auto;background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Fix Now →</button></div>
+      <div style="display:flex;align-items:center;gap:10px"><span style="color:#ef4444;font-size:16px">✗</span><span style="font-size:13px">Band 4: 3 skill nodes below 4 Q/node threshold</span><button style="margin-left:auto;background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Add Questions →</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Technical Section -->
+<div id="technical" class="panel">
+  <div class="hint">QA + Routes + Infrastructure checks combined into a single technical view.</div>
+  <div class="page-header">
+    <div class="page-title">Technical <span>Checklist</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#22c55e">10</div><div style="font-size:11px;color:#7a8a9a">Passed</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#f59e0b">1</div><div style="font-size:11px;color:#7a8a9a">Warnings</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#ef4444">1</div><div style="font-size:11px;color:#7a8a9a">Blockers</div></div>
+    <div style="background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center"><div style="font-size:24px;font-weight:800;color:#58c8f0">0</div><div style="font-size:11px;color:#7a8a9a">Pending</div></div>
+  </div>
+  <div style="background:#2a0808;border:1px solid #ef4444;border-radius:12px;padding:16px">
+    <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">TECHNICAL BLOCKER</div>
+    <div style="display:flex;align-items:center;gap:10px"><span style="color:#ef4444;font-size:16px">✗</span><span style="font-size:13px">/api/v1/session/resume is DOWN — INC-0042</span><button style="margin-left:auto;background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">View Incident →</button></div>
+  </div>
+</div>
+
+<!-- Stakeholder Sign-offs -->
+<div id="signoff" class="panel">
+  <div class="hint">Stakeholder sign-off tracking. All 4 required before release can proceed.</div>
+  <div class="page-header">
+    <div class="page-title">Stakeholder <span>Sign-offs</span></div>
+  </div>
+  <div style="display:grid;gap:12px">
+    <div style="background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px">
+      <div style="width:40px;height:40px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#0a1a0d">RK</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#22c55e">r.kumar</div><div style="font-size:12px;color:#7a8a9a">Engineering Lead</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#22c55e;font-weight:700">SIGNED OFF</div><div style="font-size:10px;color:#7a8a9a">Mar 23, 11:00</div></div>
+    </div>
+    <div style="background:#131c28;border:1px solid #1e2630;border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px">
+      <div style="width:40px;height:40px;border-radius:50%;background:#2a3640;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#7a8a9a">CL</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#e8eaf0">Curriculum Lead</div><div style="font-size:12px;color:#7a8a9a">Role: Content approval</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#f59e0b;font-weight:700">AWAITING</div><div style="font-size:10px;color:#7a8a9a">Deadline: Mar 24, 09:00</div></div>
+    </div>
+    <div style="background:#131c28;border:1px solid #1e2630;border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px">
+      <div style="width:40px;height:40px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#7a8a9a">AS</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#e8eaf0">a.sharma</div><div style="font-size:12px;color:#7a8a9a">Product Owner</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#58c8f0;font-weight:700">SCHEDULED</div><div style="font-size:10px;color:#7a8a9a">Mar 24, 14:00</div></div>
+    </div>
+    <div style="background:#2a1500;border:1px solid rgba(245,158,11,.3);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px">
+      <div style="width:40px;height:40px;border-radius:50%;background:#3d2800;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;color:#f59e0b">MK</div>
+      <div style="flex:1"><div style="font-size:14px;font-weight:700;color:#fcd34d">Marketing/Comms</div><div style="font-size:12px;color:#7a8a9a">HOLD requested — press release coordination</div></div>
+      <div style="text-align:right"><div style="font-size:11px;color:#f59e0b;font-weight:700">ON HOLD</div><div style="font-size:10px;color:#7a8a9a">Until Mar 25, 09:00</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the release checklist desktop view.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">ROW STATUS ICONS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a"><span style="color:#22c55e">✓</span> Check = passed &nbsp;|&nbsp; <span style="color:#f59e0b">⚠</span> Warn = needs attention<br><span style="color:#ef4444">✗</span> Fail = release blocker &nbsp;|&nbsp; ○ Pending = not verified</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">GROUPS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Content / QA / Routes / Feedback / Stakeholder Sign-offs — each expandable</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function toggleGroup(bodyId, header){
+  const body = document.getElementById(bodyId);
+  body.classList.toggle('open');
+  header.classList.toggle('expanded');
+}
+</script>
+</body>
+</html>

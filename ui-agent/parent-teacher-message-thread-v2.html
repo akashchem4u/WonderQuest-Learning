@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Teacher Message Thread</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a1a2e; min-height: 100vh; max-width: 375px; margin: 0 auto; }
+  nav { background: #2c7a6e; color: #fff; padding: 0 14px; height: 56px; display: flex; align-items: center; gap: 10px; }
+  nav .back { font-size: 1.1rem; cursor: pointer; }
+  nav .avatar { width: 34px; height: 34px; border-radius: 50%; background: #4ecdc4; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .9rem; color: #fff; flex-shrink: 0; }
+  nav .teacher-info { flex: 1; }
+  nav .t-name { font-weight: 700; font-size: .92rem; }
+  nav .t-sub { font-size: .74rem; opacity: .8; }
+  nav .more-btn { font-size: 1.2rem; cursor: pointer; }
+  .tabs { display: flex; background: #e8e2d6; overflow-x: auto; scrollbar-width: none; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: none; padding: 11px 16px; cursor: pointer; font-size: .78rem; font-weight: 600; color: #5a5a7a; border-bottom: 2.5px solid transparent; white-space: nowrap; }
+  .tab.active { color: #2c7a6e; border-bottom-color: #2c7a6e; background: #f5f0e8; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+  /* Thread panel special layout */
+  .thread-panel { display: none; flex-direction: column; height: calc(100vh - 112px); }
+  .thread-panel.active { display: flex; }
+  .safety-bar { background: #edf7f5; border-bottom: 1px solid #b2d8d2; padding: 8px 14px; display: flex; align-items: center; gap: 8px; }
+  .safety-bar .sb-icon { font-size: .9rem; }
+  .safety-bar .sb-text { font-size: .74rem; color: #2c7a6e; font-weight: 600; flex: 1; }
+  .messages-area { flex: 1; overflow-y: auto; padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; }
+  .date-divider { text-align: center; font-size: .72rem; color: #9ca3af; font-weight: 600; }
+  .bubble-wrap { display: flex; gap: 8px; }
+  .bubble-wrap.teacher { justify-content: flex-start; }
+  .bubble-wrap.parent { justify-content: flex-end; }
+  .bubble-avatar { width: 28px; height: 28px; border-radius: 50%; background: #4ecdc4; display: flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 700; color: #fff; flex-shrink: 0; margin-top: 2px; }
+  .bubble { max-width: 76%; padding: 10px 14px; border-radius: 16px; font-size: .85rem; line-height: 1.5; }
+  .bubble.teacher { background: #fff; color: #1a1a2e; border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .bubble.parent { background: #2c7a6e; color: #fff; border-bottom-right-radius: 4px; }
+  .bubble-meta { font-size: .7rem; margin-top: 4px; }
+  .bubble-meta.teacher { color: #9ca3af; text-align: left; margin-left: 36px; }
+  .bubble-meta.parent { color: #9ca3af; text-align: right; }
+  .urgent-banner { background: #fff5f5; border: 1.5px solid #9a2a2a; border-radius: 10px; padding: 10px 12px; margin: 8px 14px; display: flex; gap: 8px; align-items: center; font-size: .78rem; color: #9a2a2a; font-weight: 600; }
+  .compose-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #fff; border-top: 1px solid #e5e7eb; }
+  .compose-input { flex: 1; background: #f5f0e8; border: none; border-radius: 24px; padding: 10px 16px; font-size: .85rem; font-family: 'Sora', sans-serif; outline: none; }
+  .send-btn { background: #2c7a6e; color: #fff; border: none; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; flex-shrink: 0; }
+  /* Regular panels */
+  .padded { padding: 20px 16px; }
+  .hint { background: #2a1f00; border: 1.5px solid #ffd166; color: #ffd166; border-radius: 10px; padding: 12px 14px; font-size: .78rem; margin-bottom: 20px; line-height: 1.5; }
+  .hint strong { color: #ffe599; }
+  h2 { font-size: 1.15rem; font-weight: 700; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: .82rem; margin-bottom: 20px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; margin-bottom: 14px; box-shadow: 0 2px 6px rgba(0,0,0,.07); }
+  .card h3 { font-size: .9rem; font-weight: 700; color: #2c7a6e; margin-bottom: 12px; }
+  .history-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid #f0ede8; }
+  .history-item:last-child { border: none; }
+  .hi-avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: .85rem; color: #fff; }
+  .hi-body .hi-header { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+  .hi-name { font-weight: 700; font-size: .85rem; }
+  .hi-date { font-size: .72rem; color: #9ca3af; }
+  .hi-preview { font-size: .8rem; color: #6b7280; }
+  .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: #2c7a6e; }
+  .info-block { background: #edf7f5; border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .ib-title { font-weight: 700; color: #2c7a6e; font-size: .88rem; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  .ib-text { font-size: .8rem; color: #374151; line-height: 1.6; }
+  .shield-banner { background: #1a1a2e; border-radius: 14px; padding: 18px; margin-bottom: 14px; display: flex; gap: 12px; align-items: flex-start; }
+  .shield-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .shield-body .sb-title { font-weight: 700; color: #ffd166; font-size: .92rem; margin-bottom: 6px; }
+  .shield-body .sb-text { font-size: .8rem; color: #d4ccc0; line-height: 1.6; }
+  .faq-item { padding: 12px 0; border-bottom: 1px solid #f0ede8; }
+  .faq-item:last-child { border: none; }
+  .faq-q { font-weight: 700; font-size: .85rem; color: #1a1a2e; margin-bottom: 4px; }
+  .faq-a { font-size: .8rem; color: #6b7280; line-height: 1.5; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: .8rem; }
+  .spec-table th { background: #2c7a6e; color: #fff; padding: 8px 12px; text-align: left; }
+  .spec-table td { padding: 8px 12px; border-bottom: 1px solid #e5e7eb; }
+  .spec-table tr:nth-child(even) td { background: #f9f7f3; }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="back">←</span>
+  <div class="avatar">MC</div>
+  <div class="teacher-info">
+    <div class="t-name">Ms. Chen</div>
+    <div class="t-sub">Mia's teacher · Lincoln Elementary</div>
+  </div>
+  <span class="more-btn">⋯</span>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('thread')">Message Thread</div>
+  <div class="tab" onclick="show('compose')">Compose New</div>
+  <div class="tab" onclick="show('history')">Message History</div>
+  <div class="tab" onclick="show('safe')">Contact-Safe Info</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- PANEL 1: Message Thread -->
+<div id="thread" class="thread-panel active">
+  <div class="safety-bar">
+    <span class="sb-icon">🔒</span>
+    <span class="sb-text">All messages routed through WonderQuest — your contact details stay private</span>
+  </div>
+  <div class="messages-area">
+    <div class="date-divider">March 10, 2026</div>
+    <!-- Teacher message -->
+    <div class="bubble-wrap teacher">
+      <div class="bubble-avatar">MC</div>
+      <div>
+        <div class="bubble teacher">Hi! I wanted to share that Mia has been doing wonderfully in class this week. Her reading confidence has really grown — she's been volunteering to read aloud more often!</div>
+      </div>
+    </div>
+    <div class="bubble-meta teacher">Ms. Chen · 2:34 PM</div>
+    <!-- Parent reply -->
+    <div class="bubble-wrap parent">
+      <div>
+        <div class="bubble parent">That's so great to hear! She's been really excited about the WonderQuest reading activities at home too. Thank you for letting me know!</div>
+      </div>
+    </div>
+    <div class="bubble-meta parent">You · 3:15 PM ✓✓</div>
+
+    <div class="date-divider">March 18, 2026</div>
+    <!-- Urgent teacher message -->
+    <div class="urgent-banner">
+      🚨 Urgent — delivered outside quiet hours
+    </div>
+    <div class="bubble-wrap teacher">
+      <div class="bubble-avatar">MC</div>
+      <div>
+        <div class="bubble teacher" style="border-left:3px solid #9a2a2a;">Quick note: Mia had a small fall on the playground today. She's completely fine — just a scrape on her knee — but I wanted to make sure you heard it from me first!</div>
+      </div>
+    </div>
+    <div class="bubble-meta teacher">Ms. Chen · 1:08 PM · Marked Urgent</div>
+    <!-- Parent reply -->
+    <div class="bubble-wrap parent">
+      <div>
+        <div class="bubble parent">Oh goodness — thank you for letting me know so quickly! So glad she's okay. I'll check in with her when she gets home.</div>
+      </div>
+    </div>
+    <div class="bubble-meta parent">You · 1:22 PM ✓✓</div>
+
+    <div class="date-divider">March 21, 2026</div>
+    <!-- Teacher message -->
+    <div class="bubble-wrap teacher">
+      <div class="bubble-avatar">MC</div>
+      <div>
+        <div class="bubble teacher">Mia earned the "Math Explorer" badge today — she was SO proud! Number sense has really been her superpower lately. Keep up the great home practice!</div>
+      </div>
+    </div>
+    <div class="bubble-meta teacher">Ms. Chen · 3:45 PM</div>
+  </div>
+  <div class="compose-bar">
+    <input class="compose-input" type="text" placeholder="Message Ms. Chen...">
+    <button class="send-btn">➤</button>
+  </div>
+</div>
+
+<!-- PANEL 2: Compose New -->
+<div id="compose" class="panel padded">
+  <div class="hint"><strong>Compose:</strong> Your message will be delivered to Ms. Chen through WonderQuest. Your email, phone, and personal details are never shared.</div>
+  <h2>New Message</h2>
+  <p class="sub">Send a note to Ms. Chen about Mia's progress or learning.</p>
+  <div class="card">
+    <h3>✍️ Quick Templates</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <button onclick="setTemplate('question')" style="text-align:left;background:#f8f5f0;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 14px;font-size:.83rem;font-family:'Sora',sans-serif;cursor:pointer;color:#374151;">💬 Question about home practice</button>
+      <button onclick="setTemplate('celebrate')" style="text-align:left;background:#f8f5f0;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 14px;font-size:.83rem;font-family:'Sora',sans-serif;cursor:pointer;color:#374151;">🎉 Share something exciting about Mia</button>
+      <button onclick="setTemplate('schedule')" style="text-align:left;background:#f8f5f0;border:1.5px solid #d1d5db;border-radius:10px;padding:10px 14px;font-size:.83rem;font-family:'Sora',sans-serif;cursor:pointer;color:#374151;">📅 Ask about conference / schedule</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>📝 Your Message</h3>
+    <textarea id="compose-area" style="width:100%;min-height:120px;border:1.5px solid #d1d5db;border-radius:10px;padding:12px;font-size:.85rem;font-family:'Sora',sans-serif;background:#f8f5f0;resize:none;outline:none;" placeholder="Write your message to Ms. Chen..."></textarea>
+    <div style="font-size:.74rem;color:#9ca3af;margin-top:6px;">This message will be delivered to Ms. Chen through WonderQuest.</div>
+  </div>
+  <button style="width:100%;background:#2c7a6e;color:#fff;border:none;border-radius:12px;padding:14px;font-size:.95rem;font-weight:700;font-family:'Sora',sans-serif;cursor:pointer;">Send Message</button>
+</div>
+
+<!-- PANEL 3: Message History -->
+<div id="history" class="panel padded">
+  <div class="hint"><strong>Message History:</strong> All past conversations with Ms. Chen, organized by date. Older messages are archived after 6 months.</div>
+  <h2>Message History</h2>
+  <p class="sub">All conversations with Mia's teacher.</p>
+  <div class="card">
+    <h3>📬 Recent Conversations</h3>
+    <div class="history-item">
+      <div class="hi-avatar" style="background:#2c7a6e;">MC</div>
+      <div class="hi-body">
+        <div class="hi-header">
+          <span class="hi-name">Ms. Chen</span>
+          <div class="unread-dot"></div>
+          <span class="hi-date">Mar 21</span>
+        </div>
+        <div class="hi-preview">Mia earned the "Math Explorer" badge today — she was SO proud!</div>
+      </div>
+    </div>
+    <div class="history-item">
+      <div class="hi-avatar" style="background:#9a2a2a;">MC</div>
+      <div class="hi-body">
+        <div class="hi-header">
+          <span class="hi-name">Ms. Chen</span>
+          <span style="font-size:.7rem;background:#ffe4e4;color:#9a2a2a;padding:1px 7px;border-radius:20px;font-weight:700;">Urgent</span>
+          <span class="hi-date">Mar 18</span>
+        </div>
+        <div class="hi-preview">Quick note: Mia had a small fall on the playground today...</div>
+      </div>
+    </div>
+    <div class="history-item">
+      <div class="hi-avatar" style="background:#4a90d9;">MC</div>
+      <div class="hi-body">
+        <div class="hi-header">
+          <span class="hi-name">Ms. Chen</span>
+          <span class="hi-date">Mar 10</span>
+        </div>
+        <div class="hi-preview">Mia has been doing wonderfully in class this week...</div>
+      </div>
+    </div>
+    <div class="history-item">
+      <div class="hi-avatar" style="background:#2c7a6e;">MC</div>
+      <div class="hi-body">
+        <div class="hi-header">
+          <span class="hi-name">Ms. Chen</span>
+          <span class="hi-date">Feb 28</span>
+        </div>
+        <div class="hi-preview">Just checking in — Mia's reading has really improved this month!</div>
+      </div>
+    </div>
+    <div class="history-item">
+      <div class="hi-avatar" style="background:#2c7a6e;">MC</div>
+      <div class="hi-body">
+        <div class="hi-header">
+          <span class="hi-name">Ms. Chen</span>
+          <span class="hi-date">Feb 14</span>
+        </div>
+        <div class="hi-preview">Welcome to WonderQuest! I'm excited to partner with your family...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 4: Contact-Safe Info -->
+<div id="safe" class="panel padded">
+  <div class="hint"><strong>Privacy:</strong> WonderQuest routes all family-teacher communications through its secure platform. No personal contact information is ever exchanged.</div>
+  <h2>Contact-Safe Messaging</h2>
+  <p class="sub">How WonderQuest protects your privacy while keeping you connected.</p>
+  <div class="shield-banner">
+    <span class="shield-icon">🛡️</span>
+    <div class="shield-body">
+      <div class="sb-title">Your contact details stay private</div>
+      <div class="sb-text">WonderQuest acts as a secure relay between you and Ms. Chen. Your email address, phone number, and home address are never visible to teachers, schools, or other parents.</div>
+    </div>
+  </div>
+  <div class="info-block">
+    <div class="ib-title">🔒 What teachers see</div>
+    <div class="ib-text">Teachers only see your first name and child's name. No email, no phone, no address. All replies go back through WonderQuest.</div>
+  </div>
+  <div class="info-block">
+    <div class="ib-title">📨 What you see</div>
+    <div class="ib-text">Teacher's name and school are visible to you, along with their WonderQuest-issued teacher account. No personal teacher contact details are shared either.</div>
+  </div>
+  <div class="card">
+    <h3>❓ Common Questions</h3>
+    <div class="faq-item">
+      <div class="faq-q">Can Ms. Chen contact me directly?</div>
+      <div class="faq-a">No. All messages go through WonderQuest and your contact details are never revealed.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Are my messages stored?</div>
+      <div class="faq-a">Messages are kept for 6 months for your reference, then archived. You can export them at any time from Settings.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">What if I need to block a teacher?</div>
+      <div class="faq-a">You can mute or block any teacher in Settings → Child Settings → Teacher Communications.</div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL 5: Spec -->
+<div id="spec" class="panel padded">
+  <div class="hint"><strong>Spec:</strong> Design and data contract for parent message thread screen.</div>
+  <h2>Specification</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Screen</td><td>parent-teacher-message-thread-v2</td></tr>
+    <tr><td>Viewport</td><td>375px mobile</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f5f0e8</td></tr>
+    <tr><td>Nav</td><td>#2c7a6e, teacher avatar + name + school</td></tr>
+    <tr><td>Parent bubbles</td><td>Right-aligned, #2c7a6e teal background, white text</td></tr>
+    <tr><td>Teacher bubbles</td><td>Left-aligned, white background, dark text</td></tr>
+    <tr><td>Urgent messages</td><td>Red left-border on bubble, urgent banner above</td></tr>
+    <tr><td>Privacy bar</td><td>Always visible at top of thread — contact-safe note</td></tr>
+    <tr><td>Contact safety</td><td>No PII shown — no email, no phone, no address</td></tr>
+    <tr><td>Design tokens</td><td>Hint: #2a1f00 / #ffd166</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel, .thread-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const el = document.getElementById(id);
+  el.classList.add('active');
+  event.target.classList.add('active');
+}
+function setTemplate(type) {
+  const templates = {
+    question: "Hi Ms. Chen, I had a question about home practice for Mia this week. Could you share any tips on the best way to support her?",
+    celebrate: "Hi Ms. Chen! Just wanted to share — Mia came home so excited today. She said she loved the activity you did in class and talked about it all through dinner!",
+    schedule: "Hi Ms. Chen, I'd love to set up a time to chat about Mia's progress this term. Are you available for a brief call or conference this week?"
+  };
+  document.getElementById('compose-area').value = templates[type] || '';
+}
+</script>
+</body>
+</html>

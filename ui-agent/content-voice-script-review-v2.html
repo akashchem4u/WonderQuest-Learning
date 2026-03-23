@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Script Review v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.queue-list{display:flex;flex-direction:column;gap:12px}
+.script-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s}
+.script-card:hover{border-color:#58c8f044}
+.script-card.selected{border-color:#58c8f0}
+.sc-header{padding:16px 20px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #1e2a38}
+.sc-icon{font-size:24px;flex-shrink:0}
+.sc-info{flex:1}
+.sc-info .name{font-size:14px;font-weight:700;color:#e8edf2}
+.sc-info .meta{font-size:12px;color:#6b8099;margin-top:2px}
+.sc-duration{font-size:12px;color:#9b72ff;font-weight:600}
+.sc-body{padding:16px 20px}
+.script-text{background:#0a0f16;border:1px solid #1e2a38;border-radius:6px;padding:14px;font-size:13px;color:#c8d8e8;line-height:1.8;margin-bottom:14px;font-style:italic}
+.pronunciation{background:#131c27;border:1px solid #2a3a4e;border-radius:6px;padding:10px 14px;font-size:12px;color:#a0b8cc;margin-bottom:14px}
+.pronunciation strong{color:#58c8f0}
+.qa-checks{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.qa-check{display:flex;align-items:center;gap:10px;font-size:13px}
+.check-pass{color:#58e8c1}
+.check-fail{color:#ff6b6b}
+.check-warn{color:#ffd166}
+.check-icon{font-size:16px;flex-shrink:0;width:20px}
+.sc-actions{display:flex;gap:8px}
+.btn-approve{background:#58e8c1;color:#0a0f16;border:none;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-approve:hover{background:#3dd4ad}
+.btn-reject{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b44;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-reject:hover{background:#ff6b6b33}
+.btn-edit{background:#58c8f022;color:#58c8f0;border:1px solid #58c8f044;padding:8px 18px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.btn-edit:hover{background:#58c8f033}
+.status-badge{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.st-pending{background:#58c8f022;color:#58c8f0;border:1px solid #58c8f033}
+.st-approved{background:#58e8c122;color:#58e8c1;border:1px solid #58e8c133}
+.st-rejected{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b33}
+.st-warn{background:#ffd16622;color:#ffd166;border:1px solid #ffd16633}
+.detail-layout{display:grid;grid-template-columns:1fr 340px;gap:24px}
+.detail-main{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px}
+.detail-main h3{font-size:15px;font-weight:700;color:#e8edf2;margin-bottom:16px}
+.detail-sidebar{display:flex;flex-direction:column;gap:16px}
+.sidebar-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px}
+.sidebar-card h4{font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:12px}
+.meta-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px}
+.meta-row .key{color:#6b8099}
+.meta-row .val{color:#a0b8cc;font-weight:600}
+.edit-area{width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;line-height:1.8;resize:vertical;outline:none;min-height:120px}
+.edit-area:focus{border-color:#58c8f0}
+.approved-list{display:flex;flex-direction:column;gap:10px}
+.approved-item{background:#131c27;border:1px solid #58e8c133;border-radius:8px;padding:14px 16px}
+.approved-item .name{font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:4px}
+.approved-item .meta{font-size:12px;color:#6b8099}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul{padding-left:18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">🎙️</span>
+  <h1>Voice Script Review</h1>
+  <div style="flex:1"></div>
+  <span style="font-size:12px;color:#ffd166;font-weight:600">7 pending scripts</span>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('queue')">Script Queue</div>
+  <div class="tab" onclick="show('script-detail')">Script Detail</div>
+  <div class="tab" onclick="show('qa-checks')">QA Checks</div>
+  <div class="tab" onclick="show('approved')">Approved Scripts</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- QUEUE -->
+<div id="queue" class="pane active">
+  <div class="hint-box">
+    <strong>Voice script queue.</strong> Each script is narrated text read aloud to the learner. QA checks verify it doesn't reveal the answer, uses age-appropriate language, and includes pronunciation guides where needed.
+  </div>
+  <div class="queue-list">
+    <div class="script-card selected" onclick="show('script-detail')">
+      <div class="sc-header">
+        <div class="sc-icon">🐾</div>
+        <div class="sc-info">
+          <div class="name">q14-animals-living-p0</div>
+          <div class="meta">sci.life.animals · P0 · Node: intro</div>
+        </div>
+        <div class="sc-duration">~4.2s</div>
+        <span class="status-badge st-pending">Pending</span>
+      </div>
+      <div class="sc-body">
+        <div class="script-text">"Look at the picture. Can you find the living thing?"</div>
+        <div class="qa-checks">
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Does not reveal answer</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Age-appropriate language</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>No pronunciation issues</div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn-approve" onclick="event.stopPropagation();alert('Script approved!')">✓ Approve</button>
+          <button class="btn-reject" onclick="event.stopPropagation()">✗ Reject</button>
+          <button class="btn-edit" onclick="event.stopPropagation();show('script-detail')">✏ Edit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="script-card" onclick="show('script-detail')">
+      <div class="sc-header">
+        <div class="sc-icon">🔢</div>
+        <div class="sc-info">
+          <div class="name">q27-subtraction-intro-p0</div>
+          <div class="meta">math.sub.intro · P0 · Node: concept</div>
+        </div>
+        <div class="sc-duration">~5.8s</div>
+        <span class="status-badge st-warn">Warning</span>
+      </div>
+      <div class="sc-body">
+        <div class="script-text">"There are 5 apples. Two get eaten. The answer tells you how many are left. Pick the right number!"</div>
+        <div class="qa-checks">
+          <div class="qa-check"><span class="check-icon check-fail">✗</span>Reveals answer concept — "The answer tells you how many are left" is too directive</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Age-appropriate language</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>No pronunciation issues</div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn-reject" onclick="event.stopPropagation();alert('Rejected — needs rewrite')">✗ Reject</button>
+          <button class="btn-edit" onclick="event.stopPropagation();show('script-detail')">✏ Edit & Resubmit</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="script-card" onclick="show('script-detail')">
+      <div class="sc-header">
+        <div class="sc-icon">🔤</div>
+        <div class="sc-info">
+          <div class="name">q31-phonics-b-sound</div>
+          <div class="meta">ela.phonics.b · P1</div>
+        </div>
+        <div class="sc-duration">~3.5s</div>
+        <span class="status-badge st-warn">Warning</span>
+      </div>
+      <div class="sc-body">
+        <div class="script-text">"Which word starts with the buh sound? Like in... buh... ball!"</div>
+        <div class="qa-checks">
+          <div class="qa-check"><span class="check-icon check-warn">⚠</span>Pronunciation guide: "buh" needs phonetic notation — /b/ not /bʌ/</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Does not reveal answer</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Age-appropriate language</div>
+        </div>
+        <div class="sc-actions">
+          <button class="btn-approve" onclick="event.stopPropagation();alert('Approved with note')">✓ Approve</button>
+          <button class="btn-edit" onclick="event.stopPropagation()">✏ Edit</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT DETAIL -->
+<div id="script-detail" class="pane">
+  <div class="hint-box"><strong>q14-animals-living-p0</strong> — full script detail and edit view.</div>
+  <div class="detail-layout">
+    <div>
+      <div class="detail-main">
+        <h3>Script Text</h3>
+        <textarea class="edit-area">"Look at the picture. Can you find the living thing?"</textarea>
+        <div style="margin-top:12px;font-size:12px;color:#6b8099">Estimated duration: <strong style="color:#9b72ff">~4.2 seconds</strong> at normal pace</div>
+        <div style="margin-top:16px">
+          <div style="font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:8px">Pronunciation Guide</div>
+          <textarea class="edit-area" style="min-height:60px" placeholder="Add phonetic notes for unusual words...">No unusual words detected.</textarea>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:16px">
+          <button class="btn-approve" onclick="alert('Approved!')">✓ Approve</button>
+          <button class="btn-edit" onclick="alert('Saved for re-review')">💾 Save & Re-review</button>
+          <button class="btn-reject" onclick="alert('Rejected')">✗ Reject</button>
+        </div>
+      </div>
+    </div>
+    <div class="detail-sidebar">
+      <div class="sidebar-card">
+        <h4>Metadata</h4>
+        <div class="meta-row"><span class="key">Script ID</span><span class="val">q14-animals-p0</span></div>
+        <div class="meta-row"><span class="key">Skill</span><span class="val">sci.life.animals</span></div>
+        <div class="meta-row"><span class="key">Band</span><span class="val">P0</span></div>
+        <div class="meta-row"><span class="key">Duration</span><span class="val">~4.2s</span></div>
+        <div class="meta-row"><span class="key">Created</span><span class="val">Mar 20, 2026</span></div>
+      </div>
+      <div class="sidebar-card">
+        <h4>QA Results</h4>
+        <div class="qa-checks">
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Doesn't reveal answer</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Age-appropriate</div>
+          <div class="qa-check"><span class="check-icon check-pass">✓</span>Pronunciation OK</div>
+        </div>
+      </div>
+      <div class="sidebar-card">
+        <h4>Associated Question</h4>
+        <div style="font-size:13px;color:#a0b8cc;line-height:1.6">"Which of these is a living thing?" — sci.life.animals P0</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QA CHECKS -->
+<div id="qa-checks" class="pane">
+  <div class="hint-box"><strong>QA check rules.</strong> Each script must pass all three checks before approval.</div>
+  <div style="display:flex;flex-direction:column;gap:16px;max-width:700px">
+    <div style="background:#131c27;border:1px solid #58e8c133;border-radius:10px;padding:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:24px">🔒</span>
+        <div style="font-size:15px;font-weight:700;color:#e8edf2">Check 1: Doesn't Reveal Answer</div>
+      </div>
+      <p style="font-size:13px;color:#a0b8cc;line-height:1.7">The script must not contain the correct answer, point explicitly to the correct option, or use phrases like "the answer is..." or "remember that X is...". The script should prompt thinking without guiding toward the answer.</p>
+      <div style="margin-top:12px;background:#0a0f16;border:1px solid #1e2a38;border-radius:6px;padding:12px;font-size:12px;color:#6b8099">
+        <strong style="color:#ff6b6b">Fail example:</strong> "There are 3 apples. Three is the right number!"<br>
+        <strong style="color:#58e8c1">Pass example:</strong> "Count the apples carefully. How many do you see?"
+      </div>
+    </div>
+    <div style="background:#131c27;border:1px solid #58e8c133;border-radius:10px;padding:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:24px">👶</span>
+        <div style="font-size:15px;font-weight:700;color:#e8edf2">Check 2: Age-Appropriate Language</div>
+      </div>
+      <p style="font-size:13px;color:#a0b8cc;line-height:1.7">Scripts are for learners aged 4–8. Avoid: complex sentence structures, words beyond Grade 2 vocabulary, jargon, or abstract concepts. Max sentence length ~8 words for P0–P1.</p>
+      <div style="margin-top:12px;background:#0a0f16;border:1px solid #1e2a38;border-radius:6px;padding:12px;font-size:12px;color:#6b8099">
+        <strong style="color:#ff6b6b">Fail example:</strong> "Consider the taxonomic classification..."<br>
+        <strong style="color:#58e8c1">Pass example:</strong> "Which animal lives in the water?"
+      </div>
+    </div>
+    <div style="background:#131c27;border:1px solid #58e8c133;border-radius:10px;padding:20px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+        <span style="font-size:24px">🗣️</span>
+        <div style="font-size:15px;font-weight:700;color:#e8edf2">Check 3: Pronunciation Guide</div>
+      </div>
+      <p style="font-size:13px;color:#a0b8cc;line-height:1.7">Any phonics-related script must include a phonetic pronunciation note for the target sound. Use IPA notation (e.g. /b/ not "buh"). This ensures TTS and voice actors pronounce consistently.</p>
+      <div style="margin-top:12px;background:#0a0f16;border:1px solid #1e2a38;border-radius:6px;padding:12px;font-size:12px;color:#6b8099">
+        <strong style="color:#ff6b6b">Warn example:</strong> "buh sound" (informal)<br>
+        <strong style="color:#58e8c1">Pass example:</strong> "/b/ as in ball" (IPA-informed)
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APPROVED SCRIPTS -->
+<div id="approved" class="pane">
+  <div class="hint-box"><strong>Approved scripts</strong> are ready for TTS generation or voice actor recording.</div>
+  <div style="margin-bottom:16px;font-size:13px;color:#6b8099">14 scripts approved</div>
+  <div class="approved-list">
+    <div class="approved-item">
+      <div class="name">q1-counting-intro-p0 <span style="font-size:11px;color:#58e8c1;font-weight:600;margin-left:8px">✓ Approved Mar 19</span></div>
+      <div class="meta">math.count.to10 · P0 · ~3.8s</div>
+      <div style="margin-top:8px;font-size:13px;color:#c8d8e8;font-style:italic">"Count each star out loud. How many are there?"</div>
+    </div>
+    <div class="approved-item">
+      <div class="name">q5-shapes-triangle-p0 <span style="font-size:11px;color:#58e8c1;font-weight:600;margin-left:8px">✓ Approved Mar 18</span></div>
+      <div class="meta">math.geo.shapes2d · P0 · ~4.1s</div>
+      <div style="margin-top:8px;font-size:13px;color:#c8d8e8;font-style:italic">"Look at each shape. Which one has 3 sides?"</div>
+    </div>
+    <div class="approved-item">
+      <div class="name">q9-addition-dots-p1 <span style="font-size:11px;color:#58e8c1;font-weight:600;margin-left:8px">✓ Approved Mar 17</span></div>
+      <div class="meta">math.add.single · P1 · ~5.0s</div>
+      <div style="margin-top:8px;font-size:13px;color:#c8d8e8;font-style:italic">"Count the dots on each side. What is the total?"</div>
+    </div>
+    <div class="approved-item">
+      <div class="name">q12-rhyming-cat-p1 <span style="font-size:11px;color:#58e8c1;font-weight:600;margin-left:8px">✓ Approved Mar 16</span></div>
+      <div class="meta">ela.rhyme.cvc · P1 · ~4.5s</div>
+      <div style="margin-top:8px;font-size:13px;color:#c8d8e8;font-style:italic">"Which word sounds like cat? Listen carefully."</div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box"><strong>Voice Script Review spec.</strong> QA queue for TTS/voice-over scripts.</div>
+  <div class="spec-section">
+    <h3>Script Statuses</h3>
+    <ul>
+      <li>Pending — awaiting review</li>
+      <li>Warning — QA flag raised, reviewable</li>
+      <li>Approved — cleared for TTS generation</li>
+      <li>Rejected — needs rewrite before resubmission</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>QA Checks (all required)</h3>
+    <ul>
+      <li>Doesn't reveal answer</li>
+      <li>Age-appropriate language (Grade 0–2)</li>
+      <li>Pronunciation guide included for phonics scripts</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Duration Estimate</h3>
+    <p>Calculated at 150 words/minute for typical child TTS. Scripts over 8 seconds are flagged for review.</p>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['queue','script-detail','qa-checks','approved','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

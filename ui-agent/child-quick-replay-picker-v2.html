@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Quick Replay Picker v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Mode Picker */
+.picker-heading{font-size:24px;font-weight:900;color:#ffd166;text-align:center;margin-bottom:4px}
+.picker-sub{font-size:13px;color:#9b8fe0;text-align:center;margin-bottom:20px}
+
+.mode-card{border-radius:20px;padding:20px;margin-bottom:14px;cursor:pointer;position:relative;overflow:hidden;transition:transform 0.15s}
+.mode-card:active{transform:scale(0.97)}
+.mode-card.quick{background:linear-gradient(135deg,#1a1240,#2a1a50);border:3px solid #9b72ff}
+.mode-card.full{background:linear-gradient(135deg,#1a2a1a,#1a3020);border:3px solid #58e8c1}
+.mode-card .mc-badge{position:absolute;top:12px;right:12px;font-size:10px;font-weight:900;border-radius:10px;padding:3px 10px}
+.mode-card.quick .mc-badge{background:#9b72ff;color:#fff}
+.mode-card.full .mc-badge{background:#58e8c1;color:#100b2e}
+.mc-emoji{font-size:52px;text-align:center;margin-bottom:12px}
+.mc-name{font-size:22px;font-weight:900;text-align:center;margin-bottom:6px}
+.mode-card.quick .mc-name{color:#c8b8ff}
+.mode-card.full .mc-name{color:#58e8c1}
+.mc-meta{display:flex;justify-content:center;gap:16px;margin-bottom:10px;font-size:13px;color:#9b8fe0}
+.mc-meta span{display:flex;align-items:center;gap:4px}
+.mc-stars{text-align:center;font-size:14px;margin-bottom:12px}
+.mc-difficulty{display:flex;justify-content:center;gap:4px;margin-bottom:14px}
+.diff-star{font-size:18px}
+.diff-star.filled{filter:drop-shadow(0 0 4px #ffd166)}
+.mc-btn{border:none;border-radius:14px;padding:12px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%}
+.mode-card.quick .mc-btn{background:#9b72ff;color:#fff}
+.mode-card.full .mc-btn{background:#58e8c1;color:#100b2e}
+
+/* Quick Replay Active */
+.active-header{text-align:center;margin-bottom:20px}
+.active-emoji{font-size:60px}
+.active-title{font-size:22px;font-weight:900;color:#9b72ff;margin-top:8px}
+.active-sub{font-size:13px;color:#9b8fe0;margin-top:4px}
+.active-progress{background:#1e1550;border:2px solid #9b72ff;border-radius:16px;padding:16px;margin-bottom:16px}
+.q-counter{display:flex;justify-content:center;gap:8px;margin-bottom:12px}
+.q-dot{width:28px;height:28px;border-radius:50%;border:2px solid #2d2570;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#6b5fa0}
+.q-dot.done{background:#9b72ff;border-color:#9b72ff;color:#fff}
+.q-dot.current{background:#ffd166;border-color:#ffd166;color:#100b2e;animation:pulse-dot 1s ease infinite}
+@keyframes pulse-dot{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.active-stat-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #2d2570}
+.active-stat-row:last-child{border-bottom:none}
+.active-stat-row .lab{color:#9b8fe0}
+.active-stat-row .val{color:#ffd166;font-weight:900}
+
+/* Quick Replay Complete */
+.complete-wrap{text-align:center;padding:8px 0 16px}
+.complete-emoji{font-size:72px;animation:pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes pop{0%{transform:scale(0)}100%{transform:scale(1)}}
+.complete-title{font-size:26px;font-weight:900;color:#ffd166;margin-top:10px}
+.complete-sub{font-size:14px;color:#9b8fe0;margin-top:4px;line-height:1.4}
+.result-chips{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:16px}
+.result-chip{background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:10px 16px;text-align:center}
+.result-chip .rc-val{font-size:22px;font-weight:900;color:#ffd166}
+.result-chip .rc-label{font-size:11px;color:#9b8fe0;margin-top:2px}
+.replay-note{background:#1e1550;border:2px solid #58e8c1;border-radius:14px;padding:12px 16px;margin-top:16px;font-size:13px;color:#9b8fe0;line-height:1.5}
+.replay-note strong{color:#58e8c1}
+
+/* Choose World */
+.world-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+.world-pick-card{border-radius:16px;padding:16px;text-align:center;cursor:pointer;transition:transform 0.15s;border:3px solid transparent}
+.world-pick-card:active{transform:scale(0.96)}
+.world-pick-card.dream{background:#1a1240;border-color:#9b72ff}
+.world-pick-card.ocean{background:#0a1a2e;border-color:#58e8c1}
+.world-pick-card.fire{background:#2e1a0a;border-color:#ff7b6b}
+.world-pick-card.star{background:#1a1a2e;border-color:#ffd166}
+.world-pick-emoji{font-size:40px;margin-bottom:8px}
+.world-pick-name{font-size:14px;font-weight:900}
+.world-pick-card.dream .world-pick-name{color:#9b72ff}
+.world-pick-card.ocean .world-pick-name{color:#58e8c1}
+.world-pick-card.fire .world-pick-name{color:#ff7b6b}
+.world-pick-card.star .world-pick-name{color:#ffd166}
+.world-pick-stars{font-size:11px;color:#9b8fe0;margin-top:4px}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+
+.btn-primary{background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/child/modes</code> → returns Quick Replay (3min, 5q) and Full Quest (10min, 15q) configs. <code>POST /api/child/session/start</code> with <code>{mode, worldId}</code>. Complete → <code>POST /api/child/session/complete</code>. Replay can't lose previously earned stars. Star count from <code>sessionStars</code> field.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('picker')">Mode Picker</div>
+  <div class="tab" onclick="show('active')">Quick Replay Active</div>
+  <div class="tab" onclick="show('complete')">Quick Replay Complete</div>
+  <div class="tab" onclick="show('world')">Choose World</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Mode Picker -->
+<div id="picker" class="panel active">
+  <div class="picker-heading">How do you want to play? 🎮</div>
+  <div class="picker-sub">Pick your adventure style!</div>
+
+  <div class="mode-card quick">
+    <div class="mc-badge">⚡ QUICK</div>
+    <div class="mc-emoji">⚡</div>
+    <div class="mc-name">Quick Replay</div>
+    <div class="mc-meta">
+      <span>⏱ 3 minutes</span>
+      <span>❓ 5 questions</span>
+    </div>
+    <div class="mc-stars">⭐ Earn up to 15 stars</div>
+    <div class="mc-difficulty">
+      <div class="diff-star filled">⭐</div>
+      <div class="diff-star filled">⭐</div>
+      <div class="diff-star">⭐</div>
+    </div>
+    <button class="mc-btn">⚡ Let's go quick!</button>
+  </div>
+
+  <div class="mode-card full">
+    <div class="mc-badge">🏆 FULL</div>
+    <div class="mc-emoji">🏆</div>
+    <div class="mc-name">Full Quest</div>
+    <div class="mc-meta">
+      <span>⏱ 10 minutes</span>
+      <span>❓ 15 questions</span>
+    </div>
+    <div class="mc-stars">⭐ Earn up to 45 stars</div>
+    <div class="mc-difficulty">
+      <div class="diff-star filled">⭐</div>
+      <div class="diff-star filled">⭐</div>
+      <div class="diff-star filled">⭐</div>
+    </div>
+    <button class="mc-btn">🏆 Full adventure!</button>
+  </div>
+</div>
+
+<!-- TAB 2: Quick Replay Active -->
+<div id="active" class="panel">
+  <div class="active-header">
+    <div class="active-emoji">⚡</div>
+    <div class="active-title">Quick Replay!</div>
+    <div class="active-sub">5 questions · Ocean World</div>
+  </div>
+
+  <div class="active-progress">
+    <div style="font-size:13px;font-weight:700;color:#9b8fe0;margin-bottom:10px;text-align:center">Question 3 of 5</div>
+    <div class="q-counter">
+      <div class="q-dot done">✓</div>
+      <div class="q-dot done">✓</div>
+      <div class="q-dot current">3</div>
+      <div class="q-dot">4</div>
+      <div class="q-dot">5</div>
+    </div>
+    <div style="height:6px;background:#2d2570;border-radius:4px;margin-top:12px;overflow:hidden">
+      <div style="height:100%;width:40%;background:linear-gradient(90deg,#9b72ff,#ffd166);border-radius:4px"></div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #2d2570;border-radius:16px;padding:16px;margin-bottom:12px">
+    <div class="active-stat-row"><span class="lab">Stars earned so far</span><span class="val">⭐ 6</span></div>
+    <div class="active-stat-row"><span class="lab">World</span><span class="val">🌊 Ocean World</span></div>
+    <div class="active-stat-row"><span class="lab">Mode</span><span class="val">⚡ Quick Replay</span></div>
+    <div class="active-stat-row"><span class="lab">Correct answers</span><span class="val">2 / 2 ✅</span></div>
+  </div>
+
+  <div style="background:#1a1240;border:2px solid #9b72ff;border-radius:16px;padding:20px;text-align:center;min-height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center">
+    <div style="font-size:13px;color:#9b8fe0;margin-bottom:8px">Current question preview:</div>
+    <div style="font-size:36px">🐙🐠🦀</div>
+    <div style="font-size:16px;font-weight:900;color:#fff;margin-top:8px">How many animals?</div>
+  </div>
+
+  <button style="background:transparent;border:2px solid #ff7b6b;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#ff7b6b;cursor:pointer;width:100%;margin-top:12px">✗ Stop replay</button>
+</div>
+
+<!-- TAB 3: Quick Replay Complete -->
+<div id="complete" class="panel">
+  <div class="complete-wrap">
+    <div class="complete-emoji">🎉</div>
+    <div class="complete-title">Quick Replay done!</div>
+    <div class="complete-sub">You did amazing! Every answer counts!</div>
+
+    <div class="result-chips">
+      <div class="result-chip">
+        <div class="rc-val">⭐ 14</div>
+        <div class="rc-label">Stars earned</div>
+      </div>
+      <div class="result-chip">
+        <div class="rc-val">4 / 5</div>
+        <div class="rc-label">Correct</div>
+      </div>
+      <div class="result-chip">
+        <div class="rc-val">🏆</div>
+        <div class="rc-label">Nice job!</div>
+      </div>
+    </div>
+
+    <div class="replay-note">
+      <strong>You can replay anytime!</strong> Stars you already earned are safe — replaying can only earn more! ⭐
+    </div>
+
+    <button style="background:#9b72ff;color:#fff;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:14px">⚡ Play again!</button>
+    <button style="background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:8px">🏆 Try Full Quest!</button>
+    <button style="background:transparent;border:2px solid #2d2570;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%;margin-top:8px">Go home</button>
+  </div>
+</div>
+
+<!-- TAB 4: Choose World -->
+<div id="world" class="panel">
+  <div style="font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px">Pick a world! 🌍</div>
+  <div style="font-size:13px;color:#9b8fe0;margin-bottom:8px">Where do you want to replay today?</div>
+
+  <div class="world-grid">
+    <div class="world-pick-card dream">
+      <div class="world-pick-emoji">🌙</div>
+      <div class="world-pick-name">Dream World</div>
+      <div class="world-pick-stars">⭐ 45 earned</div>
+    </div>
+    <div class="world-pick-card ocean">
+      <div class="world-pick-emoji">🌊</div>
+      <div class="world-pick-name">Ocean World</div>
+      <div class="world-pick-stars">⭐ 24 earned</div>
+    </div>
+    <div class="world-pick-card fire">
+      <div class="world-pick-emoji">🔥</div>
+      <div class="world-pick-name">Fire World</div>
+      <div class="world-pick-stars" style="color:#ff7b6b">🔒 Level 6</div>
+    </div>
+    <div class="world-pick-card star">
+      <div class="world-pick-emoji">⭐</div>
+      <div class="world-pick-name">Star World</div>
+      <div class="world-pick-stars" style="color:#ffd166">🔒 Level 8</div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #2d2570;border-radius:14px;padding:12px 16px;margin-top:14px;font-size:12px;color:#9b8fe0;line-height:1.5">
+    💡 Replay quests you've already done to practice and earn more stars!
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-quick-replay-picker-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">Modes</span><span class="sv">Quick Replay (3min/5q), Full Quest (10min/15q)</span></div>
+    <div class="spec-row"><span class="sk">Emoji-first</span><span class="sv">✓ — large emoji, minimal text</span></div>
+    <div class="spec-row"><span class="sk">Difficulty</span><span class="sv">⭐ stars only, no numbers</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Modes</span><span class="sv">GET /api/child/modes</span></div>
+    <div class="spec-row"><span class="sk">Start session</span><span class="sv">POST /api/child/session/start</span></div>
+    <div class="spec-row"><span class="sk">Complete</span><span class="sv">POST /api/child/session/complete</span></div>
+    <div class="spec-row"><span class="sk">Worlds</span><span class="sv">GET /api/child/worlds?unlocked=true</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">Replay safe</span><span class="sv">✓ — replay can't lose stars</span></div>
+    <div class="spec-row"><span class="sk">No timers shown</span><span class="sv">✓ — time is mode metadata only</span></div>
+    <div class="spec-row"><span class="sk">No grade labels</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Locked worlds</span><span class="sv">Show locked state, no shame language</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

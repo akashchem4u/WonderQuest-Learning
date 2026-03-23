@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Hint Library v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.toolbar{display:flex;gap:10px;margin-bottom:24px;align-items:center;flex-wrap:wrap}
+.toolbar input{background:#131c27;border:1px solid #2a3a4e;border-radius:6px;padding:9px 14px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none;width:220px}
+.toolbar input:focus{border-color:#58c8f0}
+.toolbar select{background:#131c27;border:1px solid #2a3a4e;border-radius:6px;padding:9px 14px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none}
+.spacer{flex:1}
+.upload-btn{background:#58c8f0;color:#0a0f16;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.upload-btn:hover{background:#40b0d8}
+.hint-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px}
+.hint-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;overflow:hidden;transition:border-color .15s;cursor:pointer}
+.hint-card:hover{border-color:#58c8f044}
+.hint-card.selected{border-color:#58c8f0}
+.hint-preview{height:120px;display:flex;align-items:center;justify-content:center;background:#0d141c;font-size:56px;position:relative}
+.hint-preview.image{background:#0a1a2e}
+.hint-type-badge{position:absolute;top:8px;right:8px;background:#000a;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase}
+.type-emoji{color:#ffd166}
+.type-image{color:#58c8f0}
+.type-audio{color:#9b72ff}
+.hint-body{padding:12px}
+.hint-name{font-size:13px;font-weight:700;color:#e8edf2;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint-skill{font-size:11px;color:#4a6078;margin-bottom:8px}
+.hint-q-count{font-size:11px;color:#6b8099;margin-bottom:10px}
+.hint-q-count strong{color:#a0b8cc}
+.hint-actions{display:flex;gap:6px}
+.edit-btn{flex:1;background:#58c8f022;border:1px solid #58c8f033;color:#58c8f0;padding:5px 0;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;text-align:center}
+.edit-btn:hover{background:#58c8f033}
+.del-btn{background:#ff6b6b11;border:1px solid #ff6b6b22;color:#ff6b6b;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.del-btn:hover{background:#ff6b6b22}
+.filter-panel{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;margin-bottom:24px}
+.filter-panel h3{font-size:14px;font-weight:700;color:#e8edf2;margin-bottom:16px}
+.filter-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px}
+.filter-row label{display:block;font-size:11px;font-weight:600;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.filter-row select,.filter-row input{width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:9px 12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none}
+.type-chips{display:flex;gap:8px}
+.type-chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s}
+.tc-all{background:#58c8f022;color:#58c8f0;border-color:#58c8f044}
+.tc-all.active{background:#58c8f0;color:#10161e}
+.tc-emoji{background:#ffd16622;color:#ffd166;border-color:#ffd16644}
+.tc-emoji.active{background:#ffd166;color:#10161e}
+.tc-image{background:#58c8f022;color:#58c8f0;border-color:#58c8f044}
+.tc-image.active{background:#58c8f0;color:#10161e}
+.tc-audio{background:#9b72ff22;color:#9b72ff;border-color:#9b72ff44}
+.tc-audio.active{background:#9b72ff;color:#fff}
+.detail-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;max-width:640px}
+.detail-preview{width:100%;height:200px;background:#0d141c;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:80px;margin-bottom:20px}
+.detail-field{margin-bottom:14px}
+.detail-field label{display:block;font-size:11px;font-weight:600;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.detail-field input,.detail-field select,.detail-field textarea{width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:9px 12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none}
+.detail-field textarea{height:80px;resize:vertical}
+.associated-q{background:#0a0f16;border:1px solid #1e2a38;border-radius:6px;padding:10px 14px;margin-bottom:8px;font-size:13px;color:#a0b8cc}
+.upload-zone{border:2px dashed #2a3a4e;border-radius:10px;padding:48px 24px;text-align:center;cursor:pointer;transition:border-color .15s}
+.upload-zone:hover{border-color:#58c8f0}
+.upload-zone .icon{font-size:48px;margin-bottom:12px}
+.upload-zone h3{font-size:16px;font-weight:700;color:#e8edf2;margin-bottom:8px}
+.upload-zone p{font-size:13px;color:#6b8099}
+.upload-form{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;margin-top:20px;max-width:500px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-row select,.form-row input{width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:10px 12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none}
+.submit-btn{background:#58c8f0;color:#0a0f16;border:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul{padding-left:18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">🖼️</span>
+  <h1>Media Hint Library</h1>
+  <div style="flex:1"></div>
+  <span style="font-size:12px;color:#4a6078">48 hints · 3 types</span>
+  <button class="upload-btn" style="margin-left:12px" onclick="show('upload')">+ Upload New Hint</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('library')">Media Library</div>
+  <div class="tab" onclick="show('filter')">Filter & Search</div>
+  <div class="tab" onclick="show('hint-detail')">Hint Detail</div>
+  <div class="tab" onclick="show('upload')">Upload New</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- LIBRARY -->
+<div id="library" class="pane active">
+  <div class="hint-box">
+    <strong>Media hints</strong> appear to learners as visual/audio cues during questions. Each hint card shows type (emoji/image/audio), associated skill, and question count. Edit or delete any hint here.
+  </div>
+  <div class="toolbar">
+    <input type="text" placeholder="Search hints...">
+    <select><option>All Skills</option><option>Animals / Living Things</option><option>Phonics Blends</option><option>Addition</option><option>Shape Recognition</option></select>
+    <select><option>All Types</option><option>Emoji</option><option>Image</option><option>Audio</option></select>
+    <div class="spacer"></div>
+    <span style="font-size:12px;color:#6b8099">48 hints</span>
+  </div>
+  <div class="hint-grid">
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview">🐶<span class="hint-type-badge type-emoji">emoji</span></div>
+      <div class="hint-body">
+        <div class="hint-name">dog-emoji</div>
+        <div class="hint-skill">sci.life.animals</div>
+        <div class="hint-q-count">Used in <strong>8</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation();alert('Confirm delete?')">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview">🐟<span class="hint-type-badge type-emoji">emoji</span></div>
+      <div class="hint-body">
+        <div class="hint-name">fish-emoji</div>
+        <div class="hint-skill">sci.life.animals</div>
+        <div class="hint-q-count">Used in <strong>5</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview image" style="background:#0a1a2e;font-size:14px;color:#6b8099;flex-direction:column;gap:4px"><span style="font-size:36px">🖼️</span><span>apple-count.png</span><span class="hint-type-badge type-image">image</span></div>
+      <div class="hint-body">
+        <div class="hint-name">apple-count-3</div>
+        <div class="hint-skill">math.count.to10</div>
+        <div class="hint-q-count">Used in <strong>12</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview" style="background:#1a0f40;flex-direction:column;gap:4px;font-size:14px;color:#9b72ff"><span style="font-size:36px">🔊</span><span>b-sound.mp3</span><span class="hint-type-badge type-audio">audio</span></div>
+      <div class="hint-body">
+        <div class="hint-name">phonics-b-sound</div>
+        <div class="hint-skill">ela.phonics.b</div>
+        <div class="hint-q-count">Used in <strong>6</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview">🟦<span class="hint-type-badge type-emoji">emoji</span></div>
+      <div class="hint-body">
+        <div class="hint-name">blue-square</div>
+        <div class="hint-skill">math.geo.shapes2d</div>
+        <div class="hint-q-count">Used in <strong>9</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview">🔺<span class="hint-type-badge type-emoji">emoji</span></div>
+      <div class="hint-body">
+        <div class="hint-name">red-triangle</div>
+        <div class="hint-skill">math.geo.shapes2d</div>
+        <div class="hint-q-count">Used in <strong>7</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview" style="flex-direction:column;gap:4px;font-size:14px;color:#9b72ff"><span style="font-size:36px">🔊</span><span>cat-word.mp3</span><span class="hint-type-badge type-audio">audio</span></div>
+      <div class="hint-body">
+        <div class="hint-name">word-cat-audio</div>
+        <div class="hint-skill">ela.phonics.cvc</div>
+        <div class="hint-q-count">Used in <strong>4</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+    <div class="hint-card" onclick="show('hint-detail')">
+      <div class="hint-preview image" style="font-size:14px;color:#6b8099;flex-direction:column;gap:4px"><span style="font-size:36px">🖼️</span><span>add-dots.png</span><span class="hint-type-badge type-image">image</span></div>
+      <div class="hint-body">
+        <div class="hint-name">add-dots-visual</div>
+        <div class="hint-skill">math.add.single</div>
+        <div class="hint-q-count">Used in <strong>11</strong> questions</div>
+        <div class="hint-actions"><button class="edit-btn">Edit</button><button class="del-btn" onclick="event.stopPropagation()">🗑</button></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FILTER & SEARCH -->
+<div id="filter" class="pane">
+  <div class="hint-box"><strong>Advanced filter</strong> to find specific hints by skill, type, question count, or upload date.</div>
+  <div class="filter-panel">
+    <h3>Filter Hints</h3>
+    <div class="filter-row">
+      <div>
+        <label>Skill</label>
+        <select><option>All Skills</option><option>Animals / Living Things</option><option>Phonics Blends</option><option>Addition</option><option>Shape Recognition</option><option>Counting</option></select>
+      </div>
+      <div>
+        <label>Min Questions Used</label>
+        <input type="number" placeholder="e.g. 3" min="0">
+      </div>
+      <div>
+        <label>Uploaded After</label>
+        <input type="date">
+      </div>
+    </div>
+    <div>
+      <label style="display:block;font-size:11px;font-weight:600;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Type</label>
+      <div class="type-chips">
+        <div class="type-chip tc-all active">All Types</div>
+        <div class="type-chip tc-emoji">Emoji</div>
+        <div class="type-chip tc-image">Image</div>
+        <div class="type-chip tc-audio">Audio</div>
+      </div>
+    </div>
+    <div style="margin-top:16px;display:flex;gap:10px">
+      <button style="background:#58c8f0;color:#0a0f16;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif" onclick="show('library')">Apply Filters</button>
+      <button style="background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:9px 16px;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- HINT DETAIL -->
+<div id="hint-detail" class="pane">
+  <div class="hint-box"><strong>dog-emoji</strong> — view or edit hint metadata and associated questions.</div>
+  <div style="display:grid;grid-template-columns:280px 1fr;gap:24px">
+    <div>
+      <div class="detail-preview">🐶</div>
+      <div style="text-align:center;font-size:12px;color:#6b8099;margin-top:-8px">Type: Emoji · Uploaded Mar 10, 2026</div>
+    </div>
+    <div class="detail-card">
+      <div class="detail-field">
+        <label>Hint Name</label>
+        <input type="text" value="dog-emoji">
+      </div>
+      <div class="detail-field">
+        <label>Associated Skill</label>
+        <select><option>sci.life.animals</option><option>sci.life.mammal</option></select>
+      </div>
+      <div class="detail-field">
+        <label>Emoji / URL</label>
+        <input type="text" value="🐶">
+      </div>
+      <div class="detail-field">
+        <label>Alt Text (accessibility)</label>
+        <input type="text" value="A brown cartoon dog">
+      </div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button style="background:#58c8f0;color:#0a0f16;border:none;padding:9px 20px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif" onclick="alert('Saved!')">Save Changes</button>
+        <button style="background:#ff6b6b11;border:1px solid #ff6b6b33;color:#ff6b6b;padding:9px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif" onclick="alert('Confirm delete?')">Delete Hint</button>
+      </div>
+    </div>
+  </div>
+  <div style="margin-top:24px">
+    <div style="font-size:14px;font-weight:700;color:#e8edf2;margin-bottom:12px">Associated Questions (8)</div>
+    <div class="associated-q">Q: "Which of these is a living thing?" — sci.life.animals P0</div>
+    <div class="associated-q">Q: "What sound does a dog make?" — sci.life.animals P1</div>
+    <div class="associated-q">Q: "Which animal has 4 legs?" — sci.life.mammal P0</div>
+    <div class="associated-q">Q: "Is a dog a mammal?" — sci.life.mammal P1</div>
+  </div>
+</div>
+
+<!-- UPLOAD NEW -->
+<div id="upload" class="pane">
+  <div class="hint-box"><strong>Upload a new media hint.</strong> Supported types: emoji (text), image (PNG/JPG ≤2MB), audio (MP3/OGG ≤1MB).</div>
+  <div class="upload-zone" onclick="alert('File picker would open')">
+    <div class="icon">📎</div>
+    <h3>Drop file here or click to browse</h3>
+    <p>PNG, JPG (≤2MB) · MP3, OGG (≤1MB) · or enter emoji below</p>
+  </div>
+  <div class="upload-form">
+    <div class="form-row">
+      <label>Hint Name</label>
+      <input type="text" placeholder="e.g. cat-sitting-image">
+    </div>
+    <div class="form-row">
+      <label>Type</label>
+      <select><option>Emoji</option><option>Image</option><option>Audio</option></select>
+    </div>
+    <div class="form-row">
+      <label>Emoji Character (if emoji type)</label>
+      <input type="text" placeholder="🐱">
+    </div>
+    <div class="form-row">
+      <label>Associated Skill</label>
+      <select><option>sci.life.animals</option><option>ela.phonics.cvc</option><option>math.add.single</option><option>math.geo.shapes2d</option></select>
+    </div>
+    <div class="form-row">
+      <label>Alt Text (accessibility)</label>
+      <input type="text" placeholder="Description for screen readers...">
+    </div>
+    <button class="submit-btn" onclick="alert('Hint uploaded and added to library!')">Upload Hint</button>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box"><strong>Media Hint Library spec.</strong> Browse, edit, and manage visual/audio hints attached to questions.</div>
+  <div class="spec-section">
+    <h3>Hint Types</h3>
+    <ul>
+      <li>Emoji — single Unicode emoji character</li>
+      <li>Image — PNG/JPG up to 2MB, must have alt text</li>
+      <li>Audio — MP3/OGG up to 1MB, pronunciation guide or sound clip</li>
+    </ul>
+  </div>
+  <div class="spec-section">
+    <h3>Deletion Rules</h3>
+    <p>Hints used in 1+ questions cannot be deleted without first removing associations. The system warns if deletion would leave questions without a hint.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Skill Association</h3>
+    <p>Each hint is associated with one skill. A hint may appear on questions from other skills but the primary association determines filter placement.</p>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['library','filter','hint-detail','upload','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

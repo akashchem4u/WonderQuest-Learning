@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Picture Word Reveal v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Picture Display — full screen hero */
+.picture-hero{background:radial-gradient(ellipse at center,#2a1a5e 0%,#1a0a3e 100%);border-radius:24px;padding:40px 24px;text-align:center;margin-bottom:16px;position:relative;min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden}
+.picture-bg-glow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,#9b72ff22,transparent);top:50%;left:50%;transform:translate(-50%,-50%)}
+.picture-main-emoji{font-size:120px;line-height:1;position:relative;z-index:1;animation:emoji-appear 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes emoji-appear{0%{transform:scale(0) rotate(-10deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+.picture-tap-hint{font-size:14px;color:#9b72ff;font-weight:700;margin-top:16px;animation:pulse-hint 2s ease infinite;position:relative;z-index:1}
+@keyframes pulse-hint{0%,100%{opacity:0.6}50%{opacity:1}}
+.picture-tap-arrow{font-size:22px;margin-top:4px;animation:bounce-arrow 1s ease infinite}
+@keyframes bounce-arrow{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+
+/* Word reveal animation */
+.word-reveal-container{margin-bottom:16px}
+.reveal-label{font-size:13px;color:#9b8fe0;text-align:center;margin-bottom:8px;font-weight:700}
+.word-letters{display:flex;justify-content:center;gap:6px;flex-wrap:wrap}
+.word-letter-box{width:44px;height:54px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:900;border:3px solid #2d2570;background:#1e1550;position:relative;overflow:hidden}
+.word-letter-box.revealed{border-color:#9b72ff;background:#2a1a5e}
+.word-letter-box.revealed .wlb-letter{color:#c8b8ff;animation:letter-reveal 0.3s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes letter-reveal{0%{transform:translateY(30px) scale(0.5);opacity:0}100%{transform:translateY(0) scale(1);opacity:1}}
+.word-letter-box .wlb-blank{color:#2d2570;font-size:14px}
+.wlb-letter{position:absolute}
+.word-letter-box.active{border-color:#ffd166;background:#2a1a00}
+.word-letter-box.active .wlb-letter{color:#ffd166;animation:letter-reveal 0.3s ease both}
+
+/* Picture + word combined */
+.picture-with-word{display:flex;align-items:center;gap:14px;background:#1a1240;border:2px solid #9b72ff;border-radius:16px;padding:14px;margin-bottom:16px}
+.pww-emoji{font-size:52px;flex-shrink:0}
+.pww-word-col{flex:1}
+.pww-word-label{font-size:11px;color:#9b8fe0;font-weight:700;margin-bottom:4px}
+.pww-word-big{font-size:24px;font-weight:900;color:#ffd166}
+.pww-word-letters-mini{display:flex;gap:4px;margin-top:4px}
+.wl-mini{width:26px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:900;background:#2a1a5e;border:2px solid #9b72ff;color:#c8b8ff}
+
+/* Match cards */
+.match-title{font-size:16px;font-weight:900;color:#9b72ff;text-align:center;margin-bottom:12px}
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.match-card{background:#1e1550;border:3px solid #2d2570;border-radius:18px;padding:14px;cursor:pointer;text-align:center;transition:border-color 0.15s,transform 0.1s}
+.match-card:active{transform:scale(0.96)}
+.match-card.correct{border-color:#58e8c1;background:#0e2820}
+.match-card.wrong{border-color:#ff7b6b;background:#2e0a0a}
+.match-card:hover:not(.correct):not(.wrong){border-color:#9b72ff}
+.mc-word{font-size:22px;font-weight:900;color:#c8b8ff;margin-bottom:4px}
+.match-card.correct .mc-word{color:#58e8c1}
+.match-card.wrong .mc-word{color:#ff7b6b}
+.mc-emoji{font-size:28px}
+
+/* Correct Celebration */
+.correct-cel-wrap{text-align:center;padding:8px 0}
+.cc-emoji{font-size:80px;animation:bounce-in 0.5s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes bounce-in{0%{transform:scale(0)}100%{transform:scale(1)}}
+.cc-title{font-size:28px;font-weight:900;color:#58e8c1;margin-top:10px}
+.cc-picture-word{display:flex;gap:16px;align-items:center;justify-content:center;margin:16px 0}
+.cc-pic{font-size:64px}
+.cc-word-reveal{background:#0e2820;border:3px solid #58e8c1;border-radius:14px;padding:12px 18px;display:flex;gap:6px}
+.cc-letter{width:36px;height:44px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:900;color:#58e8c1;background:#1e4030;border:2px solid #58e8c1;animation:letter-reveal 0.3s ease both}
+.cc-letter:nth-child(1){animation-delay:0s}
+.cc-letter:nth-child(2){animation-delay:0.1s}
+.cc-letter:nth-child(3){animation-delay:0.2s}
+.cc-letter:nth-child(4){animation-delay:0.3s}
+.cc-letter:nth-child(5){animation-delay:0.4s}
+.cc-letter:nth-child(6){animation-delay:0.5s}
+.star-reward{font-size:26px;font-weight:900;color:#ffd166}
+
+/* Coach bar */
+.coach-bar{background:#1a1240;border:3px solid #9b72ff;border-radius:16px;padding:12px;display:flex;align-items:center;gap:10px;margin-top:12px}
+.coach-sm-avatar{width:48px;height:48px;border-radius:50%;background:#2a1a5e;border:3px solid #9b72ff;display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.coach-sm-text{flex:1;font-size:13px;color:#c8b8ff;line-height:1.4;font-weight:700}
+.coach-sm-text strong{color:#ffd166}
+
+/* Progress bar at top */
+.play-progress{display:flex;align-items:center;gap:8px;margin-bottom:14px}
+.q-dots{display:flex;gap:5px}
+.q-dot{width:10px;height:10px;border-radius:50%;background:#2d2570}
+.q-dot.done{background:#9b72ff}
+.q-dot.current{background:#ffd166}
+.q-label{font-size:12px;color:#9b8fe0;font-weight:700;margin-left:auto}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#9b72ff;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+.btn-next{background:linear-gradient(135deg,#9b72ff,#7b52df);color:#fff;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:12px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/play/picture-word-question/{id}</code> → returns <code>{pictureEmoji, word, letters[], matchChoices:[{word,emoji}], audioUrl}</code>. Reveal sequence: show picture → 1.5s pause → reveal letters one at a time (200ms delay each via JS timeout) → show match cards. Submit: <code>POST /api/play/answer</code>. Letter reveal animates CSS class toggle.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('picture')">Picture Display</div>
+  <div class="tab" onclick="show('reveal')">Word Reveal Animation</div>
+  <div class="tab" onclick="show('matchcards')">Match Cards</div>
+  <div class="tab" onclick="show('correct')">Correct Celebration</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Picture Display -->
+<div id="picture" class="panel active">
+  <div class="play-progress">
+    <div class="q-dots">
+      <div class="q-dot done"></div>
+      <div class="q-dot done"></div>
+      <div class="q-dot current"></div>
+      <div class="q-dot"></div>
+      <div class="q-dot"></div>
+    </div>
+    <div class="q-label">Question 3 of 5</div>
+  </div>
+
+  <div class="picture-hero">
+    <div class="picture-bg-glow"></div>
+    <div class="picture-main-emoji">🐱</div>
+    <div class="picture-tap-hint">What is this? 🤔</div>
+    <div class="picture-tap-arrow">↓</div>
+  </div>
+
+  <div class="coach-bar">
+    <div class="coach-sm-avatar">🦉</div>
+    <div class="coach-sm-text">Look at the picture! <strong>What do you see?</strong> The word is about to appear!</div>
+  </div>
+
+  <div style="background:#1e1550;border:2px dashed #2d2570;border-radius:14px;padding:14px;text-align:center;margin-top:12px">
+    <div style="font-size:13px;color:#4a3f70;font-weight:700">The word will reveal soon...</div>
+    <div style="display:flex;justify-content:center;gap:6px;margin-top:8px">
+      <div style="width:44px;height:54px;border-radius:12px;background:#2d2570;border:3px solid #1e1550"></div>
+      <div style="width:44px;height:54px;border-radius:12px;background:#2d2570;border:3px solid #1e1550"></div>
+      <div style="width:44px;height:54px;border-radius:12px;background:#2d2570;border:3px solid #1e1550"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Word Reveal Animation -->
+<div id="reveal" class="panel">
+  <div class="play-progress">
+    <div class="q-dots">
+      <div class="q-dot done"></div>
+      <div class="q-dot done"></div>
+      <div class="q-dot current"></div>
+      <div class="q-dot"></div>
+      <div class="q-dot"></div>
+    </div>
+    <div class="q-label">Question 3 of 5</div>
+  </div>
+
+  <div class="picture-with-word">
+    <div class="pww-emoji">🐱</div>
+    <div class="pww-word-col">
+      <div class="pww-word-label">The word is...</div>
+      <div class="pww-word-big">cat</div>
+      <div class="pww-word-letters-mini">
+        <div class="wl-mini">c</div>
+        <div class="wl-mini">a</div>
+        <div class="wl-mini">t</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="word-reveal-container">
+    <div class="reveal-label">Watch the letters appear!</div>
+    <div class="word-letters">
+      <div class="word-letter-box revealed">
+        <div class="wlb-letter">c</div>
+      </div>
+      <div class="word-letter-box active">
+        <div class="wlb-letter">a</div>
+      </div>
+      <div class="word-letter-box">
+        <div class="wlb-blank">_</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="coach-bar">
+    <div class="coach-sm-avatar">🦉</div>
+    <div class="coach-sm-text"><strong>c... a... t!</strong> CAT! 🐱 That's the word!</div>
+  </div>
+</div>
+
+<!-- TAB 3: Match Cards -->
+<div id="matchcards" class="panel">
+  <div class="play-progress">
+    <div class="q-dots">
+      <div class="q-dot done"></div>
+      <div class="q-dot done"></div>
+      <div class="q-dot current"></div>
+      <div class="q-dot"></div>
+      <div class="q-dot"></div>
+    </div>
+    <div class="q-label">Question 3 of 5</div>
+  </div>
+
+  <div class="picture-with-word">
+    <div class="pww-emoji">🐱</div>
+    <div class="pww-word-col">
+      <div class="pww-word-label">You saw:</div>
+      <div class="pww-word-big">cat</div>
+    </div>
+  </div>
+
+  <div class="match-title">Find the matching word!</div>
+  <div class="match-grid">
+    <div class="match-card correct">
+      <div class="mc-word">cat</div>
+      <div class="mc-emoji">🐱</div>
+    </div>
+    <div class="match-card">
+      <div class="mc-word">dog</div>
+      <div class="mc-emoji">🐶</div>
+    </div>
+    <div class="match-card">
+      <div class="mc-word">hat</div>
+      <div class="mc-emoji">🎩</div>
+    </div>
+    <div class="match-card">
+      <div class="mc-word">bat</div>
+      <div class="mc-emoji">🦇</div>
+    </div>
+  </div>
+
+  <div class="coach-bar">
+    <div class="coach-sm-avatar">🦉</div>
+    <div class="coach-sm-text">The word was <strong>cat</strong>! Can you find it?</div>
+  </div>
+</div>
+
+<!-- TAB 4: Correct Celebration -->
+<div id="correct" class="panel">
+  <div class="correct-cel-wrap">
+    <div class="cc-emoji">🎉</div>
+    <div class="cc-title">You got it!</div>
+
+    <div class="cc-picture-word">
+      <div class="cc-pic">🐱</div>
+      <div class="cc-word-reveal">
+        <div class="cc-letter">c</div>
+        <div class="cc-letter">a</div>
+        <div class="cc-letter">t</div>
+      </div>
+    </div>
+
+    <div class="star-reward">⭐ +3 stars!</div>
+
+    <div style="background:#1e1550;border:2px solid #58e8c1;border-radius:14px;padding:12px 14px;margin-top:12px;font-size:13px;color:#9b8fe0;line-height:1.5;text-align:left">
+      <strong style="color:#58e8c1">c-a-t spells cat! 🐱</strong><br>
+      You matched the picture to the word! Awesome reading!
+    </div>
+
+    <div class="coach-bar">
+      <div class="coach-sm-avatar">🦉</div>
+      <div class="coach-sm-text">You read the word <strong>cat</strong> and matched it perfectly! You're a reading star! 🌟</div>
+    </div>
+
+    <button class="btn-next" style="margin-top:16px">Next picture! →</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · play-picture-word-reveal-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Accent</span><span class="sv">P1 violet #9b72ff</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">Sequence</span><span class="sv">Picture → 1.5s → reveal letters → match cards</span></div>
+    <div class="spec-row"><span class="sk">Letter reveal</span><span class="sv">200ms delay per letter, CSS class toggle</span></div>
+    <div class="spec-row"><span class="sk">Match cards</span><span class="sv">4 choices, emoji + word</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Reveal Sequence (JS Logic)</div>
+    <div class="spec-row"><span class="sk">Step 1</span><span class="sv">Show picture full-screen (1.5s)</span></div>
+    <div class="spec-row"><span class="sk">Step 2</span><span class="sv">Picture shrinks to side, word container appears</span></div>
+    <div class="spec-row"><span class="sk">Step 3</span><span class="sv">Letters appear one at a time (200ms each)</span></div>
+    <div class="spec-row"><span class="sk">Step 4</span><span class="sv">Match cards fade in after last letter</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Get question</span><span class="sv">GET /api/play/picture-word-question/{id}</span></div>
+    <div class="spec-row"><span class="sk">Submit</span><span class="sv">POST /api/play/answer</span></div>
+    <div class="spec-row"><span class="sk">Audio</span><span class="sv">audioUrl → TTS word pronunciation</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">No grade labels</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Replay safe</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Picture first</span><span class="sv">✓ — no text until reveal completes</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// Demo: Clicking in reveal tab toggles letter animations
+document.getElementById('reveal').addEventListener('click', function(){
+  const boxes = this.querySelectorAll('.word-letter-box');
+  boxes.forEach((b,i)=>{
+    setTimeout(()=>{
+      b.classList.remove('active');
+      b.classList.add('revealed');
+      if(b.querySelector('.wlb-blank')) b.querySelector('.wlb-blank').style.display='none';
+    }, i*300);
+  });
+});
+</script>
+</body>
+</html>

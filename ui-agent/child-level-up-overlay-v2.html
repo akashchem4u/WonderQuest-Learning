@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Level Up Overlay v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Overlay container */
+.overlay-bg{background:rgba(0,0,0,0.75);border-radius:20px;padding:32px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;position:relative;overflow:hidden;min-height:560px;justify-content:center}
+
+/* Burst ring animation */
+.gold-ring{position:absolute;width:220px;height:220px;border-radius:50%;border:6px solid #ffd166;animation:ring-burst 1.5s ease-out infinite;opacity:0}
+@keyframes ring-burst{0%{transform:scale(0.3);opacity:0.9}100%{transform:scale(2);opacity:0}}
+.gold-ring-2{position:absolute;width:220px;height:220px;border-radius:50%;border:4px solid #9b72ff;animation:ring-burst 1.5s 0.4s ease-out infinite;opacity:0}
+.gold-ring-3{position:absolute;width:220px;height:220px;border-radius:50%;border:3px solid #58e8c1;animation:ring-burst 1.5s 0.8s ease-out infinite;opacity:0}
+
+/* Level badge */
+.level-badge-wrap{position:relative;z-index:2;margin-bottom:24px}
+.level-badge{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#ffd166,#ff9900);display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 0 40px #ffd16688,0 0 80px #ffd16622;animation:badge-pop 0.6s 0.2s cubic-bezier(0.175,0.885,0.32,1.275) both}
+@keyframes badge-pop{0%{transform:scale(0) rotate(-30deg)}100%{transform:scale(1) rotate(0deg)}}
+.level-label{font-size:11px;font-weight:900;color:#100b2e;letter-spacing:1px;margin-bottom:-4px}
+.level-num{font-size:52px;font-weight:900;color:#100b2e;line-height:1;animation:count-up 0.4s 0.8s ease both}
+@keyframes count-up{0%{transform:scale(0.5)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+
+/* Level up text */
+.level-up-title{font-size:36px;font-weight:900;color:#ffd166;text-shadow:0 0 20px #ffd16688;animation:title-bounce 0.5s 1.0s cubic-bezier(0.175,0.885,0.32,1.275) both;opacity:0}
+@keyframes title-bounce{0%{opacity:0;transform:scale(0.5) translateY(20px)}100%{opacity:1;transform:scale(1) translateY(0)}}
+.level-sub{font-size:16px;color:#c8b8ff;margin-top:6px;animation:title-bounce 0.5s 1.2s ease both;opacity:0}
+
+/* Confetti */
+.confetti{position:absolute;width:10px;height:10px;border-radius:2px;animation:confetti-fall 2s ease-in infinite}
+@keyframes confetti-fall{0%{transform:translateY(-20px) rotate(0deg);opacity:1}100%{transform:translateY(600px) rotate(720deg);opacity:0}}
+
+/* Abilities list */
+.abilities-title{font-size:18px;font-weight:900;color:#ffd166;margin-bottom:14px}
+.ability-chip{background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:12px 16px;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-align:left}
+.ability-icon{font-size:28px;flex-shrink:0}
+.ability-info .ab-name{font-size:15px;font-weight:900}
+.ability-info .ab-desc{font-size:12px;color:#9b8fe0;margin-top:2px}
+.new-tag{background:#ffd166;color:#100b2e;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:900;margin-left:auto;flex-shrink:0}
+
+/* Level Summary */
+.summary-card{background:#1e1550;border:2px solid #9b72ff;border-radius:16px;padding:16px;margin-bottom:12px}
+.summary-header{font-size:14px;font-weight:700;color:#9b72ff;margin-bottom:10px}
+.stat-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px;border-bottom:1px solid #2d2570}
+.stat-row:last-child{border-bottom:none}
+.stat-row .s-label{color:#9b8fe0}
+.stat-row .s-val{color:#ffd166;font-weight:900}
+.xp-bar-wrap{margin-top:14px}
+.xp-label{font-size:12px;color:#9b8fe0;margin-bottom:5px;display:flex;justify-content:space-between}
+.xp-bar{background:#2d2570;border-radius:10px;height:14px;overflow:hidden}
+.xp-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#ffd166,#ff9900)}
+
+/* Next Level Preview */
+.next-card{background:linear-gradient(135deg,#1e1550,#2d1a5e);border:2px dashed #9b72ff;border-radius:16px;padding:16px;margin-bottom:12px}
+.next-title{font-size:16px;font-weight:900;color:#9b72ff;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.preview-ability{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #2d2570;opacity:0.6}
+.preview-ability:last-child{border-bottom:none}
+.lock-icon{font-size:18px}
+.prev-info .prev-name{font-size:13px;font-weight:700;color:#c8b8ff}
+.prev-info .prev-req{font-size:11px;color:#6b5fa0}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+
+.btn-primary{background:linear-gradient(135deg,#ffd166,#ffba00);color:#100b2e;border:none;border-radius:16px;padding:16px;font-family:'Nunito',sans-serif;font-size:18px;font-weight:900;cursor:pointer;width:100%;margin-top:16px}
+.btn-secondary{background:transparent;border:2px solid #2d2570;border-radius:16px;padding:12px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Trigger: <code>POST /api/child/session/complete</code> returns <code>levelUp: true</code> + <code>newLevel: N</code>. Fetch abilities from <code>GET /api/child/level/{N}/abilities</code>. Counter animation counts from oldLevel to newLevel. XP bar from <code>xpProgress</code> field. Dismiss → <code>POST /api/child/level-up/acknowledge</code>.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('levelup')">Level Up Moment</div>
+  <div class="tab" onclick="show('abilities')">New Abilities</div>
+  <div class="tab" onclick="show('summary')">Level Summary</div>
+  <div class="tab" onclick="show('next')">Next Level Preview</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Level Up Moment -->
+<div id="levelup" class="panel active">
+  <div class="overlay-bg">
+    <div class="gold-ring"></div>
+    <div class="gold-ring-2"></div>
+    <div class="gold-ring-3"></div>
+    <!-- Confetti -->
+    <div class="confetti" style="left:10%;background:#ffd166;animation-delay:0s;animation-duration:1.8s"></div>
+    <div class="confetti" style="left:25%;background:#9b72ff;animation-delay:0.3s;animation-duration:2.1s"></div>
+    <div class="confetti" style="left:45%;background:#58e8c1;animation-delay:0.6s;animation-duration:1.6s"></div>
+    <div class="confetti" style="left:65%;background:#ff7b6b;animation-delay:0.9s;animation-duration:2.0s"></div>
+    <div class="confetti" style="left:80%;background:#ffd166;animation-delay:0.2s;animation-duration:1.9s"></div>
+    <div class="confetti" style="left:55%;background:#9b72ff;animation-delay:1.1s;animation-duration:1.7s"></div>
+
+    <div class="level-badge-wrap">
+      <div class="level-badge">
+        <div class="level-label">LEVEL</div>
+        <div class="level-num">5</div>
+      </div>
+    </div>
+
+    <div class="level-up-title">Level Up! 🎉</div>
+    <div class="level-sub">You're getting SO good!</div>
+
+    <div style="margin-top:20px;display:flex;gap:10px;flex-wrap:wrap;justify-content:center;animation:title-bounce 0.5s 1.4s ease both;opacity:0">
+      <div style="background:#1e1550;border:2px solid #9b72ff;border-radius:14px;padding:8px 14px;font-size:13px;font-weight:700;color:#c8b8ff">🌊 Ocean World unlocked</div>
+      <div style="background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:8px 14px;font-size:13px;font-weight:700;color:#ffd166">+2 new abilities</div>
+    </div>
+
+    <button class="btn-primary" style="animation:title-bounce 0.5s 1.6s ease both;opacity:0">✨ See what's new!</button>
+    <button class="btn-secondary" style="margin-top:8px">Continue playing</button>
+  </div>
+</div>
+
+<!-- TAB 2: New Abilities -->
+<div id="abilities" class="panel">
+  <div style="text-align:center;margin-bottom:20px">
+    <div style="font-size:40px">✨</div>
+    <div class="abilities-title">New abilities unlocked!</div>
+    <div style="font-size:13px;color:#9b8fe0">You leveled up to Level 5!</div>
+  </div>
+
+  <div class="ability-chip">
+    <div class="ability-icon">🎵</div>
+    <div class="ability-info">
+      <div class="ab-name">Rhyme Radar</div>
+      <div class="ab-desc">Find words that rhyme together</div>
+    </div>
+    <div class="new-tag">NEW</div>
+  </div>
+  <div class="ability-chip">
+    <div class="ability-icon">🔢</div>
+    <div class="ability-info">
+      <div class="ab-name">Counting to 20</div>
+      <div class="ab-desc">Count bigger groups of things</div>
+    </div>
+    <div class="new-tag">NEW</div>
+  </div>
+  <div class="ability-chip" style="border-color:#2d2570;opacity:0.7">
+    <div class="ability-icon">📚</div>
+    <div class="ability-info">
+      <div class="ab-name">Story Time</div>
+      <div class="ab-desc">Listen and answer story questions</div>
+    </div>
+    <div style="background:#2d2570;color:#6b5fa0;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:900;margin-left:auto;flex-shrink:0">KEEP</div>
+  </div>
+  <div class="ability-chip" style="border-color:#2d2570;opacity:0.7">
+    <div class="ability-icon">🔤</div>
+    <div class="ability-info">
+      <div class="ab-name">Letter Hero</div>
+      <div class="ab-desc">Name letters by sight</div>
+    </div>
+    <div style="background:#2d2570;color:#6b5fa0;border-radius:8px;padding:2px 8px;font-size:10px;font-weight:900;margin-left:auto;flex-shrink:0">KEEP</div>
+  </div>
+
+  <button class="btn-primary">🚀 Try new abilities!</button>
+</div>
+
+<!-- TAB 3: Level Summary -->
+<div id="summary" class="panel">
+  <div style="font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px">Level 5 Summary</div>
+  <div style="font-size:13px;color:#9b8fe0;margin-bottom:16px">Here's how you leveled up!</div>
+
+  <div class="summary-card">
+    <div class="summary-header">⭐ Stars earned this session</div>
+    <div class="stat-row"><span class="s-label">Questions correct</span><span class="s-val">12 / 15</span></div>
+    <div class="stat-row"><span class="s-label">Stars collected</span><span class="s-val">⭐ 36</span></div>
+    <div class="stat-row"><span class="s-label">Bonus stars</span><span class="s-val">+6 🎉</span></div>
+    <div class="stat-row"><span class="s-label">Total stars ever</span><span class="s-val">⭐ 248</span></div>
+  </div>
+
+  <div class="summary-card" style="border-color:#58e8c1">
+    <div class="summary-header" style="color:#58e8c1">📈 Your journey to Level 5</div>
+    <div class="stat-row"><span class="s-label">Adventures completed</span><span class="s-val">18</span></div>
+    <div class="stat-row"><span class="s-label">Days exploring</span><span class="s-val">7</span></div>
+    <div class="stat-row"><span class="s-label">Worlds visited</span><span class="s-val">2</span></div>
+  </div>
+
+  <div class="xp-bar-wrap">
+    <div class="xp-label"><span>Level 5</span><span>Level 6 · 60 XP to go</span></div>
+    <div class="xp-bar"><div class="xp-fill" style="width:32%"></div></div>
+  </div>
+
+  <button class="btn-primary" style="margin-top:16px">🌟 Keep exploring!</button>
+</div>
+
+<!-- TAB 4: Next Level Preview -->
+<div id="next" class="panel">
+  <div style="font-size:22px;font-weight:900;color:#9b72ff;margin-bottom:4px">Coming at Level 6!</div>
+  <div style="font-size:13px;color:#9b8fe0;margin-bottom:16px">Here's what you're working toward 🔮</div>
+
+  <div class="next-card">
+    <div class="next-title">🔒 Locked abilities</div>
+    <div class="preview-ability">
+      <div class="lock-icon">🔒</div>
+      <div class="prev-info">
+        <div class="prev-name">Word Builder</div>
+        <div class="prev-req">Unlock at Level 6</div>
+      </div>
+    </div>
+    <div class="preview-ability">
+      <div class="lock-icon">🔒</div>
+      <div class="prev-info">
+        <div class="prev-name">Number Patterns</div>
+        <div class="prev-req">Unlock at Level 6</div>
+      </div>
+    </div>
+    <div class="preview-ability">
+      <div class="lock-icon">🔒</div>
+      <div class="prev-info">
+        <div class="prev-name">Fire World Access</div>
+        <div class="prev-req">Unlock at Level 6</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #ffd166;border-radius:16px;padding:14px;margin-bottom:16px">
+    <div style="font-size:14px;font-weight:900;color:#ffd166;margin-bottom:6px">🎯 How to reach Level 6</div>
+    <div style="font-size:13px;color:#9b8fe0;line-height:1.5">Complete 3 more adventures in Ocean World and earn 60 more XP!</div>
+    <div class="xp-bar" style="margin-top:10px"><div class="xp-fill" style="width:32%"></div></div>
+    <div style="font-size:11px;color:#9b8fe0;margin-top:4px;text-align:right">32 / 100 XP</div>
+  </div>
+
+  <button class="btn-primary">🔥 Let's get there!</button>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-level-up-overlay-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile, overlay</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">BG</span><span class="sv">rgba(0,0,0,0.75) dimmed</span></div>
+    <div class="spec-row"><span class="sk">Gold ring</span><span class="sv">CSS keyframe scale 0.3→2 + opacity fade</span></div>
+    <div class="spec-row"><span class="sk">Level counter</span><span class="sv">animate from oldLevel → newLevel</span></div>
+    <div class="spec-row"><span class="sk">Confetti</span><span class="sv">6 divs, random delay/duration</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Session complete</span><span class="sv">POST /api/child/session/complete</span></div>
+    <div class="spec-row"><span class="sk">Abilities</span><span class="sv">GET /api/child/level/{N}/abilities</span></div>
+    <div class="spec-row"><span class="sk">Acknowledge</span><span class="sv">POST /api/child/level-up/acknowledge</span></div>
+    <div class="spec-row"><span class="sk">Next level</span><span class="sv">GET /api/child/level/{N+1}/preview</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">No grade labels</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Streak-safe</span><span class="sv">✓ — show even if streak broken</span></div>
+    <div class="spec-row"><span class="sk">Always dismissable</span><span class="sv">✓ — "Continue playing" always visible</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

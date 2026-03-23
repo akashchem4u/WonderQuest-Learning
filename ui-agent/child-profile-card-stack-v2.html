@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Profile Card Stack v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Page header */
+.page-header{text-align:center;padding:16px 0 20px}
+.page-title{font-size:26px;font-weight:900;color:#ffd166}
+.page-sub{font-size:14px;color:#9b8fe0;margin-top:4px}
+
+/* Profile card */
+.profile-card{border-radius:20px;padding:18px;margin-bottom:12px;cursor:pointer;transition:transform 0.15s,box-shadow 0.2s;position:relative;overflow:hidden;border:3px solid transparent}
+.profile-card:active{transform:scale(0.97)}
+.profile-card.child-1{background:linear-gradient(135deg,#1a1240,#2a1060);border-color:#9b72ff}
+.profile-card.child-2{background:linear-gradient(135deg,#0a1a2e,#0a2040);border-color:#58e8c1}
+.profile-card.child-3{background:linear-gradient(135deg,#2e1a0a,#3e1a0a);border-color:#ff7b6b}
+
+.pc-inner{display:flex;align-items:center;gap:14px}
+.pc-avatar{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:34px;flex-shrink:0;border:3px solid transparent}
+.child-1 .pc-avatar{background:#2a1a5e;border-color:#9b72ff}
+.child-2 .pc-avatar{background:#0a2040;border-color:#58e8c1}
+.child-3 .pc-avatar{background:#3e1a0a;border-color:#ff7b6b}
+.pc-info{flex:1}
+.pc-name{font-size:20px;font-weight:900}
+.child-1 .pc-name{color:#c8b8ff}
+.child-2 .pc-name{color:#58e8c1}
+.child-3 .pc-name{color:#ff7b6b}
+.pc-world{font-size:12px;font-weight:700;margin-top:3px}
+.child-1 .pc-world{color:#9b72ff}
+.child-2 .pc-world{color:#58e8c1}
+.child-3 .pc-world{color:#ff7b6b}
+.pc-last-played{font-size:11px;color:#9b8fe0;margin-top:2px}
+.pc-stars{font-size:12px;font-weight:700;color:#ffd166;margin-top:4px}
+.pc-cta{border:none;border-radius:12px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;cursor:pointer;margin-top:10px;width:100%}
+.child-1 .pc-cta{background:#9b72ff;color:#fff}
+.child-2 .pc-cta{background:#58e8c1;color:#100b2e}
+.child-3 .pc-cta{background:#ff7b6b;color:#fff}
+
+/* Add child slot */
+.add-child-slot{border:3px dashed #2d2570;border-radius:20px;padding:20px;text-align:center;cursor:pointer;transition:border-color 0.2s}
+.add-child-slot:hover{border-color:#9b72ff}
+.add-icon{font-size:40px;margin-bottom:8px}
+.add-title{font-size:16px;font-weight:900;color:#9b72ff}
+.add-sub{font-size:12px;color:#9b8fe0;margin-top:4px}
+
+/* Who's Playing overlay */
+.whos-playing-bg{background:radial-gradient(ellipse at center,#1e1550 0%,#100b2e 80%);border-radius:20px;padding:28px 20px;text-align:center}
+.wp-title{font-size:28px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.wp-sub{font-size:14px;color:#9b8fe0;margin-bottom:24px}
+.wp-avatars{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.wp-avatar-btn{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;padding:12px;border-radius:16px;border:3px solid transparent;transition:border-color 0.2s,background 0.2s;background:#1e1550}
+.wp-avatar-btn:hover{background:#2a1a5e}
+.wp-avatar-btn.dream{border-color:#9b72ff}
+.wp-avatar-btn.ocean{border-color:#58e8c1}
+.wp-avatar-btn.fire{border-color:#ff7b6b}
+.wp-avatar-emoji{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:36px}
+.wp-avatar-btn.dream .wp-avatar-emoji{background:#2a1a5e;border:3px solid #9b72ff}
+.wp-avatar-btn.ocean .wp-avatar-emoji{background:#0a2040;border:3px solid #58e8c1}
+.wp-avatar-btn.fire .wp-avatar-emoji{background:#3e1a0a;border:3px solid #ff7b6b}
+.wp-avatar-name{font-size:15px;font-weight:900}
+.wp-avatar-btn.dream .wp-avatar-name{color:#9b72ff}
+.wp-avatar-btn.ocean .wp-avatar-name{color:#58e8c1}
+.wp-avatar-btn.fire .wp-avatar-name{color:#ff7b6b}
+.wp-cta-label{font-size:11px;font-weight:900;border-radius:8px;padding:3px 10px;margin-top:2px}
+.wp-avatar-btn.dream .wp-cta-label{background:#9b72ff22;color:#9b72ff}
+.wp-avatar-btn.ocean .wp-cta-label{background:#58e8c122;color:#58e8c1}
+.wp-avatar-btn.fire .wp-cta-label{background:#ff7b6b22;color:#ff7b6b}
+
+/* Add Child Form */
+.add-child-form{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:20px}
+.form-title{font-size:20px;font-weight:900;color:#9b72ff;margin-bottom:16px}
+.avatar-picker{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;justify-content:center}
+.av-opt{width:52px;height:52px;border-radius:50%;background:#2d2570;border:3px solid transparent;display:flex;align-items:center;justify-content:center;font-size:26px;cursor:pointer;transition:border-color 0.15s}
+.av-opt.selected{border-color:#9b72ff;background:#3a2a70}
+.form-label{font-size:12px;font-weight:700;color:#9b8fe0;margin-bottom:6px;display:block}
+.form-field{background:#100b2e;border:2px solid #2d2570;border-radius:12px;padding:12px 14px;font-family:'Nunito',sans-serif;font-size:15px;font-weight:700;color:#fff;width:100%;margin-bottom:12px;outline:none}
+.form-field:focus{border-color:#9b72ff}
+.form-field::placeholder{color:#4a3f70}
+.world-picker{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.world-opt{background:#100b2e;border:2px solid #2d2570;border-radius:12px;padding:10px;text-align:center;cursor:pointer;transition:border-color 0.15s}
+.world-opt.selected-dream{border-color:#9b72ff}
+.world-opt .wo-emoji{font-size:24px}
+.world-opt .wo-name{font-size:11px;font-weight:700;color:#9b8fe0;margin-top:3px}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/account/children</code> → returns list with <code>avatar, name, favoriteWorld, lastPlayed, totalStars</code>. Select child → <code>POST /api/auth/child-select/{childId}</code> (sets child session cookie, redirects to home hub). Add child → <code>POST /api/account/children</code>. Max children from subscription tier: <code>GET /api/account/plan</code>.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('two')">Profile Stack (2)</div>
+  <div class="tab" onclick="show('three')">Profile Stack (3)</div>
+  <div class="tab" onclick="show('whosplaying')">Who's Playing Now?</div>
+  <div class="tab" onclick="show('addchild')">Add Child Profile</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: 2 Children -->
+<div id="two" class="panel active">
+  <div class="page-header">
+    <div class="page-title">Who's playing? 🎮</div>
+    <div class="page-sub">Pick your adventure!</div>
+  </div>
+
+  <div class="profile-card child-1">
+    <div class="pc-inner">
+      <div class="pc-avatar">🌟</div>
+      <div class="pc-info">
+        <div class="pc-name">Maya</div>
+        <div class="pc-world">🌙 Dream World · Level 5</div>
+        <div class="pc-last-played">Last played Yesterday</div>
+        <div class="pc-stars">⭐ 248 stars</div>
+      </div>
+    </div>
+    <button class="pc-cta">That's me! 🌟</button>
+  </div>
+
+  <div class="profile-card child-2">
+    <div class="pc-inner">
+      <div class="pc-avatar">🐬</div>
+      <div class="pc-info">
+        <div class="pc-name">Leo</div>
+        <div class="pc-world">🌊 Ocean World · Level 3</div>
+        <div class="pc-last-played">Last played 2 days ago</div>
+        <div class="pc-stars">⭐ 96 stars</div>
+      </div>
+    </div>
+    <button class="pc-cta">That's me! 🐬</button>
+  </div>
+
+  <div class="add-child-slot">
+    <div class="add-icon">➕</div>
+    <div class="add-title">Add another explorer!</div>
+    <div class="add-sub">Set up a new profile for your child</div>
+  </div>
+</div>
+
+<!-- TAB 2: 3 Children -->
+<div id="three" class="panel">
+  <div class="page-header">
+    <div class="page-title">Who's playing? 🎮</div>
+    <div class="page-sub">Pick your adventure!</div>
+  </div>
+
+  <div class="profile-card child-1">
+    <div class="pc-inner">
+      <div class="pc-avatar">🌟</div>
+      <div class="pc-info">
+        <div class="pc-name">Maya</div>
+        <div class="pc-world">🌙 Dream World · Level 5</div>
+        <div class="pc-last-played">Last played Today</div>
+        <div class="pc-stars">⭐ 248 stars</div>
+      </div>
+    </div>
+    <button class="pc-cta">That's me! 🌟</button>
+  </div>
+
+  <div class="profile-card child-2">
+    <div class="pc-inner">
+      <div class="pc-avatar">🐬</div>
+      <div class="pc-info">
+        <div class="pc-name">Leo</div>
+        <div class="pc-world">🌊 Ocean World · Level 3</div>
+        <div class="pc-last-played">Last played Yesterday</div>
+        <div class="pc-stars">⭐ 96 stars</div>
+      </div>
+    </div>
+    <button class="pc-cta">That's me! 🐬</button>
+  </div>
+
+  <div class="profile-card child-3">
+    <div class="pc-inner">
+      <div class="pc-avatar">🦁</div>
+      <div class="pc-info">
+        <div class="pc-name">Zara</div>
+        <div class="pc-world">🔥 Fire World · Level 7</div>
+        <div class="pc-last-played">Last played 3 days ago</div>
+        <div class="pc-stars">⭐ 412 stars</div>
+      </div>
+    </div>
+    <button class="pc-cta">That's me! 🦁</button>
+  </div>
+</div>
+
+<!-- TAB 3: Who's Playing Now -->
+<div id="whosplaying" class="panel">
+  <div class="whos-playing-bg">
+    <div class="wp-title">Who's playing? 🎉</div>
+    <div class="wp-sub">Tap your picture!</div>
+
+    <div class="wp-avatars">
+      <div class="wp-avatar-btn dream">
+        <div class="wp-avatar-emoji">🌟</div>
+        <div class="wp-avatar-name">Maya</div>
+        <div class="wp-cta-label">That's me!</div>
+      </div>
+      <div class="wp-avatar-btn ocean">
+        <div class="wp-avatar-emoji">🐬</div>
+        <div class="wp-avatar-name">Leo</div>
+        <div class="wp-cta-label">That's me!</div>
+      </div>
+      <div class="wp-avatar-btn fire">
+        <div class="wp-avatar-emoji">🦁</div>
+        <div class="wp-avatar-name">Zara</div>
+        <div class="wp-cta-label">That's me!</div>
+      </div>
+    </div>
+
+    <div style="margin-top:24px;font-size:12px;color:#4a3f70;font-weight:700">Or ask a grown-up to switch account</div>
+  </div>
+</div>
+
+<!-- TAB 4: Add Child Profile -->
+<div id="addchild" class="panel">
+  <div style="font-size:22px;font-weight:900;color:#9b72ff;margin-bottom:4px">Add an explorer! 🌟</div>
+  <div style="font-size:13px;color:#9b8fe0;margin-bottom:16px">Set up a new profile for your child</div>
+
+  <div class="add-child-form">
+    <div class="form-title">Pick an avatar</div>
+    <div class="avatar-picker">
+      <div class="av-opt selected">🌟</div>
+      <div class="av-opt">🐬</div>
+      <div class="av-opt">🦁</div>
+      <div class="av-opt">🐉</div>
+      <div class="av-opt">🦋</div>
+      <div class="av-opt">🐺</div>
+      <div class="av-opt">🦊</div>
+      <div class="av-opt">🐸</div>
+    </div>
+
+    <label class="form-label">Child's name</label>
+    <input class="form-field" type="text" placeholder="Enter name..." />
+
+    <label class="form-label" style="margin-bottom:8px;display:block">Starting world</label>
+    <div class="world-picker">
+      <div class="world-opt selected-dream">
+        <div class="wo-emoji">🌙</div>
+        <div class="wo-name" style="color:#9b72ff">Dream World</div>
+      </div>
+      <div class="world-opt">
+        <div class="wo-emoji">🌊</div>
+        <div class="wo-name">Ocean World</div>
+      </div>
+    </div>
+  </div>
+
+  <button style="background:linear-gradient(135deg,#9b72ff,#7b52df);color:#fff;border:none;border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-size:16px;font-weight:900;cursor:pointer;width:100%;margin-top:14px">🌟 Create explorer!</button>
+  <button style="background:transparent;border:2px solid #2d2570;border-radius:14px;padding:10px;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;color:#6b5fa0;cursor:pointer;width:100%;margin-top:8px">Cancel</button>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-profile-card-stack-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">Max children</span><span class="sv">From subscription plan</span></div>
+    <div class="spec-row"><span class="sk">Card colors</span><span class="sv">Per favoriteWorld theme</span></div>
+    <div class="spec-row"><span class="sk">Selection</span><span class="sv">"That's me!" CTA per card</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">Get children</span><span class="sv">GET /api/account/children</span></div>
+    <div class="spec-row"><span class="sk">Select child</span><span class="sv">POST /api/auth/child-select/{childId}</span></div>
+    <div class="spec-row"><span class="sk">Add child</span><span class="sv">POST /api/account/children</span></div>
+    <div class="spec-row"><span class="sk">Plan limits</span><span class="sv">GET /api/account/plan</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No timers</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Friendly language</span><span class="sv">"That's me!" not "Log in"</span></div>
+    <div class="spec-row"><span class="sk">Avatar emoji</span><span class="sv">No photos — emoji only</span></div>
+    <div class="spec-row"><span class="sk">Add child at bottom</span><span class="sv">✓ — always accessible</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

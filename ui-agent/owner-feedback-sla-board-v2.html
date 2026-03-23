@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Feedback SLA Board v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#ffd166;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#ffd166}
+
+.sla-kpi-row{display:flex;gap:12px;margin-bottom:20px}
+.sla-kpi{flex:1;background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630;text-align:center}
+.sla-kpi-val{font-size:28px;font-weight:800}
+.sla-kpi-lbl{font-size:11px;color:#7a8a9a;margin-top:4px}
+
+.sla-table{width:100%;border-collapse:collapse}
+.sla-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#7a8a9a;border-bottom:2px solid #1e2630;letter-spacing:.5px;white-space:nowrap}
+.sla-table td{padding:10px 12px;border-bottom:1px solid #1a2030;font-size:12px;vertical-align:middle}
+.sla-table tr:hover td{background:#131c28}
+.sev-badge{display:inline-block;padding:3px 8px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.sev-p0{background:rgba(239,68,68,.2);color:#ef4444;border:1px solid #ef4444}
+.sev-p1{background:rgba(245,158,11,.2);color:#f59e0b;border:1px solid #f59e0b}
+.sev-p2{background:rgba(255,209,102,.2);color:#ffd166;border:1px solid #ffd166}
+.sev-p3{background:rgba(88,200,240,.2);color:#58c8f0;border:1px solid #58c8f0}
+.state-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.state-open{background:rgba(88,200,240,.15);color:#58c8f0}
+.state-inprog{background:rgba(245,158,11,.15);color:#f59e0b}
+.state-resolved{background:rgba(34,197,94,.15);color:#22c55e}
+.state-overdue{background:rgba(239,68,68,.15);color:#ef4444;animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.5}}
+.sla-bar-wrap{min-width:120px}
+.sla-bar-bg{height:6px;background:#1e2630;border-radius:3px;overflow:hidden}
+.sla-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.sla-remaining{font-size:10px;margin-top:3px;font-weight:600}
+.overdue-row td{background:rgba(239,68,68,.05) !important}
+.assignee-chip{display:inline-flex;align-items:center;gap:5px;background:#1a2535;border-radius:20px;padding:4px 10px;font-size:11px;color:#e8eaf0}
+.assignee-avatar{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0d1117}
+
+.workload-card{background:#131c28;border-radius:12px;padding:16px;border:1px solid #1e2630;margin-bottom:12px}
+.workload-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.workload-name{font-size:14px;font-weight:700;color:#e8eaf0}
+.workload-bar-row{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.workload-label{font-size:11px;color:#7a8a9a;width:80px;flex-shrink:0}
+.workload-bar{flex:1;height:10px;background:#1e2630;border-radius:5px;overflow:hidden}
+.workload-fill{height:100%;border-radius:5px}
+.workload-count{font-size:11px;font-weight:600;width:30px;text-align:right;flex-shrink:0}
+
+.sla-settings-form{background:#131c28;border-radius:12px;padding:20px;border:1px solid #1e2630;margin-bottom:16px}
+.sla-settings-title{font-size:14px;font-weight:700;color:#ffd166;margin-bottom:14px}
+.sla-field-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #1e2630}
+.sla-field-row:last-child{border-bottom:none}
+.sla-field-label{font-size:12px;color:#e8eaf0}
+.sla-field-sub{font-size:11px;color:#7a8a9a;margin-top:2px}
+.sla-input{background:#0d1117;border:1px solid #2a3640;border-radius:6px;padding:6px 12px;color:#e8eaf0;font-family:'Sora',sans-serif;font-size:13px;width:120px;text-align:center}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('board')">SLA Board</div>
+  <div class="tab" onclick="show('overdue')">Overdue Items</div>
+  <div class="tab" onclick="show('workload')">Assignee Workload</div>
+  <div class="tab" onclick="show('settings')">SLA Settings</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- SLA Board -->
+<div id="board" class="panel active">
+  <div class="hint">SLA board tracks resolution deadlines per feedback item. Time-remaining bar turns red when overdue. P0 SLA = 4h, P1 = 24h, P2 = 72h, P3 = 7d.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Feedback <span>SLA Board</span></div>
+      <div style="font-size:12px;color:#7a8a9a">24 open items &nbsp;|&nbsp; 3 overdue &nbsp;|&nbsp; Last refreshed: 14:35 UTC</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="background:#131c28;color:#ffd166;border:1px solid #ffd166;border-radius:8px;padding:10px 16px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Filter</button>
+      <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Export</button>
+    </div>
+  </div>
+  <div class="sla-kpi-row">
+    <div class="sla-kpi"><div class="sla-kpi-val" style="color:#22c55e">21</div><div class="sla-kpi-lbl">On Track</div></div>
+    <div class="sla-kpi"><div class="sla-kpi-val" style="color:#ef4444">3</div><div class="sla-kpi-lbl">Overdue</div></div>
+    <div class="sla-kpi"><div class="sla-kpi-val" style="color:#f59e0b">4</div><div class="sla-kpi-lbl">Due &lt;2h</div></div>
+    <div class="sla-kpi"><div class="sla-kpi-val">97%</div><div class="sla-kpi-lbl">7-day SLA Rate</div></div>
+    <div class="sla-kpi"><div class="sla-kpi-val">4.2h</div><div class="sla-kpi-lbl">Avg Resolution</div></div>
+  </div>
+  <div style="overflow-x:auto">
+  <table class="sla-table">
+    <thead>
+      <tr>
+        <th>ID</th><th>SUMMARY</th><th>SEV</th><th>ASSIGNEE</th><th>SLA DEADLINE</th><th>TIME REMAINING</th><th>STATE</th><th>ACTION</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr class="overdue-row">
+        <td style="font-family:monospace;color:#ef4444">FB-0142</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Session crash on resume — iOS 17</td>
+        <td><span class="sev-badge sev-p0">P0</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#ef4444">RK</div>r.kumar</div></td>
+        <td style="font-size:11px;color:#ef4444">Mar 23, 10:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:100%;background:#ef4444"></div></div>
+          <div class="sla-remaining" style="color:#ef4444">OVERDUE 4h 22m</div>
+        </td>
+        <td><span class="state-badge state-overdue">OVERDUE</span></td>
+        <td><button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Escalate</button></td>
+      </tr>
+      <tr class="overdue-row">
+        <td style="font-family:monospace;color:#ef4444">FB-0138</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Wrong answer marked correct — Band 2 Q#47</td>
+        <td><span class="sev-badge sev-p0">P0</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#f59e0b">AS</div>a.singh</div></td>
+        <td style="font-size:11px;color:#ef4444">Mar 23, 08:30</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:100%;background:#ef4444"></div></div>
+          <div class="sla-remaining" style="color:#ef4444">OVERDUE 5h 52m</div>
+        </td>
+        <td><span class="state-badge state-overdue">OVERDUE</span></td>
+        <td><button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Escalate</button></td>
+      </tr>
+      <tr class="overdue-row">
+        <td style="font-family:monospace;color:#ef4444">FB-0135</td>
+        <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Audio not playing — Android Chrome</td>
+        <td><span class="sev-badge sev-p1">P1</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#22c55e">PL</div>p.lee</div></td>
+        <td style="font-size:11px;color:#ef4444">Mar 22, 18:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:100%;background:#ef4444"></div></div>
+          <div class="sla-remaining" style="color:#ef4444">OVERDUE 20h 22m</div>
+        </td>
+        <td><span class="state-badge state-overdue">OVERDUE</span></td>
+        <td><button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Escalate</button></td>
+      </tr>
+      <tr>
+        <td style="font-family:monospace;color:#ffd166">FB-0148</td>
+        <td>Score calculation off by 1 point</td>
+        <td><span class="sev-badge sev-p1">P1</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#58c8f0">DM</div>d.miller</div></td>
+        <td style="font-size:11px;color:#fcd34d">Mar 23, 16:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:20%;background:#f59e0b"></div></div>
+          <div class="sla-remaining" style="color:#f59e0b">1h 25m left</div>
+        </td>
+        <td><span class="state-badge state-inprog">IN PROGRESS</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View →</a></td>
+      </tr>
+      <tr>
+        <td style="font-family:monospace;color:#ffd166">FB-0146</td>
+        <td>Progress bar not updating after session</td>
+        <td><span class="sev-badge sev-p1">P1</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#ef4444">RK</div>r.kumar</div></td>
+        <td style="font-size:11px">Mar 23, 18:30</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:45%;background:#ffd166"></div></div>
+          <div class="sla-remaining" style="color:#22c55e">3h 55m left</div>
+        </td>
+        <td><span class="state-badge state-open">OPEN</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View →</a></td>
+      </tr>
+      <tr>
+        <td style="font-family:monospace;color:#ffd166">FB-0144</td>
+        <td>Confetti animation laggy on iPad mini</td>
+        <td><span class="sev-badge sev-p2">P2</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#f59e0b">AS</div>a.singh</div></td>
+        <td style="font-size:11px">Mar 25, 14:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:60%;background:#22c55e"></div></div>
+          <div class="sla-remaining" style="color:#22c55e">47h 25m left</div>
+        </td>
+        <td><span class="state-badge state-open">OPEN</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View →</a></td>
+      </tr>
+      <tr>
+        <td style="font-family:monospace;color:#ffd166">FB-0141</td>
+        <td>Font size too small in question text</td>
+        <td><span class="sev-badge sev-p2">P2</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#22c55e">PL</div>p.lee</div></td>
+        <td style="font-size:11px">Mar 25, 10:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:70%;background:#22c55e"></div></div>
+          <div class="sla-remaining" style="color:#22c55e">43h 25m left</div>
+        </td>
+        <td><span class="state-badge state-inprog">IN PROGRESS</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View →</a></td>
+      </tr>
+      <tr>
+        <td style="font-family:monospace;color:#7a8a9a">FB-0139</td>
+        <td>Typo in Band 1 question #22</td>
+        <td><span class="sev-badge sev-p3">P3</span></td>
+        <td><div class="assignee-chip"><div class="assignee-avatar" style="background:#58c8f0">DM</div>d.miller</div></td>
+        <td style="font-size:11px">Mar 30, 14:00</td>
+        <td class="sla-bar-wrap">
+          <div class="sla-bar-bg"><div class="sla-bar-fill" style="width:85%;background:#22c55e"></div></div>
+          <div class="sla-remaining" style="color:#22c55e">7d 0h left</div>
+        </td>
+        <td><span class="state-badge state-open">OPEN</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View →</a></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Overdue Items -->
+<div id="overdue" class="panel">
+  <div class="hint">All overdue items highlighted in amber/red. P0 overdue items are release blockers.</div>
+  <div style="background:#2a0808;border:2px solid #ef4444;border-radius:12px;padding:16px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <div style="font-size:24px;font-weight:800;color:#ef4444">3</div>
+      <div><div style="font-size:14px;font-weight:700;color:#fff">Overdue Items</div><div style="font-size:12px;color:#fca5a5">2 are P0 — release blockers</div></div>
+      <button style="margin-left:auto;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:10px 18px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Bulk Escalate All →</button>
+    </div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="background:#2a0808;border:1px solid #ef4444;border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="sev-badge sev-p0">P0</span>
+        <span style="font-family:monospace;font-size:13px;color:#ef4444">FB-0142</span>
+        <span style="font-size:13px;color:#fca5a5">Session crash on resume — iOS 17</span>
+        <span class="state-badge state-overdue" style="margin-left:auto">OVERDUE 4h 22m</span>
+      </div>
+      <div style="font-size:11px;color:#7a8a9a;margin-bottom:10px">Assigned: r.kumar &nbsp;·&nbsp; SLA was: Mar 23, 10:00 UTC &nbsp;·&nbsp; Opened: Mar 22, 18:00 UTC</div>
+      <div style="background:#1a0808;border-radius:8px;padding:10px;font-size:12px;color:#fca5a5;line-height:1.5;margin-bottom:10px">User reports app freezing when resuming a paused session. Reproducible on iPhone 14 iOS 17.4. Session data is preserved but the UI hangs indefinitely.</div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Escalate to Lead →</button>
+        <button style="flex:1;background:#1a2535;color:#fca5a5;border:1px solid #ef4444;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Reassign</button>
+      </div>
+    </div>
+    <div style="background:#2a0808;border:1px solid #ef4444;border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="sev-badge sev-p0">P0</span>
+        <span style="font-family:monospace;font-size:13px;color:#ef4444">FB-0138</span>
+        <span style="font-size:13px;color:#fca5a5">Wrong answer marked correct — Band 2 Q#47</span>
+        <span class="state-badge state-overdue" style="margin-left:auto">OVERDUE 5h 52m</span>
+      </div>
+      <div style="font-size:11px;color:#7a8a9a;margin-bottom:10px">Assigned: a.singh &nbsp;·&nbsp; SLA was: Mar 23, 08:30 UTC &nbsp;·&nbsp; Opened: Mar 23, 04:30 UTC</div>
+      <div style="background:#1a0808;border-radius:8px;padding:10px;font-size:12px;color:#fca5a5;line-height:1.5;margin-bottom:10px">Question on addition facts has option "C" marked as correct but the calculation shows "B" is the correct answer. Affects all users who received this question.</div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Fix Question →</button>
+        <button style="flex:1;background:#1a2535;color:#fca5a5;border:1px solid #ef4444;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Reassign</button>
+      </div>
+    </div>
+    <div style="background:#2a1500;border:1px solid #f59e0b;border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="sev-badge sev-p1">P1</span>
+        <span style="font-family:monospace;font-size:13px;color:#f59e0b">FB-0135</span>
+        <span style="font-size:13px;color:#fcd34d">Audio not playing — Android Chrome</span>
+        <span class="state-badge state-overdue" style="margin-left:auto">OVERDUE 20h 22m</span>
+      </div>
+      <div style="font-size:11px;color:#7a8a9a;margin-bottom:10px">Assigned: p.lee &nbsp;·&nbsp; SLA was: Mar 22, 18:00 UTC &nbsp;·&nbsp; Opened: Mar 21, 18:00 UTC</div>
+      <div style="background:#130d00;border-radius:8px;padding:10px;font-size:12px;color:#fcd34d;line-height:1.5;margin-bottom:10px">Audio feedback for correct/incorrect answers not triggering on Android Chrome 122+. Silent session. Affects ~30% of Android testers.</div>
+      <div style="display:flex;gap:8px">
+        <button style="flex:1;background:#f59e0b;color:#0a0800;border:none;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Escalate to Lead →</button>
+        <button style="flex:1;background:#1a2535;color:#fcd34d;border:1px solid #f59e0b;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;cursor:pointer">Reassign</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Assignee Workload -->
+<div id="workload" class="panel">
+  <div class="hint">Assignee workload distribution by severity. Helps identify overloaded team members.</div>
+  <div class="page-header">
+    <div class="page-title">Assignee <span>Workload</span></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+    <div class="workload-card">
+      <div class="workload-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff">RK</div>
+          <div><div class="workload-name">r.kumar</div><div style="font-size:11px;color:#7a8a9a">Backend Lead</div></div>
+        </div>
+        <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#ef4444">7</div><div style="font-size:10px;color:#7a8a9a">open items</div></div>
+      </div>
+      <div class="workload-bar-row"><div class="workload-label">P0 items</div><div class="workload-bar"><div class="workload-fill" style="width:100%;background:#ef4444"></div></div><div class="workload-count" style="color:#ef4444">2</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P1 items</div><div class="workload-bar"><div class="workload-fill" style="width:75%;background:#f59e0b"></div></div><div class="workload-count" style="color:#f59e0b">3</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P2 items</div><div class="workload-bar"><div class="workload-fill" style="width:50%;background:#ffd166"></div></div><div class="workload-count">2</div></div>
+      <div style="background:#2a0808;border-radius:6px;padding:6px 10px;font-size:11px;color:#ef4444;margin-top:8px">⚠ Overloaded — 2 overdue P0 items</div>
+    </div>
+    <div class="workload-card">
+      <div class="workload-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0a0800">AS</div>
+          <div><div class="workload-name">a.singh</div><div style="font-size:11px;color:#7a8a9a">Content QA</div></div>
+        </div>
+        <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#f59e0b">5</div><div style="font-size:10px;color:#7a8a9a">open items</div></div>
+      </div>
+      <div class="workload-bar-row"><div class="workload-label">P0 items</div><div class="workload-bar"><div class="workload-fill" style="width:50%;background:#ef4444"></div></div><div class="workload-count" style="color:#ef4444">1</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P1 items</div><div class="workload-bar"><div class="workload-fill" style="width:50%;background:#f59e0b"></div></div><div class="workload-count" style="color:#f59e0b">2</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P2 items</div><div class="workload-bar"><div class="workload-fill" style="width:50%;background:#ffd166"></div></div><div class="workload-count">2</div></div>
+      <div style="background:#2a1500;border-radius:6px;padding:6px 10px;font-size:11px;color:#f59e0b;margin-top:8px">↑ 1 overdue item assigned</div>
+    </div>
+    <div class="workload-card">
+      <div class="workload-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0a1a0d">PL</div>
+          <div><div class="workload-name">p.lee</div><div style="font-size:11px;color:#7a8a9a">Frontend Dev</div></div>
+        </div>
+        <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#f59e0b">4</div><div style="font-size:10px;color:#7a8a9a">open items</div></div>
+      </div>
+      <div class="workload-bar-row"><div class="workload-label">P0 items</div><div class="workload-bar"><div class="workload-fill" style="width:0%;background:#ef4444"></div></div><div class="workload-count">0</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P1 items</div><div class="workload-bar"><div class="workload-fill" style="width:25%;background:#f59e0b"></div></div><div class="workload-count" style="color:#f59e0b">1</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P2 items</div><div class="workload-bar"><div class="workload-fill" style="width:75%;background:#ffd166"></div></div><div class="workload-count">3</div></div>
+      <div style="background:#2a1500;border-radius:6px;padding:6px 10px;font-size:11px;color:#f59e0b;margin-top:8px">↑ 1 overdue P1 item</div>
+    </div>
+    <div class="workload-card">
+      <div class="workload-header">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#58c8f0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#0a1a2a">DM</div>
+          <div><div class="workload-name">d.miller</div><div style="font-size:11px;color:#7a8a9a">Full Stack</div></div>
+        </div>
+        <div style="text-align:right"><div style="font-size:20px;font-weight:800;color:#22c55e">3</div><div style="font-size:10px;color:#7a8a9a">open items</div></div>
+      </div>
+      <div class="workload-bar-row"><div class="workload-label">P0 items</div><div class="workload-bar"><div class="workload-fill" style="width:0%;background:#ef4444"></div></div><div class="workload-count">0</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P1 items</div><div class="workload-bar"><div class="workload-fill" style="width:25%;background:#f59e0b"></div></div><div class="workload-count" style="color:#f59e0b">1</div></div>
+      <div class="workload-bar-row"><div class="workload-label">P2 items</div><div class="workload-bar"><div class="workload-fill" style="width:50%;background:#ffd166"></div></div><div class="workload-count">2</div></div>
+      <div style="background:#0a1a10;border-radius:6px;padding:6px 10px;font-size:11px;color:#22c55e;margin-top:8px">✓ All items on track</div>
+    </div>
+  </div>
+</div>
+
+<!-- SLA Settings -->
+<div id="settings" class="panel">
+  <div class="hint">Configure SLA deadlines per severity. Changes affect all new feedback items.</div>
+  <div class="sla-settings-form">
+    <div class="sla-settings-title">SLA Deadlines by Severity</div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">P0 — Critical</div><div class="sla-field-sub">Session-breaking, data loss, security</div></div>
+      <input class="sla-input" type="text" value="4 hours">
+    </div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">P1 — High</div><div class="sla-field-sub">Major feature broken, affects many users</div></div>
+      <input class="sla-input" type="text" value="24 hours">
+    </div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">P2 — Medium</div><div class="sla-field-sub">Degraded experience, workaround exists</div></div>
+      <input class="sla-input" type="text" value="72 hours">
+    </div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">P3 — Low</div><div class="sla-field-sub">Minor UX issues, typos, enhancements</div></div>
+      <input class="sla-input" type="text" value="7 days">
+    </div>
+  </div>
+  <div class="sla-settings-form">
+    <div class="sla-settings-title">Notification Rules</div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">Warning threshold</div><div class="sla-field-sub">Notify when this % of SLA time remains</div></div>
+      <input class="sla-input" type="text" value="20%">
+    </div>
+    <div class="sla-field-row">
+      <div><div class="sla-field-label">Escalation after overdue</div><div class="sla-field-sub">Auto-escalate P0/P1 after this time</div></div>
+      <input class="sla-input" type="text" value="30 min">
+    </div>
+  </div>
+  <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:12px 32px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Save SLA Settings</button>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the feedback SLA board.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">SLA DEFAULTS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">P0: 4h &nbsp;P1: 24h &nbsp;P2: 72h &nbsp;P3: 7d</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">TIME BAR COLORS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a"><span style="color:#22c55e">Green</span> = on track &nbsp;|&nbsp; <span style="color:#f59e0b">Amber</span> = &lt;20% left &nbsp;|&nbsp; <span style="color:#ef4444">Red</span> = overdue</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

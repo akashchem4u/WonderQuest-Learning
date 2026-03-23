@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>WonderQuest – Win Streak History v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.hint{background:#2a1f00;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;line-height:1.5}
+.hint strong{font-size:12px}
+.tabs{display:flex;overflow-x:auto;gap:6px;padding:10px 12px;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{background:#1e1550;border:2px solid #2d2570;border-radius:20px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:12px;font-weight:700;color:#9b8fe0;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.panel{display:none;padding:16px 16px 32px}
+.panel.active{display:block}
+
+/* Week header */
+.week-header{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.week-sub{font-size:13px;color:#9b8fe0;margin-bottom:20px}
+
+/* Timeline session card */
+.session-card{display:flex;gap:14px;margin-bottom:0;position:relative}
+.session-card::before{content:'';position:absolute;left:23px;top:52px;width:2px;bottom:-16px;background:#2d2570}
+.session-card:last-child::before{display:none}
+.session-timeline{display:flex;flex-direction:column;align-items:center;gap:0;flex-shrink:0}
+.session-dot{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:3px solid transparent;z-index:1}
+.session-dot.today{background:#1a1240;border-color:#ffd166;box-shadow:0 0 10px #ffd16644}
+.session-dot.yesterday{background:#1a1240;border-color:#9b72ff}
+.session-dot.two-days{background:#1a1240;border-color:#58e8c1}
+.session-dot.three-days{background:#1a1240;border-color:#2d2570}
+.session-body{flex:1;background:#1e1550;border-radius:14px;padding:12px 14px;margin-bottom:16px;border:2px solid #2d2570}
+.session-body.today{border-color:#ffd166;background:#1a1a30}
+.session-body.yesterday{border-color:#9b72ff22}
+.session-when{font-size:11px;font-weight:700;color:#9b8fe0;margin-bottom:4px}
+.session-body.today .session-when{color:#ffd166}
+.session-title{font-size:15px;font-weight:900;margin-bottom:6px}
+.session-stats{display:flex;gap:8px;flex-wrap:wrap}
+.session-stat{background:#100b2e;border-radius:8px;padding:4px 10px;font-size:12px;font-weight:700}
+.session-stat.stars{color:#ffd166}
+.session-stat.correct{color:#58e8c1}
+.session-stat.world{color:#9b72ff}
+
+/* Badge history */
+.badges-title{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.badges-sub{font-size:13px;color:#9b8fe0;margin-bottom:20px}
+.badge-card{background:#1e1550;border:2px solid #2d2570;border-radius:16px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.badge-emoji{font-size:40px;flex-shrink:0}
+.badge-info{flex:1}
+.badge-name{font-size:16px;font-weight:900;color:#ffd166}
+.badge-desc{font-size:12px;color:#9b8fe0;margin-top:3px;line-height:1.4}
+.badge-when{font-size:11px;color:#4a3f70;margin-top:4px;font-weight:700}
+.badge-shine{position:relative;overflow:hidden}
+.badge-shine::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,transparent 30%,rgba(255,209,102,0.1) 50%,transparent 70%)}
+
+/* Streak Calendar */
+.cal-title{font-size:22px;font-weight:900;color:#ff7b6b;margin-bottom:4px}
+.cal-sub{font-size:13px;color:#9b8fe0;margin-bottom:16px}
+.cal-week-row{display:flex;gap:6px;justify-content:space-between;margin-bottom:12px}
+.cal-day{flex:1;border-radius:12px;padding:8px 4px;text-align:center;border:2px solid transparent}
+.cal-day.played{background:#1a1a30;border-color:#ffd166}
+.cal-day.today{background:#2a1a00;border-color:#ffd166;box-shadow:0 0 8px #ffd16644}
+.cal-day.missed{background:#1e1550;border-color:#2d2570;opacity:0.6}
+.cal-day-label{font-size:10px;font-weight:700;color:#9b8fe0;margin-bottom:4px}
+.cal-day.played .cal-day-label{color:#ffd166}
+.cal-day-fire{font-size:16px}
+.cal-day-stars{font-size:10px;font-weight:700;color:#ffd166;margin-top:2px}
+.cal-day.missed .cal-day-fire{filter:grayscale(1);opacity:0.3}
+.streak-summary{background:#1e1550;border:2px solid #ff7b6b;border-radius:16px;padding:14px;margin-top:8px;display:flex;align-items:center;gap:12px}
+.streak-big{font-size:42px}
+.streak-info{flex:1}
+.streak-num{font-size:26px;font-weight:900;color:#ff7b6b}
+.streak-desc{font-size:13px;color:#9b8fe0;margin-top:2px}
+
+/* Best Moments */
+.best-title{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.best-sub{font-size:13px;color:#9b8fe0;margin-bottom:20px}
+.moment-card{background:linear-gradient(135deg,#1a1240,#2a1060);border:2px solid #9b72ff;border-radius:18px;padding:16px;margin-bottom:12px;position:relative;overflow:hidden}
+.moment-card.ocean{background:linear-gradient(135deg,#0a1a2e,#0a2040);border-color:#58e8c1}
+.moment-card.fire{background:linear-gradient(135deg,#2e0a0a,#3e1a0a);border-color:#ff7b6b}
+.moment-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.moment-icon{font-size:36px}
+.moment-info{flex:1}
+.moment-title{font-size:16px;font-weight:900}
+.moment-card .moment-title{color:#c8b8ff}
+.moment-card.ocean .moment-title{color:#58e8c1}
+.moment-card.fire .moment-title{color:#ff7b6b}
+.moment-when{font-size:11px;color:#9b8fe0;margin-top:2px}
+.moment-highlight{font-size:22px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.moment-desc{font-size:13px;color:#9b8fe0;line-height:1.4}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-title{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2d2570;padding-bottom:4px}
+.spec-row{display:flex;justify-content:space-between;padding:5px 0;font-size:12px;border-bottom:1px solid #1e1550}
+.spec-row .sk{color:#9b8fe0}
+.spec-row .sv{color:#fff;font-weight:700;text-align:right;max-width:200px}
+</style>
+</head>
+<body>
+
+<div class="hint">
+  <strong>Engineering Hint</strong><br>
+  Route: <code>GET /api/child/history?range=7days</code> → returns sessions with <code>{when: "today"|"yesterday"|"2 days ago", worldEmoji, questTitle, starsEarned, correctAnswers, totalQuestions}</code>. No ISO dates shown to child. Badges from <code>GET /api/child/badges?recent=true</code>. Streak from <code>GET /api/child/streak</code> with <code>currentStreak, longestStreak, weekPlayed[]</code>.
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('week')">This Week History</div>
+  <div class="tab" onclick="show('badges')">Badge History</div>
+  <div class="tab" onclick="show('calendar')">Streak Calendar</div>
+  <div class="tab" onclick="show('best')">Best Moments</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: This Week History -->
+<div id="week" class="panel active">
+  <div class="week-header">Your adventures this week! 🗺️</div>
+  <div class="week-sub">Look at everything you did!</div>
+
+  <div class="session-card">
+    <div class="session-timeline">
+      <div class="session-dot today">⭐</div>
+    </div>
+    <div class="session-body today">
+      <div class="session-when">Today</div>
+      <div class="session-title">🐬 Dolphins Count! — Ocean World</div>
+      <div class="session-stats">
+        <div class="session-stat stars">⭐ 14 stars</div>
+        <div class="session-stat correct">✓ 4/5 right</div>
+        <div class="session-stat world">⚡ Quick play</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="session-card">
+    <div class="session-timeline">
+      <div class="session-dot yesterday">🌙</div>
+    </div>
+    <div class="session-body yesterday">
+      <div class="session-when">Yesterday</div>
+      <div class="session-title">🔤 Letter Adventure — Dream World</div>
+      <div class="session-stats">
+        <div class="session-stat stars">⭐ 30 stars</div>
+        <div class="session-stat correct">✓ 15/15 right</div>
+        <div class="session-stat world">🏆 Full Quest</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="session-card">
+    <div class="session-timeline">
+      <div class="session-dot two-days">🌊</div>
+    </div>
+    <div class="session-body">
+      <div class="session-when">2 days ago</div>
+      <div class="session-title">🐠 Meet the Fish! — Ocean World</div>
+      <div class="session-stats">
+        <div class="session-stat stars">⭐ 22 stars</div>
+        <div class="session-stat correct">✓ 10/15 right</div>
+        <div class="session-stat world">🏆 Full Quest</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="session-card">
+    <div class="session-timeline">
+      <div class="session-dot three-days">✦</div>
+    </div>
+    <div class="session-body">
+      <div class="session-when">4 days ago</div>
+      <div class="session-title">🎵 Rhyme Time! — Dream World</div>
+      <div class="session-stats">
+        <div class="session-stat stars">⭐ 18 stars</div>
+        <div class="session-stat correct">✓ 7/10 right</div>
+        <div class="session-stat world">⚡ Quick play</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #ffd166;border-radius:14px;padding:12px 16px;margin-top:4px;display:flex;justify-content:space-between;align-items:center">
+    <div>
+      <div style="font-size:13px;font-weight:900;color:#ffd166">This week total</div>
+      <div style="font-size:12px;color:#9b8fe0">4 adventures</div>
+    </div>
+    <div style="font-size:24px;font-weight:900;color:#ffd166">⭐ 84</div>
+  </div>
+</div>
+
+<!-- TAB 2: Badge History -->
+<div id="badges" class="panel">
+  <div class="badges-title">Your badges! 🏅</div>
+  <div class="badges-sub">Look at everything you've earned!</div>
+
+  <div class="badge-card badge-shine">
+    <div class="badge-emoji">🔤</div>
+    <div class="badge-info">
+      <div class="badge-name">Letter Hero</div>
+      <div class="badge-desc">You knew all 26 letters! Amazing reading skills!</div>
+      <div class="badge-when">Earned Yesterday</div>
+    </div>
+  </div>
+
+  <div class="badge-card">
+    <div class="badge-emoji">🔢</div>
+    <div class="badge-info">
+      <div class="badge-name">Counting Star</div>
+      <div class="badge-desc">You counted all the way to 20 without any help!</div>
+      <div class="badge-when">Earned 3 days ago</div>
+    </div>
+  </div>
+
+  <div class="badge-card">
+    <div class="badge-emoji">🌊</div>
+    <div class="badge-info">
+      <div class="badge-name">Ocean Explorer</div>
+      <div class="badge-desc">You played in Ocean World for the first time!</div>
+      <div class="badge-when">Earned 5 days ago</div>
+    </div>
+  </div>
+
+  <div class="badge-card">
+    <div class="badge-emoji">🔥</div>
+    <div class="badge-info">
+      <div class="badge-name">5 Day Streak!</div>
+      <div class="badge-desc">You played 5 days in a row! You're on fire!</div>
+      <div class="badge-when">Earned 6 days ago</div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px dashed #2d2570;border-radius:14px;padding:14px;text-align:center;margin-top:4px">
+    <div style="font-size:24px;opacity:0.3">🏅</div>
+    <div style="font-size:13px;color:#4a3f70;margin-top:4px;font-weight:700">More badges coming! Keep exploring!</div>
+  </div>
+</div>
+
+<!-- TAB 3: Streak Calendar -->
+<div id="calendar" class="panel">
+  <div class="cal-title">Your fire streak! 🔥</div>
+  <div class="cal-sub">See which days you played this week!</div>
+
+  <div class="cal-week-row">
+    <div class="cal-day missed">
+      <div class="cal-day-label">Mon</div>
+      <div class="cal-day-fire">💤</div>
+      <div class="cal-day-stars"></div>
+    </div>
+    <div class="cal-day played">
+      <div class="cal-day-label">Tue</div>
+      <div class="cal-day-fire">🔥</div>
+      <div class="cal-day-stars">⭐18</div>
+    </div>
+    <div class="cal-day played">
+      <div class="cal-day-label">Wed</div>
+      <div class="cal-day-fire">🔥</div>
+      <div class="cal-day-stars">⭐22</div>
+    </div>
+    <div class="cal-day missed">
+      <div class="cal-day-label">Thu</div>
+      <div class="cal-day-fire">💤</div>
+      <div class="cal-day-stars"></div>
+    </div>
+    <div class="cal-day played">
+      <div class="cal-day-label">Fri</div>
+      <div class="cal-day-fire">🔥</div>
+      <div class="cal-day-stars">⭐30</div>
+    </div>
+    <div class="cal-day played">
+      <div class="cal-day-label">Sat</div>
+      <div class="cal-day-fire">🔥</div>
+      <div class="cal-day-stars">⭐14</div>
+    </div>
+    <div class="cal-day today">
+      <div class="cal-day-label">Today</div>
+      <div class="cal-day-fire">🔥</div>
+      <div class="cal-day-stars">⭐14</div>
+    </div>
+  </div>
+
+  <div class="streak-summary">
+    <div class="streak-big">🔥</div>
+    <div class="streak-info">
+      <div class="streak-num">5 days!</div>
+      <div class="streak-desc">You played 5 days this week! Amazing!</div>
+    </div>
+  </div>
+
+  <div style="background:#1e1550;border:2px solid #2d2570;border-radius:14px;padding:12px 16px;margin-top:10px;font-size:13px;color:#9b8fe0;line-height:1.5">
+    🏆 Your longest streak ever: <span style="color:#ffd166;font-weight:900">7 days!</span> Can you beat it?
+  </div>
+</div>
+
+<!-- TAB 4: Best Moments -->
+<div id="best" class="panel">
+  <div class="best-title">Your best moments! 🌟</div>
+  <div class="best-sub">These are the times you were a superstar!</div>
+
+  <div class="moment-card">
+    <div class="moment-top">
+      <div class="moment-icon">🏆</div>
+      <div class="moment-info">
+        <div class="moment-title">Perfect Quest!</div>
+        <div class="moment-when">Yesterday · Dream World</div>
+      </div>
+    </div>
+    <div class="moment-highlight">15 / 15 ✅</div>
+    <div class="moment-desc">You got every single answer right in Letter Adventure! That's amazing!</div>
+  </div>
+
+  <div class="moment-card ocean">
+    <div class="moment-top">
+      <div class="moment-icon">⭐</div>
+      <div class="moment-info">
+        <div class="moment-title">Star Collector!</div>
+        <div class="moment-when">5 days ago · Ocean World</div>
+      </div>
+    </div>
+    <div class="moment-highlight" style="color:#58e8c1">⭐ 30 stars in one day!</div>
+    <div class="moment-desc">You earned 30 stars in a single adventure! That's a new record for you!</div>
+  </div>
+
+  <div class="moment-card fire">
+    <div class="moment-top">
+      <div class="moment-icon">🔥</div>
+      <div class="moment-info">
+        <div class="moment-title">7 Day Streak!</div>
+        <div class="moment-when">Last week</div>
+      </div>
+    </div>
+    <div class="moment-highlight" style="color:#ff7b6b">🔥 7 days straight!</div>
+    <div class="moment-desc">You played every single day for a whole week! You're incredible!</div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <div class="spec-title">Component · child-win-streak-history-v2</div>
+    <div class="spec-row"><span class="sk">Width</span><span class="sv">375px mobile</span></div>
+    <div class="spec-row"><span class="sk">Font</span><span class="sv">Nunito 900</span></div>
+    <div class="spec-row"><span class="sk">Time display</span><span class="sv">Today / Yesterday / N days ago — no ISO dates</span></div>
+    <div class="spec-row"><span class="sk">Timeline</span><span class="sv">Vertical connector line between cards</span></div>
+    <div class="spec-row"><span class="sk">Language</span><span class="sv">Child-friendly positive framing</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Routes</div>
+    <div class="spec-row"><span class="sk">History</span><span class="sv">GET /api/child/history?range=7days</span></div>
+    <div class="spec-row"><span class="sk">Badges</span><span class="sv">GET /api/child/badges?recent=true</span></div>
+    <div class="spec-row"><span class="sk">Streak</span><span class="sv">GET /api/child/streak</span></div>
+    <div class="spec-row"><span class="sk">Best moments</span><span class="sv">GET /api/child/highlights</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Rules</div>
+    <div class="spec-row"><span class="sk">No shame language</span><span class="sv">✓ — "missed" shown as 💤 not ✗</span></div>
+    <div class="spec-row"><span class="sk">No grade labels</span><span class="sv">✓</span></div>
+    <div class="spec-row"><span class="sk">Streak-safe</span><span class="sv">✓ — missed days shown gently</span></div>
+    <div class="spec-row"><span class="sk">Positive framing</span><span class="sv">✓ — all text celebrates effort</span></div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

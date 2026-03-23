@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Session Complete Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+
+  /* Desktop screen wrapper */
+  .desktop-screen{min-width:900px;max-width:1100px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+  .top-bar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.08)}
+  .logo{font-size:18px;font-weight:900;color:#ffd166;letter-spacing:-0.5px}
+  .session-label{font-size:12px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px}
+  .top-stars{display:flex;align-items:center;gap:6px;font-weight:900;font-size:16px;color:#ffd166}
+
+  /* 3-col layout */
+  .three-col{display:grid;grid-template-columns:300px 1fr 280px;gap:0;min-height:580px}
+
+  /* Left column */
+  .col-left{padding:28px 20px;border-right:1px solid rgba(255,255,255,.07);background:rgba(0,0,0,.1)}
+  .col-title{font-size:11px;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.8px;margin-bottom:16px}
+  .stat-card{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;margin-bottom:12px}
+  .stat-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .stat-row:last-child{border-bottom:none}
+  .stat-lbl{font-size:12px;color:rgba(255,255,255,.55)}
+  .stat-val{font-weight:900;font-size:16px}
+  .stat-val.gold{color:#ffd166}
+  .stat-val.mint{color:#58e8c1}
+  .stat-val.violet{color:#9b72ff}
+  .streak-bar{margin-top:8px;background:rgba(255,255,255,.08);border-radius:20px;overflow:hidden;height:8px}
+  .streak-fill{height:100%;background:linear-gradient(90deg,#ffd166,#ffb300);border-radius:20px;width:70%}
+  .xp-section{background:linear-gradient(135deg,rgba(155,114,255,.15),rgba(88,232,193,.08));border:1px solid rgba(155,114,255,.3);border-radius:16px;padding:16px;margin-bottom:12px}
+  .xp-big{font-size:36px;font-weight:900;color:#9b72ff;text-align:center}
+  .xp-label{text-align:center;font-size:11px;color:rgba(255,255,255,.5);font-weight:700;text-transform:uppercase}
+  .xp-progress{margin-top:10px;background:rgba(255,255,255,.1);border-radius:10px;height:10px;overflow:hidden}
+  .xp-fill{height:100%;background:linear-gradient(90deg,#9b72ff,#58e8c1);border-radius:10px;width:65%;transition:width .6s}
+
+  /* Center column */
+  .col-center{padding:28px 24px;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center}
+  .celebration-ring{width:140px;height:140px;border-radius:50%;background:linear-gradient(135deg,#ffd166,#9b72ff,#58e8c1);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:spinGlow 3s linear infinite;box-shadow:0 0 40px rgba(155,114,255,.4)}
+  @keyframes spinGlow{0%{box-shadow:0 0 20px rgba(255,209,102,.4)}50%{box-shadow:0 0 50px rgba(155,114,255,.6)}100%{box-shadow:0 0 20px rgba(88,232,193,.4)}}
+  .celebration-inner{width:116px;height:116px;border-radius:50%;background:#100b2e;display:flex;align-items:center;justify-content:center;font-size:52px}
+  .session-title{font-size:30px;font-weight:900;color:#fff;margin-bottom:6px}
+  .session-sub{font-size:14px;color:rgba(255,255,255,.55);margin-bottom:24px}
+  .badge-progress-row{display:flex;gap:12px;margin-bottom:20px;width:100%;justify-content:center}
+  .badge-item{background:rgba(255,255,255,.06);border-radius:14px;padding:12px 16px;text-align:center;flex:1;max-width:120px}
+  .badge-emoji{font-size:28px;margin-bottom:6px}
+  .badge-name{font-size:10px;font-weight:900;color:rgba(255,255,255,.6)}
+  .badge-prog{background:rgba(255,255,255,.1);border-radius:8px;height:6px;margin-top:6px;overflow:hidden}
+  .badge-fill{height:100%;border-radius:8px}
+  .confetti-row{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .confetti-star{font-size:22px;animation:floatStar 2s ease-in-out infinite}
+  .confetti-star:nth-child(2){animation-delay:.3s}
+  .confetti-star:nth-child(3){animation-delay:.6s}
+  .confetti-star:nth-child(4){animation-delay:.9s}
+  @keyframes floatStar{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-8px) rotate(15deg)}}
+
+  /* Right column */
+  .col-right{padding:28px 20px;border-left:1px solid rgba(255,255,255,.07)}
+  .action-btn{width:100%;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.15);border-radius:16px;padding:14px;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;color:#fff;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;gap:12px;text-align:left;transition:all .2s}
+  .action-btn:hover{background:rgba(255,255,255,.12)}
+  .action-btn.primary{background:#9b72ff;border-color:#9b72ff}
+  .action-btn.gold-btn{background:linear-gradient(135deg,#ffd166,#ffb300);border-color:#ffd166;color:#1a0d00}
+  .action-icon{font-size:22px}
+  .action-text{}
+  .action-title{font-size:14px;font-weight:900}
+  .action-sub{font-size:10px;opacity:.7;font-weight:700;margin-top:1px}
+  .world-map-preview{background:linear-gradient(135deg,rgba(88,232,193,.1),rgba(155,114,255,.08));border:1px solid rgba(88,232,193,.3);border-radius:16px;padding:14px;margin-top:12px}
+  .world-mini{font-size:11px;color:#58e8c1;font-weight:900;margin-bottom:8px;display:flex;align-items:center;gap:6px}
+  .world-nodes{display:flex;gap:8px;flex-wrap:wrap}
+  .wnode{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .wnode.done{background:linear-gradient(135deg,#58e8c1,#2ec49a)}
+  .wnode.current{background:linear-gradient(135deg,#9b72ff,#7a52dd);box-shadow:0 0 12px rgba(155,114,255,.5)}
+  .wnode.locked{background:rgba(255,255,255,.08)}
+
+  /* Badge unlocked */
+  .badge-unlocked-hero{text-align:center;padding:32px 24px}
+  .badge-hero-emoji{font-size:80px;animation:badgePop .6s cubic-bezier(.34,1.56,.64,1)}
+  @keyframes badgePop{0%{transform:scale(0) rotate(-20deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+  .badge-hero-title{font-size:28px;font-weight:900;color:#ffd166;margin-top:12px}
+  .badge-hero-sub{font-size:14px;color:rgba(255,255,255,.6);margin-top:6px}
+  .badge-criteria{background:rgba(255,255,255,.06);border-radius:16px;padding:16px;margin-top:20px;text-align:left}
+  .crit-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.07)}
+  .crit-row:last-child{border-bottom:none}
+  .crit-check{font-size:16px}
+  .crit-text{font-size:13px;color:rgba(255,255,255,.75)}
+
+  /* World node progress */
+  .node-progress-map{padding:24px;width:100%}
+  .map-path{display:flex;flex-direction:column;gap:0;align-items:flex-start;padding-left:24px;position:relative}
+  .map-path::before{content:'';position:absolute;left:40px;top:0;bottom:0;width:3px;background:linear-gradient(180deg,#58e8c1,#9b72ff,rgba(255,255,255,.1))}
+  .map-node{display:flex;align-items:center;gap:16px;margin-bottom:16px;position:relative;z-index:1}
+  .mnode-circle{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+  .mnode-circle.done{background:linear-gradient(135deg,#58e8c1,#2ec49a);box-shadow:0 0 16px rgba(88,232,193,.4)}
+  .mnode-circle.current{background:linear-gradient(135deg,#9b72ff,#7a52dd);box-shadow:0 0 16px rgba(155,114,255,.6);animation:pulse 1.5s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:0 0 16px rgba(155,114,255,.4)}50%{box-shadow:0 0 30px rgba(155,114,255,.8)}}
+  .mnode-circle.locked{background:rgba(255,255,255,.08)}
+  .mnode-info{}
+  .mnode-title{font-size:14px;font-weight:900}
+  .mnode-sub{font-size:11px;color:rgba(255,255,255,.5);margin-top:2px}
+
+  /* Spec */
+  .spec-body{padding:24px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('session-complete')">Session Complete (3-col)</button>
+  <button class="tab" onclick="show('badge-unlocked')">Badge Unlocked State</button>
+  <button class="tab" onclick="show('world-node')">World Node Progress</button>
+  <button class="tab" onclick="show('next-session')">Next Session Prompt</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-session-complete-desktop-v2.html</code> — Desktop 900px+ session complete · 3-col layout · celebration + stats + next actions
+</div>
+
+<!-- SESSION COMPLETE 3-COL -->
+<div id="session-complete" class="panel active">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="logo">⭐ WonderQuest</div>
+      <div class="session-label">Session Complete!</div>
+      <div class="top-stars">⭐ 8 Stars</div>
+    </div>
+    <div class="three-col">
+      <!-- Left: Stats -->
+      <div class="col-left">
+        <div class="col-title">Session Stats</div>
+        <div class="xp-section">
+          <div class="xp-big">+140</div>
+          <div class="xp-label">XP Earned</div>
+          <div class="xp-progress"><div class="xp-fill"></div></div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px">
+            <span style="font-size:10px;color:rgba(255,255,255,.4)">Level 5</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.4)">Level 6</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-row">
+            <span class="stat-lbl">Stars earned</span>
+            <span class="stat-val gold">⭐ 8</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">Questions</span>
+            <span class="stat-val">8 / 8</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">Hints used</span>
+            <span class="stat-val">2</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-lbl">Session time</span>
+            <span class="stat-val mint">12 min</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Streak</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:28px;font-weight:900;color:#ffd166">🔥 4</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.5)">days in a row!</span>
+          </div>
+          <div class="streak-bar"><div class="streak-fill"></div></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:4px">3 more days to unlock Flame Badge</div>
+        </div>
+      </div>
+
+      <!-- Center: Celebration -->
+      <div class="col-center">
+        <div class="confetti-row">
+          <span class="confetti-star">🌟</span><span class="confetti-star">⭐</span>
+          <span class="confetti-star">✨</span><span class="confetti-star">🌟</span>
+        </div>
+        <div class="celebration-ring">
+          <div class="celebration-inner">🎉</div>
+        </div>
+        <div class="session-title">Ocean Explorer!</div>
+        <div class="session-sub">Session #14 · Ocean World · Level 3</div>
+        <div class="badge-progress-row">
+          <div class="badge-item">
+            <div class="badge-emoji">🌊</div>
+            <div class="badge-name">Ocean Swimmer</div>
+            <div class="badge-prog"><div class="badge-fill" style="width:85%;background:#9b72ff"></div></div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-emoji">📚</div>
+            <div class="badge-name">Word Wizard</div>
+            <div class="badge-prog"><div class="badge-fill" style="width:60%;background:#58e8c1"></div></div>
+          </div>
+          <div class="badge-item">
+            <div class="badge-emoji">🔥</div>
+            <div class="badge-name">Streak Flame</div>
+            <div class="badge-prog"><div class="badge-fill" style="width:40%;background:#ff7b6b"></div></div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:rgba(255,255,255,.4);text-align:center">🌊 Ocean Swimmer badge almost unlocked — 2 more sessions!</div>
+      </div>
+
+      <!-- Right: Next actions -->
+      <div class="col-right">
+        <div class="col-title">What's Next?</div>
+        <button class="action-btn primary">
+          <span class="action-icon">🚀</span>
+          <div class="action-text">
+            <div class="action-title">Play Again</div>
+            <div class="action-sub">Jump into next session</div>
+          </div>
+        </button>
+        <button class="action-btn gold-btn">
+          <span class="action-icon">🏅</span>
+          <div class="action-text">
+            <div class="action-title">See My Badges</div>
+            <div class="action-sub">3 nearly unlocked!</div>
+          </div>
+        </button>
+        <button class="action-btn">
+          <span class="action-icon">🗺️</span>
+          <div class="action-text">
+            <div class="action-title">World Map</div>
+            <div class="action-sub">See your journey</div>
+          </div>
+        </button>
+        <button class="action-btn">
+          <span class="action-icon">🏠</span>
+          <div class="action-text">
+            <div class="action-title">Go Home</div>
+            <div class="action-sub">Back to hub</div>
+          </div>
+        </button>
+        <div class="world-map-preview">
+          <div class="world-mini">🗺️ Ocean World Progress</div>
+          <div class="world-nodes">
+            <div class="wnode done">✓</div>
+            <div class="wnode done">✓</div>
+            <div class="wnode done">✓</div>
+            <div class="wnode current">⭐</div>
+            <div class="wnode locked">🔒</div>
+            <div class="wnode locked">🔒</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.4);margin-top:8px">Node 4 of 6 · Keep exploring!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- BADGE UNLOCKED -->
+<div id="badge-unlocked" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="logo">⭐ WonderQuest</div>
+      <div class="session-label">Badge Unlocked!</div>
+      <div class="top-stars">⭐ 8 Stars</div>
+    </div>
+    <div class="three-col">
+      <div class="col-left">
+        <div class="col-title">Session Stats</div>
+        <div class="stat-card">
+          <div class="stat-row"><span class="stat-lbl">Stars earned</span><span class="stat-val gold">⭐ 8</span></div>
+          <div class="stat-row"><span class="stat-lbl">XP</span><span class="stat-val violet">+140</span></div>
+          <div class="stat-row"><span class="stat-lbl">Streak</span><span class="stat-val gold">🔥 4</span></div>
+        </div>
+        <div style="background:rgba(255,209,102,.1);border:2px solid #ffd166;border-radius:16px;padding:14px;text-align:center">
+          <div style="font-size:11px;color:#ffd166;font-weight:900;text-transform:uppercase;margin-bottom:8px">Badges Collected</div>
+          <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap">
+            <span style="font-size:28px">🌊</span>
+            <span style="font-size:28px">⭐</span>
+            <span style="font-size:28px">📚</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-top:6px">3 of 12 collected</div>
+        </div>
+      </div>
+      <div class="col-center">
+        <div class="badge-unlocked-hero">
+          <div class="badge-hero-emoji">🌊</div>
+          <div class="badge-hero-title">Ocean Swimmer!</div>
+          <div class="badge-hero-sub">You explored the whole Ocean World!</div>
+          <div class="badge-criteria">
+            <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:900;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">How you earned it</div>
+            <div class="crit-row"><span class="crit-check">✅</span><span class="crit-text">Completed 6 Ocean sessions</span></div>
+            <div class="crit-row"><span class="crit-check">✅</span><span class="crit-text">Answered 40+ ocean questions</span></div>
+            <div class="crit-row"><span class="crit-check">✅</span><span class="crit-text">Maintained a 3-day streak</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="col-title">Celebrate!</div>
+        <button class="action-btn gold-btn">
+          <span class="action-icon">🎉</span>
+          <div class="action-text"><div class="action-title">Share Badge!</div><div class="action-sub">Show your family</div></div>
+        </button>
+        <button class="action-btn primary">
+          <span class="action-icon">🗺️</span>
+          <div class="action-text"><div class="action-title">Next World</div><div class="action-sub">Forest Adventure</div></div>
+        </button>
+        <button class="action-btn">
+          <span class="action-icon">🏅</span>
+          <div class="action-text"><div class="action-title">All Badges</div><div class="action-sub">See collection</div></div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORLD NODE PROGRESS -->
+<div id="world-node" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="logo">⭐ WonderQuest</div>
+      <div class="session-label">World Progress</div>
+      <div class="top-stars">🗺️ Ocean World</div>
+    </div>
+    <div class="three-col">
+      <div class="col-left">
+        <div class="col-title">Your Journey</div>
+        <div class="stat-card">
+          <div class="stat-row"><span class="stat-lbl">Current World</span><span class="stat-val">🌊 Ocean</span></div>
+          <div class="stat-row"><span class="stat-lbl">Nodes done</span><span class="stat-val mint">3 / 6</span></div>
+          <div class="stat-row"><span class="stat-lbl">Next world</span><span class="stat-val">🌲 Forest</span></div>
+        </div>
+      </div>
+      <div class="col-center">
+        <div class="node-progress-map">
+          <div style="font-size:20px;font-weight:900;margin-bottom:20px;text-align:center">🌊 Ocean World</div>
+          <div class="map-path">
+            <div class="map-node"><div class="mnode-circle done">🐚</div><div class="mnode-info"><div class="mnode-title">Tide Pools</div><div class="mnode-sub">✓ Completed · 8 stars</div></div></div>
+            <div class="map-node"><div class="mnode-circle done">🐠</div><div class="mnode-info"><div class="mnode-title">Coral Reef</div><div class="mnode-sub">✓ Completed · 7 stars</div></div></div>
+            <div class="map-node"><div class="mnode-circle done">🌊</div><div class="mnode-info"><div class="mnode-title">Open Ocean</div><div class="mnode-sub">✓ Completed · 8 stars</div></div></div>
+            <div class="map-node"><div class="mnode-circle current">⭐</div><div class="mnode-info"><div class="mnode-title">Deep Sea</div><div class="mnode-sub">In progress · Session 2 of 3</div></div></div>
+            <div class="map-node"><div class="mnode-circle locked">🔒</div><div class="mnode-info"><div class="mnode-title" style="color:rgba(255,255,255,.4)">Storm Surge</div><div class="mnode-sub">Locked</div></div></div>
+            <div class="map-node"><div class="mnode-circle locked">🔒</div><div class="mnode-info"><div class="mnode-title" style="color:rgba(255,255,255,.4)">Ocean Boss</div><div class="mnode-sub">Locked · Badge reward</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-right">
+        <div class="col-title">Next Steps</div>
+        <button class="action-btn primary"><span class="action-icon">🌊</span><div class="action-text"><div class="action-title">Continue Deep Sea</div><div class="action-sub">Session 3 of 3</div></div></button>
+        <button class="action-btn"><span class="action-icon">🔄</span><div class="action-text"><div class="action-title">Replay Open Ocean</div><div class="action-sub">Practice mode</div></div></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NEXT SESSION PROMPT -->
+<div id="next-session" class="panel">
+  <div class="desktop-screen">
+    <div class="top-bar">
+      <div class="logo">⭐ WonderQuest</div>
+      <div class="session-label">See You Tomorrow!</div>
+      <div class="top-stars">🔥 4-day streak</div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:center;padding:60px 40px;gap:60px">
+      <div style="text-align:center">
+        <div style="font-size:80px;margin-bottom:16px">🦉</div>
+        <div style="font-size:28px;font-weight:900;color:#ffd166;margin-bottom:8px">Amazing work today!</div>
+        <div style="font-size:14px;color:rgba(255,255,255,.6);max-width:320px;line-height:1.6">You earned 8 stars and kept your 4-day streak going. Come back tomorrow to unlock Deep Sea!</div>
+        <div style="margin-top:24px;background:rgba(255,255,255,.06);border-radius:16px;padding:16px;display:inline-block;text-align:left;min-width:260px">
+          <div style="font-size:11px;color:rgba(255,255,255,.4);font-weight:900;text-transform:uppercase;margin-bottom:10px">Tomorrow's preview</div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="font-size:32px">🌊</div>
+            <div>
+              <div style="font-size:14px;font-weight:900">Deep Sea Adventure</div>
+              <div style="font-size:11px;color:rgba(255,255,255,.5)">8 questions · Ocean World · Level 4</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="desktop-screen">
+    <div class="spec-body">
+      <h3>File: play-session-complete-desktop-v2.html</h3>
+      <ul>
+        <li>Desktop 900px+ · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>3-column layout: left stats / center celebration / right actions</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Session Complete:</strong> Stars, XP, streak (left) · celebration ring, badge progress (center) · play again, badges, world map (right)</li>
+        <li><strong>Badge Unlocked:</strong> Animated badge hero with criteria checklist</li>
+        <li><strong>World Node Progress:</strong> Vertical path map with done/current/locked states</li>
+        <li><strong>Next Session Prompt:</strong> Owl farewell with tomorrow's session preview</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">Desktop 900px+</span>
+        <span class="spec-tag">3-col grid</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P0 gold #ffd166</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

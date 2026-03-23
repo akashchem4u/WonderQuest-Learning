@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390px, initial-scale=1.0">
+<title>WonderQuest – Alert Feed Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;width:390px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;gap:4px;padding:12px 12px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630;flex-wrap:wrap}
+.tab{padding:8px 10px;border-radius:8px 8px 0 0;cursor:pointer;font-size:10px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s;white-space:nowrap}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:12px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#ffd166;line-height:1.5}
+
+.feed-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.feed-title{font-size:16px;font-weight:800;color:#fff}
+.feed-meta{font-size:10px;color:#7a8a9a;margin-top:2px}
+.unread-badge{background:#ef4444;color:#fff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700}
+
+.alert-item{background:#131c28;border-radius:10px;padding:12px;margin-bottom:8px;border-left:3px solid;position:relative;transition:background .2s}
+.alert-item:hover{background:#1a2535}
+.alert-crit{border-color:#ef4444}
+.alert-warn{border-color:#f59e0b}
+.alert-info{border-color:#58c8f0}
+.alert-deploy{border-color:#22c55e}
+.alert-header{display:flex;align-items:flex-start;gap:8px}
+.sev-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.dot-crit{background:#ef4444;box-shadow:0 0 6px #ef4444;animation:pulse-glow 1.5s infinite}
+.dot-warn{background:#f59e0b}
+.dot-info{background:#58c8f0}
+.dot-deploy{background:#22c55e}
+@keyframes pulse-glow{0%,100%{box-shadow:0 0 4px #ef4444}50%{box-shadow:0 0 10px #ef4444}}
+.alert-body{flex:1}
+.alert-type{font-size:9px;font-weight:700;letter-spacing:.5px;margin-bottom:3px}
+.type-route{color:#ef4444}
+.type-deploy{color:#22c55e}
+.type-error{color:#f59e0b}
+.type-threshold{color:#58c8f0}
+.alert-desc{font-size:12px;color:#e8eaf0;line-height:1.4;margin-bottom:5px}
+.alert-meta{font-size:10px;color:#7a8a9a}
+.alert-actions{display:flex;gap:6px;margin-top:8px}
+.action-btn{flex:1;border:none;border-radius:6px;padding:6px;font-family:'Sora',sans-serif;font-size:10px;font-weight:700;cursor:pointer}
+.btn-view{background:#1a2535;color:#58c8f0;border:1px solid #2a3640}
+.btn-dismiss{background:#1a2535;color:#7a8a9a;border:1px solid #2a3640}
+.btn-view-crit{background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)}
+.btn-view-warn{background:rgba(245,158,11,.15);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.time-label{font-size:10px;color:#4a5a6a;margin-right:6px}
+.unread-dot{position:absolute;top:12px;right:12px;width:7px;height:7px;background:#ffd166;border-radius:50%}
+
+.section-divider{font-size:10px;font-weight:700;color:#4a5a6a;letter-spacing:1px;padding:8px 0 4px;border-bottom:1px solid #1e2630;margin-bottom:8px}
+
+.dismiss-all-bar{display:flex;align-items:center;justify-content:space-between;background:#1a2535;border-radius:8px;padding:10px 14px;margin-bottom:12px}
+.dismiss-all-text{font-size:12px;color:#7a8a9a}
+.dismiss-all-btn{background:#ffd166;color:#0d1117;border:none;border-radius:6px;padding:6px 14px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+
+.deploy-card{background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:10px;padding:12px;margin-bottom:8px}
+.deploy-header{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.deploy-version{font-size:14px;font-weight:700;color:#22c55e;font-family:monospace}
+.deploy-badge{background:#22c55e;color:#0a1a0d;border-radius:20px;padding:3px 10px;font-size:10px;font-weight:700}
+.deploy-status-item{display:flex;align-items:center;gap:6px;font-size:11px;margin-bottom:4px}
+.deploy-check{color:#22c55e;font-weight:700}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('feed')">Alert Feed</div>
+  <div class="tab" onclick="show('critical')">Critical Only</div>
+  <div class="tab" onclick="show('deploy')">Deploy Events</div>
+  <div class="tab" onclick="show('dismissall')">Dismiss All</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Alert Feed -->
+<div id="feed" class="panel active">
+  <div class="hint">Chronological alert feed. Severity dot color: red=critical, amber=warning, cyan=info, green=deploy.</div>
+  <div class="feed-header">
+    <div>
+      <div class="feed-title">Alert Feed</div>
+      <div class="feed-meta">Last updated 14:35 UTC · Auto-refresh 30s</div>
+    </div>
+    <div class="unread-badge">8 new</div>
+  </div>
+
+  <div class="section-divider">TODAY — MAR 23, 2026</div>
+
+  <div class="alert-item alert-crit">
+    <div class="unread-dot"></div>
+    <div class="alert-header">
+      <div class="sev-dot dot-crit"></div>
+      <div class="alert-body">
+        <div class="alert-type type-route">ROUTE ALERT</div>
+        <div class="alert-desc">/api/v1/session/resume returning 500 — error rate 12.4% (threshold: 5%)</div>
+        <div class="alert-meta"><span class="time-label">14:28</span>core-service · P0 · INC-0042 open</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view-crit">View Incident →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-warn">
+    <div class="unread-dot"></div>
+    <div class="alert-header">
+      <div class="sev-dot dot-warn"></div>
+      <div class="alert-body">
+        <div class="alert-type type-error">ERROR SPIKE</div>
+        <div class="alert-desc">/api/v1/questions/batch — error rate climbed to 1.8% (warn threshold: 1%)</div>
+        <div class="alert-meta"><span class="time-label">14:15</span>content-service · P1 · Investigating</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view-warn">View Logs →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-warn">
+    <div class="unread-dot"></div>
+    <div class="alert-header">
+      <div class="sev-dot dot-warn"></div>
+      <div class="alert-body">
+        <div class="alert-type type-threshold">THRESHOLD CROSSED</div>
+        <div class="alert-desc">/api/v1/skill-map p95 latency now 650ms — crossed warn threshold (400ms)</div>
+        <div class="alert-meta"><span class="time-label">14:05</span>content-service · Warning</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view-warn">View →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-deploy">
+    <div class="alert-header">
+      <div class="sev-dot dot-deploy"></div>
+      <div class="alert-body">
+        <div class="alert-type type-deploy">DEPLOY EVENT</div>
+        <div class="alert-desc">v0.9.4-alpha deployed to staging — 12 routes, 0 failures. Smoke tests passing.</div>
+        <div class="alert-meta"><span class="time-label">13:42</span>staging · Automated deploy · by CI</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view">View Deploy →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-info">
+    <div class="alert-header">
+      <div class="sev-dot dot-info"></div>
+      <div class="alert-body">
+        <div class="alert-type type-threshold">CONTENT ALERT</div>
+        <div class="alert-desc">Band 4 coverage dropped below 75% — 3 nodes now at critical (&lt;4 Q)</div>
+        <div class="alert-meta"><span class="time-label">12:30</span>content-service · Release blocker</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view">View Coverage →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-warn">
+    <div class="alert-header">
+      <div class="sev-dot dot-warn"></div>
+      <div class="alert-body">
+        <div class="alert-type type-error">FEEDBACK SLA</div>
+        <div class="alert-desc">FB-0142 (P0) has exceeded SLA — 4h 22m overdue. Assignee: r.kumar</div>
+        <div class="alert-meta"><span class="time-label">10:00</span>feedback-service · Overdue SLA</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view-warn">View Item →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-divider">YESTERDAY — MAR 22</div>
+
+  <div class="alert-item alert-deploy">
+    <div class="alert-header">
+      <div class="sev-dot dot-deploy"></div>
+      <div class="alert-body">
+        <div class="alert-type type-deploy">DEPLOY EVENT</div>
+        <div class="alert-desc">v0.9.3-alpha deployed to production — manual deploy by a.sharma</div>
+        <div class="alert-meta"><span class="time-label">18:45</span>production · Manual · by a.sharma</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view">View Deploy →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert-item alert-info">
+    <div class="alert-header">
+      <div class="sev-dot dot-info"></div>
+      <div class="alert-body">
+        <div class="alert-type type-threshold">RELEASE SCORE</div>
+        <div class="alert-desc">GO score dropped from 91 to 68 — new P0 blockers detected by scheduled check</div>
+        <div class="alert-meta"><span class="time-label">09:00</span>release-gate · Scheduled check</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view">View Score →</button>
+          <button class="action-btn btn-dismiss">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Critical Only -->
+<div id="critical" class="panel">
+  <div class="hint">P0/critical alerts only. Red dot items require immediate action.</div>
+  <div class="feed-header">
+    <div>
+      <div class="feed-title">Critical Alerts</div>
+      <div class="feed-meta">1 active critical · P0 only</div>
+    </div>
+    <div class="unread-badge" style="background:#ef4444">1 P0</div>
+  </div>
+  <div class="alert-item alert-crit">
+    <div class="unread-dot"></div>
+    <div class="alert-header">
+      <div class="sev-dot dot-crit"></div>
+      <div class="alert-body">
+        <div class="alert-type type-route">ROUTE ALERT — P0</div>
+        <div class="alert-desc">/api/v1/session/resume returning 500 — error rate 12.4%</div>
+        <div class="alert-meta"><span class="time-label">14:28</span>core-service · INC-0042 open · Duration: 67 min</div>
+        <div style="background:#1a0808;border-radius:6px;padding:8px;margin-top:8px;font-size:11px;color:#fca5a5;line-height:1.5">Incident open. On-call: @devteam-backend. Redis session store failover in progress. ETA: 45 min.</div>
+        <div class="alert-actions">
+          <button class="action-btn btn-view-crit" style="flex:2">View Incident INC-0042 →</button>
+          <button class="action-btn btn-dismiss">Snooze</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="background:#131c28;border-radius:10px;padding:14px;margin-top:10px;border:1px solid #1e2630">
+    <div style="font-size:12px;font-weight:700;color:#22c55e;margin-bottom:8px">✓ No other critical alerts</div>
+    <div style="font-size:11px;color:#7a8a9a;line-height:1.6">
+      All other routes nominal.<br>
+      P1 alerts: 2 (see full feed).<br>
+      Checked: 14:35 UTC
+    </div>
+  </div>
+</div>
+
+<!-- Deploy Events -->
+<div id="deploy" class="panel">
+  <div class="hint">Deploy events log. Shows automated CI deploys and manual deploys.</div>
+  <div class="feed-header">
+    <div class="feed-title">Deploy Events</div>
+  </div>
+  <div class="deploy-card">
+    <div class="deploy-header">
+      <div class="deploy-version">v0.9.4-alpha</div>
+      <div class="deploy-badge">STAGING</div>
+    </div>
+    <div style="font-size:11px;color:#7a8a9a;margin-bottom:8px">Mar 23, 13:42 UTC · CI automated · ~4 min build</div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>12 routes deployed</span></div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>Database migrations: 2 applied</span></div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>Smoke tests: 24/24 passed</span></div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>Health check: all endpoints OK</span></div>
+    <div class="deploy-status-item"><span style="color:#f59e0b;font-weight:700">⚠</span><span style="color:#f59e0b">session/resume latency elevated post-deploy</span></div>
+    <div style="display:flex;gap:6px;margin-top:10px">
+      <button style="flex:1;background:#22c55e;color:#0a1a0d;border:none;border-radius:6px;padding:8px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer">Promote to Prod</button>
+      <button style="flex:1;background:#1a2535;color:#7a8a9a;border:1px solid #2a3640;border-radius:6px;padding:8px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer">View Diff</button>
+    </div>
+  </div>
+  <div class="deploy-card" style="background:#0d1a2a;border-color:rgba(88,200,240,.2)">
+    <div class="deploy-header">
+      <div class="deploy-version" style="color:#58c8f0">v0.9.3-alpha</div>
+      <div class="deploy-badge" style="background:#58c8f0;color:#0a1a2a">PROD</div>
+    </div>
+    <div style="font-size:11px;color:#7a8a9a;margin-bottom:8px">Mar 22, 18:45 UTC · Manual · by a.sharma</div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>12 routes deployed</span></div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>All smoke tests passed</span></div>
+    <div class="deploy-status-item"><span class="deploy-check">✓</span><span>Running stable 20h+</span></div>
+  </div>
+  <div class="deploy-card" style="background:#1a1a2a;border-color:rgba(122,138,154,.2)">
+    <div class="deploy-header">
+      <div class="deploy-version" style="color:#7a8a9a">v0.9.2-alpha</div>
+      <div class="deploy-badge" style="background:#1e2630;color:#7a8a9a">SUPERSEDED</div>
+    </div>
+    <div style="font-size:11px;color:#4a5a6a;margin-bottom:8px">Mar 21, 10:12 UTC · CI automated</div>
+    <div class="deploy-status-item" style="color:#4a5a6a"><span style="margin-right:4px">—</span><span>Replaced by v0.9.3-alpha</span></div>
+  </div>
+</div>
+
+<!-- Dismiss All -->
+<div id="dismissall" class="panel">
+  <div class="hint">Bulk dismiss non-critical alerts. Critical P0 alerts cannot be bulk-dismissed.</div>
+  <div class="dismiss-all-bar">
+    <div>
+      <div class="dismiss-all-text" style="color:#e8eaf0;font-weight:600">7 dismissible alerts</div>
+      <div class="dismiss-all-text">1 critical cannot be dismissed</div>
+    </div>
+    <button class="dismiss-all-btn">Dismiss All →</button>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="background:#131c28;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#ffd166">
+      <div style="flex:1"><div style="font-size:11px;color:#e8eaf0">ERROR SPIKE — /questions/batch (1.8% err)</div><div style="font-size:10px;color:#7a8a9a">14:15</div></div>
+      <span class="sev-dot dot-warn" style="width:8px;height:8px;background:#f59e0b;border-radius:50%"></span>
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#ffd166">
+      <div style="flex:1"><div style="font-size:11px;color:#e8eaf0">THRESHOLD — /skill-map p95 650ms</div><div style="font-size:10px;color:#7a8a9a">14:05</div></div>
+      <span style="width:8px;height:8px;background:#f59e0b;border-radius:50%"></span>
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#ffd166">
+      <div style="flex:1"><div style="font-size:11px;color:#e8eaf0">DEPLOY — v0.9.4-alpha to staging</div><div style="font-size:10px;color:#7a8a9a">13:42</div></div>
+      <span style="width:8px;height:8px;background:#22c55e;border-radius:50%"></span>
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#ffd166">
+      <div style="flex:1"><div style="font-size:11px;color:#e8eaf0">CONTENT — Band 4 coverage &lt;75%</div><div style="font-size:10px;color:#7a8a9a">12:30</div></div>
+      <span style="width:8px;height:8px;background:#58c8f0;border-radius:50%"></span>
+    </div>
+    <div style="background:#2a0808;border-radius:8px;padding:10px 12px;display:flex;align-items:center;gap:8px;opacity:.6">
+      <input type="checkbox" disabled style="width:14px;height:14px">
+      <div style="flex:1"><div style="font-size:11px;color:#ef4444">ROUTE DOWN — /session/resume P0</div><div style="font-size:10px;color:#7a8a9a">14:28 · Cannot dismiss until resolved</div></div>
+      <span class="sev-dot dot-crit"></span>
+    </div>
+  </div>
+  <button style="width:100%;margin-top:14px;background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer">Dismiss Selected (4)</button>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the mobile alert feed.</div>
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="background:#131c28;border-radius:8px;padding:12px;border:1px solid #1e2630;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#ffd166;font-weight:700;margin-bottom:4px">SEVERITY DOTS</div>
+      Red (pulsing) = critical P0<br>Amber = warning P1<br>Cyan = info/threshold<br>Green = deploy event
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:12px;border:1px solid #1e2630;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#ffd166;font-weight:700;margin-bottom:4px">ALERT TYPES</div>
+      Route alerts / Deploy events / Error spikes / Threshold crossings / SLA alerts / Content alerts
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:12px;border:1px solid #1e2630;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#ffd166;font-weight:700;margin-bottom:4px">QUICK ACTIONS</div>
+      View (opens detail) / Dismiss (removes from feed) / Snooze (30 min) / Escalate (P0 only)
+    </div>
+    <div style="background:#131c28;border-radius:8px;padding:12px;border:1px solid #1e2630;font-size:11px;line-height:2;color:#7a8a9a">
+      <div style="color:#ffd166;font-weight:700;margin-bottom:4px">VIEWPORT</div>
+      390px mobile · Sora · #0d1117 · #ffd166 · Auto-refresh 30s
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

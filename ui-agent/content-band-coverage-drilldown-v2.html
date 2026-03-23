@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Band Coverage Drilldown v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8edf2;min-width:900px}
+.topbar{background:#0a0f16;border-bottom:1px solid #1e2a38;padding:16px 32px;display:flex;align-items:center;gap:16px}
+.topbar h1{font-size:18px;font-weight:700;color:#58c8f0}
+.tabs{display:flex;gap:0;border-bottom:2px solid #1e2a38;padding:0 32px;background:#0d141c}
+.tab{padding:14px 22px;font-size:13px;font-weight:600;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s}
+.tab.active{color:#58c8f0;border-bottom-color:#58c8f0}
+.tab:hover:not(.active){color:#a0b8cc}
+.pane{display:none;padding:32px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:14px 18px;margin-bottom:24px;font-size:13px;color:#ffd166;line-height:1.6}
+.hint-box strong{color:#ffe08a}
+.band-hero{background:linear-gradient(135deg,#1a0f40 0%,#0d1a2e 100%);border:1px solid #9b72ff44;border-radius:12px;padding:28px 32px;margin-bottom:28px;display:flex;align-items:center;gap:28px}
+.band-hero-icon{font-size:48px}
+.band-hero-info{flex:1}
+.band-hero-info h2{font-size:22px;font-weight:700;color:#e8edf2;margin-bottom:4px}
+.band-hero-info .meta{font-size:13px;color:#9b72ff;margin-bottom:16px}
+.score-bar-wrap{display:flex;align-items:center;gap:14px}
+.score-bar-wrap .pct{font-size:24px;font-weight:700;color:#9b72ff;min-width:50px}
+.score-bar{flex:1;height:10px;background:#1e2a38;border-radius:5px;overflow:hidden}
+.score-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,#9b72ff,#58c8f0)}
+.score-bar-label{font-size:12px;color:#6b8099}
+.band-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:20px}
+.band-stat{text-align:center}
+.band-stat .val{font-size:22px;font-weight:700}
+.band-stat .lbl{font-size:11px;color:#6b8099;text-transform:uppercase;margin-top:2px}
+.band-picker{display:flex;gap:10px;margin-bottom:24px}
+.bp-btn{padding:8px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid transparent;transition:all .15s;font-family:'Sora',sans-serif}
+.bp-p0{background:#ffd16622;color:#ffd166;border-color:#ffd16644}
+.bp-p0.active{background:#ffd166;color:#10161e}
+.bp-p1{background:#9b72ff22;color:#9b72ff;border-color:#9b72ff44}
+.bp-p1.active{background:#9b72ff;color:#fff}
+.bp-p2{background:#58e8c122;color:#58e8c1;border-color:#58e8c144}
+.bp-p2.active{background:#58e8c1;color:#10161e}
+.bp-p3{background:#ff7b6b22;color:#ff7b6b;border-color:#ff7b6b44}
+.bp-p3.active{background:#ff7b6b;color:#fff}
+table{width:100%;border-collapse:collapse;background:#131c27;border-radius:10px;overflow:hidden;border:1px solid #1e2a38}
+th{text-align:left;padding:12px 16px;font-size:11px;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;background:#0d141c;border-bottom:1px solid #1e2a38}
+td{padding:14px 16px;font-size:13px;border-bottom:1px solid #0f1a25;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#0d141c}
+.pill{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin:2px}
+.pill-ok{background:#58e8c122;color:#58e8c1;border:1px solid #58e8c144}
+.pill-warn{background:#ffd16622;color:#ffd166;border:1px solid #ffd16644}
+.pill-crit{background:#ff6b6b22;color:#ff6b6b;border:1px solid #ff6b6b44}
+.add-btn{background:#58c8f0;color:#0a0f16;border:none;padding:6px 14px;border-radius:5px;font-size:11px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.add-btn:hover{background:#40b0d8}
+.add-btn:disabled{background:#2a3a4e;color:#4a6078;cursor:default}
+.skill-name{font-weight:700;color:#e8edf2}
+.skill-id{font-size:11px;color:#4a6078;margin-top:2px;font-family:monospace}
+.explainer-col{font-size:12px;color:#6b8099;max-width:200px;line-height:1.5}
+.status-pct{font-weight:700}
+.ok-pct{color:#58e8c1}
+.warn-pct{color:#ffd166}
+.crit-pct{color:#ff6b6b}
+.section-title{font-size:15px;font-weight:700;color:#58c8f0;margin-bottom:16px}
+.node-detail-card{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:20px;margin-bottom:16px}
+.node-detail-card h4{font-size:14px;font-weight:700;color:#e8edf2;margin-bottom:12px}
+.node-q-list{display:flex;flex-direction:column;gap:8px}
+.node-q{background:#0d141c;border:1px solid #1e2a38;border-radius:6px;padding:10px 14px;font-size:13px;color:#a0b8cc;display:flex;gap:10px;align-items:flex-start}
+.q-num{font-size:11px;color:#4a6078;min-width:24px;font-weight:700}
+.add-content-form{background:#131c27;border:1px solid #1e2a38;border-radius:10px;padding:24px;max-width:600px}
+.form-row{margin-bottom:16px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.form-row select,.form-row input,.form-row textarea{width:100%;background:#0a0f16;border:1px solid #2a3a4e;border-radius:6px;padding:10px 12px;color:#e8edf2;font-size:13px;font-family:'Sora',sans-serif;outline:none}
+.form-row textarea{height:80px;resize:vertical}
+.submit-btn{background:#9b72ff;color:#fff;border:none;padding:10px 24px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+.submit-btn:hover{background:#8a5fe0}
+.spec-section{margin-bottom:28px}
+.spec-section h3{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #1e2a38}
+.spec-section p,.spec-section li{font-size:13px;color:#a0b8cc;line-height:1.7;margin-bottom:6px}
+.spec-section ul{padding-left:18px}
+</style>
+</head>
+<body>
+<div class="topbar">
+  <span style="font-size:20px">🎯</span>
+  <h1>Band Coverage Drilldown</h1>
+  <div style="flex:1"></div>
+  <button style="background:#1e2a38;border:1px solid #2a3a4e;color:#a0b8cc;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">⬇ Export Band Report</button>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('band-overview')">Band Overview</div>
+  <div class="tab" onclick="show('skill-table')">Skill Coverage Table</div>
+  <div class="tab" onclick="show('node-detail')">Node Detail</div>
+  <div class="tab" onclick="show('add-content')">Add Content</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- BAND OVERVIEW -->
+<div id="band-overview" class="pane active">
+  <div class="hint-box">
+    <strong>Drilldown by band.</strong> Select a band to inspect skill-by-skill coverage. P1 Core is currently selected. Red nodes are release blockers.
+  </div>
+  <div class="band-picker">
+    <button class="bp-btn bp-p0" onclick="selectBand(this,'P0')">P0 Foundations</button>
+    <button class="bp-btn bp-p1 active" onclick="selectBand(this,'P1')">P1 Core</button>
+    <button class="bp-btn bp-p2" onclick="selectBand(this,'P2')">P2 Grade-Level</button>
+    <button class="bp-btn bp-p3" onclick="selectBand(this,'P3')">P3 Challenge</button>
+  </div>
+
+  <div class="band-hero">
+    <div class="band-hero-icon">⚡</div>
+    <div class="band-hero-info">
+      <h2>P1 — Core Skills</h2>
+      <div class="meta">14 skills • 42 nodes • Target: 6 Q/node</div>
+      <div class="score-bar-wrap">
+        <div class="pct">61%</div>
+        <div class="score-bar"><div class="score-fill" style="width:61%"></div></div>
+        <div class="score-bar-label">Coverage Score</div>
+      </div>
+      <div class="band-stats">
+        <div class="band-stat"><div class="val ok-pct">18</div><div class="lbl">OK Nodes</div></div>
+        <div class="band-stat"><div class="val warn-pct">12</div><div class="lbl">Warn Nodes</div></div>
+        <div class="band-stat"><div class="val crit-pct">9</div><div class="lbl">Crit Nodes</div></div>
+        <div class="band-stat"><div class="val" style="color:#e8edf2">3</div><div class="lbl">Empty</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Coverage at a Glance</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <div style="background:#58e8c111;border:1px solid #58e8c133;border-radius:10px;padding:20px;text-align:center">
+      <div style="font-size:32px;font-weight:700;color:#58e8c1">43%</div>
+      <div style="font-size:12px;color:#6b8099;margin-top:4px">Nodes OK (6+ Q)</div>
+    </div>
+    <div style="background:#ffd16611;border:1px solid #ffd16633;border-radius:10px;padding:20px;text-align:center">
+      <div style="font-size:32px;font-weight:700;color:#ffd166">29%</div>
+      <div style="font-size:12px;color:#6b8099;margin-top:4px">Nodes Warning</div>
+    </div>
+    <div style="background:#ff6b6b11;border:1px solid #ff6b6b33;border-radius:10px;padding:20px;text-align:center">
+      <div style="font-size:32px;font-weight:700;color:#ff6b6b">28%</div>
+      <div style="font-size:12px;color:#6b8099;margin-top:4px">Nodes Critical</div>
+    </div>
+  </div>
+</div>
+
+<!-- SKILL COVERAGE TABLE -->
+<div id="skill-table" class="pane">
+  <div class="hint-box">
+    <strong>Skill table sorted worst-first.</strong> Each row shows coverage pills per node. Click "Add Content" on critical rows to jump to the question form.
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Skill</th>
+        <th>Nodes</th>
+        <th>Coverage</th>
+        <th>Avg Q</th>
+        <th>Explainer</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <div class="skill-name">Animals / Living Things</div>
+          <div class="skill-id">sci.life.animals</div>
+        </td>
+        <td><span class="pill pill-crit">P0: 1</span><span class="pill pill-crit">P1: 2</span><span class="pill pill-crit">P2: 3</span></td>
+        <td><span class="status-pct crit-pct">CRIT</span></td>
+        <td style="color:#ff6b6b;font-weight:700">2.0</td>
+        <td class="explainer-col">None attached</td>
+        <td><button class="add-btn" onclick="show('add-content')">+ Add Content</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Subtraction Intro</div>
+          <div class="skill-id">math.sub.intro</div>
+        </td>
+        <td><span class="pill pill-crit">P0: 0</span><span class="pill pill-crit">P1: 2</span><span class="pill pill-crit">P2: 3</span><span class="pill pill-warn">P3: 5</span></td>
+        <td><span class="status-pct crit-pct">CRIT</span></td>
+        <td style="color:#ff6b6b;font-weight:700">2.5</td>
+        <td class="explainer-col">Draft available</td>
+        <td><button class="add-btn" onclick="show('add-content')">+ Add Content</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Letter Recognition</div>
+          <div class="skill-id">ela.alpha.recog</div>
+        </td>
+        <td><span class="pill pill-crit">P0: 1</span><span class="pill pill-warn">P1: 4</span><span class="pill pill-warn">P2: 5</span></td>
+        <td><span class="status-pct crit-pct">CRIT</span></td>
+        <td style="color:#ff6b6b;font-weight:700">3.3</td>
+        <td class="explainer-col">Approved ✓</td>
+        <td><button class="add-btn" onclick="show('add-content')">+ Add Content</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Phonics Blends</div>
+          <div class="skill-id">ela.phonics.blends</div>
+        </td>
+        <td><span class="pill pill-warn">P0: 5</span><span class="pill pill-warn">P1: 4</span><span class="pill pill-ok">P2: 7</span><span class="pill pill-ok">P3: 6</span></td>
+        <td><span class="status-pct warn-pct">WARN</span></td>
+        <td style="color:#ffd166;font-weight:700">5.5</td>
+        <td class="explainer-col">Approved ✓</td>
+        <td><button class="add-btn" onclick="show('add-content')">+ Add 2</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Sight Words (Dolch)</div>
+          <div class="skill-id">ela.vocab.dolch</div>
+        </td>
+        <td><span class="pill pill-ok">P0: 6</span><span class="pill pill-warn">P1: 4</span><span class="pill pill-ok">P2: 8</span><span class="pill pill-ok">P3: 7</span></td>
+        <td><span class="status-pct warn-pct">WARN</span></td>
+        <td style="color:#ffd166;font-weight:700">6.25</td>
+        <td class="explainer-col">Approved ✓</td>
+        <td><button class="add-btn" onclick="show('add-content')">+ Add 2</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Addition (single digit)</div>
+          <div class="skill-id">math.add.single</div>
+        </td>
+        <td><span class="pill pill-ok">P0: 8</span><span class="pill pill-ok">P1: 9</span><span class="pill pill-ok">P2: 7</span><span class="pill pill-ok">P3: 6</span></td>
+        <td><span class="status-pct ok-pct">OK</span></td>
+        <td style="color:#58e8c1;font-weight:700">7.5</td>
+        <td class="explainer-col">Approved ✓</td>
+        <td><button class="add-btn" disabled>OK</button></td>
+      </tr>
+      <tr>
+        <td>
+          <div class="skill-name">Compare Numbers</div>
+          <div class="skill-id">math.compare.to10</div>
+        </td>
+        <td><span class="pill pill-ok">P0: 7</span><span class="pill pill-ok">P1: 6</span><span class="pill pill-ok">P2: 9</span><span class="pill pill-ok">P3: 8</span></td>
+        <td><span class="status-pct ok-pct">OK</span></td>
+        <td style="color:#58e8c1;font-weight:700">7.5</td>
+        <td class="explainer-col">Approved ✓</td>
+        <td><button class="add-btn" disabled>OK</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- NODE DETAIL -->
+<div id="node-detail" class="pane">
+  <div class="hint-box">
+    <strong>Node-level view</strong> — see every question in a specific node. Select a skill and node to inspect.
+  </div>
+  <div class="band-picker" style="margin-bottom:20px">
+    <select style="background:#131c27;border:1px solid #2a3a4e;color:#e8edf2;padding:8px 14px;border-radius:6px;font-family:'Sora',sans-serif;font-size:13px;outline:none">
+      <option>Animals / Living Things — P0</option>
+      <option>Animals / Living Things — P1</option>
+      <option>Subtraction Intro — P0</option>
+      <option>Letter Recognition — P0</option>
+    </select>
+  </div>
+
+  <div class="node-detail-card">
+    <h4>Animals / Living Things — P0 <span class="pill pill-crit" style="font-size:11px">1 Q — CRITICAL</span></h4>
+    <div class="node-q-list">
+      <div class="node-q"><span class="q-num">Q1</span>"Which of these is a living thing?" — approved ✓</div>
+    </div>
+    <div style="margin-top:14px;padding:12px;background:#0a0f16;border-radius:6px;font-size:12px;color:#ff6b6b">
+      ⚠ Only 1 question — needs 5 more to reach OK threshold
+    </div>
+    <button class="add-btn" style="margin-top:12px" onclick="show('add-content')">+ Add Questions to This Node</button>
+  </div>
+
+  <div class="node-detail-card">
+    <h4>Animals / Living Things — P1 <span class="pill pill-crit" style="font-size:11px">2 Q — CRITICAL</span></h4>
+    <div class="node-q-list">
+      <div class="node-q"><span class="q-num">Q1</span>"Which animal is a mammal?" — approved ✓</div>
+      <div class="node-q"><span class="q-num">Q2</span>"Do fish breathe air?" — approved ✓</div>
+    </div>
+    <div style="margin-top:14px;padding:12px;background:#0a0f16;border-radius:6px;font-size:12px;color:#ff6b6b">
+      ⚠ 2 questions — needs 4 more to reach OK threshold
+    </div>
+    <button class="add-btn" style="margin-top:12px" onclick="show('add-content')">+ Add Questions to This Node</button>
+  </div>
+</div>
+
+<!-- ADD CONTENT -->
+<div id="add-content" class="pane">
+  <div class="hint-box">
+    <strong>Add questions to a specific skill node.</strong> Pre-filled for the most critical gap. Questions enter the QA review queue before publish.
+  </div>
+  <div class="add-content-form">
+    <div class="section-title">Add Questions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-row">
+        <label>Skill</label>
+        <select><option>Animals / Living Things</option><option>Subtraction Intro</option><option>Letter Recognition</option></select>
+      </div>
+      <div class="form-row">
+        <label>Band</label>
+        <select><option>P0 — Foundations</option><option>P1 — Core</option><option>P2 — Grade-Level</option><option>P3 — Challenge</option></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <label>Question Text</label>
+      <textarea placeholder="Type the question here..."></textarea>
+    </div>
+    <div class="form-row">
+      <label>Answer Options (prefix correct with *)</label>
+      <textarea placeholder="*Correct answer&#10;Wrong option A&#10;Wrong option B&#10;Wrong option C"></textarea>
+    </div>
+    <div class="form-row">
+      <label>Explainer Text</label>
+      <input type="text" placeholder="Brief explanation shown after answer...">
+    </div>
+    <button class="submit-btn" onclick="alert('Question sent to QA queue!')">Add to QA Queue</button>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="pane">
+  <div class="hint-box"><strong>Band Coverage Drilldown spec.</strong> Per-band coverage inspection with skill table and node-level detail.</div>
+  <div class="spec-section">
+    <h3>Band Hero</h3>
+    <p>Shows overall coverage score (% nodes at OK), distribution of OK/Warn/Crit/Empty nodes, and a progress bar.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Skill Coverage Table</h3>
+    <p>Rows sorted worst-first. Node pills color-coded by coverage tier. Add Content button shown only for CRIT/WARN rows.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Node Detail</h3>
+    <p>Shows every question in a specific skill+band node. Direct CTA to add more questions.</p>
+  </div>
+  <div class="spec-section">
+    <h3>Add Content</h3>
+    <p>Quick form pre-filled with most critical skill. Submissions go to QA queue before publish.</p>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['band-overview','skill-table','node-detail','add-content','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+function selectBand(el,band){
+  document.querySelectorAll('.bp-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

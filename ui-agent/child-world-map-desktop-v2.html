@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=900px, initial-scale=1.0">
+<title>Child World Map — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #e8e0ff; min-height: 100vh; font-weight: 900; }
+.hint-box { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 14px 18px; margin: 16px; font-size: 12px; color: #ffd166; line-height: 1.6; font-weight: 900; }
+.hint-box strong { font-size: 13px; }
+nav { background: #1a1245; padding: 0 20px; display: flex; align-items: center; height: 56px; gap: 14px; border-bottom: 2px solid #2a1f6e; }
+nav .logo { color: #9b72ff; font-size: 20px; }
+nav .sub { color: #7a60c0; font-size: 14px; }
+nav .xp { margin-left: auto; background: #2a1f6e; color: #ffd166; padding: 6px 14px; border-radius: 20px; font-size: 13px; }
+.tabs { display: flex; gap: 4px; padding: 12px 16px 0; border-bottom: 2px solid #2a1f6e; background: #100b2e; flex-wrap: wrap; }
+.tab { padding: 9px 18px; font-size: 13px; color: #7a60c0; cursor: pointer; border-radius: 8px 8px 0 0; background: #1a1245; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; }
+.tab.active { background: #9b72ff; color: #fff; }
+.tab:hover:not(.active) { background: #221852; color: #c8b0ff; }
+.panel { display: none; padding: 24px 16px; }
+.panel.active { display: block; }
+.world-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; max-width: 960px; }
+.world-card { border-radius: 16px; padding: 20px; text-align: center; position: relative; cursor: pointer; transition: transform .2s; }
+.world-card:hover:not(.locked) { transform: translateY(-4px); }
+.world-card.unlocked { background: linear-gradient(135deg, #1a1245, #2a1a6e); border: 2px solid #9b72ff; }
+.world-card.complete { background: linear-gradient(135deg, #102010, #1a3020); border: 2px solid #58e8c1; }
+.world-card.locked { background: #141030; border: 2px solid #2a2050; opacity: .7; cursor: default; }
+.world-card.active-world { border-color: #ffd166; box-shadow: 0 0 20px #ffd16640; }
+.world-emoji { font-size: 52px; margin-bottom: 10px; display: block; }
+.world-name { font-size: 17px; color: #e8e0ff; margin-bottom: 6px; }
+.world-name.locked { color: #5a5080; }
+.world-prog-bar { background: #2a2050; border-radius: 20px; height: 8px; overflow: hidden; margin: 8px 0; }
+.world-prog-fill { height: 100%; border-radius: 20px; }
+.prog-violet { background: #9b72ff; }
+.prog-mint { background: #58e8c1; }
+.prog-complete { background: #58e8c1; }
+.world-prog-label { font-size: 12px; color: #7a60c0; }
+.world-badge { position: absolute; top: 10px; right: 10px; font-size: 12px; padding: 3px 8px; border-radius: 20px; }
+.badge-active { background: #ffd16630; color: #ffd166; border: 1px solid #ffd166; }
+.badge-complete { background: #58e8c130; color: #58e8c1; }
+.badge-coming { background: #2a205030; color: #7a60c0; }
+.node-list { list-style: none; }
+.node-item { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #2a1f6e; }
+.node-item:last-child { border-bottom: none; }
+.node-dot { width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0; }
+.node-dot.done { background: #58e8c1; }
+.node-dot.current { background: #9b72ff; box-shadow: 0 0 8px #9b72ff80; }
+.node-dot.next { background: #2a2050; border: 2px solid #9b72ff; }
+.node-dot.locked { background: #1a1440; border: 2px solid #2a2050; }
+.node-name { font-size: 14px; color: #e8e0ff; flex: 1; }
+.node-name.locked { color: #5a5080; }
+.node-stars { font-size: 12px; color: #ffd166; }
+.world-detail-card { background: #1a1245; border-radius: 16px; padding: 24px; border: 2px solid #9b72ff; max-width: 600px; }
+.world-detail-title { font-size: 24px; color: #e8e0ff; margin-bottom: 4px; }
+.world-detail-sub { font-size: 14px; color: #7a60c0; margin-bottom: 18px; }
+.btn { font-size: 15px; font-weight: 900; padding: 12px 28px; border-radius: 12px; border: none; cursor: pointer; font-family: 'Nunito', sans-serif; }
+.btn-primary { background: #9b72ff; color: #fff; }
+.btn-primary:hover { background: #8a60ee; }
+.btn-mint { background: #58e8c1; color: #100b2e; }
+.complete-hero { text-align: center; padding: 40px 20px; max-width: 500px; margin: 0 auto; }
+.complete-emoji { font-size: 80px; display: block; margin-bottom: 16px; }
+.complete-title { font-size: 28px; color: #58e8c1; margin-bottom: 10px; }
+.complete-sub { font-size: 15px; color: #7a60c0; margin-bottom: 24px; line-height: 1.6; }
+.stars-row { display: flex; gap: 10px; justify-content: center; font-size: 32px; margin-bottom: 24px; }
+.unlock-overlay { max-width: 500px; margin: 0 auto; text-align: center; }
+.lock-emoji { font-size: 72px; display: block; margin-bottom: 16px; }
+.unlock-title { font-size: 22px; color: #e8e0ff; margin-bottom: 12px; }
+.unlock-sub { font-size: 14px; color: #7a60c0; margin-bottom: 24px; line-height: 1.6; }
+.step-list { list-style: none; margin-bottom: 24px; }
+.step-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; font-size: 15px; color: #c8b0ff; }
+.step-emoji { font-size: 22px; }
+.spec-block { background: #1a1245; border-radius: 10px; padding: 20px; border: 1px solid #2a1f6e; line-height: 1.7; max-width: 900px; }
+.spec-block h3 { color: #9b72ff; margin-bottom: 10px; font-size: 15px; }
+.spec-block p { font-size: 13px; color: #7a60c0; margin-bottom: 10px; font-weight: 900; }
+.spec-block ul { margin-left: 18px; font-size: 13px; color: #7a60c0; font-weight: 900; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>Engineering Routes — child-world-map-desktop-v2</strong><br>
+  GET /child/worlds returns [ { id, name, emoji, state: 'locked'|'unlocked'|'complete'|'active', nodes_done, nodes_total } ]<br>
+  GET /child/world/{id}/nodes returns node list with state per node · NEVER grade labels · locked tap = friendly "coming soon"<br>
+  Child safety: world names are friendly nouns only (Dream World, Ocean World etc). NO grade/level numbers visible to child.
+</div>
+
+<nav>
+  <span class="logo">WonderQuest</span>
+  <span class="sub">Hi, Alex!</span>
+  <span class="xp">⭐ 1,240 XP</span>
+</nav>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('map',this)">World Map</button>
+  <button class="tab" onclick="show('detail',this)">World Detail</button>
+  <button class="tab" onclick="show('complete',this)">World Complete</button>
+  <button class="tab" onclick="show('unlock',this)">World Unlock Prompt</button>
+  <button class="tab" onclick="show('spec',this)">Spec</button>
+</div>
+
+<div id="map" class="panel active">
+  <div class="world-grid">
+    <div class="world-card complete">
+      <span class="world-badge badge-complete">Done!</span>
+      <span class="world-emoji">🌙</span>
+      <div class="world-name">Dream World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill prog-complete" style="width:100%"></div></div>
+      <div class="world-prog-label">All done! ✨</div>
+    </div>
+    <div class="world-card unlocked active-world">
+      <span class="world-badge badge-active">Playing now</span>
+      <span class="world-emoji">🌊</span>
+      <div class="world-name">Ocean World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill prog-violet" style="width:55%"></div></div>
+      <div class="world-prog-label">11 of 20 adventures</div>
+    </div>
+    <div class="world-card unlocked">
+      <span class="world-emoji">🔥</span>
+      <div class="world-name">Fire World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill prog-violet" style="width:10%"></div></div>
+      <div class="world-prog-label">2 of 18 adventures</div>
+    </div>
+    <div class="world-card locked" onclick="alert('Coming soon — keep playing to unlock Star World!')">
+      <span class="world-badge badge-coming">Coming soon</span>
+      <span class="world-emoji">⭐</span>
+      <div class="world-name locked">Star World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill" style="width:0%"></div></div>
+      <div class="world-prog-label" style="color:#5a5080">Keep playing to unlock!</div>
+    </div>
+    <div class="world-card locked" onclick="alert('Coming soon — keep playing to unlock Cloud World!')">
+      <span class="world-badge badge-coming">Coming soon</span>
+      <span class="world-emoji">☁️</span>
+      <div class="world-name locked">Cloud World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill" style="width:0%"></div></div>
+      <div class="world-prog-label" style="color:#5a5080">Keep playing to unlock!</div>
+    </div>
+    <div class="world-card locked" onclick="alert('Coming soon — keep playing to unlock Forest World!')">
+      <span class="world-badge badge-coming">Coming soon</span>
+      <span class="world-emoji">🌲</span>
+      <div class="world-name locked">Forest World</div>
+      <div class="world-prog-bar"><div class="world-prog-fill" style="width:0%"></div></div>
+      <div class="world-prog-label" style="color:#5a5080">Keep playing to unlock!</div>
+    </div>
+    <div class="world-card locked" onclick="alert('Coming soon!')">
+      <span class="world-badge badge-coming">Coming soon</span>
+      <span class="world-emoji">🏔️</span>
+      <div class="world-name locked">Mountain World</div>
+      <div class="world-prog-bar"></div>
+      <div class="world-prog-label" style="color:#5a5080">Keep playing to unlock!</div>
+    </div>
+    <div class="world-card locked" onclick="alert('Coming soon!')">
+      <span class="world-badge badge-coming">Coming soon</span>
+      <span class="world-emoji">🌺</span>
+      <div class="world-name locked">Garden World</div>
+      <div class="world-prog-bar"></div>
+      <div class="world-prog-label" style="color:#5a5080">Keep playing to unlock!</div>
+    </div>
+  </div>
+</div>
+
+<div id="detail" class="panel">
+  <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap">
+    <div class="world-detail-card">
+      <span style="font-size:56px;display:block;margin-bottom:10px">🌊</span>
+      <div class="world-detail-title">Ocean World</div>
+      <div class="world-detail-sub">11 of 20 adventures complete · Keep going!</div>
+      <div class="world-prog-bar" style="height:12px;margin-bottom:18px"><div class="world-prog-fill prog-violet" style="width:55%"></div></div>
+      <button class="btn btn-primary">Continue Adventure</button>
+    </div>
+    <div style="flex:1;min-width:280px">
+      <div style="font-size:14px;color:#9b72ff;margin-bottom:12px">Adventures in Ocean World</div>
+      <ul class="node-list">
+        <li class="node-item"><div class="node-dot done"></div><div class="node-name">The Singing Fish</div><div class="node-stars">⭐⭐⭐</div></li>
+        <li class="node-item"><div class="node-dot done"></div><div class="node-name">Deep Sea Letters</div><div class="node-stars">⭐⭐⭐</div></li>
+        <li class="node-item"><div class="node-dot done"></div><div class="node-name">Counting Seashells</div><div class="node-stars">⭐⭐⭐</div></li>
+        <li class="node-item"><div class="node-dot done"></div><div class="node-name">The Wave Puzzle</div><div class="node-stars">⭐⭐</div></li>
+        <li class="node-item"><div class="node-dot current"></div><div class="node-name" style="color:#9b72ff">Coral Reef Words ← Playing now</div><div class="node-stars">—</div></li>
+        <li class="node-item"><div class="node-dot next"></div><div class="node-name">The Mermaid's Story</div><div class="node-stars">—</div></li>
+        <li class="node-item"><div class="node-dot locked"></div><div class="node-name locked">Ocean Number Dance</div><div class="node-stars" style="color:#5a5080">—</div></li>
+        <li class="node-item"><div class="node-dot locked"></div><div class="node-name locked">The Big Blue Challenge</div><div class="node-stars" style="color:#5a5080">—</div></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div id="complete" class="panel">
+  <div class="complete-hero">
+    <span class="complete-emoji">🌙</span>
+    <div class="stars-row">⭐⭐⭐</div>
+    <div class="complete-title">Dream World Complete!</div>
+    <div class="complete-sub">You finished every adventure in Dream World — that is amazing! You collected all the stars and earned a special badge.</div>
+    <button class="btn btn-mint" style="margin-bottom:14px;width:100%">Collect Dream Badge</button>
+    <button class="btn" style="background:#2a1f6e;color:#9b72ff;width:100%">Go to Ocean World</button>
+  </div>
+</div>
+
+<div id="unlock" class="panel">
+  <div class="unlock-overlay">
+    <span class="lock-emoji">⭐</span>
+    <div class="unlock-title">Star World is waiting for you!</div>
+    <div class="unlock-sub">Keep playing adventures and collecting stars to open Star World. You are so close — here is what to do:</div>
+    <ul class="step-list">
+      <li class="step-item"><span class="step-emoji">🌊</span> Finish 5 more Ocean World adventures</li>
+      <li class="step-item"><span class="step-emoji">⭐</span> Collect 10 more stars</li>
+      <li class="step-item"><span class="step-emoji">🔥</span> Play Fire World for the first time</li>
+    </ul>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:12px">Keep Playing!</button>
+    <button class="btn" style="background:#1a1245;color:#7a60c0;width:100%">Go Back to Map</button>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <div class="spec-block">
+    <h3>child-world-map-desktop-v2 — Specification</h3>
+    <p><strong>Persona:</strong> Child · Desktop 900px+ · Nunito 900 font · #100b2e bg · #9b72ff primary violet</p>
+    <p><strong>API:</strong> GET /child/worlds returns [{ id, name, emoji, state, nodes_done, nodes_total }]</p>
+    <p><strong>API:</strong> GET /child/world/{id}/nodes returns node list with state per node</p>
+    <ul>
+      <li>World names: friendly only (Dream World, Ocean World, Fire World, Star World) — NEVER grade/level numbers</li>
+      <li>Locked world tap: friendly "Coming soon — keep playing to unlock!" — NEVER "not ready" or negative framing</li>
+      <li>States: locked (dim, no pointer) / unlocked (violet border) / complete (mint border + Done chip) / active (gold glow)</li>
+      <li>Node states: done (mint dot) / current (violet glow dot) / next (outlined) / locked (dim)</li>
+      <li>World complete state: stars display, collect badge CTA, go to next world CTA</li>
+      <li>No timers, no grade labels, no accuracy %, no shame language anywhere</li>
+      <li>Desktop 900px+ grid: 4-col world grid, scrollable if more worlds added</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+function show(id, el) {
+  document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  el.classList.add('active');
+}
+</script>
+</body>
+</html>

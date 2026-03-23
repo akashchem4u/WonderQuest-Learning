@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Reward Summary Endcap v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito',sans-serif;background:#0a0720;color:#fff;min-height:100vh}
+  .tabs{display:flex;gap:4px;padding:12px;background:#0d0927;overflow-x:auto;position:sticky;top:0;z-index:100;border-bottom:2px solid #9b72ff}
+  .tab{padding:8px 14px;border-radius:20px;border:none;font-family:'Nunito',sans-serif;font-weight:900;font-size:11px;cursor:pointer;white-space:nowrap;background:#1a1040;color:#aaa;transition:all .2s}
+  .tab.active{background:#9b72ff;color:#fff}
+  .hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:12px;font-size:11px;color:#ffd166;font-weight:700}
+  .hint-box code{background:#3a2d00;padding:2px 6px;border-radius:4px;font-size:10px}
+  .panel{display:none;padding:0 0 40px}
+  .panel.active{display:block}
+  .screen{width:375px;min-height:640px;background:#100b2e;margin:16px auto;border-radius:24px;overflow:hidden;position:relative;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+
+  /* Hero section */
+  .reward-hero{background:linear-gradient(180deg,#1a0d40 0%,#100b2e 100%);padding:24px 16px 16px;text-align:center}
+  .hero-stars{display:flex;justify-content:center;gap:6px;margin-bottom:12px}
+  .hero-star{font-size:28px;animation:starPop .4s cubic-bezier(.34,1.56,.64,1) both}
+  .hero-star:nth-child(2){animation-delay:.1s}
+  .hero-star:nth-child(3){animation-delay:.2s}
+  .hero-star:nth-child(4){animation-delay:.3s}
+  .hero-star:nth-child(5){animation-delay:.4s}
+  .hero-star:nth-child(6){animation-delay:.5s}
+  .hero-star:nth-child(7){animation-delay:.6s}
+  .hero-star:nth-child(8){animation-delay:.7s}
+  @keyframes starPop{0%{transform:scale(0) rotate(-30deg);opacity:0}100%{transform:scale(1) rotate(0deg);opacity:1}}
+  .hero-count{font-size:52px;font-weight:900;color:#ffd166;line-height:1}
+  .hero-label{font-size:13px;color:rgba(255,255,255,.55);font-weight:700;margin-top:4px}
+  .xp-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(155,114,255,.2);border:2px solid rgba(155,114,255,.4);border-radius:20px;padding:6px 16px;font-size:14px;font-weight:900;color:#9b72ff;margin-top:10px}
+
+  /* Stats grid */
+  .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:12px 16px}
+  .stat-tile{background:rgba(255,255,255,.06);border-radius:14px;padding:12px;text-align:center}
+  .st-val{font-size:22px;font-weight:900;color:#fff}
+  .st-lbl{font-size:10px;color:rgba(255,255,255,.45);font-weight:700;text-transform:uppercase;letter-spacing:.3px;margin-top:3px}
+
+  /* Badge progress section */
+  .badge-section{padding:8px 16px 14px}
+  .section-title{font-size:11px;font-weight:900;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+  .badge-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.05);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+  .badge-emoji{font-size:28px;flex-shrink:0}
+  .badge-info{flex:1}
+  .badge-name{font-size:13px;font-weight:900;color:#fff;margin-bottom:4px}
+  .badge-prog-bar{background:rgba(255,255,255,.1);border-radius:8px;height:8px;overflow:hidden}
+  .badge-fill{height:100%;border-radius:8px}
+  .badge-pct{font-size:10px;color:rgba(255,255,255,.45);margin-top:3px}
+  .badge-row.unlocked{background:rgba(255,209,102,.08);border:1px solid rgba(255,209,102,.2)}
+  .badge-row.unlocked .badge-name{color:#ffd166}
+
+  /* Streak section */
+  .streak-section{padding:4px 16px 12px}
+  .streak-card{background:linear-gradient(135deg,rgba(255,209,102,.1),rgba(255,123,107,.08));border:2px solid rgba(255,209,102,.3);border-radius:18px;padding:16px;display:flex;align-items:center;gap:14px}
+  .streak-flame{font-size:44px}
+  .streak-info{}
+  .streak-days{font-size:26px;font-weight:900;color:#ffd166}
+  .streak-label{font-size:12px;color:rgba(255,255,255,.55);font-weight:700}
+  .streak-note{font-size:10px;color:rgba(255,209,102,.6);margin-top:4px}
+  .streak-dots{display:flex;gap:5px;margin-top:8px}
+  .sdot{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:12px}
+  .sdot.active{background:linear-gradient(135deg,#ffd166,#ffb300)}
+  .sdot.today{background:linear-gradient(135deg,#ff7b6b,#ff5533);box-shadow:0 0 8px rgba(255,123,107,.4)}
+
+  /* Share section */
+  .share-section{padding:4px 16px 12px}
+  .share-card{background:rgba(255,255,255,.05);border-radius:18px;padding:16px;text-align:center}
+  .share-preview{background:#100b2e;border:2px solid rgba(155,114,255,.3);border-radius:16px;padding:16px;margin-bottom:14px;position:relative;overflow:hidden}
+  .share-preview::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#ffd166,#9b72ff,#58e8c1)}
+  .share-name{font-size:18px;font-weight:900;color:#fff;margin-bottom:4px}
+  .share-sub{font-size:12px;color:rgba(255,255,255,.5)}
+  .share-stars-row{display:flex;justify-content:center;gap:4px;margin:10px 0;font-size:22px}
+  .share-tagline{font-size:11px;color:#9b72ff;font-weight:700}
+  .share-btn{width:100%;background:linear-gradient(135deg,#9b72ff,#7a52dd);color:#fff;border:none;border-radius:14px;padding:13px;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer;margin-bottom:10px}
+  .share-btn.secondary{background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15)}
+
+  /* CTA */
+  .cta-section{padding:8px 16px 20px}
+  .cta-main{width:100%;background:linear-gradient(135deg,#ffd166,#ffb300);color:#1a0d00;border:none;border-radius:16px;padding:15px;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer;margin-bottom:10px}
+  .cta-secondary{width:100%;background:rgba(255,255,255,.07);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);border-radius:16px;padding:13px;font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;cursor:pointer}
+
+  /* Spec */
+  .spec-body{padding:16px;font-size:12px;line-height:1.7;color:rgba(255,255,255,.75)}
+  .spec-body h3{color:#ffd166;font-size:14px;margin:12px 0 6px}
+  .spec-body ul{padding-left:18px}
+  .spec-body li{margin-bottom:4px}
+  .spec-tag{display:inline-block;background:rgba(155,114,255,.2);border:1px solid #9b72ff;border-radius:6px;padding:2px 8px;font-size:10px;color:#9b72ff;margin:2px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <button class="tab active" onclick="show('reward-summary')">Reward Summary</button>
+  <button class="tab" onclick="show('badge-progress')">Badge Progress</button>
+  <button class="tab" onclick="show('streak-update')">Streak Update</button>
+  <button class="tab" onclick="show('share-moment')">Share Moment</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+<div class="hint-box">
+  <strong>Routes:</strong>
+  <code>play-reward-summary-endcap-v2.html</code> — End-of-session reward recap · all stars · badge progress · XP total · streak update · 375px mobile
+</div>
+
+<!-- REWARD SUMMARY -->
+<div id="reward-summary" class="panel active">
+  <div class="screen">
+    <div class="reward-hero">
+      <div class="hero-stars">
+        <span class="hero-star">⭐</span><span class="hero-star">⭐</span><span class="hero-star">⭐</span>
+        <span class="hero-star">⭐</span><span class="hero-star">⭐</span><span class="hero-star">⭐</span>
+        <span class="hero-star">⭐</span><span class="hero-star">⭐</span>
+      </div>
+      <div class="hero-count">8</div>
+      <div class="hero-label">Stars earned this session!</div>
+      <div class="xp-pill">✨ +140 XP</div>
+    </div>
+    <div class="stats-grid">
+      <div class="stat-tile">
+        <div class="st-val">8/8</div>
+        <div class="st-lbl">Questions</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-val" style="color:#ffd166">🔥 4</div>
+        <div class="st-lbl">Day Streak</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-val" style="color:#9b72ff">Lv 5</div>
+        <div class="st-lbl">Current Level</div>
+      </div>
+      <div class="stat-tile">
+        <div class="st-val" style="color:#58e8c1">12m</div>
+        <div class="st-lbl">Play Time</div>
+      </div>
+    </div>
+    <div class="cta-section">
+      <button class="cta-main">🗺️ See full progress</button>
+      <button class="cta-secondary">🚀 Play again</button>
+    </div>
+  </div>
+</div>
+
+<!-- BADGE PROGRESS -->
+<div id="badge-progress" class="panel">
+  <div class="screen">
+    <div class="reward-hero" style="padding-bottom:12px">
+      <div style="font-size:14px;font-weight:900;color:#ffd166;margin-bottom:6px">🏅 Badge Progress</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5)">3 badges nearly unlocked!</div>
+    </div>
+    <div class="badge-section" style="padding-top:14px">
+      <div class="section-title">Close to unlocking</div>
+      <div class="badge-row unlocked">
+        <div class="badge-emoji">🌊</div>
+        <div class="badge-info">
+          <div class="badge-name">Ocean Swimmer — Unlocked!</div>
+          <div class="badge-prog-bar"><div class="badge-fill" style="width:100%;background:#ffd166"></div></div>
+          <div class="badge-pct" style="color:#ffd166">Just earned this session!</div>
+        </div>
+      </div>
+      <div class="badge-row">
+        <div class="badge-emoji">📚</div>
+        <div class="badge-info">
+          <div class="badge-name">Word Wizard</div>
+          <div class="badge-prog-bar"><div class="badge-fill" style="width:85%;background:#9b72ff"></div></div>
+          <div class="badge-pct">85% · 1 more session!</div>
+        </div>
+      </div>
+      <div class="badge-row">
+        <div class="badge-emoji">🔥</div>
+        <div class="badge-info">
+          <div class="badge-name">Streak Flame</div>
+          <div class="badge-prog-bar"><div class="badge-fill" style="width:57%;background:#ff7b6b"></div></div>
+          <div class="badge-pct">57% · 3 more days</div>
+        </div>
+      </div>
+      <div class="section-title" style="margin-top:12px">In progress</div>
+      <div class="badge-row">
+        <div class="badge-emoji">🌲</div>
+        <div class="badge-info">
+          <div class="badge-name">Forest Explorer</div>
+          <div class="badge-prog-bar"><div class="badge-fill" style="width:30%;background:#58e8c1"></div></div>
+          <div class="badge-pct">30% · Unlock Ocean first</div>
+        </div>
+      </div>
+      <div class="badge-row">
+        <div class="badge-emoji">🌟</div>
+        <div class="badge-info">
+          <div class="badge-name">Star Collector</div>
+          <div class="badge-prog-bar"><div class="badge-fill" style="width:45%;background:#ffd166"></div></div>
+          <div class="badge-pct">45 of 100 stars</div>
+        </div>
+      </div>
+    </div>
+    <div class="cta-section">
+      <button class="cta-main">🏅 See all badges</button>
+      <button class="cta-secondary">🏠 Go home</button>
+    </div>
+  </div>
+</div>
+
+<!-- STREAK UPDATE -->
+<div id="streak-update" class="panel">
+  <div class="screen">
+    <div class="reward-hero" style="padding-bottom:12px">
+      <div style="font-size:44px;margin-bottom:8px">🔥</div>
+      <div style="font-size:30px;font-weight:900;color:#ffd166">4-Day Streak!</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">You've played 4 days in a row!</div>
+    </div>
+    <div class="streak-section">
+      <div class="streak-card">
+        <div class="streak-flame">🔥</div>
+        <div class="streak-info">
+          <div class="streak-days">4 days</div>
+          <div class="streak-label">Current streak</div>
+          <div class="streak-note">3 more days to unlock Flame Badge!</div>
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <div class="section-title">This week</div>
+        <div class="streak-dots">
+          <div class="sdot active">M</div>
+          <div class="sdot active">T</div>
+          <div class="sdot active">W</div>
+          <div class="sdot active">T</div>
+          <div class="sdot today">F</div>
+          <div class="sdot">S</div>
+          <div class="sdot">S</div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:6px">Come back tomorrow to keep the streak going!</div>
+      </div>
+    </div>
+    <div style="padding:0 16px 12px">
+      <div style="background:rgba(255,255,255,.05);border-radius:14px;padding:12px">
+        <div class="section-title">Streak is safe!</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.5">Even if you miss a day, your progress is saved. Just come back when you can!</div>
+      </div>
+    </div>
+    <div class="cta-section">
+      <button class="cta-main">🚀 Play again tomorrow</button>
+      <button class="cta-secondary">🏠 Go home</button>
+    </div>
+  </div>
+</div>
+
+<!-- SHARE MOMENT -->
+<div id="share-moment" class="panel">
+  <div class="screen">
+    <div class="reward-hero" style="padding-bottom:12px">
+      <div style="font-size:14px;font-weight:900;color:#9b72ff">✨ Share your win!</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px">Show your family how awesome you're doing!</div>
+    </div>
+    <div class="share-section">
+      <div class="share-card">
+        <div class="share-preview">
+          <div style="font-size:32px;margin-bottom:8px">🌊</div>
+          <div class="share-name">Alex just played WonderQuest!</div>
+          <div class="share-sub">Ocean World · Session 14</div>
+          <div class="share-stars-row">⭐⭐⭐⭐⭐⭐⭐⭐</div>
+          <div style="display:flex;justify-content:space-around;padding:8px 0">
+            <div style="text-align:center"><div style="font-size:16px;font-weight:900;color:#ffd166">⭐ 8</div><div style="font-size:9px;color:rgba(255,255,255,.4)">stars</div></div>
+            <div style="text-align:center"><div style="font-size:16px;font-weight:900;color:#9b72ff">+140</div><div style="font-size:9px;color:rgba(255,255,255,.4)">XP</div></div>
+            <div style="text-align:center"><div style="font-size:16px;font-weight:900;color:#ffd166">🔥4</div><div style="font-size:9px;color:rgba(255,255,255,.4)">streak</div></div>
+          </div>
+          <div class="share-tagline">⭐ WonderQuest · Learning is an adventure!</div>
+        </div>
+        <button class="share-btn">📤 Share with family</button>
+        <button class="share-btn secondary">Save to gallery</button>
+      </div>
+    </div>
+    <div style="padding:0 16px;text-align:center;font-size:11px;color:rgba(255,255,255,.3)">Only shared with your linked family members</div>
+    <div class="cta-section">
+      <button class="cta-secondary">🏠 Go home</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="screen">
+    <div class="spec-body">
+      <h3>File: play-reward-summary-endcap-v2.html</h3>
+      <ul>
+        <li>375px mobile · Nunito 900 · bg <code>#100b2e</code></li>
+        <li>End-of-session reward recap and celebration</li>
+      </ul>
+      <h3>Tab Variants</h3>
+      <ul>
+        <li><strong>Reward Summary:</strong> All stars earned animated in, XP pill, session stats grid, "See full progress" CTA</li>
+        <li><strong>Badge Progress:</strong> Progress bars for all active badges, unlocked badge highlighted gold</li>
+        <li><strong>Streak Update:</strong> Streak flame, weekly dot calendar, streak-safe messaging</li>
+        <li><strong>Share Moment:</strong> Preview card showing session results, share with family option</li>
+      </ul>
+      <h3>Child Rules Applied</h3>
+      <ul>
+        <li>NO accuracy percentages shown</li>
+        <li>Streak framed positively — "safe" not "broken"</li>
+        <li>Share is opt-in and privacy-labeled</li>
+        <li>XP and stars emphasized over correctness</li>
+      </ul>
+      <h3>Design Tokens</h3>
+      <div>
+        <span class="spec-tag">375px mobile</span>
+        <span class="spec-tag">bg #100b2e</span>
+        <span class="spec-tag">P0 gold #ffd166</span>
+        <span class="spec-tag">P1 violet #9b72ff</span>
+        <span class="spec-tag">P2 mint #58e8c1</span>
+        <span class="spec-tag">Nunito 900</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Note Capture Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #e8ecf0; min-height: 100vh; padding: 24px 16px 40px; display: flex; flex-direction: column; align-items: center; }
+.page-title { font-size: 13px; font-weight: 800; color: #445566; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; width: 100%; max-width: 430px; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 2px; flex-wrap: wrap; width: 100%; max-width: 430px; }
+.tab { padding: 7px 10px; border-radius: 6px 6px 0 0; background: #d0d8e4; border: none; cursor: pointer; font-family: inherit; font-size: 10px; font-weight: 700; color: #607080; }
+.tab.active { background: #f0f4f8; color: #2a5080; }
+
+/* Phone */
+.phone { width: 390px; background: #f0f4f8; border-radius: 36px; border: 3px solid #c8d4e0; box-shadow: 0 12px 40px rgba(0,0,0,0.18); overflow: hidden; min-height: 700px; display: flex; flex-direction: column; }
+.status-bar { background: #2a5080; padding: 12px 20px 8px; display: flex; justify-content: space-between; font-size: 11px; color: rgba(255,255,255,0.7); }
+.phone-header { background: #2a5080; padding: 10px 16px 14px; display: flex; align-items: center; justify-content: space-between; }
+.header-title { font-size: 16px; font-weight: 900; color: #fff; }
+.header-sub { font-size: 11px; color: rgba(255,255,255,0.7); margin-top: 1px; }
+.header-badge { background: rgba(255,255,255,0.2); color: #fff; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; }
+.phone-body { flex: 1; overflow-y: auto; padding: 16px 16px 80px; }
+
+/* Student picker */
+.picker-label { font-size: 11px; font-weight: 800; color: #607080; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; display: block; }
+.picker-input { width: 100%; padding: 12px 14px; border: 1.5px solid #d0dae4; border-radius: 10px; font-family: inherit; font-size: 14px; background: #fff; outline: none; }
+.picker-input:focus { border-color: #2a5080; }
+.picker-dropdown { background: #fff; border: 1.5px solid #2a5080; border-top: none; border-radius: 0 0 10px 10px; overflow: hidden; margin-top: -2px; }
+.picker-item { padding: 10px 14px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid #f0f4f8; }
+.picker-item:hover { background: #f0f6ff; }
+.picker-item.selected { background: #f0f6ff; color: #2a5080; font-weight: 700; }
+.p-av { width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 800; color: #fff; flex-shrink: 0; }
+
+/* Note type chips */
+.type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 14px 0; }
+.type-chip { padding: 10px 8px; border-radius: 10px; border: 2px solid #d0dae4; background: #fff; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.15s; }
+.type-chip.selected { border-color: #2a5080; background: #f0f6ff; color: #2a5080; }
+.type-obs.selected { border-color: #2a5080; background: #e8f0ff; color: #2a5080; }
+.type-concern.selected { border-color: #9a2a2a; background: #fff0f0; color: #9a2a2a; }
+.type-achieve.selected { border-color: #1a8050; background: #e8f8f0; color: #1a8050; }
+.type-parent.selected { border-color: #c07800; background: #fff8e0; color: #7a5000; }
+
+/* Textarea */
+.note-textarea { width: 100%; padding: 12px; border: 1.5px solid #d0dae4; border-radius: 10px; font-family: inherit; font-size: 13px; background: #fff; outline: none; resize: none; min-height: 100px; }
+.note-textarea:focus { border-color: #2a5080; }
+.char-count { text-align: right; font-size: 10px; color: #607080; margin-top: 4px; }
+
+/* Quick tags */
+.tags-label { font-size: 11px; font-weight: 800; color: #607080; text-transform: uppercase; letter-spacing: 0.07em; margin: 12px 0 6px; display: block; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; border: 1.5px solid #d0dae4; background: #fff; color: #607080; cursor: pointer; }
+.tag.on { background: #2a5080; color: #fff; border-color: #2a5080; }
+
+/* Bottom actions */
+.phone-bottom { background: #fff; border-top: 1px solid #d0dae4; padding: 12px 16px 20px; display: flex; gap: 8px; }
+.btn-full { flex: 1; padding: 13px 8px; border-radius: 10px; font-family: inherit; font-size: 13px; font-weight: 800; cursor: pointer; border: none; }
+.btn-save { background: #2a5080; color: #fff; }
+.btn-add { background: #e8f8f0; color: #1a6040; }
+
+/* Note review */
+.note-review-card { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 14px; }
+.nr-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.nr-type { padding: 3px 10px; border-radius: 8px; font-size: 10px; font-weight: 700; }
+.nr-type-obs { background: #e8f0ff; color: #2a4080; }
+.nr-type-concern { background: #fff0f0; color: #9a2a2a; }
+.nr-type-achieve { background: #e8f8f0; color: #1a6040; }
+.nr-type-parent { background: #fff8e0; color: #7a5000; }
+.nr-student { font-size: 12px; font-weight: 700; color: #1c2430; }
+.nr-date { font-size: 10px; color: #607080; }
+.nr-text { font-size: 12px; color: #445566; line-height: 1.5; margin-bottom: 8px; }
+.nr-tags { display: flex; flex-wrap: wrap; gap: 4px; }
+.nr-tag { padding: 2px 8px; border-radius: 8px; font-size: 10px; font-weight: 700; background: #f0f4f8; color: #607080; }
+
+/* Recent notes list */
+.notes-list { display: flex; flex-direction: column; gap: 8px; }
+.notes-item { background: #fff; border: 1px solid #d0dae4; border-radius: 10px; padding: 12px; }
+.ni-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.ni-student { font-size: 12px; font-weight: 800; color: #1c2430; }
+.ni-preview { font-size: 11px; color: #607080; line-height: 1.4; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+/* Spec */
+.spec-body { padding: 16px; overflow-y: auto; flex: 1; }
+.spec-block { background: #fff; border: 1px solid #d0dae4; border-radius: 12px; padding: 16px; margin-bottom: 12px; }
+.spec-title { font-size: 13px; font-weight: 800; color: #2a5080; margin-bottom: 8px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.spec-list li { font-size: 11px; color: #445566; padding-left: 14px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #2a5080; font-weight: 700; }
+
+/* Templates */
+.template-card { background: #fff; border: 1px solid #d0dae4; border-radius: 10px; padding: 12px; margin-bottom: 8px; cursor: pointer; }
+.template-name { font-size: 13px; font-weight: 700; color: #1c2430; margin-bottom: 4px; }
+.template-preview { font-size: 11px; color: #607080; font-style: italic; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Teacher Note Capture Mobile v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> 390px mobile quick-note entry optimised for between-class speed. Student autocomplete, 4 note types, fast tag chips, text area with char count. Save + Add Another actions. Tabs 2–4 for review, history, and templates.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Quick Note Entry</button>
+  <button class="tab" onclick="show('t2')">Note Review</button>
+  <button class="tab" onclick="show('t3')">Recent Notes</button>
+  <button class="tab" onclick="show('t4')">Templates</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Quick Note Entry -->
+<div class="phone" id="t1" style="display:flex;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header">
+    <div><div class="header-title">Quick Note</div><div class="header-sub">Year 3 Maths</div></div>
+    <span class="header-badge">⚡ Fast Entry</span>
+  </div>
+  <div class="phone-body">
+    <label class="picker-label">Student</label>
+    <input class="picker-input" type="text" value="Oliver K." placeholder="Search student name…">
+    <div class="picker-dropdown">
+      <div class="picker-item selected"><div class="p-av" style="background:#9a2a2a;">OK</div>Oliver K. <span style="font-size:10px;color:#9a2a2a;margin-left:auto;">Flag</span></div>
+      <div class="picker-item"><div class="p-av" style="background:#c07800;">JL</div>Jake L. <span style="font-size:10px;color:#c07800;margin-left:auto;">Watch</span></div>
+      <div class="picker-item"><div class="p-av" style="background:#1a8050;">SF</div>Sophia F.</div>
+    </div>
+
+    <label class="picker-label" style="margin-top:16px;">Note Type</label>
+    <div class="type-grid">
+      <div class="type-chip type-obs selected">📋 Observation</div>
+      <div class="type-chip type-concern">⚠️ Concern</div>
+      <div class="type-chip type-achieve">🌟 Achievement</div>
+      <div class="type-chip type-parent">💬 Parent Contact</div>
+    </div>
+
+    <label class="picker-label">Note</label>
+    <textarea class="note-textarea" placeholder="Write your observation…">Oliver engaged well during the group activity today but struggled when asked to work independently on the place value worksheet. Recommend short individual sessions. Shows understanding when guided.</textarea>
+    <div class="char-count">217 / 500</div>
+
+    <label class="tags-label">Quick Tags</label>
+    <div class="tags-wrap">
+      <span class="tag on">place value</span>
+      <span class="tag on">independent work</span>
+      <span class="tag">confidence</span>
+      <span class="tag">group work</span>
+      <span class="tag">engagement</span>
+      <span class="tag">follow up</span>
+      <span class="tag">intervention</span>
+      <span class="tag">maths</span>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="btn-full btn-add">+ Add Another</button>
+    <button class="btn-full btn-save">Save Note</button>
+  </div>
+</div>
+
+<!-- TAB 2: Note Review -->
+<div class="phone" id="t2" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div><div class="header-title">Note Review</div><div class="header-sub">Before saving</div></div></div>
+  <div class="phone-body">
+    <div style="font-size:11px;color:#607080;margin-bottom:14px;">Review your note before saving to the intervention log.</div>
+    <div class="note-review-card">
+      <div class="nr-top">
+        <span class="nr-type nr-type-obs">📋 Observation</span>
+        <div style="margin-left:auto;text-align:right;">
+          <div class="nr-student">Oliver K.</div>
+          <div class="nr-date">23 Mar 2026 · 10:34am</div>
+        </div>
+      </div>
+      <div class="nr-text">Oliver engaged well during the group activity today but struggled when asked to work independently on the place value worksheet. Recommend short individual sessions. Shows understanding when guided.</div>
+      <div class="nr-tags">
+        <span class="nr-tag">place value</span>
+        <span class="nr-tag">independent work</span>
+      </div>
+    </div>
+
+    <div style="margin-top:20px;display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:#fff;border:1px solid #d0dae4;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#607080;margin-bottom:4px;">Note Type</div><div style="font-size:13px;font-weight:800;color:#2a5080;">Observation</div></div>
+      <div style="background:#fff;border:1px solid #d0dae4;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:11px;color:#607080;margin-bottom:4px;">Added To Log</div><div style="font-size:13px;font-weight:800;color:#1a8050;">Yes</div></div>
+    </div>
+
+    <div style="margin-top:16px;background:#e8f8f0;border:1px solid #a0d8b8;border-radius:10px;padding:12px;font-size:11px;color:#1a6040;line-height:1.6;">
+      ✓ This note will be appended to Oliver K.'s intervention log. It cannot be edited or deleted once saved.
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="btn-full" style="background:#e4eaf0;color:#607080;">← Edit Note</button>
+    <button class="btn-full btn-save">Confirm Save</button>
+  </div>
+</div>
+
+<!-- TAB 3: Recent Notes -->
+<div class="phone" id="t3" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div><div class="header-title">Recent Notes</div><div class="header-sub">Your notes · Last 7 days</div></div></div>
+  <div class="phone-body">
+    <div class="notes-list">
+      <div class="notes-item">
+        <div class="ni-top"><span class="nr-type nr-type-obs">📋 Observation</span><span style="font-size:10px;color:#607080;">Today 10:34</span></div>
+        <div class="ni-student">Oliver K.</div>
+        <div class="ni-preview">Oliver engaged well during group activity but struggled independently on place value worksheet…</div>
+        <div class="nr-tags" style="margin-top:6px;"><span class="nr-tag">place value</span><span class="nr-tag">independent work</span></div>
+      </div>
+      <div class="notes-item">
+        <div class="ni-top"><span class="nr-type nr-type-achieve">🌟 Achievement</span><span style="font-size:10px;color:#607080;">Today 9:10</span></div>
+        <div class="ni-student">Sophia F.</div>
+        <div class="ni-preview">Correctly explained her reasoning for the fractions task without prompting. Excellent verbal articulation…</div>
+        <div class="nr-tags" style="margin-top:6px;"><span class="nr-tag">fractions</span><span class="nr-tag">verbal reasoning</span></div>
+      </div>
+      <div class="notes-item">
+        <div class="ni-top"><span class="nr-type nr-type-concern">⚠️ Concern</span><span style="font-size:10px;color:#607080;">22 Mar · 2:45pm</span></div>
+        <div class="ni-student">Amara H.</div>
+        <div class="ni-preview">Missed session again this week. Now 8 days since last activity. Score dropping — down to 38%…</div>
+        <div class="nr-tags" style="margin-top:6px;"><span class="nr-tag">attendance</span><span class="nr-tag">follow up</span></div>
+      </div>
+      <div class="notes-item">
+        <div class="ni-top"><span class="nr-type nr-type-parent">💬 Parent Contact</span><span style="font-size:10px;color:#607080;">20 Mar · 4:00pm</span></div>
+        <div class="ni-student">Jake L.</div>
+        <div class="ni-preview">Sent progress summary via WQ messaging. Parent acknowledged and agreed to extra home practice sessions…</div>
+        <div class="nr-tags" style="margin-top:6px;"><span class="nr-tag">parent contact</span><span class="nr-tag">home practice</span></div>
+      </div>
+      <div class="notes-item">
+        <div class="ni-top"><span class="nr-type nr-type-obs">📋 Observation</span><span style="font-size:10px;color:#607080;">19 Mar · 11:20am</span></div>
+        <div class="ni-student">Noah B.</div>
+        <div class="ni-preview">Finished the extension challenge set in 8 minutes — comfortably working at P2 level…</div>
+        <div class="nr-tags" style="margin-top:6px;"><span class="nr-tag">extension</span><span class="nr-tag">P2</span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="btn-full btn-save">+ New Note</button>
+  </div>
+</div>
+
+<!-- TAB 4: Templates -->
+<div class="phone" id="t4" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div><div class="header-title">Note Templates</div><div class="header-sub">Tap to use</div></div></div>
+  <div class="phone-body">
+    <p style="font-size:11px;color:#607080;margin-bottom:14px;">Pre-written templates for common note types — tap to load into Quick Entry.</p>
+
+    <div style="font-size:11px;font-weight:800;color:#9a2a2a;text-transform:uppercase;margin-bottom:8px;">Concern Notes</div>
+    <div class="template-card">
+      <div class="template-name">⚠️ Missed Sessions Alert</div>
+      <div class="template-preview">"[Student] has missed [X] sessions in the last [Y] days. Last active [date]. Recommend follow-up with parent via WQ messaging."</div>
+    </div>
+    <div class="template-card">
+      <div class="template-name">⚠️ Score Decline</div>
+      <div class="template-preview">"[Student]'s score on [skill] has dropped from [X]% to [Y]% over [Z] weeks. Possible consolidation gap. Review in next session."</div>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:#1a8050;text-transform:uppercase;margin:14px 0 8px;">Achievement Notes</div>
+    <div class="template-card">
+      <div class="template-name">🌟 Milestone Reached</div>
+      <div class="template-preview">"[Student] achieved [X]% on [skill] today — a new personal best. Has now met the P[Y] benchmark for [topic]."</div>
+    </div>
+    <div class="template-card">
+      <div class="template-name">🌟 Strong Session</div>
+      <div class="template-preview">"[Student] completed today's session with [X]% accuracy and high engagement. No hints needed for final 5 questions."</div>
+    </div>
+
+    <div style="font-size:11px;font-weight:800;color:#2a5080;text-transform:uppercase;margin:14px 0 8px;">Observation Notes</div>
+    <div class="template-card">
+      <div class="template-name">📋 Group vs Independent</div>
+      <div class="template-preview">"[Student] performs significantly better in group settings than independently. May benefit from paired practice before solo tasks."</div>
+    </div>
+    <div class="template-card">
+      <div class="template-name">📋 Parent Contact Log</div>
+      <div class="template-preview">"Parent contact made via WQ messaging re: [topic]. Parent acknowledged [outcome]. Next check-in: [date]."</div>
+    </div>
+  </div>
+  <div class="phone-bottom">
+    <button class="btn-full btn-save">+ New Template</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="phone" id="t5" style="display:none;">
+  <div class="status-bar"><span>9:41</span><span>WonderQuest</span><span>●●●</span></div>
+  <div class="phone-header"><div class="header-title">Spec</div></div>
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Component Spec: Note Capture Mobile v2</div>
+      <ul class="spec-list">
+        <li>390px mobile, Sora, bg #f0f4f8, nav #2a5080</li>
+        <li>Tab 1: quick entry — student autocomplete, 4 note type chips, textarea, quick tags, Save + Add Another</li>
+        <li>Note types: Observation (blue), Concern (red), Achievement (green), Parent Contact (amber)</li>
+        <li>Quick tags: pre-set clickable chips; multi-select; toggle on/off</li>
+        <li>Character counter shown below textarea (current/max)</li>
+        <li>Tab 2: review screen before save — shows formatted card, confirms append-only log behavior</li>
+        <li>Tab 3: recent notes list with type badge, student name, 2-line preview, tags</li>
+        <li>Tab 4: note templates by category — tap to pre-fill Quick Entry</li>
+        <li>Bottom CTA: Save Note (primary) + Add Another (secondary green)</li>
+        <li>Contact-safe: all parent communications route through WQ only; no PII shown</li>
+        <li>Once saved, notes append to intervention log and cannot be edited or deleted</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  ['t1','t2','t3','t4','t5'].forEach(t => {
+    const el = document.getElementById(t);
+    if(el) el.style.display = 'none';
+  });
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const panel = document.getElementById(id);
+  panel.style.display = 'flex';
+  panel.style.flexDirection = 'column';
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

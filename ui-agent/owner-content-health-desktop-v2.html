@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Content Health Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#ffd166;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#ffd166}
+.header-meta{font-size:12px;color:#7a8a9a}
+
+/* KPI cards */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.kpi-card{background:#131c28;border-radius:12px;padding:18px;border:1px solid #1e2630;position:relative;overflow:hidden}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;width:4px;height:100%;border-radius:3px 0 0 3px}
+.kpi-ok::after{background:#22c55e}
+.kpi-warn::after{background:#f59e0b}
+.kpi-crit::after{background:#ef4444}
+.kpi-neutral::after{background:#58c8f0}
+.kpi-val{font-size:36px;font-weight:800;color:#e8eaf0;line-height:1}
+.kpi-sub{font-size:11px;color:#7a8a9a;margin-top:4px}
+.kpi-trend{font-size:11px;margin-top:8px;font-weight:600}
+
+/* Band summary */
+.band-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px}
+.band-card{background:#131c28;border-radius:12px;padding:16px;border:1px solid #1e2630}
+.band-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.band-name{font-size:14px;font-weight:700;color:#fff}
+.band-score-bar{height:8px;background:#1e2630;border-radius:4px;overflow:hidden;margin:6px 0}
+.band-score-fill{height:100%;border-radius:4px;transition:width .5s}
+.band-meta{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.band-meta-item{text-align:center;background:#0d1117;border-radius:6px;padding:6px}
+.band-meta-val{font-size:14px;font-weight:700;color:#e8eaf0}
+.band-meta-lbl{font-size:9px;color:#7a8a9a}
+
+/* Heatmap */
+.heatmap-container{overflow-x:auto}
+.heatmap-table{border-collapse:collapse;min-width:800px}
+.hm-th{padding:8px 10px;font-size:10px;font-weight:700;color:#7a8a9a;letter-spacing:.5px;text-align:center;white-space:nowrap}
+.hm-th-left{text-align:left}
+.hm-td{width:64px;height:44px;text-align:center;font-size:12px;font-weight:700;border:1px solid #0d1117;border-radius:4px;cursor:default;transition:opacity .2s;position:relative}
+.hm-td:hover{opacity:.85;transform:scale(1.05)}
+.hm-skill{padding:8px 10px;font-size:11px;color:#e8eaf0;white-space:nowrap;min-width:140px}
+.cell-ok{background:#1a5030;color:#50c880}
+.cell-warn{background:#2a2000;color:#f0c030}
+.cell-crit{background:#2a0808;color:#ff6060;animation:pulse-crit 2s infinite}
+.cell-empty{background:#131c28;color:#4a5a6a}
+@keyframes pulse-crit{0%,100%{opacity:1}50%{opacity:.6}}
+.legend-row{display:flex;gap:16px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:6px;font-size:11px;color:#7a8a9a}
+.leg-box{width:16px;height:16px;border-radius:3px}
+
+/* Publish status */
+.pub-table{width:100%;border-collapse:collapse}
+.pub-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#7a8a9a;border-bottom:2px solid #1e2630;letter-spacing:.5px}
+.pub-table td{padding:10px 12px;border-bottom:1px solid #1a2030;font-size:12px}
+.pub-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.pub-live{background:rgba(34,197,94,.15);color:#22c55e}
+.pub-review{background:rgba(245,158,11,.15);color:#f59e0b}
+.pub-draft{background:rgba(88,200,240,.15);color:#58c8f0}
+.pub-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+.progress-cell{min-width:120px}
+.prog-bar{height:6px;background:#1e2630;border-radius:3px;overflow:hidden}
+.prog-fill{height:100%;border-radius:3px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('overview')">Content Health Overview</div>
+  <div class="tab" onclick="show('bands')">Band Summary</div>
+  <div class="tab" onclick="show('heatmap')">Coverage Heatmap</div>
+  <div class="tab" onclick="show('publish')">Publish Status</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Overview -->
+<div id="overview" class="panel active">
+  <div class="hint">Content health across all 4 bands. Target 8 Q/node. OK≥6, Warn 4-5, Crit&lt;4 (release blocker).</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Content Health <span>Overview</span></div>
+      <div class="header-meta">847 questions across 4 bands &nbsp;|&nbsp; Last updated: 2026-03-23 13:45 UTC</div>
+    </div>
+    <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Export Report</button>
+  </div>
+  <div class="kpi-grid">
+    <div class="kpi-card kpi-ok">
+      <div class="kpi-val">847</div>
+      <div class="kpi-sub">Total Questions</div>
+      <div class="kpi-trend" style="color:#22c55e">↑ +42 this week</div>
+    </div>
+    <div class="kpi-card kpi-ok">
+      <div class="kpi-val">94%</div>
+      <div class="kpi-sub">Coverage (nodes ≥ 6Q)</div>
+      <div class="kpi-trend" style="color:#22c55e">↑ +3% vs last week</div>
+    </div>
+    <div class="kpi-card kpi-crit">
+      <div class="kpi-val" style="color:#ef4444">3</div>
+      <div class="kpi-sub">Critical Nodes (&lt;4Q)</div>
+      <div class="kpi-trend" style="color:#ef4444">Release blockers</div>
+    </div>
+    <div class="kpi-card kpi-warn">
+      <div class="kpi-val" style="color:#f59e0b">7</div>
+      <div class="kpi-sub">Warn Nodes (4-5Q)</div>
+      <div class="kpi-trend" style="color:#f59e0b">Needs attention</div>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:12px;padding:18px;border:1px solid #1e2630">
+      <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:16px">Question Count by Band</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#e8eaf0">Band 1 — Pre-K / Early Learner</span><span style="font-size:12px;font-weight:700;color:#22c55e">248</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:100%;background:#22c55e"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#e8eaf0">Band 2 — K-1 Foundations</span><span style="font-size:12px;font-weight:700;color:#22c55e">234</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:94%;background:#22c55e"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#e8eaf0">Band 3 — Grade 2-3 Growth</span><span style="font-size:12px;font-weight:700;color:#ffd166">198</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:80%;background:#ffd166"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12px;color:#e8eaf0">Band 4 — Grade 4+ Challenge</span><span style="font-size:12px;font-weight:700;color:#f59e0b">167</span></div>
+          <div class="prog-bar"><div class="prog-fill" style="width:67%;background:#f59e0b"></div></div>
+        </div>
+      </div>
+      <div style="margin-top:16px;font-size:11px;color:#7a8a9a">Target per band: 250 questions minimum for release</div>
+    </div>
+    <div style="background:#131c28;border-radius:12px;padding:18px;border:1px solid #1e2630">
+      <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:16px">Hard Blocks</div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="background:#2a0808;border-radius:8px;padding:10px">
+          <div style="font-size:11px;color:#ef4444;font-weight:700;margin-bottom:4px">NO CORRECT ANSWER</div>
+          <div style="font-size:24px;font-weight:800;color:#ef4444">14</div>
+          <div style="font-size:11px;color:#7a8a9a">questions affected</div>
+        </div>
+        <div style="background:#2a0808;border-radius:8px;padding:10px">
+          <div style="font-size:11px;color:#ef4444;font-weight:700;margin-bottom:4px">DUPLICATE OPTIONS</div>
+          <div style="font-size:24px;font-weight:800;color:#ef4444">6</div>
+          <div style="font-size:11px;color:#7a8a9a">questions affected</div>
+        </div>
+        <div style="background:#131c28;border:1px solid #1e2630;border-radius:8px;padding:10px">
+          <div style="font-size:11px;color:#7a8a9a;margin-bottom:4px">TOTAL BLOCKED</div>
+          <div style="font-size:24px;font-weight:800;color:#ffd166">20</div>
+          <div style="font-size:11px;color:#7a8a9a">cannot publish</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Band Summary -->
+<div id="bands" class="panel">
+  <div class="hint">Per-band health cards showing question count, coverage %, hard blocks, and status.</div>
+  <div class="band-grid">
+    <div class="band-card" style="border-color:rgba(34,197,94,.3)">
+      <div class="band-header">
+        <div>
+          <div class="band-name">Band 1 — Pre-K / Early Learner</div>
+          <div style="font-size:11px;color:#7a8a9a;margin-top:2px">Ages 3-5 · Prereader / Emergent</div>
+        </div>
+        <span class="pub-badge pub-live">LIVE</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#7a8a9a;margin-bottom:4px"><span>Coverage</span><span style="color:#22c55e;font-weight:700">98%</span></div>
+      <div class="band-score-bar"><div class="band-score-fill" style="width:98%;background:#22c55e"></div></div>
+      <div class="band-meta">
+        <div class="band-meta-item"><div class="band-meta-val">248</div><div class="band-meta-lbl">Questions</div></div>
+        <div class="band-meta-item"><div class="band-meta-val" style="color:#22c55e">0</div><div class="band-meta-lbl">Blocked</div></div>
+        <div class="band-meta-item"><div class="band-meta-val">8.4</div><div class="band-meta-lbl">Avg Q/node</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#22c55e">✓ All nodes at OK coverage (≥6)</div>
+    </div>
+    <div class="band-card" style="border-color:rgba(245,158,11,.3)">
+      <div class="band-header">
+        <div>
+          <div class="band-name">Band 2 — K-1 Foundations</div>
+          <div style="font-size:11px;color:#7a8a9a;margin-top:2px">Ages 5-7 · Kindergarten / Grade 1</div>
+        </div>
+        <span class="pub-badge pub-review">REVIEW</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#7a8a9a;margin-bottom:4px"><span>Coverage</span><span style="color:#f59e0b;font-weight:700">91%</span></div>
+      <div class="band-score-bar"><div class="band-score-fill" style="width:91%;background:#f59e0b"></div></div>
+      <div class="band-meta">
+        <div class="band-meta-item"><div class="band-meta-val">234</div><div class="band-meta-lbl">Questions</div></div>
+        <div class="band-meta-item"><div class="band-meta-val" style="color:#ef4444">14</div><div class="band-meta-lbl">Blocked</div></div>
+        <div class="band-meta-item"><div class="band-meta-val">7.1</div><div class="band-meta-lbl">Avg Q/node</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#ef4444">⚠ 14 questions missing correct-answer mark</div>
+    </div>
+    <div class="band-card" style="border-color:rgba(88,200,240,.3)">
+      <div class="band-header">
+        <div>
+          <div class="band-name">Band 3 — Grade 2-3 Growth</div>
+          <div style="font-size:11px;color:#7a8a9a;margin-top:2px">Ages 7-9 · Early Elementary</div>
+        </div>
+        <span class="pub-badge pub-draft">DRAFT</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#7a8a9a;margin-bottom:4px"><span>Coverage</span><span style="color:#58c8f0;font-weight:700">84%</span></div>
+      <div class="band-score-bar"><div class="band-score-fill" style="width:84%;background:#58c8f0"></div></div>
+      <div class="band-meta">
+        <div class="band-meta-item"><div class="band-meta-val">198</div><div class="band-meta-lbl">Questions</div></div>
+        <div class="band-meta-item"><div class="band-meta-val" style="color:#f59e0b">5</div><div class="band-meta-lbl">Warn nodes</div></div>
+        <div class="band-meta-item"><div class="band-meta-val">6.2</div><div class="band-meta-lbl">Avg Q/node</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#f59e0b">↑ 5 nodes at warning level (4-5 Q)</div>
+    </div>
+    <div class="band-card" style="border-color:rgba(239,68,68,.3)">
+      <div class="band-header">
+        <div>
+          <div class="band-name">Band 4 — Grade 4+ Challenge</div>
+          <div style="font-size:11px;color:#7a8a9a;margin-top:2px">Ages 9-12 · Upper Elementary</div>
+        </div>
+        <span class="pub-badge pub-blocked">BLOCKED</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:#7a8a9a;margin-bottom:4px"><span>Coverage</span><span style="color:#ef4444;font-weight:700">72%</span></div>
+      <div class="band-score-bar"><div class="band-score-fill" style="width:72%;background:#ef4444"></div></div>
+      <div class="band-meta">
+        <div class="band-meta-item"><div class="band-meta-val">167</div><div class="band-meta-lbl">Questions</div></div>
+        <div class="band-meta-item"><div class="band-meta-val" style="color:#ef4444">3</div><div class="band-meta-lbl">Crit nodes</div></div>
+        <div class="band-meta-item"><div class="band-meta-val">5.1</div><div class="band-meta-lbl">Avg Q/node</div></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#ef4444">✗ 3 nodes &lt;4Q — release blocker</div>
+    </div>
+  </div>
+</div>
+
+<!-- Heatmap -->
+<div id="heatmap" class="panel">
+  <div class="hint">Skills × Bands coverage heatmap. Cell color = question count status. Target 8, OK≥6, Warn 4-5, Crit&lt;4.</div>
+  <div class="legend-row">
+    <div class="leg"><div class="leg-box" style="background:#1a5030"></div><span style="color:#50c880">OK (≥6)</span></div>
+    <div class="leg"><div class="leg-box" style="background:#2a2000"></div><span style="color:#f0c030">Warn (4-5)</span></div>
+    <div class="leg"><div class="leg-box" style="background:#2a0808"></div><span style="color:#ff6060">Crit (&lt;4)</span></div>
+    <div class="leg"><div class="leg-box" style="background:#131c28;border:1px solid #1e2630"></div><span>Empty</span></div>
+    <div style="font-size:11px;color:#7a8a9a;margin-left:auto">Numbers = Q count per node</div>
+  </div>
+  <div class="heatmap-container">
+  <table class="heatmap-table">
+    <thead>
+      <tr>
+        <th class="hm-th hm-th-left">SKILL</th>
+        <th class="hm-th">Band 1</th>
+        <th class="hm-th">Band 2</th>
+        <th class="hm-th">Band 3</th>
+        <th class="hm-th">Band 4</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td class="hm-skill">Number sense</td><td class="hm-td cell-ok">9</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">6</td></tr>
+      <tr><td class="hm-skill">Counting & cardinality</td><td class="hm-td cell-ok">10</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-warn">5</td><td class="hm-td cell-empty">0</td></tr>
+      <tr><td class="hm-skill">Addition basics</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">9</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">7</td></tr>
+      <tr><td class="hm-skill">Subtraction basics</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">6</td></tr>
+      <tr><td class="hm-skill">Place value</td><td class="hm-td cell-warn">4</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">9</td><td class="hm-td cell-ok">8</td></tr>
+      <tr><td class="hm-skill">Multiplication intro</td><td class="hm-td cell-empty">0</td><td class="hm-td cell-warn">5</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">9</td></tr>
+      <tr><td class="hm-skill">Division intro</td><td class="hm-td cell-empty">0</td><td class="hm-td cell-crit">2</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">8</td></tr>
+      <tr><td class="hm-skill">Fractions basic</td><td class="hm-td cell-empty">0</td><td class="hm-td cell-ok">6</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">9</td></tr>
+      <tr><td class="hm-skill">Geometry shapes</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">6</td><td class="hm-td cell-warn">4</td></tr>
+      <tr><td class="hm-skill">Measurement</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-warn">5</td><td class="hm-td cell-crit">3</td></tr>
+      <tr><td class="hm-skill">Data & graphs</td><td class="hm-td cell-empty">0</td><td class="hm-td cell-warn">4</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">8</td></tr>
+      <tr><td class="hm-skill">Pattern recognition</td><td class="hm-td cell-ok">9</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">6</td><td class="hm-td cell-warn">5</td></tr>
+      <tr><td class="hm-skill">Word problems</td><td class="hm-td cell-warn">5</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">9</td><td class="hm-td cell-crit">3</td></tr>
+      <tr><td class="hm-skill">Time & calendar</td><td class="hm-td cell-ok">6</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-empty">0</td></tr>
+      <tr><td class="hm-skill">Money & currency</td><td class="hm-td cell-ok">7</td><td class="hm-td cell-ok">8</td><td class="hm-td cell-warn">4</td><td class="hm-td cell-warn">5</td></tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Publish Status -->
+<div id="publish" class="panel">
+  <div class="hint">Publish pipeline status per content type and band. Hard blocks prevent publishing.</div>
+  <table class="pub-table">
+    <thead>
+      <tr>
+        <th>BAND</th>
+        <th>CONTENT TYPE</th>
+        <th>TOTAL</th>
+        <th>APPROVED</th>
+        <th>PENDING</th>
+        <th>BLOCKED</th>
+        <th>COVERAGE</th>
+        <th>STATUS</th>
+        <th>ACTION</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span style="background:#1a5030;color:#50c880;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B1</span></td>
+        <td>Questions</td><td>248</td><td style="color:#22c55e;font-weight:700">248</td><td>0</td><td style="color:#22c55e">0</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#22c55e;margin-bottom:2px">98%</div><div class="prog-bar"><div class="prog-fill" style="width:98%;background:#22c55e"></div></div></td>
+        <td><span class="pub-badge pub-live">LIVE</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View</a></td>
+      </tr>
+      <tr>
+        <td><span style="background:#1a5030;color:#50c880;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B1</span></td>
+        <td>Explainers</td><td>62</td><td style="color:#22c55e;font-weight:700">58</td><td style="color:#ffd166">4</td><td style="color:#22c55e">0</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#22c55e;margin-bottom:2px">94%</div><div class="prog-bar"><div class="prog-fill" style="width:94%;background:#22c55e"></div></div></td>
+        <td><span class="pub-badge pub-live">LIVE</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View</a></td>
+      </tr>
+      <tr>
+        <td><span style="background:#2a2000;color:#f0c030;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B2</span></td>
+        <td>Questions</td><td>234</td><td style="color:#ffd166;font-weight:700">210</td><td style="color:#f59e0b">10</td><td style="color:#ef4444;font-weight:700">14</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#f59e0b;margin-bottom:2px">91%</div><div class="prog-bar"><div class="prog-fill" style="width:91%;background:#f59e0b"></div></div></td>
+        <td><span class="pub-badge pub-review">REVIEW</span></td>
+        <td><button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;cursor:pointer">Fix Blocks</button></td>
+      </tr>
+      <tr>
+        <td><span style="background:#2a2000;color:#f0c030;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B2</span></td>
+        <td>Explainers</td><td>58</td><td style="color:#22c55e;font-weight:700">52</td><td style="color:#f59e0b">6</td><td style="color:#22c55e">0</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#22c55e;margin-bottom:2px">90%</div><div class="prog-bar"><div class="prog-fill" style="width:90%;background:#22c55e"></div></div></td>
+        <td><span class="pub-badge pub-review">REVIEW</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">View</a></td>
+      </tr>
+      <tr>
+        <td><span style="background:#0f1e30;color:#58c8f0;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B3</span></td>
+        <td>Questions</td><td>198</td><td style="color:#ffd166;font-weight:700">176</td><td style="color:#58c8f0">22</td><td style="color:#f59e0b">5</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#58c8f0;margin-bottom:2px">84%</div><div class="prog-bar"><div class="prog-fill" style="width:84%;background:#58c8f0"></div></div></td>
+        <td><span class="pub-badge pub-draft">DRAFT</span></td>
+        <td><a href="#" style="color:#58c8f0;font-size:11px">Review</a></td>
+      </tr>
+      <tr>
+        <td><span style="background:#2a0808;color:#ff6060;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700">B4</span></td>
+        <td>Questions</td><td>167</td><td style="color:#ef4444;font-weight:700">120</td><td style="color:#f59e0b">41</td><td style="color:#ef4444;font-weight:700">6</td>
+        <td class="progress-cell"><div style="font-size:11px;color:#ef4444;margin-bottom:2px">72%</div><div class="prog-bar"><div class="prog-fill" style="width:72%;background:#ef4444"></div></div></td>
+        <td><span class="pub-badge pub-blocked">BLOCKED</span></td>
+        <td><button style="background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-family:'Sora',sans-serif;font-size:11px;font-weight:600;cursor:pointer">Fix Blocks</button></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for content health desktop dashboard.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">COVERAGE THRESHOLDS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">
+        Target: 8 Q/node<br>
+        <span style="color:#22c55e">OK</span> — ≥6 Q/node (bg #1a5030)<br>
+        <span style="color:#f0c030">Warn</span> — 4-5 Q/node (bg #2a2000)<br>
+        <span style="color:#ff6060">Crit</span> — &lt;4 Q/node (bg #2a0808, pulsing)<br>
+        Empty — 0 Q (bg #131c28)
+      </div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">HARD BLOCKS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">
+        No correct answer marked → blocks publish<br>
+        Duplicate options → blocks publish<br>
+        Both conditions must be 0 to publish band
+      </div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">VIEWPORT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Desktop 900px+, Sora, #0d1117 bg, #ffd166 accent</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">TABS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Content Health Overview / Band Summary / Coverage Heatmap / Publish Status / Spec</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

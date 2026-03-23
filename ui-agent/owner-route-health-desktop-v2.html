@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Route Health Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#ffd166;line-height:1.5}
+
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#ffd166}
+.header-meta{font-size:12px;color:#7a8a9a}
+
+.filter-chips{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.chip{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid #2a3640;color:#7a8a9a;background:#131c28;transition:all .2s}
+.chip.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.chip.red{border-color:#ef4444;color:#ef4444;background:rgba(239,68,68,.08)}
+.chip.amber{border-color:#f59e0b;color:#f59e0b;background:rgba(245,158,11,.08)}
+
+.summary-row{display:flex;gap:12px;margin-bottom:20px}
+.summary-card{flex:1;background:#131c28;border-radius:10px;padding:14px;border:1px solid #1e2630}
+.summary-card.green{border-color:rgba(34,197,94,.3)}
+.summary-card.amber{border-color:rgba(245,158,11,.3)}
+.summary-card.red{border-color:rgba(239,68,68,.3)}
+.sc-val{font-size:32px;font-weight:800;color:#e8eaf0;line-height:1}
+.sc-label{font-size:11px;color:#7a8a9a;margin-top:4px}
+
+.routes-table{width:100%;border-collapse:collapse}
+.routes-table th{padding:10px 12px;text-align:left;font-size:11px;font-weight:700;color:#7a8a9a;letter-spacing:.5px;border-bottom:2px solid #1e2630;background:#0d1117;position:sticky;top:60px}
+.routes-table td{padding:10px 12px;border-bottom:1px solid #1a2030;font-size:12px;vertical-align:middle}
+.routes-table tr:hover td{background:#131c28}
+.method{display:inline-block;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.method-get{background:rgba(88,200,240,.15);color:#58c8f0}
+.method-post{background:rgba(34,197,94,.15);color:#22c55e}
+.method-delete{background:rgba(239,68,68,.15);color:#ef4444}
+.method-patch{background:rgba(245,158,11,.15);color:#f59e0b}
+.status-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.status-ok{background:rgba(34,197,94,.15);color:#22c55e}
+.status-degraded{background:rgba(245,158,11,.15);color:#f59e0b}
+.status-down{background:rgba(239,68,68,.15);color:#ef4444;animation:pulse-red 1.5s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.5}}
+.status-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.latency-cell{font-family:monospace;font-size:12px}
+.lat-p50{color:#22c55e}
+.lat-p95{color:#ffd166}
+.lat-p99{color:#f59e0b}
+.error-rate{font-weight:700}
+.err-ok{color:#22c55e}
+.err-warn{color:#f59e0b}
+.err-crit{color:#ef4444}
+.sparkline-cell svg{display:block}
+.log-link{color:#58c8f0;font-size:11px;text-decoration:none}
+.log-link:hover{text-decoration:underline}
+.service-tag{display:inline-block;background:#1a2535;border-radius:4px;padding:2px 6px;font-size:10px;color:#7a8a9a}
+
+/* Latency trends */
+.trends-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.trend-card{background:#131c28;border-radius:10px;padding:16px;border:1px solid #1e2630}
+.trend-title{font-size:13px;font-weight:700;color:#e8eaf0;margin-bottom:12px}
+.trend-chart{height:80px;display:flex;align-items:flex-end;gap:3px}
+.trend-bar{flex:1;border-radius:3px 3px 0 0;transition:height .3s}
+.trend-labels{display:flex;gap:3px;margin-top:6px}
+.trend-label{flex:1;text-align:center;font-size:9px;color:#4a5a6a}
+.trend-legend{display:flex;gap:16px;margin-top:10px}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:#7a8a9a}
+.leg-dot{width:8px;height:8px;border-radius:50%}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('all')">Route Health Table</div>
+  <div class="tab" onclick="show('degraded')">Degraded Routes</div>
+  <div class="tab" onclick="show('down')">Down Routes</div>
+  <div class="tab" onclick="show('trends')">Latency Trends</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- All Routes -->
+<div id="all" class="panel active">
+  <div class="hint">Full route health matrix. p50/p95/p99 latency in ms. Error rate threshold: warn &gt;1%, crit &gt;5%.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Route Health <span>Monitor</span></div>
+      <div class="header-meta">Last checked: 2026-03-23 14:32 UTC &nbsp;|&nbsp; 14 routes tracked &nbsp;|&nbsp; Auto-refresh 60s</div>
+    </div>
+    <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Refresh Now</button>
+  </div>
+  <div class="summary-row">
+    <div class="summary-card green"><div class="sc-val" style="color:#22c55e">11</div><div class="sc-label">Routes OK</div></div>
+    <div class="summary-card amber"><div class="sc-val" style="color:#f59e0b">2</div><div class="sc-label">Degraded</div></div>
+    <div class="summary-card red"><div class="sc-val" style="color:#ef4444">1</div><div class="sc-label">Down</div></div>
+    <div class="summary-card"><div class="sc-val">14</div><div class="sc-label">Total Routes</div></div>
+    <div class="summary-card"><div class="sc-val" style="color:#ffd166">142ms</div><div class="sc-label">Avg p95</div></div>
+  </div>
+  <div class="filter-chips">
+    <div class="chip active">All (14)</div>
+    <div class="chip amber">Degraded (2)</div>
+    <div class="chip red">Down (1)</div>
+    <div class="chip">Core Service</div>
+    <div class="chip">Auth Service</div>
+    <div class="chip">Content Service</div>
+    <div class="chip">Analytics</div>
+  </div>
+  <div style="overflow-x:auto">
+  <table class="routes-table">
+    <thead>
+      <tr>
+        <th>SERVICE</th>
+        <th>METHOD</th>
+        <th>PATH</th>
+        <th>p50</th>
+        <th>p95</th>
+        <th>p99</th>
+        <th>ERR RATE</th>
+        <th>STATUS</th>
+        <th>LAST CHK</th>
+        <th>TREND</th>
+        <th>LOGS</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><span class="service-tag">core</span></td>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/session/start</td>
+        <td class="latency-cell lat-p50">48ms</td>
+        <td class="latency-cell lat-p95">112ms</td>
+        <td class="latency-cell lat-p99">198ms</td>
+        <td class="error-rate err-ok">0.02%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:32</td>
+        <td><svg width="50" height="20"><polyline points="0,18 8,14 16,12 24,10 32,11 40,8 50,6" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">core</span></td>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/session/answer</td>
+        <td class="latency-cell lat-p50">62ms</td>
+        <td class="latency-cell lat-p95">145ms</td>
+        <td class="latency-cell lat-p99">280ms</td>
+        <td class="error-rate err-ok">0.08%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:32</td>
+        <td><svg width="50" height="20"><polyline points="0,16 8,15 16,14 24,13 32,14 40,12 50,10" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">core</span></td>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#ef4444">/api/v1/session/resume</td>
+        <td class="latency-cell" style="color:#ef4444">1240ms</td>
+        <td class="latency-cell" style="color:#ef4444">3800ms</td>
+        <td class="latency-cell" style="color:#ef4444">timeout</td>
+        <td class="error-rate err-crit">12.4%</td>
+        <td><span class="status-badge status-down"><span class="status-dot"></span>DOWN</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:32</td>
+        <td><svg width="50" height="20"><polyline points="0,14 8,13 16,15 24,16 32,17 40,18 50,19" fill="none" stroke="#ef4444" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#" style="color:#ef4444">Logs →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">auth</span></td>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/auth/login</td>
+        <td class="latency-cell lat-p50">35ms</td>
+        <td class="latency-cell lat-p95">89ms</td>
+        <td class="latency-cell lat-p99">142ms</td>
+        <td class="error-rate err-ok">0.00%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:31</td>
+        <td><svg width="50" height="20"><polyline points="0,10 8,11 16,9 24,10 32,9 40,10 50,8" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">auth</span></td>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/auth/refresh</td>
+        <td class="latency-cell lat-p50">22ms</td>
+        <td class="latency-cell lat-p95">58ms</td>
+        <td class="latency-cell lat-p99">95ms</td>
+        <td class="error-rate err-ok">0.01%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:31</td>
+        <td><svg width="50" height="20"><polyline points="0,8 8,8 16,7 24,8 32,8 40,7 50,7" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">content</span></td>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#f59e0b">/api/v1/questions/batch</td>
+        <td class="latency-cell lat-p50">210ms</td>
+        <td class="latency-cell" style="color:#f59e0b">480ms</td>
+        <td class="latency-cell" style="color:#f59e0b">920ms</td>
+        <td class="error-rate err-warn">1.8%</td>
+        <td><span class="status-badge status-degraded"><span class="status-dot"></span>DEGRADED</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:30</td>
+        <td><svg width="50" height="20"><polyline points="0,12 8,12 16,13 24,14 32,15 40,16 50,18" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#" style="color:#f59e0b">Logs →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">content</span></td>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/explainer/:id</td>
+        <td class="latency-cell lat-p50">88ms</td>
+        <td class="latency-cell lat-p95">190ms</td>
+        <td class="latency-cell lat-p99">340ms</td>
+        <td class="error-rate err-ok">0.12%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:30</td>
+        <td><svg width="50" height="20"><polyline points="0,15 8,14 16,13 24,12 32,11 40,12 50,11" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">content</span></td>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#f59e0b">/api/v1/skill-map</td>
+        <td class="latency-cell lat-p50">320ms</td>
+        <td class="latency-cell" style="color:#f59e0b">650ms</td>
+        <td class="latency-cell" style="color:#f59e0b">1100ms</td>
+        <td class="error-rate err-warn">2.3%</td>
+        <td><span class="status-badge status-degraded"><span class="status-dot"></span>DEGRADED</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:29</td>
+        <td><svg width="50" height="20"><polyline points="0,10 8,11 16,13 24,14 32,15 40,17 50,18" fill="none" stroke="#f59e0b" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#" style="color:#f59e0b">Logs →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">analytics</span></td>
+        <td><span class="method method-post">POST</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/events/track</td>
+        <td class="latency-cell lat-p50">18ms</td>
+        <td class="latency-cell lat-p95">42ms</td>
+        <td class="latency-cell lat-p99">78ms</td>
+        <td class="error-rate err-ok">0.00%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:32</td>
+        <td><svg width="50" height="20"><polyline points="0,6 8,6 16,5 24,6 32,5 40,6 50,5" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+      <tr>
+        <td><span class="service-tag">analytics</span></td>
+        <td><span class="method method-get">GET</span></td>
+        <td style="font-family:monospace;font-size:12px;color:#e8eaf0">/api/v1/progress/:uid</td>
+        <td class="latency-cell lat-p50">95ms</td>
+        <td class="latency-cell lat-p95">210ms</td>
+        <td class="latency-cell lat-p99">390ms</td>
+        <td class="error-rate err-ok">0.04%</td>
+        <td><span class="status-badge status-ok"><span class="status-dot"></span>OK</span></td>
+        <td style="font-size:11px;color:#7a8a9a">14:32</td>
+        <td><svg width="50" height="20"><polyline points="0,14 8,13 16,12 24,12 32,11 40,11 50,10" fill="none" stroke="#22c55e" stroke-width="1.5"/></svg></td>
+        <td><a class="log-link" href="#">View →</a></td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</div>
+
+<!-- Degraded Routes -->
+<div id="degraded" class="panel">
+  <div class="hint">Routes with error rate &gt;1% or p95 latency &gt;400ms. Investigate before launch.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Degraded <span>Routes</span></div>
+      <div class="header-meta">2 routes currently degraded &nbsp;|&nbsp; Last checked: 14:32 UTC</div>
+    </div>
+  </div>
+  <div style="display:grid;gap:12px">
+    <div style="background:#2a2000;border:1px solid #f59e0b;border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="method method-get">GET</span>
+          <span style="font-family:monospace;font-size:13px;color:#fcd34d">/api/v1/questions/batch</span>
+        </div>
+        <span class="status-badge status-degraded"><span class="status-dot"></span>DEGRADED</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#22c55e">210ms</div><div style="font-size:10px;color:#7a8a9a">p50</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">480ms</div><div style="font-size:10px;color:#7a8a9a">p95</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">920ms</div><div style="font-size:10px;color:#7a8a9a">p99</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">1.8%</div><div style="font-size:10px;color:#7a8a9a">Err Rate</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#e8eaf0">content</div><div style="font-size:10px;color:#7a8a9a">Service</div></div>
+      </div>
+      <div style="background:#131c28;border-radius:8px;padding:10px;font-size:11px;color:#7a8a9a;line-height:1.6">
+        <strong style="color:#fcd34d">Root cause hypothesis:</strong> DB connection pool exhaustion during peak question fetching. p95 rising 15% per hour. Recommend connection pool increase or caching layer.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button style="flex:1;background:#f59e0b;color:#0a0800;border:none;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Create Incident</button>
+        <button style="flex:1;background:#1a2535;color:#fcd34d;border:1px solid #f59e0b;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">View Logs →</button>
+      </div>
+    </div>
+    <div style="background:#2a2000;border:1px solid #f59e0b;border-radius:12px;padding:16px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="method method-get">GET</span>
+          <span style="font-family:monospace;font-size:13px;color:#fcd34d">/api/v1/skill-map</span>
+        </div>
+        <span class="status-badge status-degraded"><span class="status-dot"></span>DEGRADED</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px">
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#22c55e">320ms</div><div style="font-size:10px;color:#7a8a9a">p50</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">650ms</div><div style="font-size:10px;color:#7a8a9a">p95</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">1100ms</div><div style="font-size:10px;color:#7a8a9a">p99</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#f59e0b">2.3%</div><div style="font-size:10px;color:#7a8a9a">Err Rate</div></div>
+        <div style="text-align:center"><div style="font-size:18px;font-weight:700;color:#e8eaf0">content</div><div style="font-size:10px;color:#7a8a9a">Service</div></div>
+      </div>
+      <div style="background:#131c28;border-radius:8px;padding:10px;font-size:11px;color:#7a8a9a;line-height:1.6">
+        <strong style="color:#fcd34d">Root cause hypothesis:</strong> Skill-map endpoint lacks Redis caching. Full graph traversal on every request. Cache TTL of 5 min would reduce load ~90%.
+      </div>
+      <div style="display:flex;gap:8px;margin-top:10px">
+        <button style="flex:1;background:#f59e0b;color:#0a0800;border:none;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Create Incident</button>
+        <button style="flex:1;background:#1a2535;color:#fcd34d;border:1px solid #f59e0b;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">View Logs →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Down Routes -->
+<div id="down" class="panel">
+  <div class="hint">Routes with &gt;5% error rate or unresponsive. These are P0 blockers for release.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Down <span style="color:#ef4444">Routes</span></div>
+      <div class="header-meta">1 route DOWN — release blocker &nbsp;|&nbsp; Incident created: INC-0042</div>
+    </div>
+  </div>
+  <div style="background:#2a0808;border:2px solid #ef4444;border-radius:12px;padding:20px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="method method-get">GET</span>
+        <span style="font-family:monospace;font-size:14px;color:#fca5a5">/api/v1/session/resume</span>
+      </div>
+      <span class="status-badge status-down"><span class="status-dot"></span>DOWN</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:16px">
+      <div style="text-align:center;background:rgba(239,68,68,.1);border-radius:8px;padding:10px"><div style="font-size:20px;font-weight:700;color:#ef4444">1240ms</div><div style="font-size:10px;color:#7a8a9a">p50</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.1);border-radius:8px;padding:10px"><div style="font-size:20px;font-weight:700;color:#ef4444">3800ms</div><div style="font-size:10px;color:#7a8a9a">p95</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.1);border-radius:8px;padding:10px"><div style="font-size:20px;font-weight:700;color:#ef4444">—</div><div style="font-size:10px;color:#7a8a9a">p99 (t/o)</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.1);border-radius:8px;padding:10px"><div style="font-size:20px;font-weight:700;color:#ef4444">12.4%</div><div style="font-size:10px;color:#7a8a9a">Err Rate</div></div>
+      <div style="text-align:center;background:rgba(239,68,68,.1);border-radius:8px;padding:10px"><div style="font-size:14px;font-weight:700;color:#e8eaf0">core</div><div style="font-size:10px;color:#7a8a9a">Service</div></div>
+    </div>
+    <div style="background:#1a0808;border:1px solid rgba(239,68,68,.3);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:#ef4444;letter-spacing:.5px;margin-bottom:6px">INCIDENT: INC-0042 — OPEN</div>
+      <div style="font-size:12px;color:#fca5a5;line-height:1.6">Session resume endpoint experiencing 500 errors. Root cause: Redis session store failover in progress. Estimated fix: 45 min. On-call: @devteam-backend.</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="flex:1;background:#ef4444;color:#fff;border:none;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">View Incident →</button>
+      <button style="flex:1;background:#1a2535;color:#fca5a5;border:1px solid #ef4444;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:13px;font-weight:600;cursor:pointer">Escalate</button>
+    </div>
+  </div>
+</div>
+
+<!-- Latency Trends -->
+<div id="trends" class="panel">
+  <div class="hint">p50/p95/p99 latency trends over last 7 days for key routes. Bars represent p95 daily average.</div>
+  <div class="page-header">
+    <div class="page-title">Latency <span>Trends</span></div>
+  </div>
+  <div class="trends-grid">
+    <div class="trend-card">
+      <div class="trend-title">/api/v1/session/start — p95 (ms)</div>
+      <div class="trend-chart">
+        <div class="trend-bar" style="height:50%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:55%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:48%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:60%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:52%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:55%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:50%;background:#22c55e"></div>
+      </div>
+      <div class="trend-labels"><div class="trend-label">M</div><div class="trend-label">T</div><div class="trend-label">W</div><div class="trend-label">T</div><div class="trend-label">F</div><div class="trend-label">S</div><div class="trend-label">S</div></div>
+      <div style="font-size:12px;color:#7a8a9a;margin-top:8px">Avg: 112ms &nbsp;·&nbsp; Max: 135ms &nbsp;·&nbsp; Min: 98ms</div>
+    </div>
+    <div class="trend-card">
+      <div class="trend-title">/api/v1/questions/batch — p95 (ms)</div>
+      <div class="trend-chart">
+        <div class="trend-bar" style="height:35%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:40%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:45%;background:#ffd166;opacity:.7"></div>
+        <div class="trend-bar" style="height:52%;background:#f59e0b;opacity:.7"></div>
+        <div class="trend-bar" style="height:60%;background:#f59e0b;opacity:.7"></div>
+        <div class="trend-bar" style="height:70%;background:#f59e0b;opacity:.7"></div>
+        <div class="trend-bar" style="height:80%;background:#f59e0b"></div>
+      </div>
+      <div class="trend-labels"><div class="trend-label">M</div><div class="trend-label">T</div><div class="trend-label">W</div><div class="trend-label">T</div><div class="trend-label">F</div><div class="trend-label">S</div><div class="trend-label">S</div></div>
+      <div style="font-size:12px;color:#f59e0b;margin-top:8px">↑ Degraded — Avg: 480ms (trending worse)</div>
+    </div>
+    <div class="trend-card">
+      <div class="trend-title">/api/v1/session/resume — p95 (ms)</div>
+      <div class="trend-chart">
+        <div class="trend-bar" style="height:25%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:28%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:35%;background:#ffd166;opacity:.7"></div>
+        <div class="trend-bar" style="height:50%;background:#f59e0b;opacity:.7"></div>
+        <div class="trend-bar" style="height:65%;background:#ef4444;opacity:.7"></div>
+        <div class="trend-bar" style="height:80%;background:#ef4444;opacity:.7"></div>
+        <div class="trend-bar" style="height:95%;background:#ef4444;animation:pulse-red 1.5s infinite"></div>
+      </div>
+      <div class="trend-labels"><div class="trend-label">M</div><div class="trend-label">T</div><div class="trend-label">W</div><div class="trend-label">T</div><div class="trend-label">F</div><div class="trend-label">S</div><div class="trend-label">S</div></div>
+      <div style="font-size:12px;color:#ef4444;margin-top:8px">DOWN — p95: 3800ms, p99: timeout</div>
+    </div>
+    <div class="trend-card">
+      <div class="trend-title">/api/v1/events/track — p95 (ms)</div>
+      <div class="trend-chart">
+        <div class="trend-bar" style="height:20%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:22%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:19%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:21%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:20%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:21%;background:#22c55e;opacity:.7"></div>
+        <div class="trend-bar" style="height:20%;background:#22c55e"></div>
+      </div>
+      <div class="trend-labels"><div class="trend-label">M</div><div class="trend-label">T</div><div class="trend-label">W</div><div class="trend-label">T</div><div class="trend-label">F</div><div class="trend-label">S</div><div class="trend-label">S</div></div>
+      <div style="font-size:12px;color:#22c55e;margin-top:8px">Stable — Avg: 42ms</div>
+    </div>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the desktop route health monitor.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">STATUS THRESHOLDS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">
+        <div><span style="color:#22c55e">OK</span> — err &lt;1%, p95 &lt;400ms</div>
+        <div><span style="color:#f59e0b">DEGRADED</span> — err 1-5% or p95 400-1000ms</div>
+        <div><span style="color:#ef4444">DOWN</span> — err &gt;5% or p95 &gt;1000ms</div>
+      </div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">COLUMNS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Service, Method, Path, p50, p95, p99, Error Rate, Status, Last Checked, Sparkline, Logs Link</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">FILTER CHIPS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">All / Degraded / Down / by-service (Core, Auth, Content, Analytics)</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">VIEWPORT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Desktop 900px+, Sora font, #0d1117 bg, #ffd166 gold accent, auto-refresh 60s</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

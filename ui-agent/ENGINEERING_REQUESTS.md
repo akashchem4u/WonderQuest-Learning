@@ -2441,3 +2441,92 @@ When the active batch is done:
 
 **Polling:** UI Agent resuming 5-minute polling for Batch 9.
 ---
+
+---
+
+## ✅ UI Delivery — Batch 9 (6 files)
+
+| File | Persona | Format | Key Surfaces |
+|------|---------|--------|--------------|
+| `parent-dashboard-mobile-canonical-v2.html` | Parent | 375px mobile | Weekly summary hero, child switcher, next practice, progress snapshot, teacher message strip — no setup form dominance |
+| `play-reward-pulse-overlay-v2.html` | Child (play) | Overlay / 375px | 6 tabs: Badge earned, Streak saved, Level up, World node unlocked, Session complete overlays + Spec — fast, non-noisy |
+| `teacher-class-overview-tablet-v2.html` | Teacher | 768×1024px tablet | 2-col layouts, support queue with sidebar detail panel, assignment card grid, at-risk highlights |
+| `teacher-student-intervention-desktop-v2.html` | Teacher | Desktop 1100px | 5 tabs: Student overview (8-wk SNS chart), Support notes & timeline, Intervention plan editor, Assignments & recent changes, Spec — 3-col 260/1fr/300px |
+| `owner-feedback-triage-desktop-v2.html` | Owner | Desktop 1200px | 5 tabs: Feedback queue table (click-to-expand detail), Triage workflow, Resolution actions, Route links & SLA, Spec — dark ops, gold accent |
+| `content-explainer-qa-v2.html` | Content-admin | Desktop 1200px | 5 tabs: Explainer review queue, Script review (2-col with per-sentence word counts), Media hints per-hint checklist, QA decision (hard-block gate), Spec — dark bg, cyan accent |
+
+**Batch 9 delivery complete. Resuming polling for Batch 10.**
+
+### 2026-03-23 00:24 CDT
+- completed since the last block:
+  - `owner-feedback-triage-desktop-v2.html`
+  - `play-session-complete-desktop-v2.html`
+- also landed from the parked backlog while auto-advancing:
+  - child progression:
+    - `child-world-map-desktop-v2.html`
+    - `child-trophy-room-v2.html`
+    - `child-streak-saver-overlay-v2.html`
+    - `child-level-up-overlay-v2.html`
+    - `child-daily-goals-strip-v2.html`
+    - `child-quick-replay-picker-v2.html`
+    - `child-theme-switcher-v2.html`
+    - `child-return-home-mobile-v2.html`
+    - `child-profile-card-stack-v2.html`
+    - `child-win-streak-history-v2.html`
+    - `child-badge-detail-overlay-v2.html`
+    - `child-world-unlock-moment-v2.html`
+  - play/support:
+    - `play-prek-counting-scene-v2.html`
+    - `play-prek-letter-scene-v2.html`
+    - `play-phonics-listen-match-v2.html`
+    - `play-between-questions-pace-v2.html`
+    - `play-hint-overlay-tablet-v2.html`
+    - `play-explainer-video-frame-v2.html`
+    - `play-skip-support-flow-v2.html`
+    - `play-session-shell-desktop-v2.html`
+    - `play-progress-ribbon-v2.html`
+    - `play-audio-replay-dock-v2.html`
+    - `play-reward-summary-endcap-v2.html`
+  - parent:
+    - `parent-quiet-hours-detail-v2.html`
+    - `parent-notification-settings-desktop-v2.html`
+    - `parent-settings-mobile-v2.html`
+    - `parent-week-comparison-desktop-v2.html`
+    - `parent-skill-growth-timeline-v2.html`
+    - `parent-child-goals-planner-v2.html`
+    - `parent-teacher-message-thread-v2.html`
+    - `parent-sibling-overview-v2.html`
+    - `parent-link-success-overlay-v2.html`
+  - teacher:
+    - `teacher-support-lane-mobile-v2.html`
+    - `teacher-intervention-plan-editor-v2.html`
+    - `teacher-note-capture-mobile-v2.html`
+    - `teacher-skill-trend-dashboard-v2.html`
+    - `teacher-learner-group-picker-v2.html`
+    - `teacher-assignment-status-board-v2.html`
+  - owner:
+    - `owner-route-health-desktop-v2.html`
+    - `owner-content-health-desktop-v2.html`
+    - `owner-feedback-sla-board-v2.html`
+    - `owner-release-gate-banner-v2.html`
+    - `owner-beta-tester-overview-v2.html`
+    - `owner-alert-feed-mobile-v2.html`
+  - content:
+    - `content-gap-analysis-desktop-v2.html`
+    - `content-band-coverage-drilldown-v2.html`
+    - `content-batch-generation-review-v2.html`
+    - `content-import-error-center-v2.html`
+    - `content-media-hint-library-v2.html`
+    - `content-publish-history-v2.html`
+    - `content-voice-script-review-v2.html`
+- current active batch:
+  - `parent-dashboard-desktop-canonical-v2.html`
+  - `teacher-home-desktop-canonical-v2.html`
+  - `owner-home-desktop-canonical-v2.html`
+  - `content-home-desktop-canonical-v2.html`
+  - `home-launcher-desktop-v3.html`
+  - `play-prek-shape-scene-v2.html`
+- rules:
+  - keep polling this file only
+  - do not stop if one file in the batch finishes early
+  - after this six-pack, continue auto-advancing from `DESIGN_BACKLOG.md`
