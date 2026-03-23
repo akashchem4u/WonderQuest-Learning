@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Dashboard Desktop Canonical v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Base ─────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#ede8de;color:#1a1a1a;min-height:100vh}
+
+/* ── Tab bar (above desktop frame) ───────────────────────── */
+.tab-bar{display:flex;gap:6px;padding:14px 16px;background:#2c7a6e;position:sticky;top:0;z-index:200;flex-wrap:wrap;justify-content:center}
+.tab-btn{padding:8px 18px;border-radius:20px;border:2px solid rgba(255,255,255,.3);background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .2s;white-space:nowrap}
+.tab-btn.active{background:#fff;color:#2c7a6e;border-color:#fff}
+.tab-btn:hover:not(.active){background:rgba(255,255,255,.2);color:#fff}
+
+/* ── Panel visibility ─────────────────────────────────────── */
+.panel{display:none;padding-bottom:60px}
+.panel.active{display:block}
+
+/* ── Desktop shell (the "browser window") ─────────────────── */
+.desktop{max-width:1100px;margin:20px auto;background:#f5f0e8;border-radius:16px;overflow:hidden;box-shadow:0 6px 32px rgba(0,0,0,.14)}
+
+/* ── Top navigation ───────────────────────────────────────── */
+.top-nav{background:#2c7a6e;height:56px;padding:0 28px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-logo{font-size:18px;font-weight:800;color:#fff;letter-spacing:-.3px;white-space:nowrap}
+.nav-links{display:flex;gap:28px;align-items:center}
+.nav-link{font-size:13px;font-weight:600;color:rgba(255,255,255,.75);cursor:pointer;text-decoration:none;padding-bottom:2px;border-bottom:2px solid transparent;transition:all .15s}
+.nav-link:hover{color:#fff}
+.nav-link.active{color:#fff;border-bottom-color:rgba(255,255,255,.7)}
+.nav-right{display:flex;align-items:center;gap:12px}
+.nav-date{background:rgba(255,255,255,.15);border-radius:20px;padding:5px 12px;font-size:11px;font-weight:600;color:#fff}
+.nav-avatar{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#fff;cursor:pointer;border:2px solid rgba(255,255,255,.4)}
+
+/* ── Hint box ─────────────────────────────────────────────── */
+.hint-box{background:#fffbea;border:2px solid #f0c040;border-radius:10px;padding:12px 16px;margin:16px 20px 0;font-size:11.5px;color:#7a5800;line-height:1.6;font-weight:600}
+.hint-box strong{font-size:12px;color:#5a3e00;display:block;margin-bottom:4px}
+.hint-box code{background:#fef3c0;padding:1px 5px;border-radius:4px;font-size:10.5px;font-family:monospace}
+
+/* ── 2-col layout ─────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:320px 1fr;min-height:620px;gap:0}
+
+/* ── Left sidebar ─────────────────────────────────────────── */
+.sidebar{background:#fff;border-right:1px solid rgba(44,122,110,.12);padding:20px 18px;display:flex;flex-direction:column;gap:0}
+
+.child-switcher-sidebar{margin-bottom:20px}
+.cs-heading{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.6px;margin-bottom:10px}
+
+.child-card{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:12px;cursor:pointer;border:2px solid transparent;margin-bottom:6px;transition:all .15s;background:#fafaf8}
+.child-card:hover{background:#f0ece4}
+.child-card.active-child{background:#f0faf8;border-color:#2c7a6e;border-left:4px solid #2c7a6e}
+.cc-avatar{width:38px;height:38px;border-radius:50%;background:#f0e8d0;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.cc-info{flex:1;min-width:0}
+.cc-name{font-size:13px;font-weight:700;color:#1a2a26}
+.cc-world{font-size:10px;color:#6a8a84;font-weight:600;margin-top:1px}
+.cc-meta{display:flex;align-items:center;gap:6px;margin-top:3px}
+.cc-tier{font-size:9px;font-weight:700;padding:2px 7px;border-radius:8px}
+.tier-strength{background:#e0f5ee;color:#1a5a40}
+.tier-growing{background:#e8f4fc;color:#1a4a6a}
+.tier-support{background:#fff0e0;color:#8a4a00}
+.cc-active-tag{font-size:9px;color:#2c7a6e;font-weight:700;margin-left:auto;background:#e0f5ee;padding:2px 6px;border-radius:6px}
+
+.family-snapshot-card{background:#f5f0e8;border-radius:14px;padding:14px;border:1px solid rgba(44,122,110,.12)}
+.fsc-title{font-size:11px;font-weight:700;color:#5a4a3a;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
+.fsc-stats{display:flex;gap:8px;margin-bottom:10px}
+.fsc-stat{flex:1;background:#fff;border-radius:10px;padding:8px 6px;text-align:center;border:1px solid #e8e0d0}
+.fsc-val{font-size:18px;font-weight:800;color:#2c7a6e}
+.fsc-label{font-size:9px;color:#8a7a6a;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-top:2px}
+.fsc-encourage{font-size:11px;color:#3a6a60;font-weight:700;text-align:center;background:rgba(44,122,110,.08);border-radius:8px;padding:6px 10px}
+
+/* ── Main content area ────────────────────────────────────── */
+.main-area{padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+
+/* Hero summary */
+.hero-summary-card{background:linear-gradient(135deg,#2c7a6e 0%,#1f5f56 100%);border-radius:18px;padding:22px 24px;color:#fff;position:relative;overflow:hidden;display:flex;align-items:flex-start;gap:18px}
+.hero-summary-card::after{content:'🌟';position:absolute;right:16px;top:12px;font-size:72px;opacity:.1;pointer-events:none}
+.hero-avatar{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;border:2px solid rgba(255,255,255,.35)}
+.hero-content{flex:1;min-width:0}
+.hero-child-name{font-size:20px;font-weight:800;margin-bottom:4px}
+.hero-world-chip{display:inline-block;background:rgba(255,255,255,.2);border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;margin-bottom:8px}
+.hero-summary-text{font-size:13px;opacity:.9;line-height:1.55;margin-bottom:14px;max-width:480px}
+.hero-stat-chips{display:flex;gap:10px;flex-wrap:wrap}
+.stat-chip{background:rgba(255,255,255,.15);border-radius:12px;padding:9px 14px;text-align:center;min-width:90px}
+.sc-val{font-size:18px;font-weight:800;color:#ffd166}
+.sc-label{font-size:9px;opacity:.75;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-top:2px}
+
+/* Next practice row */
+.next-practice-row{background:#fffbea;border:1.5px solid #f0c040;border-radius:14px;padding:14px 18px;display:flex;align-items:center;gap:16px}
+.npr-icon{width:42px;height:42px;border-radius:12px;background:#f0c040;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.npr-content{flex:1;min-width:0}
+.npr-label{font-size:11px;font-weight:700;color:#8a6200;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+.npr-skill{font-size:15px;font-weight:700;color:#3a2000;margin-bottom:4px}
+.npr-skill-chip{display:inline-block;background:rgba(240,192,64,.2);border-radius:8px;padding:2px 8px;font-size:10px;font-weight:700;color:#7a5200;margin-right:6px}
+.npr-time{font-size:11px;color:#8a7a6a;font-weight:600}
+.npr-btn{background:#2c7a6e;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap;transition:background .15s}
+.npr-btn:hover{background:#1f5f56}
+
+/* Progress snapshot card */
+.progress-snapshot-card{background:#fff;border-radius:16px;border:1px solid #e8e0d0;padding:18px}
+.psc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.psc-title{font-size:14px;font-weight:700;color:#1a2a26}
+.psc-view-link{font-size:12px;font-weight:700;color:#2c7a6e;cursor:pointer;text-decoration:none}
+.skill-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid #f0ece4}
+.skill-row:last-child{border-bottom:none}
+.skill-emoji-icon{font-size:18px;flex-shrink:0}
+.skill-name-text{flex:1;font-size:13px;font-weight:600;color:#2a2018}
+.tier-chip{padding:3px 9px;border-radius:10px;font-size:10px;font-weight:700;white-space:nowrap}
+.skill-trend-note{font-size:11px;color:#5a7a70;font-weight:600;text-align:right;min-width:120px}
+
+/* Teacher message strip */
+.teacher-message-strip{background:#fff;border-radius:14px;border:1.5px solid #2c7a6e;padding:14px 18px;display:flex;align-items:center;gap:14px}
+.tms-avatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#5090d0,#2a5080);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;color:#fff;flex-shrink:0}
+.tms-content{flex:1;min-width:0}
+.tms-from{font-size:12px;font-weight:700;color:#1a2a26}
+.tms-snippet{font-size:12px;color:#6a5a4a;line-height:1.4;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:400px}
+.tms-view-link{font-size:12px;font-weight:700;color:#2c7a6e;cursor:pointer;white-space:nowrap;text-decoration:none;border:1.5px solid #2c7a6e;padding:5px 12px;border-radius:8px;transition:all .15s;flex-shrink:0}
+.tms-view-link:hover{background:#2c7a6e;color:#fff}
+
+/* ──────────────────────────────────────────────────────────
+   TAB 2 — Progress
+──────────────────────────────────────────────────────────── */
+.progress-header{display:flex;align-items:center;gap:12px;padding:20px 24px 0}
+.ph-child-name{font-size:20px;font-weight:800;color:#1a2a26}
+.ph-world-chip{display:inline-block;background:#e0f5ee;color:#1a5a40;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700}
+.ph-weeks-chip{display:inline-block;background:#f0ece4;color:#5a4a3a;border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;border:1px solid #d8d0c0}
+
+.progress-body{padding:16px 24px;display:flex;flex-direction:column;gap:18px}
+
+.wins-section{}
+.section-heading{font-size:14px;font-weight:800;color:#1a2a26;margin-bottom:12px}
+.win-card{background:#fff;border-radius:12px;border-left:4px solid #2c7a6e;padding:12px 16px;border:1px solid #e8e0d0;border-left:4px solid #2c7a6e;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.win-card-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.win-card-content{}
+.win-skill{font-size:13px;font-weight:700;color:#1a2a26}
+.win-achievement{font-size:12px;color:#3a6a60;line-height:1.45;margin-top:2px;font-weight:600}
+
+.building-card{background:#fff;border-radius:12px;border-left:4px solid #f0a030;padding:12px 16px;border:1px solid #e8e0d0;border-left:4px solid #f0a030;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px}
+.building-card-icon{font-size:20px;flex-shrink:0;margin-top:1px}
+.building-skill{font-size:13px;font-weight:700;color:#1a2a26}
+.building-note{font-size:12px;color:#7a5200;line-height:1.45;margin-top:2px;font-weight:600}
+
+.engagement-chart-card{background:#fff;border-radius:16px;border:1px solid #e8e0d0;padding:18px}
+.ec-title{font-size:13px;font-weight:700;color:#1a2a26;margin-bottom:14px}
+.ec-bars{display:flex;align-items:flex-end;gap:8px;height:90px}
+.ec-bar-col{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.ec-bar{width:100%;border-radius:6px 6px 0 0;transition:height .3s;min-height:4px}
+.ec-bar.active-day{background:#2c7a6e}
+.ec-bar.light-day{background:#d0e8e4}
+.ec-bar.empty-day{background:#ede8de;min-height:4px}
+.ec-day-label{font-size:9px;font-weight:700;color:#aaa;text-transform:uppercase}
+
+.weekly-report-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#2c7a6e;cursor:pointer;padding:10px 16px;background:#e0f5ee;border-radius:10px;transition:background .15s;align-self:flex-start}
+.weekly-report-link:hover{background:#c8ede4}
+
+/* ──────────────────────────────────────────────────────────
+   TAB 3 — Messages
+──────────────────────────────────────────────────────────── */
+.messages-header{display:flex;align-items:center;gap:12px;padding:20px 24px 0}
+.mh-title{font-size:20px;font-weight:800;color:#1a2a26}
+.unread-chip{background:#2c7a6e;color:#fff;border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700}
+.new-msg-btn{margin-left:auto;background:#f0ece4;color:#aaa;border:1.5px solid #d8d0c0;border-radius:10px;padding:8px 16px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:not-allowed;display:flex;align-items:center;gap:6px}
+.new-msg-hint{font-size:10px;color:#aaa;font-weight:600;padding:0 24px 12px;margin-top:4px}
+
+.message-list-desktop{padding:0 24px 24px;display:flex;flex-direction:column;gap:0}
+
+.message-item-desktop{background:#fff;border-radius:14px;border:1px solid #e8e0d0;margin-bottom:10px;overflow:hidden;transition:box-shadow .15s;cursor:pointer}
+.message-item-desktop:hover .mid-row{background:#f5f0e8}
+.mid-row{display:flex;align-items:center;gap:14px;padding:14px 18px;transition:background .15s}
+.mid-avatar{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#5090d0,#2a5080);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:#fff;flex-shrink:0}
+.mid-content{flex:1;min-width:0}
+.mid-from{font-size:13px;font-weight:700;color:#1a2a26;margin-bottom:2px}
+.mid-meta{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.mid-class-chip{display:inline-block;background:#e8f0f8;color:#1a3a6a;border-radius:8px;padding:2px 7px;font-size:10px;font-weight:700}
+.mid-snippet{font-size:12px;color:#6a5a4a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:420px}
+.mid-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex-shrink:0}
+.mid-date{font-size:10px;color:#aaa;font-weight:600}
+.mid-unread-dot{width:10px;height:10px;border-radius:50%;background:#2c7a6e}
+
+/* Message thread inline */
+.message-thread-desktop{display:none;border-top:1px solid #e8e0d0;padding:16px 18px;background:#fafaf8}
+.message-thread-desktop.open{display:block}
+.thread-bubble-row{display:flex;margin-bottom:12px;gap:10px}
+.thread-bubble-row.teacher-row{flex-direction:row}
+.thread-bubble-row.parent-row{flex-direction:row-reverse}
+.bubble{max-width:60%;padding:10px 14px;border-radius:14px;font-size:12px;line-height:1.5;font-weight:600}
+.teacher-bubble{background:#e0f5ee;color:#1a3a2a;border-radius:14px 14px 14px 4px}
+.parent-bubble{background:#fff;border:1px solid #d8d0c0;color:#2a2018;border-radius:14px 14px 4px 14px}
+.bubble-meta{font-size:9px;color:#aaa;font-weight:600;margin-top:4px}
+.reply-area{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.reply-textarea{width:100%;border:1.5px solid #d8d0c0;border-radius:10px;padding:10px 12px;font-family:'Sora',sans-serif;font-size:12px;resize:none;background:#fff;color:#2a2018;outline:none}
+.reply-row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.reply-send-btn{background:#d8d0c0;color:#aaa;border:none;border-radius:8px;padding:8px 18px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:not-allowed}
+.safety-note-chip{display:inline-flex;align-items:center;gap:4px;background:#fff0e0;border:1px solid #f0c040;border-radius:8px;padding:4px 9px;font-size:10px;color:#7a5200;font-weight:700}
+
+/* ──────────────────────────────────────────────────────────
+   TAB 4 — Settings
+──────────────────────────────────────────────────────────── */
+.settings-grid{display:grid;grid-template-columns:260px 1fr;min-height:500px;gap:0}
+.settings-nav{background:#fff;border-right:1px solid rgba(44,122,110,.12);padding:20px 16px;display:flex;flex-direction:column;gap:2px}
+.settings-nav-title{font-size:10px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;padding:0 6px}
+.sn-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;cursor:pointer;font-size:13px;font-weight:600;color:#555;transition:all .15s}
+.sn-item:hover{background:rgba(44,122,110,.07);color:#2c7a6e}
+.sn-item.active-nav{background:rgba(44,122,110,.1);color:#2c7a6e;font-weight:700}
+.sn-icon{font-size:16px;flex-shrink:0}
+
+.settings-panel{padding:24px 28px;display:flex;flex-direction:column;gap:20px}
+.sp-section-title{font-size:16px;font-weight:800;color:#1a2a26;margin-bottom:4px}
+.sp-section-sub{font-size:12px;color:#7a6a5a;margin-bottom:16px;font-weight:600}
+
+.toggle-list{display:flex;flex-direction:column;gap:0;background:#fff;border-radius:14px;border:1px solid #e8e0d0;overflow:hidden}
+.toggle-row{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #f0ece4;transition:background .1s}
+.toggle-row:last-child{border-bottom:none}
+.toggle-row:hover{background:#fafaf8}
+.tr-icon{font-size:18px;flex-shrink:0}
+.tr-content{flex:1;min-width:0}
+.tr-label{font-size:13px;font-weight:700;color:#1a2a26}
+.tr-sub{font-size:11px;color:#8a7a6a;font-weight:600;margin-top:1px}
+.toggle-switch{position:relative;width:44px;height:24px;flex-shrink:0;cursor:pointer}
+.toggle-switch input{opacity:0;width:0;height:0;position:absolute}
+.toggle-track{position:absolute;inset:0;background:#d8d0c0;border-radius:12px;transition:background .2s}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle-switch input:checked ~ .toggle-track{background:#2c7a6e}
+.toggle-switch input:checked ~ .toggle-thumb{transform:translateX(20px)}
+
+.time-picker-row{display:flex;align-items:center;gap:10px;margin-top:6px;padding:0 2px}
+.tp-label{font-size:12px;font-weight:600;color:#5a4a3a}
+.tp-select{border:1.5px solid #d8d0c0;border-radius:8px;padding:6px 10px;font-family:'Sora',sans-serif;font-size:12px;background:#fff;color:#2a2018;cursor:pointer;outline:none}
+
+.privacy-promise-card{background:#e0f5ee;border-radius:14px;padding:16px 18px;border:1.5px solid #2c7a6e;display:flex;align-items:flex-start;gap:12px}
+.ppc-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.ppc-text{font-size:13px;font-weight:700;color:#1a3a2a;line-height:1.5}
+.ppc-sub{font-size:11px;color:#3a6a60;font-weight:600;margin-top:4px}
+
+.linked-children-card{background:#fff;border-radius:14px;border:1px solid #e8e0d0;padding:18px}
+.lcc-title{font-size:14px;font-weight:700;color:#1a2a26;margin-bottom:12px}
+.linked-child-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f0ece4}
+.linked-child-row:last-child{border-bottom:none}
+.lcr-avatar{width:36px;height:36px;border-radius:50%;background:#f0e8d0;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.lcr-info{flex:1;min-width:0}
+.lcr-name{font-size:13px;font-weight:700;color:#1a2a26}
+.lcr-grade{font-size:11px;color:#7a6a5a;font-weight:600}
+.unlink-btn{background:#fff;border:1.5px solid #e8e0d0;color:#8a6a5a;border-radius:8px;padding:6px 14px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;flex-shrink:0}
+.unlink-btn:hover{background:#fff0e0;border-color:#f0c040;color:#7a4a00}
+.unlink-confirm{display:none;background:#fff0e0;border:1.5px solid #f0a030;border-radius:10px;padding:10px 14px;margin-top:8px;font-size:12px;color:#7a3000;font-weight:700}
+.unlink-confirm.show{display:flex;align-items:center;gap:10px}
+.unlink-confirm-btns{display:flex;gap:8px;margin-left:auto}
+.uc-cancel{background:#fff;border:1.5px solid #d8d0c0;border-radius:7px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;color:#5a4a3a}
+.uc-confirm{background:#e05030;border:none;border-radius:7px;padding:5px 12px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;color:#fff}
+
+/* ──────────────────────────────────────────────────────────
+   TAB 5 — Spec
+──────────────────────────────────────────────────────────── */
+.spec-panel{padding:24px;display:flex;flex-direction:column;gap:20px;max-width:760px}
+.spec-heading{font-size:18px;font-weight:800;color:#1a2a26}
+.spec-section{display:flex;flex-direction:column;gap:6px}
+.spec-section-title{font-size:13px;font-weight:700;color:#5a4a3a;text-transform:uppercase;letter-spacing:.5px}
+.spec-list{list-style:none;display:flex;flex-direction:column;gap:5px}
+.spec-list li{font-size:12px;color:#3a3028;font-weight:600;padding:5px 8px;background:#fff;border-radius:6px;border:1px solid #e8e0d0}
+.spec-list li code{background:#f0ece4;padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace;color:#5a3e00}
+.spec-rule{font-size:12px;color:#3a3028;line-height:1.6;font-weight:600;padding:10px 12px;background:#fff;border-radius:8px;border:1px solid #e8e0d0}
+
+/* ── Utilities ────────────────────────────────────────────── */
+.separator{height:1px;background:#f0ece4;margin:4px 0}
+</style>
+</head>
+<body>
+
+<!-- Tab selector bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="show('tab1')">1 · Dashboard Home</button>
+  <button class="tab-btn" onclick="show('tab2')">2 · Progress</button>
+  <button class="tab-btn" onclick="show('tab3')">3 · Messages</button>
+  <button class="tab-btn" onclick="show('tab4')">4 · Settings</button>
+  <button class="tab-btn" onclick="show('tab5')">5 · Spec</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAB 1 — Dashboard Home
+════════════════════════════════════════════════════════════ -->
+<div id="tab1" class="panel active">
+  <div class="desktop">
+
+    <!-- Engineering hint -->
+    <div class="hint-box">
+      <strong>Engineering · Tab 1 — Dashboard Home</strong>
+      Route: <code>GET /parent/dashboard</code> &nbsp;|&nbsp;
+      Layout: 320px sidebar + 1fr main, max-width 1100px &nbsp;|&nbsp;
+      Active child drives all main panel content &nbsp;|&nbsp;
+      Language rules: no accuracy %, no "missed", no "weak" — tier labels: support / growing / strength only &nbsp;|&nbsp;
+      Hero summary: 2 sentences max, world-name framing &nbsp;|&nbsp;
+      Stats: stars / streak / badges — never raw scores
+    </div>
+
+    <!-- Top nav -->
+    <nav class="top-nav">
+      <div class="nav-logo">WonderQuest 🌟</div>
+      <div class="nav-links">
+        <a class="nav-link active">Home</a>
+        <a class="nav-link">Progress</a>
+        <a class="nav-link">Messages</a>
+        <a class="nav-link">Settings</a>
+      </div>
+      <div class="nav-right">
+        <div class="nav-date">Mon, Mar 23</div>
+        <div class="nav-avatar">SP</div>
+      </div>
+    </nav>
+
+    <!-- 2-col body -->
+    <div class="two-col">
+
+      <!-- Left sidebar -->
+      <aside class="sidebar">
+        <div class="child-switcher-sidebar">
+          <div class="cs-heading">Your Children</div>
+
+          <!-- Active child -->
+          <div class="child-card active-child" onclick="setActiveChild(this,'Emma','🦊','Crystal Caves')">
+            <div class="cc-avatar">🦊</div>
+            <div class="cc-info">
+              <div class="cc-name">Emma</div>
+              <div class="cc-world">Crystal Caves World</div>
+              <div class="cc-meta">
+                <span class="cc-tier tier-growing">Growing</span>
+                <span class="cc-active-tag">Played today</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="child-card" onclick="setActiveChild(this,'Noah','🐻','Sunstone Fields')">
+            <div class="cc-avatar">🐻</div>
+            <div class="cc-info">
+              <div class="cc-name">Noah</div>
+              <div class="cc-world">Sunstone Fields World</div>
+              <div class="cc-meta">
+                <span class="cc-tier tier-strength">Strength</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="child-card" onclick="setActiveChild(this,'Lily','🐱','Whispering Forest')">
+            <div class="cc-avatar">🐱</div>
+            <div class="cc-info">
+              <div class="cc-name">Lily</div>
+              <div class="cc-world">Whispering Forest World</div>
+              <div class="cc-meta">
+                <span class="cc-tier tier-support">Support</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Family snapshot -->
+        <div class="family-snapshot-card">
+          <div class="fsc-title">Family This Week</div>
+          <div class="fsc-stats">
+            <div class="fsc-stat">
+              <div class="fsc-val">142</div>
+              <div class="fsc-label">Stars earned</div>
+            </div>
+            <div class="fsc-stat">
+              <div class="fsc-val">11</div>
+              <div class="fsc-label">Sessions</div>
+            </div>
+            <div class="fsc-stat">
+              <div class="fsc-val">7</div>
+              <div class="fsc-label">Badges</div>
+            </div>
+          </div>
+          <div class="fsc-encourage">Great week for the family! 🌟</div>
+        </div>
+      </aside>
+
+      <!-- Main content -->
+      <main class="main-area">
+
+        <!-- Hero summary card -->
+        <div class="hero-summary-card">
+          <div class="hero-avatar">🦊</div>
+          <div class="hero-content">
+            <div class="hero-child-name">Emma</div>
+            <div class="hero-world-chip">Crystal Caves World</div>
+            <div class="hero-summary-text">
+              Emma is exploring Crystal Caves and building real confidence across her reading and phonics skills. She's been on a great streak this week — every session ends with something new to celebrate.
+            </div>
+            <div class="hero-stat-chips">
+              <div class="stat-chip">
+                <div class="sc-val">⭐ 54</div>
+                <div class="sc-label">Stars this week</div>
+              </div>
+              <div class="stat-chip">
+                <div class="sc-val">🔥 6</div>
+                <div class="sc-label">Day streak</div>
+              </div>
+              <div class="stat-chip">
+                <div class="sc-val">🏅 3</div>
+                <div class="sc-label">New badges</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Next practice row -->
+        <div class="next-practice-row">
+          <div class="npr-icon">🎯</div>
+          <div class="npr-content">
+            <div class="npr-label">Emma's next practice →</div>
+            <div class="npr-skill">Vowel Teams
+              <span class="npr-skill-chip">Phonics</span>
+            </div>
+            <div class="npr-time">~10 min &nbsp;·&nbsp; Picks up where she left off</div>
+          </div>
+          <button class="npr-btn">Start Practice</button>
+        </div>
+
+        <!-- Progress snapshot card -->
+        <div class="progress-snapshot-card">
+          <div class="psc-header">
+            <div class="psc-title">Emma's Skill Snapshot</div>
+            <a class="psc-view-link">View full progress →</a>
+          </div>
+
+          <div class="skill-row">
+            <span class="skill-emoji-icon">🔤</span>
+            <span class="skill-name-text">Phonics — Vowel Teams</span>
+            <span class="tier-chip tier-growing">Growing</span>
+            <span class="skill-trend-note">Getting stronger</span>
+          </div>
+          <div class="skill-row">
+            <span class="skill-emoji-icon">📖</span>
+            <span class="skill-name-text">Reading Fluency</span>
+            <span class="tier-chip tier-strength">Strength</span>
+            <span class="skill-trend-note">Ready for more</span>
+          </div>
+          <div class="skill-row">
+            <span class="skill-emoji-icon">✏️</span>
+            <span class="skill-name-text">Sight Words</span>
+            <span class="tier-chip tier-support">Support</span>
+            <span class="skill-trend-note">Building foundations</span>
+          </div>
+          <div class="skill-row">
+            <span class="skill-emoji-icon">🔢</span>
+            <span class="skill-name-text">Number Sense</span>
+            <span class="tier-chip tier-growing">Growing</span>
+            <span class="skill-trend-note">Getting stronger</span>
+          </div>
+        </div>
+
+        <!-- Teacher message strip -->
+        <div class="teacher-message-strip">
+          <div class="tms-avatar">MJ</div>
+          <div class="tms-content">
+            <div class="tms-from">Ms. Johnson · Grade 1</div>
+            <div class="tms-snippet">Hi! I wanted to share some exciting progress I've noticed with Emma's reading this week...</div>
+          </div>
+          <a class="tms-view-link">View →</a>
+        </div>
+
+      </main>
+    </div><!-- /two-col -->
+  </div><!-- /desktop -->
+</div><!-- /tab1 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAB 2 — Progress (Emma)
+════════════════════════════════════════════════════════════ -->
+<div id="tab2" class="panel">
+  <div class="desktop">
+
+    <div class="hint-box">
+      <strong>Engineering · Tab 2 — Progress (Active Child)</strong>
+      Route: <code>GET /parent/child/:id/summary</code> &nbsp;|&nbsp;
+      No accuracy % anywhere &nbsp;|&nbsp;
+      Tier labels: support / growing / strength &nbsp;|&nbsp;
+      Win cards: forward language only &nbsp;|&nbsp;
+      Building section: never use "struggling", never show score &nbsp;|&nbsp;
+      Engagement chart: empty days get neutral color, no "missed" label
+    </div>
+
+    <nav class="top-nav">
+      <div class="nav-logo">WonderQuest 🌟</div>
+      <div class="nav-links">
+        <a class="nav-link">Home</a>
+        <a class="nav-link active">Progress</a>
+        <a class="nav-link">Messages</a>
+        <a class="nav-link">Settings</a>
+      </div>
+      <div class="nav-right">
+        <div class="nav-date">Mon, Mar 23</div>
+        <div class="nav-avatar">SP</div>
+      </div>
+    </nav>
+
+    <!-- Progress header -->
+    <div class="progress-header">
+      <div class="ph-child-name">Emma</div>
+      <div class="ph-world-chip">Crystal Caves World</div>
+      <div class="ph-weeks-chip">Weeks in WonderQuest: 8</div>
+    </div>
+
+    <div class="progress-body">
+
+      <!-- Recent Wins -->
+      <div class="wins-section">
+        <div class="section-heading">Recent Wins 🎉</div>
+
+        <div class="win-card">
+          <div class="win-card-icon">🏅</div>
+          <div class="win-card-content">
+            <div class="win-skill">Reading Fluency</div>
+            <div class="win-achievement">Emma earned her "Flow Reader" badge — she's reading longer passages with growing confidence and rhythm.</div>
+          </div>
+        </div>
+        <div class="win-card">
+          <div class="win-card-icon">⭐</div>
+          <div class="win-card-content">
+            <div class="win-skill">Phonics — Vowel Teams</div>
+            <div class="win-achievement">She unlocked a new Crystal Cave level by connecting vowel team patterns she's been working on. Big progress this week!</div>
+          </div>
+        </div>
+        <div class="win-card">
+          <div class="win-card-icon">🔥</div>
+          <div class="win-card-content">
+            <div class="win-skill">Consistency Milestone</div>
+            <div class="win-achievement">Emma hit a 6-day exploration streak — her longest ever. She's building a wonderful learning habit.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Building Next -->
+      <div class="building-section">
+        <div class="section-heading">Building Next</div>
+
+        <div class="building-card">
+          <div class="building-card-icon">🌱</div>
+          <div class="building-card-content">
+            <div class="building-skill">Sight Words</div>
+            <div class="building-note">Emma is expanding her sight word recognition — her next few sessions will offer gentle practice to help these words become automatic.</div>
+          </div>
+        </div>
+        <div class="building-card">
+          <div class="building-card-icon">🧩</div>
+          <div class="building-card-content">
+            <div class="building-skill">Syllable Segmentation</div>
+            <div class="building-note">She's exploring multi-syllable words. Each session adds a new layer — she's building toward confident decoding of longer words.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Engagement chart -->
+      <div class="engagement-chart-card">
+        <div class="ec-title">Days Emma explored this week</div>
+        <div class="ec-bars">
+          <!-- Mon -->
+          <div class="ec-bar-col">
+            <div class="ec-bar active-day" style="height:72px"></div>
+            <div class="ec-day-label">Mon</div>
+          </div>
+          <!-- Tue -->
+          <div class="ec-bar-col">
+            <div class="ec-bar active-day" style="height:58px"></div>
+            <div class="ec-day-label">Tue</div>
+          </div>
+          <!-- Wed -->
+          <div class="ec-bar-col">
+            <div class="ec-bar light-day" style="height:28px"></div>
+            <div class="ec-day-label">Wed</div>
+          </div>
+          <!-- Thu -->
+          <div class="ec-bar-col">
+            <div class="ec-bar active-day" style="height:80px"></div>
+            <div class="ec-day-label">Thu</div>
+          </div>
+          <!-- Fri -->
+          <div class="ec-bar-col">
+            <div class="ec-bar active-day" style="height:65px"></div>
+            <div class="ec-day-label">Fri</div>
+          </div>
+          <!-- Sat -->
+          <div class="ec-bar-col">
+            <div class="ec-bar empty-day" style="height:4px"></div>
+            <div class="ec-day-label">Sat</div>
+          </div>
+          <!-- Sun -->
+          <div class="ec-bar-col">
+            <div class="ec-bar active-day" style="height:50px"></div>
+            <div class="ec-day-label">Sun</div>
+          </div>
+        </div>
+      </div>
+
+      <a class="weekly-report-link">📄 View full weekly report →</a>
+
+    </div><!-- /progress-body -->
+  </div><!-- /desktop -->
+</div><!-- /tab2 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAB 3 — Messages
+════════════════════════════════════════════════════════════ -->
+<div id="tab3" class="panel">
+  <div class="desktop">
+
+    <div class="hint-box">
+      <strong>Engineering · Tab 3 — Messages</strong>
+      Route: <code>GET /parent/messages</code> &nbsp;|&nbsp;
+      Teacher-initiated messages only — "New Message +" is disabled for parents &nbsp;|&nbsp;
+      Replies routed through contact-safe system (reply send button disabled in this prototype) &nbsp;|&nbsp;
+      Inline thread expands on click &nbsp;|&nbsp;
+      Teacher bubbles: teal tint / Parent bubbles: white
+    </div>
+
+    <nav class="top-nav">
+      <div class="nav-logo">WonderQuest 🌟</div>
+      <div class="nav-links">
+        <a class="nav-link">Home</a>
+        <a class="nav-link">Progress</a>
+        <a class="nav-link active">Messages</a>
+        <a class="nav-link">Settings</a>
+      </div>
+      <div class="nav-right">
+        <div class="nav-date">Mon, Mar 23</div>
+        <div class="nav-avatar">SP</div>
+      </div>
+    </nav>
+
+    <!-- Messages header -->
+    <div class="messages-header">
+      <div class="mh-title">Messages</div>
+      <div class="unread-chip">2 unread</div>
+      <button class="new-msg-btn" disabled title="Teachers initiate conversations — your reply appears in threads below">
+        New Message + <span style="font-size:9px;opacity:.7">(teacher-initiated only)</span>
+      </button>
+    </div>
+    <div class="new-msg-hint">Teachers start conversations. You can reply within any thread below.</div>
+
+    <!-- Message list -->
+    <div class="message-list-desktop">
+
+      <!-- Message 1 — unread, expandable -->
+      <div class="message-item-desktop" id="msg1">
+        <div class="mid-row" onclick="toggleThread('thread1')">
+          <div class="mid-avatar">MJ</div>
+          <div class="mid-content">
+            <div class="mid-from">Ms. Johnson</div>
+            <div class="mid-meta">
+              <span class="mid-class-chip">Grade 1 · Reading</span>
+            </div>
+            <div class="mid-snippet">Hi! I wanted to share some exciting progress I've noticed with Emma's reading this week — she's really blossoming…</div>
+          </div>
+          <div class="mid-right">
+            <div class="mid-date">Mar 22</div>
+            <div class="mid-unread-dot"></div>
+          </div>
+        </div>
+        <div class="message-thread-desktop" id="thread1">
+          <div class="thread-bubble-row teacher-row">
+            <div class="bubble teacher-bubble">
+              Hi! I wanted to share some exciting progress I've noticed with Emma's reading this week — she's really blossoming in fluency and I can see her confidence growing with every session.
+              <div class="bubble-meta">Ms. Johnson · Mar 22, 2:14 PM</div>
+            </div>
+          </div>
+          <div class="thread-bubble-row teacher-row">
+            <div class="bubble teacher-bubble">
+              Her vowel team work in WonderQuest has been translating beautifully into classroom reading. Keep it up!
+              <div class="bubble-meta">Ms. Johnson · Mar 22, 2:15 PM</div>
+            </div>
+          </div>
+          <div class="thread-bubble-row parent-row">
+            <div class="bubble parent-bubble">
+              That's so wonderful to hear! Emma has been really excited about Crystal Caves — thank you for letting us know.
+              <div class="bubble-meta">You · Mar 22, 3:40 PM</div>
+            </div>
+          </div>
+          <div class="reply-area">
+            <textarea class="reply-textarea" rows="2" placeholder="Write a reply…"></textarea>
+            <div class="reply-row">
+              <div class="safety-note-chip">🔒 Replies route through WonderQuest's contact system</div>
+              <button class="reply-send-btn" disabled>Send (routed)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 2 — unread -->
+      <div class="message-item-desktop" id="msg2">
+        <div class="mid-row" onclick="toggleThread('thread2')">
+          <div class="mid-avatar">RL</div>
+          <div class="mid-content">
+            <div class="mid-from">Mr. Lee</div>
+            <div class="mid-meta">
+              <span class="mid-class-chip">Grade 1 · Math</span>
+            </div>
+            <div class="mid-snippet">Noah has been doing a fantastic job in Number Sense — he's ready to move into the next level...</div>
+          </div>
+          <div class="mid-right">
+            <div class="mid-date">Mar 21</div>
+            <div class="mid-unread-dot"></div>
+          </div>
+        </div>
+        <div class="message-thread-desktop" id="thread2">
+          <div class="thread-bubble-row teacher-row">
+            <div class="bubble teacher-bubble">
+              Noah has been doing a fantastic job in Number Sense — he's ready to move into the next level. His streak in Sunstone Fields is really carrying over to class.
+              <div class="bubble-meta">Mr. Lee · Mar 21, 10:02 AM</div>
+            </div>
+          </div>
+          <div class="reply-area">
+            <textarea class="reply-textarea" rows="2" placeholder="Write a reply…"></textarea>
+            <div class="reply-row">
+              <div class="safety-note-chip">🔒 Replies route through WonderQuest's contact system</div>
+              <button class="reply-send-btn" disabled>Send (routed)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Message 3 — read -->
+      <div class="message-item-desktop" id="msg3">
+        <div class="mid-row" onclick="toggleThread('thread3')">
+          <div class="mid-avatar">SW</div>
+          <div class="mid-content">
+            <div class="mid-from">Ms. Williams</div>
+            <div class="mid-meta">
+              <span class="mid-class-chip">Pre-K · Early Learner</span>
+            </div>
+            <div class="mid-snippet">Lily had a wonderful week in Whispering Forest — her letter recognition is coming along beautifully...</div>
+          </div>
+          <div class="mid-right">
+            <div class="mid-date">Mar 19</div>
+          </div>
+        </div>
+        <div class="message-thread-desktop" id="thread3">
+          <div class="thread-bubble-row teacher-row">
+            <div class="bubble teacher-bubble">
+              Lily had a wonderful week in Whispering Forest — her letter recognition is coming along beautifully. The picture-matching activities seem to be clicking for her!
+              <div class="bubble-meta">Ms. Williams · Mar 19, 9:30 AM</div>
+            </div>
+          </div>
+          <div class="thread-bubble-row parent-row">
+            <div class="bubble parent-bubble">
+              She loves it! She asks to play every morning before breakfast.
+              <div class="bubble-meta">You · Mar 19, 11:15 AM</div>
+            </div>
+          </div>
+          <div class="reply-area">
+            <textarea class="reply-textarea" rows="2" placeholder="Write a reply…"></textarea>
+            <div class="reply-row">
+              <div class="safety-note-chip">🔒 Replies route through WonderQuest's contact system</div>
+              <button class="reply-send-btn" disabled>Send (routed)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /message-list-desktop -->
+  </div><!-- /desktop -->
+</div><!-- /tab3 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAB 4 — Settings & Notifications
+════════════════════════════════════════════════════════════ -->
+<div id="tab4" class="panel">
+  <div class="desktop">
+
+    <div class="hint-box">
+      <strong>Engineering · Tab 4 — Settings & Notifications</strong>
+      Route: <code>PUT /parent/settings</code> &nbsp;|&nbsp;
+      Layout: 260px settings nav + 1fr panel &nbsp;|&nbsp;
+      Default panel: Notifications &nbsp;|&nbsp;
+      Unlink flow: amber confirm — not immediately destructive &nbsp;|&nbsp;
+      Privacy promise card always visible
+    </div>
+
+    <nav class="top-nav">
+      <div class="nav-logo">WonderQuest 🌟</div>
+      <div class="nav-links">
+        <a class="nav-link">Home</a>
+        <a class="nav-link">Progress</a>
+        <a class="nav-link">Messages</a>
+        <a class="nav-link active">Settings</a>
+      </div>
+      <div class="nav-right">
+        <div class="nav-date">Mon, Mar 23</div>
+        <div class="nav-avatar">SP</div>
+      </div>
+    </nav>
+
+    <div class="settings-grid">
+      <!-- Settings nav -->
+      <nav class="settings-nav">
+        <div class="settings-nav-title">Settings</div>
+        <div class="sn-item active-nav" onclick="setSettingsNav(this)"><span class="sn-icon">🔔</span> Notifications</div>
+        <div class="sn-item" onclick="setSettingsNav(this)"><span class="sn-icon">⏰</span> Practice Reminders</div>
+        <div class="sn-item" onclick="setSettingsNav(this)"><span class="sn-icon">👨‍👩‍👧‍👦</span> Children</div>
+        <div class="sn-item" onclick="setSettingsNav(this)"><span class="sn-icon">🔒</span> Privacy</div>
+        <div class="sn-item" onclick="setSettingsNav(this)"><span class="sn-icon">👤</span> Account</div>
+      </nav>
+
+      <!-- Settings panel -->
+      <div class="settings-panel">
+        <div>
+          <div class="sp-section-title">Notifications</div>
+          <div class="sp-section-sub">Choose what updates you receive from WonderQuest.</div>
+        </div>
+
+        <!-- Toggle list -->
+        <div class="toggle-list">
+          <div class="toggle-row">
+            <span class="tr-icon">💬</span>
+            <div class="tr-content">
+              <div class="tr-label">Teacher messages</div>
+              <div class="tr-sub">Get notified when a teacher sends you a message</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="updateThumb(this)">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span class="tr-icon">📋</span>
+            <div class="tr-content">
+              <div class="tr-label">Weekly progress summary</div>
+              <div class="tr-sub">A warm recap of each child's week, every Sunday</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="updateThumb(this)">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span class="tr-icon">🏅</span>
+            <div class="tr-content">
+              <div class="tr-label">Achievement alerts</div>
+              <div class="tr-sub">Celebrate when your child earns a badge or hits a milestone</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="updateThumb(this)">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <span class="tr-icon">🌙</span>
+            <div class="tr-content">
+              <div class="tr-label">Quiet hours</div>
+              <div class="tr-sub">No notifications during these hours</div>
+              <div class="time-picker-row">
+                <span class="tp-label">From</span>
+                <select class="tp-select">
+                  <option>8:00 PM</option><option>9:00 PM</option><option selected>10:00 PM</option><option>11:00 PM</option>
+                </select>
+                <span class="tp-label">to</span>
+                <select class="tp-select">
+                  <option selected>7:00 AM</option><option>8:00 AM</option><option>9:00 AM</option>
+                </select>
+              </div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" checked onchange="updateThumb(this)">
+              <div class="toggle-track"></div>
+              <div class="toggle-thumb"></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Privacy promise card -->
+        <div class="privacy-promise-card">
+          <div class="ppc-icon">🔒</div>
+          <div>
+            <div class="ppc-text">WonderQuest never shares your children's data.</div>
+            <div class="ppc-sub">Your family's information is used only to personalize their learning experience. We never sell or share data with advertisers or third parties.</div>
+          </div>
+        </div>
+
+        <!-- Linked children card -->
+        <div class="linked-children-card">
+          <div class="lcc-title">Linked Children</div>
+
+          <div class="linked-child-row" id="lcr-emma">
+            <div class="lcr-avatar">🦊</div>
+            <div class="lcr-info">
+              <div class="lcr-name">Emma</div>
+              <div class="lcr-grade">Grade 1 · Crystal Caves World</div>
+            </div>
+            <button class="unlink-btn" onclick="showUnlink('unlink-emma')">Unlink</button>
+          </div>
+          <div class="unlink-confirm" id="unlink-emma">
+            Remove Emma from your account?
+            <div class="unlink-confirm-btns">
+              <button class="uc-cancel" onclick="hideUnlink('unlink-emma')">Cancel</button>
+              <button class="uc-confirm">Remove</button>
+            </div>
+          </div>
+
+          <div class="linked-child-row" id="lcr-noah">
+            <div class="lcr-avatar">🐻</div>
+            <div class="lcr-info">
+              <div class="lcr-name">Noah</div>
+              <div class="lcr-grade">Grade 1 · Sunstone Fields World</div>
+            </div>
+            <button class="unlink-btn" onclick="showUnlink('unlink-noah')">Unlink</button>
+          </div>
+          <div class="unlink-confirm" id="unlink-noah">
+            Remove Noah from your account?
+            <div class="unlink-confirm-btns">
+              <button class="uc-cancel" onclick="hideUnlink('unlink-noah')">Cancel</button>
+              <button class="uc-confirm">Remove</button>
+            </div>
+          </div>
+
+          <div class="linked-child-row" id="lcr-lily">
+            <div class="lcr-avatar">🐱</div>
+            <div class="lcr-info">
+              <div class="lcr-name">Lily</div>
+              <div class="lcr-grade">Pre-K · Whispering Forest World</div>
+            </div>
+            <button class="unlink-btn" onclick="showUnlink('unlink-lily')">Unlink</button>
+          </div>
+          <div class="unlink-confirm" id="unlink-lily">
+            Remove Lily from your account?
+            <div class="unlink-confirm-btns">
+              <button class="uc-cancel" onclick="hideUnlink('unlink-lily')">Cancel</button>
+              <button class="uc-confirm">Remove</button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /settings-panel -->
+    </div><!-- /settings-grid -->
+  </div><!-- /desktop -->
+</div><!-- /tab4 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════
+     TAB 5 — Spec
+════════════════════════════════════════════════════════════ -->
+<div id="tab5" class="panel">
+  <div class="desktop">
+
+    <div class="hint-box">
+      <strong>Engineering · Tab 5 — Specification Reference</strong>
+      This tab is the canonical design-engineering contract for the parent desktop dashboard.
+      All other tabs must conform to these rules.
+    </div>
+
+    <nav class="top-nav">
+      <div class="nav-logo">WonderQuest 🌟</div>
+      <div class="nav-links">
+        <a class="nav-link">Home</a>
+        <a class="nav-link">Progress</a>
+        <a class="nav-link">Messages</a>
+        <a class="nav-link">Settings</a>
+      </div>
+      <div class="nav-right">
+        <div class="nav-date">Mon, Mar 23</div>
+        <div class="nav-avatar">SP</div>
+      </div>
+    </nav>
+
+    <div style="padding:8px 0 24px">
+      <div class="spec-panel">
+        <div class="spec-heading">Parent Dashboard Desktop — Canonical Spec v2</div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Routes</div>
+          <ul class="spec-list">
+            <li><code>GET /parent/dashboard</code> — Dashboard home (Tab 1)</li>
+            <li><code>GET /parent/child/:id/summary</code> — Progress view for active child (Tab 2)</li>
+            <li><code>GET /parent/messages</code> — Message center (Tab 3)</li>
+            <li><code>PUT /parent/settings</code> — Save notification and account settings (Tab 4)</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Layout</div>
+          <ul class="spec-list">
+            <li>Desktop surface — no phone frame. <code>max-width: 1100px</code>, centered, <code>border-radius: 16px</code></li>
+            <li>Dashboard home: <code>320px sidebar + 1fr main</code> two-column grid</li>
+            <li>Settings: <code>260px settings nav + 1fr panel</code> two-column grid</li>
+            <li>Top nav: <code>height: 56px</code>, logo left, center nav links, date chip + avatar right</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Parent Language Rules</div>
+          <div class="spec-rule">
+            ✅ Use: stars earned, streak, badges, tier labels (support / growing / strength), trend notes (Getting stronger / Building foundations / Ready for more), world-name framing, growth language<br><br>
+            ❌ Never use: accuracy %, "missed", "weak", "failed", "incorrect", raw scores, performance percentages<br><br>
+            Hero summary: 2 sentences maximum. Must include world name. Forward-looking and growth-focused.<br><br>
+            Win cards: forward language only — always frame what the child is achieving, not what they lack.<br><br>
+            Building section: never say "struggling" or reference a score. Frame as exploration and next steps.
+          </div>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Child Switcher</div>
+          <ul class="spec-list">
+            <li>Shows all linked children in left sidebar</li>
+            <li>Active child highlighted with <code>border-left: 4px solid #2c7a6e</code> and teal background tint</li>
+            <li>Active child selection drives all main panel content (hero, next practice, progress snapshot)</li>
+            <li>Each child card shows: avatar emoji, name, world chip, tier label, last-active indicator</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Engagement Chart</div>
+          <ul class="spec-list">
+            <li>7-day CSS bar chart — one bar per day of the week</li>
+            <li>Active days: <code>#2c7a6e</code> bar</li>
+            <li>Light-activity days: <code>#d0e8e4</code> bar</li>
+            <li>Empty/no-session days: <code>#ede8de</code> neutral bar (very short height) — no label, no "missed" text</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Messages</div>
+          <ul class="spec-list">
+            <li>Teacher-initiated only — "New Message +" button is disabled for parents</li>
+            <li>Inline thread expands on click — no separate page navigation</li>
+            <li>Teacher bubbles: <code>background: #e0f5ee</code> (teal tint)</li>
+            <li>Parent bubbles: <code>background: #fff</code> with light border</li>
+            <li>Reply send button disabled in prototype — routes through contact-safe system in production</li>
+            <li>Safety note chip always visible in thread: "Replies route through WonderQuest's contact system"</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <div class="spec-section-title">Design Tokens</div>
+          <ul class="spec-list">
+            <li>Background: <code>#f5f0e8</code> (warm parchment)</li>
+            <li>Page bg: <code>#ede8de</code></li>
+            <li>Nav: <code>#2c7a6e</code> (teal)</li>
+            <li>Accent / CTA: <code>#2c7a6e</code></li>
+            <li>Next practice strip: <code>#fffbea</code> bg, <code>#f0c040</code> border</li>
+            <li>Font: <code>Sora</code> (Google Fonts), weights 400 / 600 / 700 / 800</li>
+            <li>Hint box: <code>background: #fffbea; border: 2px solid #f0c040</code></li>
+            <li>Tier chip colors — strength: <code>#e0f5ee / #1a5a40</code> · growing: <code>#e8f4fc / #1a4a6a</code> · support: <code>#fff0e0 / #8a4a00</code></li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /desktop -->
+</div><!-- /tab5 -->
+
+
+<script>
+// ── Tab switcher ─────────────────────────────────────────────
+function show(tabId) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(tabId).classList.add('active');
+  const idx = parseInt(tabId.replace('tab','')) - 1;
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// ── Child switcher (Tab 1 sidebar) ──────────────────────────
+function setActiveChild(card, name, avatar, world) {
+  // Update sidebar highlight
+  document.querySelectorAll('.child-card').forEach(c => c.classList.remove('active-child'));
+  card.classList.add('active-child');
+  // Update hero card
+  document.querySelector('.hero-child-name').textContent = name;
+  document.querySelector('.hero-avatar').textContent = avatar;
+  document.querySelector('.hero-world-chip').textContent = world + ' World';
+  // Update next practice label
+  document.querySelector('.npr-label').textContent = name + "'s next practice →";
+}
+
+// ── Message thread toggle ────────────────────────────────────
+function toggleThread(threadId) {
+  const thread = document.getElementById(threadId);
+  thread.classList.toggle('open');
+}
+
+// ── Settings nav ─────────────────────────────────────────────
+function setSettingsNav(item) {
+  document.querySelectorAll('.sn-item').forEach(i => i.classList.remove('active-nav'));
+  item.classList.add('active-nav');
+}
+
+// ── Toggle thumb position sync ───────────────────────────────
+function updateThumb(input) {
+  const thumb = input.parentElement.querySelector('.toggle-thumb');
+  if (input.checked) {
+    thumb.style.transform = 'translateX(20px)';
+    input.parentElement.querySelector('.toggle-track').style.background = '#2c7a6e';
+  } else {
+    thumb.style.transform = 'translateX(0)';
+    input.parentElement.querySelector('.toggle-track').style.background = '#d8d0c0';
+  }
+}
+
+// Sync thumbs on load
+document.querySelectorAll('.toggle-switch input').forEach(updateThumb);
+
+// ── Unlink confirm flow ──────────────────────────────────────
+function showUnlink(id) {
+  document.getElementById(id).classList.add('show');
+}
+function hideUnlink(id) {
+  document.getElementById(id).classList.remove('show');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Accessibility Focus Mode v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 11px;font-family:'Nunito',sans-serif;font-weight:900;font-size:10px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:16px;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Focus mode uses 150% text scale */
+.focus-mode-label{display:inline-flex;align-items:center;gap:6px;background:#221a50;border:1.5px solid #9b72ff;border-radius:20px;padding:5px 12px;font-size:11px;font-weight:900;color:#9b72ff;margin-bottom:14px}
+.focus-mode-label span{font-size:14px}
+
+/* Large coach strip */
+.coach-big{display:flex;align-items:flex-start;gap:12px;background:#1a1240;border-radius:18px;padding:16px;margin-bottom:16px;border:2px solid #9b72ff}
+.coach-big-avatar{font-size:44px;flex-shrink:0;background:#221a50;border-radius:50%;width:64px;height:64px;display:flex;align-items:center;justify-content:center;border:2.5px solid #9b72ff}
+.coach-big-speech{flex:1}
+.coach-big-speech p{font-size:18px;color:#fff;font-weight:900;line-height:1.5}
+.tts-btn{background:#9b72ff;border:none;border-radius:10px;padding:6px 12px;color:#fff;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;cursor:pointer;margin-top:8px;display:inline-flex;align-items:center;gap:4px}
+
+/* Large question box */
+.question-focus{background:#221a50;border-radius:18px;padding:20px;text-align:center;margin-bottom:16px;border:2px solid #2a1f5e}
+.question-focus .q-label{font-size:13px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.question-focus .q-text{font-size:27px;font-weight:900;color:#fff;line-height:1.4}
+
+/* Large answer cards */
+.answer-col{display:flex;flex-direction:column;gap:12px}
+.answer-focus{display:flex;align-items:center;gap:14px;background:#1a1240;border:2.5px solid #2a1f5e;border-radius:18px;padding:16px 18px;cursor:pointer;transition:all 0.2s}
+.answer-focus:hover{border-color:#9b72ff;background:#221a50}
+.answer-focus.selected{border-color:#ffd166;background:#2a1f00;box-shadow:0 0 18px rgba(255,209,102,0.3)}
+.answer-focus.correct{border-color:#58e8c1;background:#0a2e25;box-shadow:0 0 18px rgba(88,232,193,0.3)}
+.answer-focus .af-emoji{font-size:40px;flex-shrink:0}
+.answer-focus .af-text{font-size:22px;font-weight:900;color:#fff}
+
+/* Correct state */
+.correct-banner{background:linear-gradient(135deg,#0a2e25,#1a1240);border:2px solid #58e8c1;border-radius:18px;padding:20px;text-align:center;margin-bottom:16px}
+.correct-banner .big-check{font-size:60px;animation:pop-in 0.4s ease-out}
+@keyframes pop-in{0%{transform:scale(0.3);opacity:0}60%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+.correct-banner h2{font-size:28px;font-weight:900;color:#58e8c1;margin:8px 0}
+.correct-banner p{font-size:16px;color:#c8f0e0;line-height:1.5}
+
+/* Settings Toggle */
+.settings-section{margin-bottom:16px}
+.settings-section h3{font-size:16px;font-weight:900;color:#ffd166;margin-bottom:12px}
+.setting-row{display:flex;align-items:center;justify-content:space-between;background:#1a1240;border-radius:14px;padding:14px 16px;margin-bottom:8px;border:1.5px solid #2a1f5e}
+.setting-row .s-label{font-size:15px;font-weight:900;color:#fff}
+.setting-row .s-desc{font-size:11px;color:#9b8ec4;margin-top:2px}
+.toggle{width:44px;height:26px;border-radius:13px;background:#2a1f5e;border:none;cursor:pointer;position:relative;transition:background 0.2s;flex-shrink:0}
+.toggle.on{background:#9b72ff}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform 0.2s}
+.toggle.on::after{transform:translateX(18px)}
+.settings-note{background:#221a50;border-radius:12px;padding:12px;font-size:12px;color:#9b8ec4;line-height:1.6}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('question')">Focus Question</button>
+  <button class="tab" onclick="show('answers')">Answer Cards</button>
+  <button class="tab" onclick="show('correct')">Focus Correct</button>
+  <button class="tab" onclick="show('settings')">Settings Toggle</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Focus Mode Question -->
+<div id="question" class="screen active">
+  <div class="hint-box">Route: /play/session?focus=true — accessibility mode: 150% text, high-contrast cards, simplified layout, larger coach.</div>
+  <div class="focus-mode-label"><span>♿</span> Focus Mode On</div>
+  <div class="coach-big">
+    <div class="coach-big-avatar">🦉</div>
+    <div class="coach-big-speech">
+      <p>Which animal says "meow"?</p>
+      <button class="tts-btn">🔊 Hear again</button>
+    </div>
+  </div>
+  <div class="question-focus">
+    <div class="q-label">Listen and pick</div>
+    <div class="q-text">Which animal says "meow"? 🔊</div>
+  </div>
+</div>
+
+<!-- TAB 2: Focus Mode Answer Cards -->
+<div id="answers" class="screen">
+  <div class="hint-box">Route: /play/session?focus=true — large answer cards, 2 options max in focus mode, extra spacing, high-contrast borders.</div>
+  <div class="focus-mode-label"><span>♿</span> Focus Mode On</div>
+  <div class="coach-big">
+    <div class="coach-big-avatar">🦉</div>
+    <div class="coach-big-speech">
+      <p>Pick the one that says "meow"!</p>
+      <button class="tts-btn">🔊 Hear again</button>
+    </div>
+  </div>
+  <div class="answer-col">
+    <div class="answer-focus selected">
+      <span class="af-emoji">🐱</span>
+      <span class="af-text">Cat</span>
+    </div>
+    <div class="answer-focus">
+      <span class="af-emoji">🐶</span>
+      <span class="af-text">Dog</span>
+    </div>
+    <div class="answer-focus">
+      <span class="af-emoji">🐸</span>
+      <span class="af-text">Frog</span>
+    </div>
+    <div class="answer-focus">
+      <span class="af-emoji">🐮</span>
+      <span class="af-text">Cow</span>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Focus Mode Correct -->
+<div id="correct" class="screen">
+  <div class="hint-box">Route: /play/session/correct?focus=true — correct celebration in focus mode. Larger text, clear messaging, no clutter.</div>
+  <div class="focus-mode-label"><span>♿</span> Focus Mode On</div>
+  <div class="correct-banner">
+    <div class="big-check">✅</div>
+    <h2>That's right!</h2>
+    <p>The cat says "meow"! Great listening!</p>
+  </div>
+  <div class="coach-big">
+    <div class="coach-big-avatar">🦉</div>
+    <div class="coach-big-speech">
+      <p>YES! The cat says MEOW! You're wonderful!</p>
+      <button class="tts-btn">🔊 Hear praise</button>
+    </div>
+  </div>
+  <div class="answer-col">
+    <div class="answer-focus correct">
+      <span class="af-emoji">🐱</span>
+      <span class="af-text">Cat ✓</span>
+    </div>
+  </div>
+  <button style="width:100%;margin-top:16px;background:linear-gradient(135deg,#ffd166,#ffb300);border:none;border-radius:16px;padding:16px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:18px;cursor:pointer">Next Question! 🌟</button>
+</div>
+
+<!-- TAB 4: Focus Mode Settings -->
+<div id="settings" class="screen">
+  <div class="hint-box">Route: /play/settings/accessibility — toggle focus mode and individual accessibility options.</div>
+  <div class="settings-section">
+    <h3>Accessibility Settings</h3>
+    <div class="setting-row">
+      <div>
+        <div class="s-label">Focus Mode</div>
+        <div class="s-desc">Larger text, fewer choices, simplified layout</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="s-label">Auto-read Questions</div>
+        <div class="s-desc">Voice plays every question automatically</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="s-label">Larger Touch Targets</div>
+        <div class="s-desc">Extra-large buttons for easier tapping</div>
+      </div>
+      <button class="toggle" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="s-label">Reduce Motion</div>
+        <div class="s-desc">Less animation and movement on screen</div>
+      </div>
+      <button class="toggle" onclick="this.classList.toggle('on')"></button>
+    </div>
+    <div class="setting-row">
+      <div>
+        <div class="s-label">High Contrast Text</div>
+        <div class="s-desc">Bold white text on dark backgrounds</div>
+      </div>
+      <button class="toggle on" onclick="this.classList.toggle('on')"></button>
+    </div>
+  </div>
+  <div class="settings-note">These settings are saved to your child's profile and apply across all WonderQuest activities. A parent or caregiver can always update them here.</div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for play-accessibility-focus-mode-v2.</div>
+  <div class="spec-section">
+    <h3>Component Identity</h3>
+    <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">play-accessibility-focus-mode-v2.html</span></div>
+    <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Child (all ages, accessibility needs)</span></div>
+    <div class="spec-row"><span class="spec-key">Route</span><span class="spec-val">/play/session?focus=true</span></div>
+    <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Focus Mode Differences</h3>
+    <div class="spec-row"><span class="spec-key">Text scale</span><span class="spec-val">150% of standard size</span></div>
+    <div class="spec-row"><span class="spec-key">Answer options</span><span class="spec-val">Column layout (vs 2x2 grid)</span></div>
+    <div class="spec-row"><span class="spec-key">Coach avatar</span><span class="spec-val">64px (vs 44px standard)</span></div>
+    <div class="spec-row"><span class="spec-key">Coach speech</span><span class="spec-val">18px font (vs 13px standard)</span></div>
+    <div class="spec-row"><span class="spec-key">Card height</span><span class="spec-val">Min 64px touch target</span></div>
+    <div class="spec-row"><span class="spec-key">Spacing</span><span class="spec-val">+4px gap on all elements</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Rules</h3>
+    <div class="spec-note">Focus mode is set per-profile (not per-session). Auto-TTS fires on question load. All child safety rules still apply: no timers, no shame, replay-safe. Parent/caregiver can toggle from settings at any time. Reduce motion collapses all CSS animations to instant transitions.</div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['question','answers','correct','settings','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Teacher In-Class Quick Actions v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#f0f4f8;color:#1a2533;max-width:390px;margin:0 auto;min-height:100vh}
+  nav{background:#2a5080;color:#fff;display:flex;align-items:center;padding:0 16px;height:52px;gap:12px}
+  nav .logo{font-weight:700;font-size:16px}
+  nav .spacer{flex:1}
+  .live-badge{background:#e53e3e;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+  .tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto}
+  .tab{padding:12px 12px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;flex-shrink:0}
+  .tab.active{color:#2a5080;border-bottom-color:#2a5080}
+  .panel{display:none;padding:16px}
+  .panel.active{display:block}
+  .hint{background:#e8f0fb;border:1.5px solid #2a5080;border-radius:10px;padding:10px 14px;font-size:11px;color:#1a3a5c;margin-bottom:16px}
+  .hint strong{font-weight:700}
+  /* Quick Actions Strip */
+  .class-context{background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .cc-row{display:flex;align-items:center;justify-content:space-between}
+  .cc-label{font-size:11px;color:#64748b}
+  .cc-value{font-size:14px;font-weight:700}
+  .cc-divider{width:1px;height:30px;background:#e2e8f0}
+  .action-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .action-btn{background:#fff;border-radius:16px;padding:20px 12px;text-align:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.07);transition:transform .15s,box-shadow .15s;border:none;font-family:'Sora',sans-serif;width:100%;display:flex;flex-direction:column;align-items:center;gap:10px}
+  .action-btn:active{transform:scale(.96);box-shadow:0 1px 4px rgba(0,0,0,.1)}
+  .ab-icon{width:52px;height:52px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px}
+  .ab-icon.note{background:#e8f0fb}
+  .ab-icon.assign{background:#e8f5ef}
+  .ab-icon.msg{background:#fef3cd}
+  .ab-icon.queue{background:#fde8e8}
+  .ab-label{font-size:14px;font-weight:700;color:#1a2533}
+  .ab-sub{font-size:11px;color:#64748b}
+  .ab-badge{background:#e53e3e;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px}
+  .recent-actions{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .ra-title{font-size:12px;font-weight:700;color:#64748b;margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px}
+  .ra-item{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid #f1f5f9}
+  .ra-item:last-child{border-bottom:none}
+  .ra-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .ra-dot.note{background:#2a5080}
+  .ra-dot.assign{background:#1a8050}
+  .ra-dot.msg{background:#c07800}
+  .ra-text{font-size:12px;color:#475569;flex:1}
+  .ra-time{font-size:10px;color:#94a3b8;white-space:nowrap}
+  /* Add Note */
+  .note-form{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+  .nf-student-row{display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px}
+  .student-pill{padding:7px 12px;border-radius:20px;border:1.5px solid #e2e8f0;background:#f8fafc;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;flex-shrink:0;color:#475569}
+  .student-pill.selected{background:#2a5080;color:#fff;border-color:#2a5080}
+  .note-type-row{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .note-type-chip{padding:6px 12px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:11px;font-weight:600;cursor:pointer;color:#64748b;background:#fff}
+  .note-type-chip.active{background:#2a5080;color:#fff;border-color:#2a5080}
+  .note-textarea{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;font-size:14px;font-family:'Sora',sans-serif;resize:none;min-height:100px;color:#1a2533;margin-bottom:14px}
+  .note-footer{display:flex;gap:8px}
+  .btn-full{flex:1;background:#2a5080;color:#fff;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  .btn-sec{background:#f0f4f8;color:#2a5080;border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Assign Activity */
+  .step-indicator{display:flex;align-items:center;gap:0;margin-bottom:20px}
+  .step{flex:1;text-align:center;position:relative}
+  .step-dot{width:28px;height:28px;border-radius:50%;border:2px solid #e2e8f0;background:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;margin:0 auto;color:#94a3b8}
+  .step-dot.done{background:#1a8050;border-color:#1a8050;color:#fff}
+  .step-dot.active{background:#2a5080;border-color:#2a5080;color:#fff}
+  .step-label{font-size:10px;color:#94a3b8;margin-top:4px}
+  .step-label.active{color:#2a5080;font-weight:600}
+  .step::after{content:'';position:absolute;top:14px;left:calc(50% + 14px);right:calc(-50% + 14px);height:2px;background:#e2e8f0}
+  .step:last-child::after{display:none}
+  .assign-section{background:#fff;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.07);margin-bottom:14px}
+  .as-label{font-size:12px;font-weight:700;color:#2a5080;margin-bottom:10px}
+  .activity-list{display:flex;flex-direction:column;gap:8px}
+  .activity-item{border:1.5px solid #e2e8f0;border-radius:10px;padding:12px;cursor:pointer;display:flex;align-items:center;gap:10px}
+  .activity-item.selected{border-color:#2a5080;background:#e8f0fb}
+  .ai-icon{font-size:20px;width:36px;height:36px;border-radius:8px;background:#f0f4f8;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ai-name{font-size:13px;font-weight:600}
+  .ai-meta{font-size:11px;color:#64748b;margin-top:1px}
+  .ai-check{margin-left:auto;width:20px;height:20px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:11px}
+  .ai-check.checked{background:#2a5080;border-color:#2a5080;color:#fff}
+  /* Support Queue Peek */
+  .queue-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .queue-count{background:#e53e3e;color:#fff;font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px}
+  .queue-list{display:flex;flex-direction:column;gap:10px}
+  .qi-item{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;gap:12px;align-items:center}
+  .qi-avatar{width:38px;height:38px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;flex-shrink:0}
+  .qi-info{flex:1}
+  .qi-name{font-weight:600;font-size:14px}
+  .qi-skill{font-size:11px;color:#64748b;margin-top:2px}
+  .qi-priority{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;margin-left:auto;white-space:nowrap}
+  .qi-priority.high{background:#fde8e8;color:#9a2a2a}
+  .qi-priority.med{background:#fef3cd;color:#c07800}
+  .qi-action{margin-left:4px}
+  .btn-xs{padding:7px 12px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:'Sora',sans-serif}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="spacer"></div>
+  <div class="live-badge">● LIVE CLASS</div>
+  <div style="margin-left:8px;font-size:12px;opacity:.8">10:32 AM</div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('strip')">Quick Actions</div>
+  <div class="tab" onclick="show('addnote')">Add Note</div>
+  <div class="tab" onclick="show('assign')">Assign Activity</div>
+  <div class="tab" onclick="show('queue')">Support Queue</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Quick Actions Strip -->
+<div id="strip" class="panel active">
+  <div class="hint"><strong>Routes:</strong> Add Note → Add Note tab · Assign Activity → Assign Activity tab · Message Parent → teacher-family-contact-log-v2 · View Support Queue → Support Queue tab</div>
+  <div class="class-context">
+    <div class="cc-row">
+      <div><div class="cc-label">Class</div><div class="cc-value">Grade 3B</div></div>
+      <div class="cc-divider"></div>
+      <div><div class="cc-label">Students Present</div><div class="cc-value">24 / 28</div></div>
+      <div class="cc-divider"></div>
+      <div><div class="cc-label">Session</div><div class="cc-value">Math P0</div></div>
+    </div>
+  </div>
+  <div class="action-grid">
+    <button class="action-btn" onclick="show('addnote')">
+      <div class="ab-icon note">✏️</div>
+      <div class="ab-label">Add Note</div>
+      <div class="ab-sub">Quick capture</div>
+    </button>
+    <button class="action-btn" onclick="show('assign')">
+      <div class="ab-icon assign">📋</div>
+      <div class="ab-label">Assign Activity</div>
+      <div class="ab-sub">3-tap flow</div>
+    </button>
+    <button class="action-btn">
+      <div class="ab-icon msg">💬</div>
+      <div class="ab-label">Message Parent</div>
+      <div class="ab-sub">Via WonderQuest</div>
+    </button>
+    <button class="action-btn" onclick="show('queue')">
+      <div class="ab-icon queue">🚨</div>
+      <div class="ab-label">Support Queue</div>
+      <div class="ab-badge">3 urgent</div>
+    </button>
+  </div>
+  <div class="recent-actions">
+    <div class="ra-title">Recent Actions Today</div>
+    <div class="ra-item"><div class="ra-dot note"></div><div class="ra-text">Note added for Amir R. — struggling with place value</div><div class="ra-time">10:18 AM</div></div>
+    <div class="ra-item"><div class="ra-dot assign"></div><div class="ra-text">Fractions Quest assigned to Watch group (3 students)</div><div class="ra-time">9:55 AM</div></div>
+    <div class="ra-item"><div class="ra-dot msg"></div><div class="ra-text">Message sent to parent of Priya L.</div><div class="ra-time">9:31 AM</div></div>
+    <div class="ra-item"><div class="ra-dot note"></div><div class="ra-text">Note added for Tom K. — good focus during warm-up</div><div class="ra-time">9:10 AM</div></div>
+  </div>
+</div>
+
+<!-- TAB 2: Add Note -->
+<div id="addnote" class="panel">
+  <div class="hint"><strong>Routes:</strong> Save Note → stored in teacher-student-detail + intervention queue · Discard → no save · Note types: Observation, Concern, Positive, Intervention</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Add Note</h2>
+  <div class="note-form">
+    <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:10px">Select Student</div>
+    <div class="nf-student-row">
+      <div class="student-pill selected">Amir R.</div>
+      <div class="student-pill">Priya L.</div>
+      <div class="student-pill">Tom K.</div>
+      <div class="student-pill">Jamie M.</div>
+      <div class="student-pill">Rosa D.</div>
+      <div class="student-pill">Ben W.</div>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Note Type</div>
+    <div class="note-type-row">
+      <div class="note-type-chip">Observation</div>
+      <div class="note-type-chip active">Concern</div>
+      <div class="note-type-chip">Positive</div>
+      <div class="note-type-chip">Intervention</div>
+    </div>
+    <textarea class="note-textarea" placeholder="What did you observe? Keep it brief — you can add detail later…">Amir seemed confused during the place value warm-up activity. Could not identify the hundreds digit in 3-digit numbers independently.</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <div style="font-size:11px;color:#64748b">Linked skill: Place Value · Band P0</div>
+      <div style="font-size:11px;color:#94a3b8">148 chars</div>
+    </div>
+    <div class="note-footer">
+      <button class="btn-sec">Discard</button>
+      <button class="btn-full">Save Note</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Assign Activity -->
+<div id="assign" class="panel">
+  <div class="hint"><strong>Routes:</strong> Step 1 pick student(s) → Step 2 pick activity → Step 3 confirm · Assign → queues activity in student's WonderQuest session · Cancel → returns to Quick Actions</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Assign Activity</h2>
+  <div class="step-indicator">
+    <div class="step"><div class="step-dot done">✓</div><div class="step-label">Students</div></div>
+    <div class="step"><div class="step-dot active">2</div><div class="step-label active">Activity</div></div>
+    <div class="step"><div class="step-dot">3</div><div class="step-label">Confirm</div></div>
+  </div>
+  <div class="assign-section">
+    <div class="as-label">Assigned To: 3 students (Watch group)</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="student-pill selected" style="font-size:11px;padding:5px 10px">Jamie M.</div>
+      <div class="student-pill selected" style="font-size:11px;padding:5px 10px">Rosa D.</div>
+      <div class="student-pill selected" style="font-size:11px;padding:5px 10px">Ben W.</div>
+    </div>
+  </div>
+  <div class="assign-section">
+    <div class="as-label">Choose Activity</div>
+    <div class="activity-list">
+      <div class="activity-item selected">
+        <div class="ai-icon">🔢</div>
+        <div><div class="ai-name">Fractions Quest — Level 2</div><div class="ai-meta">8 questions · ~10 min · P0</div></div>
+        <div class="ai-check checked">✓</div>
+      </div>
+      <div class="activity-item">
+        <div class="ai-icon">➗</div>
+        <div><div class="ai-name">Division Basics Sprint</div><div class="ai-meta">10 questions · ~8 min · P0</div></div>
+        <div class="ai-check"></div>
+      </div>
+      <div class="activity-item">
+        <div class="ai-icon">📖</div>
+        <div><div class="ai-name">Fluency Reader — Set B</div><div class="ai-meta">5 passages · ~12 min · ELA</div></div>
+        <div class="ai-check"></div>
+      </div>
+      <div class="activity-item">
+        <div class="ai-icon">🎯</div>
+        <div><div class="ai-name">Number Sense Challenge</div><div class="ai-meta">6 questions · ~7 min · P0</div></div>
+        <div class="ai-check"></div>
+      </div>
+    </div>
+  </div>
+  <button style="width:100%;background:#1a8050;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;margin-top:4px">Next: Confirm Assignment →</button>
+</div>
+
+<!-- TAB 4: Support Queue Peek -->
+<div id="queue" class="panel">
+  <div class="hint"><strong>Routes:</strong> Act Now → teacher-intervention-detail-mobile-v2 · View All → teacher-support-queue-mobile-v2 · Dismiss → removes from queue peek (not from main queue)</div>
+  <div class="queue-header">
+    <h2 style="font-size:18px;font-weight:700">Support Queue</h2>
+    <div class="queue-count">3 urgent</div>
+  </div>
+  <div style="background:#fde8e8;border:1.5px solid #9a2a2a;border-radius:10px;padding:10px 14px;font-size:12px;color:#6a1a1a;margin-bottom:14px">
+    3 students need attention now. Tap "Act Now" to start intervention.
+  </div>
+  <div class="queue-list">
+    <div class="qi-item">
+      <div class="qi-avatar" style="background:#9a2a2a">AR</div>
+      <div class="qi-info">
+        <div class="qi-name">Amir R.</div>
+        <div class="qi-skill">Place Value · 4 wrong in a row</div>
+      </div>
+      <div class="qi-priority high">Flag</div>
+      <div class="qi-action"><button class="btn-xs" style="background:#9a2a2a;color:#fff">Act Now</button></div>
+    </div>
+    <div class="qi-item">
+      <div class="qi-avatar" style="background:#c07800">PL</div>
+      <div class="qi-info">
+        <div class="qi-name">Priya L.</div>
+        <div class="qi-skill">Fractions · Stuck on Q3</div>
+      </div>
+      <div class="qi-priority high">Flag</div>
+      <div class="qi-action"><button class="btn-xs" style="background:#9a2a2a;color:#fff">Act Now</button></div>
+    </div>
+    <div class="qi-item">
+      <div class="qi-avatar" style="background:#c07800">TK</div>
+      <div class="qi-info">
+        <div class="qi-name">Tom K.</div>
+        <div class="qi-skill">Word Problems · Low confidence</div>
+      </div>
+      <div class="qi-priority med">Watch</div>
+      <div class="qi-action"><button class="btn-xs" style="background:#c07800;color:#fff">Check In</button></div>
+    </div>
+  </div>
+  <div style="margin-top:14px">
+    <button style="width:100%;background:#fff;color:#2a5080;border:1.5px solid #2a5080;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif">View Full Support Queue</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>File:</strong> teacher-in-class-quick-actions-v2.html · 390px mobile · One-thumb use design</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Spec — In-Class Quick Actions v2</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:12px">
+    <tr style="background:#2a5080;color:#fff"><th style="text-align:left;padding:8px 12px">Property</th><th style="text-align:left;padding:8px 12px">Value</th></tr>
+    <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Viewport</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">390px mobile, one-thumb optimization</td></tr>
+    <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Action buttons</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">4 large touch targets · min 52px icon · 2-column grid</td></tr>
+    <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Add Note flow</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Student pill → note type → textarea → save · &lt;30s target</td></tr>
+    <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Assign Activity</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">3-step flow: students → activity → confirm</td></tr>
+    <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Queue peek</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Top 3 urgent · badge count on main button</td></tr>
+    <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Live class badge</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Pulsing red badge in nav when class session active</td></tr>
+    <tr><td style="padding:8px 12px">Contact-safe</td><td style="padding:8px 12px">Message Parent routes to WonderQuest messenger only</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['strip','addnote','assign','queue','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

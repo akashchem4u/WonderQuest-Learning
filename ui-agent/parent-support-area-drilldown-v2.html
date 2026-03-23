@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Parent Support Area Drilldown v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:#f5f0e8;color:#2c3e2d;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e8e0d0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Sora',sans-serif;font-weight:700;font-size:10px;color:#2c7a6e;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#2c7a6e;border-bottom-color:#2c7a6e}
+.screen{display:none;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Nav */
+.nav-bar{background:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e0d0}
+.nav-back{background:transparent;border:none;color:#2c7a6e;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.nav-title{font-size:16px;font-weight:700;color:#1a2e1e;flex:1}
+
+/* Skill hero */
+.skill-hero{background:linear-gradient(135deg,#f0f8ff,#e0ecf8);padding:20px 16px;border-bottom:1px solid #d0e0f0}
+.skill-hero .sh-top{display:flex;align-items:flex-start;gap:14px;margin-bottom:12px}
+.skill-icon-box{width:56px;height:56px;background:#2c7a6e;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.skill-hero h2{font-size:20px;font-weight:700;color:#1a2e1e;margin-bottom:4px}
+.tier-pill{display:inline-block;padding:4px 10px;border-radius:8px;font-size:11px;font-weight:700}
+.tier-opportunity{background:#fff8e8;color:#b07020}
+.skill-hero p{font-size:13px;color:#4a5a4e;line-height:1.6}
+.skill-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.skill-chip{background:#e0ecf8;border-radius:8px;padding:4px 10px;font-size:11px;font-weight:700;color:#2050a0}
+
+/* Growth story */
+.section{padding:16px}
+.section-title{font-size:14px;font-weight:700;color:#1a2e1e;margin-bottom:10px}
+.story-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:16px;margin-bottom:10px}
+.story-card .story-icon{font-size:24px;margin-bottom:8px}
+.story-card h4{font-size:14px;font-weight:700;color:#1a2e1e;margin-bottom:6px}
+.story-card p{font-size:13px;color:#4a5a4e;line-height:1.6}
+.story-card .story-highlight{background:#f0f8ff;border-radius:8px;padding:10px;margin-top:10px;font-size:12px;color:#2050a0;font-weight:700;line-height:1.5;border-left:3px solid #2c7a6e}
+.progress-visual{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:14px;margin-bottom:10px}
+.progress-visual h4{font-size:13px;font-weight:700;color:#1a2e1e;margin-bottom:10px}
+.milestone-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.m-dot{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.m-done{background:#2c7a6e;color:#fff}
+.m-current{background:#ffd166;color:#7a4e00}
+.m-ahead{background:#f0e8dc;color:#a0987e;font-size:10px}
+.m-label{font-size:12px;font-weight:700;color:#1a2e1e;flex:1}
+.m-status{font-size:10px;color:#6b7a6e;font-weight:700}
+
+/* Practice ideas */
+.practice-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;margin-bottom:10px;overflow:hidden}
+.pc-top{display:flex;align-items:center;gap:12px;padding:14px;border-bottom:1px solid #f0e8dc}
+.pc-num{width:28px;height:28px;background:#2c7a6e;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0}
+.pc-top h4{font-size:14px;font-weight:700;color:#1a2e1e}
+.pc-top .pc-time{font-size:11px;color:#6b7a6e;margin-top:2px}
+.pc-body{padding:12px 14px;font-size:13px;color:#4a5a4e;line-height:1.6}
+.pc-wq{background:#eef7f0;border-radius:8px;padding:10px;margin-top:8px;font-size:12px;color:#2c7a6e;font-weight:700;line-height:1.5;display:flex;align-items:flex-start;gap:8px}
+.pc-wq span{font-size:16px;flex-shrink:0}
+.why-it-works{background:#f0f5f0;border:1px solid #b8dfc0;border-radius:8px;padding:10px;margin-top:6px;font-size:11px;color:#2c7a6e;line-height:1.5}
+
+/* Teacher note */
+.teacher-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;margin:0 16px 10px;overflow:hidden}
+.tc-header{background:#e8f4ff;padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid #d0e0f0}
+.tc-header .tch-icon{font-size:24px}
+.tc-header .tch-label{font-size:13px;font-weight:700;color:#2050a0}
+.tc-header .tch-safe{font-size:10px;color:#5070a0;margin-top:2px}
+.tc-body{padding:14px}
+.tc-body p{font-size:13px;color:#2c3e2d;line-height:1.7;font-style:italic}
+.tc-footer{padding:10px 14px;background:#f5f9ff;border-top:1px solid #e0ecf8;display:flex;align-items:center;justify-content:space-between}
+.tc-footer .tcf-date{font-size:11px;color:#6b7a6e;font-weight:700}
+.tc-msg-btn{background:#2c7a6e;border:none;border-radius:8px;padding:6px 12px;color:#fff;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer}
+.safe-note{background:#f0f8ff;border:1px solid #b0d0f0;border-radius:10px;padding:12px;margin:0 16px 12px;font-size:11px;color:#2050a0;line-height:1.6}
+
+/* Progress check-in */
+.checkin-section{padding:16px}
+.checkin-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:16px;margin-bottom:10px}
+.checkin-card h4{font-size:14px;font-weight:700;color:#1a2e1e;margin-bottom:8px}
+.checkin-prompt{font-size:13px;color:#4a5a4e;line-height:1.5;margin-bottom:12px}
+.checkin-opts{display:flex;flex-direction:column;gap:6px}
+.co-btn{background:#f5f0e8;border:1.5px solid #e8e0d0;border-radius:10px;padding:10px 14px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:#2c3e2d;cursor:pointer;text-align:left;transition:all 0.15s}
+.co-btn:hover{border-color:#2c7a6e;background:#eef7f0;color:#2c7a6e}
+
+/* Spec */
+.spec-section{margin:0 16px 20px}
+.spec-section h3{font-size:14px;font-weight:700;color:#2c7a6e;margin-bottom:8px;border-bottom:1px solid #e8e0d0;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0e8dc;font-size:12px}
+.spec-row .spec-key{color:#6b7a6e;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#1a2e1e;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#f0f5f0;border-radius:10px;padding:12px;font-size:11px;color:#6b7a6e;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('overview')">Support Area</button>
+  <button class="tab" onclick="show('ideas')">Practice Ideas</button>
+  <button class="tab" onclick="show('teacher')">Teacher Note</button>
+  <button class="tab" onclick="show('checkin')">Progress Check-In</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Support Area Overview -->
+<div id="overview" class="screen active">
+  <div class="hint-box">Route: /parent/child/:id/skill/:skillId — support area detail. Growth story in parent language. <span>NO accuracy %.</span></div>
+  <div class="nav-bar">
+    <button class="nav-back">← Maya</button>
+    <span class="nav-title">Letter Sounds</span>
+  </div>
+  <div class="skill-hero">
+    <div class="sh-top">
+      <div class="skill-icon-box">🔤</div>
+      <div>
+        <h2>Letter Sounds</h2>
+        <span class="tier-pill tier-opportunity">Opportunity Area</span>
+      </div>
+    </div>
+    <p>Maya is building her understanding of the sounds letters make — this is one of the most important building blocks for reading, and she's on a great path!</p>
+    <div class="skill-chips">
+      <span class="skill-chip">Beginning Sounds</span>
+      <span class="skill-chip">Vowel Sounds</span>
+      <span class="skill-chip">Consonant Blends</span>
+    </div>
+  </div>
+  <div class="section">
+    <div class="section-title">Maya's Growth Story</div>
+    <div class="story-card">
+      <div class="story-icon">📖</div>
+      <h4>Where she is right now</h4>
+      <p>Maya recognizes beginning sounds of most letters and can connect them to pictures. She's working on vowel sounds, which are trickier — and that's completely normal at this stage.</p>
+      <div class="story-highlight">The beginning-sounds foundation she's built is exactly what she needs to start blending letters into words. That next step is close!</div>
+    </div>
+    <div class="progress-visual">
+      <h4>Her path on Letter Sounds</h4>
+      <div class="milestone-row">
+        <div class="m-dot m-done">✓</div>
+        <div class="m-label">Recognizes most letters</div>
+        <div class="m-status">Done</div>
+      </div>
+      <div class="milestone-row">
+        <div class="m-dot m-done">✓</div>
+        <div class="m-label">Beginning sounds (B, C, D…)</div>
+        <div class="m-status">Done</div>
+      </div>
+      <div class="milestone-row">
+        <div class="m-dot m-current">→</div>
+        <div class="m-label">Vowel sounds (A, E, I, O, U)</div>
+        <div class="m-status" style="color:#b07020">Right here!</div>
+      </div>
+      <div class="milestone-row">
+        <div class="m-dot m-ahead">4</div>
+        <div class="m-label">Consonant blends (bl, cr, st…)</div>
+        <div class="m-status">Coming up!</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Practice Ideas -->
+<div id="ideas" class="screen">
+  <div class="hint-box">Route: /parent/child/:id/skill/:skillId/practice — 3 home practice ideas specific to this skill. WonderQuest tie-in included.</div>
+  <div class="nav-bar">
+    <button class="nav-back">← Letter Sounds</button>
+    <span class="nav-title">Practice Ideas</span>
+  </div>
+  <div style="padding:16px">
+    <div class="section-title">3 Ways to Practice Letter Sounds at Home</div>
+    <div style="font-size:12px;color:#6b7a6e;margin-bottom:14px">These activities are fun, quick, and directly support what Maya's working on right now.</div>
+    <div class="practice-card">
+      <div class="pc-top">
+        <div class="pc-num">1</div>
+        <div>
+          <h4>Sound Safari Walk</h4>
+          <div class="pc-time">5–10 min · Outside or around the house</div>
+        </div>
+      </div>
+      <div class="pc-body">
+        Pick a letter of the day and take a "sound safari" — find as many things as you can that start with that sound. "B! Ball, bus, butterfly, bench!"
+        <div class="pc-wq"><span>🌟</span> WonderQuest has a "Letter Sounds" quest in Dream World that makes this even more fun to review after!</div>
+        <div class="why-it-works">Why it works: Connecting sounds to real objects is one of the fastest ways for young children to solidify phonics knowledge.</div>
+      </div>
+    </div>
+    <div class="practice-card">
+      <div class="pc-top">
+        <div class="pc-num">2</div>
+        <div>
+          <h4>Vowel Song Sing-Along</h4>
+          <div class="pc-time">5 min · Anytime</div>
+        </div>
+      </div>
+      <div class="pc-body">
+        Make up a silly song to practice the vowel sounds: "A says /a/, E says /e/, I says /i/, O says /o/, U says /u/!" The sillier, the more it sticks.
+        <div class="pc-wq"><span>🌟</span> After the song, open WonderQuest and find the vowel sounds practice — she'll recognize them!</div>
+      </div>
+    </div>
+    <div class="practice-card">
+      <div class="pc-top">
+        <div class="pc-num">3</div>
+        <div>
+          <h4>Slow Stretch the Word</h4>
+          <div class="pc-time">5 min · During meals or car rides</div>
+        </div>
+      </div>
+      <div class="pc-body">
+        Say a simple word very slowly — like a rubber band being stretched: "ssss-uuuu-nnn" (sun). Ask Maya what sounds she hears. Start with 3-letter words like cat, sun, big, red.
+        <div class="pc-wq"><span>🌟</span> This directly supports the blending skills coming next in WonderQuest.</div>
+        <div class="why-it-works">Why it works: Segmenting words into individual sounds (phonemic awareness) is a critical pre-reading skill.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Teacher Note -->
+<div id="teacher" class="screen">
+  <div class="hint-box">Route: /parent/child/:id/skill/:skillId/teacher-note — teacher message about this skill. <span>Contact-safe: no direct message threading, no personal contact info.</span></div>
+  <div class="nav-bar">
+    <button class="nav-back">← Letter Sounds</button>
+    <span class="nav-title">Teacher's Note</span>
+  </div>
+  <div style="padding-top:16px">
+    <div class="safe-note">This note is shared by Maya's teacher through the school system. To send a message directly, use the family-teacher message center from settings.</div>
+    <div class="teacher-card">
+      <div class="tc-header">
+        <span class="tch-icon">🏫</span>
+        <div>
+          <div class="tch-label">From Maya's Teacher</div>
+          <div class="tch-safe">Shared via school · Contact-safe</div>
+        </div>
+      </div>
+      <div class="tc-body">
+        <p>"Maya has been doing really well with beginning consonant sounds in class this week — she correctly identified the /b/ and /d/ sounds in our activity on Wednesday. We're now focusing more on the short vowel sounds (particularly short /a/ and short /e/), which can be tricky. Any practice with these at home will be super helpful. Reading aloud together and pausing on vowel sounds is a great way to reinforce this. She's making wonderful progress!"</p>
+      </div>
+      <div class="tc-footer">
+        <span class="tcf-date">Posted March 21, 2026</span>
+        <button class="tc-msg-btn">Send a Message →</button>
+      </div>
+    </div>
+    <div style="padding:0 16px">
+      <div style="background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:14px">
+        <div style="font-size:13px;font-weight:700;color:#1a2e1e;margin-bottom:6px">In class right now</div>
+        <div style="font-size:12px;color:#4a5a4e;line-height:1.6">Ms. Thompson's class is focusing on short vowel words this week. WonderQuest's activities are aligned with this classroom focus — Maya's home sessions are directly supporting what she's learning in school.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Progress Check-In -->
+<div id="checkin" class="screen">
+  <div class="hint-box">Route: /parent/child/:id/skill/:skillId/checkin — parent self-reports what they're observing at home. Forward-looking framing.</div>
+  <div class="nav-bar">
+    <button class="nav-back">← Letter Sounds</button>
+    <span class="nav-title">Progress Check-In</span>
+  </div>
+  <div class="checkin-section">
+    <div class="section-title">What Are You Noticing at Home?</div>
+    <div style="font-size:12px;color:#6b7a6e;margin-bottom:14px">Your observations help WonderQuest tailor Maya's next sessions. Just a few quick taps!</div>
+    <div class="checkin-card">
+      <h4>When you read together, does Maya…</h4>
+      <div class="checkin-prompt">Point out letters and their sounds on her own?</div>
+      <div class="checkin-opts">
+        <button class="co-btn">Yes, she's doing this a lot!</button>
+        <button class="co-btn">Sometimes — we're working on it</button>
+        <button class="co-btn">Not yet, but she's listening</button>
+      </div>
+    </div>
+    <div class="checkin-card">
+      <h4>How is Maya feeling about letters?</h4>
+      <div class="checkin-opts">
+        <button class="co-btn">Excited and curious!</button>
+        <button class="co-btn">Interested but needs encouragement</button>
+        <button class="co-btn">A bit hesitant right now</button>
+      </div>
+    </div>
+    <div class="checkin-card">
+      <h4>Anything else you want Maya's team to know?</h4>
+      <textarea style="width:100%;background:#f5f0e8;border:1.5px solid #e8e0d0;border-radius:10px;padding:10px;font-family:'Sora',sans-serif;font-size:13px;color:#2c3e2d;outline:none;resize:none" rows="3" placeholder="Share anything that might be helpful…"></textarea>
+    </div>
+    <button style="width:100%;background:#2c7a6e;border:none;border-radius:12px;padding:14px;color:#fff;font-family:'Sora',sans-serif;font-weight:700;font-size:15px;cursor:pointer">Share with the Team →</button>
+    <p style="font-size:11px;color:#a0987e;text-align:center;margin-top:8px;line-height:1.5">This is shared with Maya's teacher and WonderQuest. It's always optional.</p>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for parent-support-area-drilldown-v2.</div>
+  <div style="padding-top:16px">
+    <div class="spec-section">
+      <h3>Component Identity</h3>
+      <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">parent-support-area-drilldown-v2.html</span></div>
+      <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Parent</span></div>
+      <div class="spec-row"><span class="spec-key">Route</span><span class="spec-val">/parent/child/:id/skill/:skillId</span></div>
+      <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+      <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-note">NEVER show accuracy %. Growth story written in accessible, warm parent language — no jargon. Teacher note is contact-safe: displays message content only, no personal contact info, no direct reply threading on this surface. Home practice ideas are directly tied to the selected skill (not generic). Check-in responses are optional and clearly labeled as shared. Forward-looking language throughout — "coming up", "next step", "right here" not "behind" or "below grade".</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['overview','ideas','teacher','checkin','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

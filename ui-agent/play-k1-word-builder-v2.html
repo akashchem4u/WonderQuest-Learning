@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>K1 Word Builder v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#fff;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#1a1240;border-bottom:2px solid #2a1f5e;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Nunito',sans-serif;font-weight:900;font-size:10px;color:#9b72ff;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#ffd166;border-bottom-color:#ffd166}
+.screen{display:none;padding:16px;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Coach strip */
+.coach-strip{display:flex;align-items:center;gap:10px;background:#1a1240;border-radius:14px;padding:12px;margin-bottom:16px;border:1.5px solid #2a1f5e}
+.coach-face{font-size:28px;flex-shrink:0;background:#221a50;border-radius:50%;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border:1.5px solid #9b72ff}
+.coach-speech p{font-size:13px;color:#fff;font-weight:700;line-height:1.4}
+
+/* Word image prompt */
+.word-prompt{background:linear-gradient(135deg,#1a1240,#221a50);border-radius:20px;padding:20px;text-align:center;margin-bottom:16px;border:1.5px solid #2a1f5e}
+.word-prompt .w-image{font-size:64px;margin-bottom:8px}
+.word-prompt .w-label{font-size:12px;color:#9b72ff;font-weight:900;text-transform:uppercase;letter-spacing:1px}
+
+/* Letter slots */
+.slots-label{font-size:11px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.letter-slots{display:flex;gap:8px;justify-content:center;margin-bottom:20px}
+.slot{width:52px;height:60px;border-radius:14px;border:2.5px dashed #2a1f5e;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;color:#fff;background:#1a1240;transition:all 0.25s;position:relative}
+.slot.filled{border-color:#9b72ff;background:#221a50;border-style:solid}
+.slot.filled.correct{border-color:#58e8c1;background:#0a2e25}
+.slot.active-drop{border-color:#ffd166;background:#2a1f00;animation:slot-pulse 0.8s ease infinite alternate}
+@keyframes slot-pulse{0%{border-color:#ffd166}100%{border-color:#ff9b00}}
+
+/* Letter tiles */
+.tiles-label{font-size:11px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px}
+.letter-tiles{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.tile{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,#9b72ff,#7a52d4);border:none;font-family:'Nunito',sans-serif;font-size:22px;font-weight:900;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.2s;box-shadow:0 4px 12px rgba(155,114,255,0.4)}
+.tile:hover{transform:translateY(-3px) scale(1.08);box-shadow:0 8px 20px rgba(155,114,255,0.5)}
+.tile:active{transform:scale(0.93)}
+.tile.used{opacity:0.3;pointer-events:none;background:#2a1f5e;box-shadow:none}
+
+/* Letter placed state */
+.progress-hint{font-size:13px;color:#c8b8f0;margin-bottom:12px;line-height:1.5;text-align:center}
+.slot-placed{border-color:#9b72ff;background:#221a50;border-style:solid}
+
+/* Celebration */
+.celebrate-card{background:linear-gradient(135deg,#221a50,#1a1240);border:2px solid #ffd166;border-radius:24px;padding:28px;text-align:center;margin-bottom:16px}
+.celebrate-card .word-reveal{font-size:48px;font-weight:900;color:#ffd166;letter-spacing:6px;margin:12px 0;animation:word-pop 0.5s ease-out}
+@keyframes word-pop{0%{transform:scale(0.5);opacity:0}60%{transform:scale(1.1)}100%{transform:scale(1);opacity:1}}
+.celebrate-card .celeb-img{font-size:72px;margin-bottom:8px;display:block;animation:bounce-star 0.6s ease-in-out infinite alternate}
+@keyframes bounce-star{0%{transform:translateY(0)}100%{transform:translateY(-10px)}}
+.celebrate-card h2{font-size:24px;font-weight:900;color:#fff;margin-bottom:6px}
+.celebrate-card p{font-size:14px;color:#c8b8f0;line-height:1.5}
+.confetti-row{font-size:22px;letter-spacing:4px;margin-top:10px}
+
+/* Hint */
+.hint-intro{font-size:14px;color:#9b8ec4;margin-bottom:12px;line-height:1.5}
+.hint-slots{display:flex;gap:8px;justify-content:center;margin-bottom:16px}
+.hint-slot{width:52px;height:60px;border-radius:14px;border:2.5px solid #ffd166;display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:900;background:#2a1f00;position:relative}
+.hint-slot .hint-num{position:absolute;top:-8px;right:-8px;background:#ffd166;color:#100b2e;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.hint-slot.ghost{border-style:dashed;opacity:0.5}
+.hint-tip{background:#221a50;border-radius:12px;padding:12px;font-size:13px;color:#9b72ff;font-weight:700;line-height:1.5;text-align:center;margin-bottom:14px}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:14px;font-weight:900;color:#ffd166;margin-bottom:8px;border-bottom:1px solid #2a1f5e;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #1a1240;font-size:12px}
+.spec-row .spec-key{color:#9b8ec4;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#e0d8ff;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#1a1240;border-radius:10px;padding:12px;font-size:11px;color:#9b8ec4;line-height:1.6;margin-top:8px}
+.cta-btn{width:100%;background:linear-gradient(135deg,#ffd166,#ffb300);border:none;border-radius:14px;padding:14px;color:#100b2e;font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;cursor:pointer;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('active')">Word Builder Active</button>
+  <button class="tab" onclick="show('placed')">Letter Placed</button>
+  <button class="tab" onclick="show('complete')">Word Complete!</button>
+  <button class="tab" onclick="show('hint')">Hint</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Active -->
+<div id="active" class="screen active">
+  <div class="hint-box">Route: /play/k1/word-builder — 3-4 letter word building. Tap tiles to fill blank slots. <span>No timers, no grade labels.</span></div>
+  <div class="coach-strip">
+    <div class="coach-face">🦊</div>
+    <div class="coach-speech"><p>Build the word for this picture! Tap the letters in order — you can do it!</p></div>
+  </div>
+  <div class="word-prompt">
+    <div class="w-image">🐱</div>
+    <div class="w-label">What is this?</div>
+  </div>
+  <div class="slots-label">Build the word here:</div>
+  <div class="letter-slots">
+    <div class="slot active-drop">_</div>
+    <div class="slot">_</div>
+    <div class="slot">_</div>
+  </div>
+  <div class="tiles-label">Tap a letter:</div>
+  <div class="letter-tiles">
+    <button class="tile">C</button>
+    <button class="tile">A</button>
+    <button class="tile">T</button>
+    <button class="tile">B</button>
+    <button class="tile">R</button>
+    <button class="tile">N</button>
+  </div>
+</div>
+
+<!-- TAB 2: Letter Placed -->
+<div id="placed" class="screen">
+  <div class="hint-box">Route: /play/k1/word-builder — after tapping C, first slot fills. Active slot advances to next. <span>Placed tiles dim.</span></div>
+  <div class="coach-strip">
+    <div class="coach-face">🦊</div>
+    <div class="coach-speech"><p>C is right! Great start! Now find the next letter!</p></div>
+  </div>
+  <div class="word-prompt">
+    <div class="w-image">🐱</div>
+    <div class="w-label">Keep going!</div>
+  </div>
+  <div class="progress-hint">1 down, 2 more to go!</div>
+  <div class="letter-slots">
+    <div class="slot filled slot-placed" style="border-color:#9b72ff">C</div>
+    <div class="slot active-drop">_</div>
+    <div class="slot">_</div>
+  </div>
+  <div class="tiles-label">Tap a letter:</div>
+  <div class="letter-tiles">
+    <button class="tile used">C</button>
+    <button class="tile">A</button>
+    <button class="tile">T</button>
+    <button class="tile">B</button>
+    <button class="tile">R</button>
+    <button class="tile">N</button>
+  </div>
+</div>
+
+<!-- TAB 3: Word Complete -->
+<div id="complete" class="screen">
+  <div class="hint-box">Route: /play/k1/word-builder/complete — all letters placed, word spelled correctly. Stars burst, coach celebrates!</div>
+  <div class="celebrate-card">
+    <span class="celeb-img">🐱</span>
+    <h2>You spelled it!</h2>
+    <div class="word-reveal">CAT</div>
+    <p>That's right — C-A-T spells CAT! You're a word builder!</p>
+    <div class="confetti-row">🎉 ⭐ 🎊 ⭐ 🎉</div>
+  </div>
+  <div class="coach-strip">
+    <div class="coach-face">🦊</div>
+    <div class="coach-speech"><p>AMAZING! C-A-T! CAT! You built the whole word! Look at you go!</p></div>
+  </div>
+  <button class="cta-btn">Next Word! 🚀</button>
+  <button style="width:100%;margin-top:8px;background:#221a50;border:1.5px solid #9b72ff;border-radius:14px;padding:12px;color:#9b72ff;font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;cursor:pointer">Play Again 🔄</button>
+</div>
+
+<!-- TAB 4: Hint -->
+<div id="hint" class="screen">
+  <div class="hint-box">Route: /play/k1/word-builder/hint — shows letter order after 2nd wrong attempt or explicit hint tap.</div>
+  <div class="hint-intro">Let me help! I'll show you which letter comes first. Watch the numbers!</div>
+  <div class="coach-strip">
+    <div class="coach-face">🦊</div>
+    <div class="coach-speech"><p>The word starts with C! Can you find it in the tiles below?</p></div>
+  </div>
+  <div class="word-prompt">
+    <div class="w-image">🐱</div>
+    <div class="w-label">C _ _</div>
+  </div>
+  <div class="hint-slots">
+    <div class="hint-slot">C<span class="hint-num">1</span></div>
+    <div class="hint-slot ghost">_<span class="hint-num">2</span></div>
+    <div class="hint-slot ghost">_<span class="hint-num">3</span></div>
+  </div>
+  <div class="hint-tip">Look for the letter with the number 1 — that goes in the first slot!</div>
+  <div class="letter-tiles">
+    <button class="tile" style="border:2px solid #ffd166;box-shadow:0 0 12px rgba(255,209,102,0.5)">C</button>
+    <button class="tile">A</button>
+    <button class="tile">T</button>
+    <button class="tile">B</button>
+    <button class="tile">R</button>
+    <button class="tile">N</button>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for play-k1-word-builder-v2.</div>
+  <div class="spec-section">
+    <h3>Component Identity</h3>
+    <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">play-k1-word-builder-v2.html</span></div>
+    <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">K–1 (ages 5–7)</span></div>
+    <div class="spec-row"><span class="spec-key">Skill</span><span class="spec-val">Phonics / spelling</span></div>
+    <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900</span></div>
+    <div class="spec-row"><span class="spec-key">Accent</span><span class="spec-val">#9b72ff violet</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Interaction Model</h3>
+    <div class="spec-row"><span class="spec-key">Input method</span><span class="spec-val">Tap-to-place (no drag required)</span></div>
+    <div class="spec-row"><span class="spec-key">Slot behavior</span><span class="spec-val">Active slot advances after each tap</span></div>
+    <div class="spec-row"><span class="spec-key">Wrong letter</span><span class="spec-val">Slot shakes, resets to empty, no star loss</span></div>
+    <div class="spec-row"><span class="spec-key">Undo</span><span class="spec-val">Tap filled slot to clear it</span></div>
+    <div class="spec-row"><span class="spec-key">Word length</span><span class="spec-val">3–4 letters (CVC pattern focus)</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Rules</h3>
+    <div class="spec-note">No timers. No grade labels on any screen. Hint shows first letter only after 2nd wrong attempt. Replay never deducts stars. Coach voice reads word prompt on mount. Used tiles dim (opacity 30%) after placement. Celebration: full word spelled out with bounce animation.</div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['active','placed','complete','hint','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

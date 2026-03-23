@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Adoption Detail Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #060b12; min-height: 100vh; padding: 24px 16px 40px; }
+.page-title { font-size: 13px; font-weight: 800; color: #ffd166; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px; text-align: center; opacity: 0.7; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 8px; padding: 12px 14px; margin-bottom: 16px; font-size: 12px; color: #c8a832; line-height: 1.6; max-width: 960px; margin-left: auto; margin-right: auto; }
+.hint strong { color: #ffd166; }
+.tabs { display: flex; gap: 4px; flex-wrap: wrap; max-width: 960px; margin: 0 auto; }
+.tab { padding: 9px 14px; border-radius: 8px 8px 0 0; background: #1a2030; border: none; cursor: pointer; font-family: inherit; font-size: 12px; font-weight: 700; color: #607080; }
+.tab.active { background: #0d1117; color: #ffd166; }
+.panel { display: none; background: #0d1117; border-radius: 0 8px 8px 8px; max-width: 960px; margin: 0 auto; overflow: hidden; box-shadow: 0 4px 40px rgba(0,0,0,0.6); min-height: 600px; }
+.panel.active { display: block; }
+
+/* Nav */
+.app-nav { background: #080e16; padding: 0 24px; display: flex; align-items: center; height: 56px; gap: 24px; border-bottom: 1px solid #1e2d40; }
+.nav-logo { font-size: 16px; font-weight: 900; color: #fff; }
+.nav-logo span { color: #ffd166; }
+.nav-link { font-size: 12px; font-weight: 600; color: #4a6080; }
+.nav-link.active { color: #ffd166; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 12px; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: #ffd166; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #1a0f00; }
+
+/* Content */
+.content { padding: 24px; }
+.page-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; flex-wrap: gap; gap: 12px; }
+.page-hdr-title { font-size: 20px; font-weight: 900; color: #ffd166; }
+.page-hdr-sub { font-size: 12px; color: #4a6080; margin-top: 3px; }
+.btn { padding: 8px 14px; border-radius: 8px; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+.btn-gold { background: #ffd166; color: #1a0f00; }
+.btn-outline { background: transparent; color: #ffd166; border: 1.5px solid #ffd166; }
+.btn-dark { background: #1e2d40; color: #8090a8; }
+
+/* KPI strip */
+.kpi-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: #1e2d40; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+.kpi { background: #111824; padding: 16px 18px; }
+.kpi-val { font-size: 26px; font-weight: 900; color: #ffd166; }
+.kpi-lbl { font-size: 11px; color: #4a6080; margin-top: 3px; }
+.kpi-trend { font-size: 11px; font-weight: 700; margin-top: 3px; }
+.t-up { color: #44cc88; }
+.t-down { color: #ff6666; }
+.t-flat { color: #607080; }
+
+/* Band adoption table */
+.band-tbl-wrap { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+table { width: 100%; border-collapse: collapse; }
+thead th { background: #080e16; padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 700; color: #4a6080; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid #1e2d40; }
+tbody tr { border-bottom: 1px solid #1e2d40; transition: background 0.1s; }
+tbody tr:hover { background: #141e2a; }
+tbody tr:last-child { border-bottom: none; }
+td { padding: 12px 14px; font-size: 12px; color: #c0d0e0; vertical-align: middle; }
+.band-chip { font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 6px; display: inline-block; }
+.band-p0 { background: #2a1010; color: #ff8888; }
+.band-p1 { background: #2a2000; color: #ffd166; }
+.band-p2 { background: #0a2030; color: #66aaff; }
+.band-p3 { background: #1a1040; color: #aa88ff; }
+.trend-arrow { font-size: 14px; font-weight: 800; }
+.arr-up { color: #44cc88; }
+.arr-flat { color: #607080; }
+.arr-down { color: #ff6666; }
+.mini-bar-wrap { display: flex; align-items: center; gap: 6px; }
+.mini-bar { flex: 1; height: 6px; background: #1e2d40; border-radius: 3px; overflow: hidden; }
+.mini-fill { height: 100%; border-radius: 3px; }
+
+/* SVG Bar chart — School uptake */
+.chart-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+.cc-title { font-size: 13px; font-weight: 800; color: #e0e8f0; margin-bottom: 16px; }
+.bar-chart-horiz { display: flex; flex-direction: column; gap: 10px; }
+.bch-row { display: flex; align-items: center; gap: 12px; }
+.bch-label { font-size: 11px; color: #8090a8; width: 140px; flex-shrink: 0; text-align: right; }
+.bch-bar-wrap { flex: 1; height: 20px; background: #1e2d40; border-radius: 4px; overflow: hidden; }
+.bch-fill { height: 100%; border-radius: 4px; display: flex; align-items: center; padding-left: 8px; font-size: 10px; font-weight: 700; color: #0a1520; }
+.bch-pct { font-size: 11px; font-weight: 700; color: #8090a8; width: 32px; text-align: right; }
+
+/* Retention curve */
+.retention-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+.rc-title { font-size: 13px; font-weight: 800; color: #e0e8f0; margin-bottom: 16px; }
+.retention-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+.ret-week { background: #0d1117; border: 1px solid #1e2d40; border-radius: 10px; padding: 14px; text-align: center; }
+.ret-week-lbl { font-size: 11px; color: #4a6080; margin-bottom: 8px; }
+.ret-circle { width: 64px; height: 64px; border-radius: 50%; border: 3px solid; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; }
+.ret-pct-val { font-size: 18px; font-weight: 900; }
+.ret-drop { font-size: 10px; font-weight: 700; margin-top: 4px; }
+
+/* Spec */
+.spec-body { padding: 24px; }
+.spec-block { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 20px; margin-bottom: 14px; }
+.spec-title { font-size: 14px; font-weight: 800; color: #ffd166; margin-bottom: 10px; }
+.spec-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.spec-list li { font-size: 12px; color: #8090a8; padding-left: 16px; position: relative; line-height: 1.5; }
+.spec-list li::before { content: '→'; position: absolute; left: 0; color: #ffd166; font-weight: 700; }
+
+/* Trend lines (SVG) */
+.trend-card { background: #111824; border: 1px solid #1e2d40; border-radius: 12px; padding: 16px 20px; margin-bottom: 20px; }
+.trend-row { display: flex; align-items: center; gap: 14px; padding: 8px 0; border-bottom: 1px solid #1e2d40; }
+.trend-row:last-child { border-bottom: none; }
+.trend-label { font-size: 12px; font-weight: 700; color: #c0d0e0; width: 130px; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<p class="page-title">WonderQuest — Owner Adoption Detail Desktop v2</p>
+
+<div class="hint">
+  <strong>Engineering spec:</strong> Desktop 900px+ adoption drilldown. Dark #0d1117 owner theme, gold #ffd166. Band adoption table (P0/P1/P2/P3) with active households, sessions, avg streak, trend arrows. School/teacher uptake horizontal bar chart (SVG). Retention curve (W1–W4 %). Trend lines.
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('t1')">Adoption Overview</button>
+  <button class="tab" onclick="show('t2')">Band Adoption</button>
+  <button class="tab" onclick="show('t3')">Teacher Uptake</button>
+  <button class="tab" onclick="show('t4')">Retention Curve</button>
+  <button class="tab" onclick="show('t5')">Spec</button>
+</div>
+
+<!-- TAB 1: Adoption Overview -->
+<div class="panel active" id="t1">
+  <div class="app-nav">
+    <div class="nav-logo">Wonder<span>Quest</span></div>
+    <span class="nav-link">Home</span>
+    <span class="nav-link">Feedback</span>
+    <span class="nav-link active">Adoption</span>
+    <div class="nav-right">
+      <button class="btn btn-dark" style="font-size:11px;">Export CSV</button>
+      <div class="nav-avatar">OM</div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page-hdr">
+      <div>
+        <div class="page-hdr-title">Adoption Drilldown</div>
+        <div class="page-hdr-sub">All schools · 14 active · 23 Mar 2026 · 30-day window</div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-dark">Last 7 days</button>
+        <button class="btn btn-outline">Last 30 days</button>
+      </div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi"><div class="kpi-val">68%</div><div class="kpi-lbl">Overall Adoption</div><div class="kpi-trend t-up">↑ +4% vs last month</div></div>
+      <div class="kpi"><div class="kpi-val">1,842</div><div class="kpi-lbl">Active Households</div><div class="kpi-trend t-up">↑ +112 this month</div></div>
+      <div class="kpi"><div class="kpi-val">4.2</div><div class="kpi-lbl">Avg Sessions/Week</div><div class="kpi-trend t-flat">→ stable</div></div>
+      <div class="kpi"><div class="kpi-val">74%</div><div class="kpi-lbl">Week 4 Retention</div><div class="kpi-trend t-down">↓ -3% vs prev cohort</div></div>
+    </div>
+
+    <!-- Band adoption summary -->
+    <div class="band-tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Band</th>
+            <th>Active Households</th>
+            <th>Sessions (30d)</th>
+            <th>Avg Streak</th>
+            <th>Avg Score</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="band-chip band-p0">P0 Core</span></td>
+            <td>1,842</td>
+            <td>24,360</td>
+            <td><span style="color:#44cc88;font-weight:800;">6.2 days</span></td>
+            <td>68%</td>
+            <td><span class="trend-arrow arr-up">↑</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p1">P1 Consolidation</span></td>
+            <td>1,204</td>
+            <td>14,448</td>
+            <td><span style="color:#ffd166;font-weight:800;">4.8 days</span></td>
+            <td>61%</td>
+            <td><span class="trend-arrow arr-up">↑</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p2">P2 Extension</span></td>
+            <td>682</td>
+            <td>6,820</td>
+            <td><span style="color:#ffd166;font-weight:800;">3.9 days</span></td>
+            <td>54%</td>
+            <td><span class="trend-arrow arr-flat">→</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p3">P3 Challenge</span></td>
+            <td>214</td>
+            <td>1,498</td>
+            <td><span style="color:#ff8888;font-weight:800;">2.4 days</span></td>
+            <td>47%</td>
+            <td><span class="trend-arrow arr-down">↓</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Trend lines -->
+    <div class="trend-card">
+      <div class="cc-title">30-Day Active Household Trends by Band</div>
+      <div class="trend-row">
+        <span class="trend-label">P0 Core</span>
+        <div style="flex:1;">
+          <svg width="100%" height="30" viewBox="0 0 500 30" preserveAspectRatio="none">
+            <polyline points="0,24 71,22 143,20 214,18 286,16 357,14 429,12 500,10" fill="none" stroke="#44cc88" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="500" cy="10" r="4" fill="#44cc88"/>
+          </svg>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:#44cc88;width:44px;text-align:right;">1,842</span>
+      </div>
+      <div class="trend-row">
+        <span class="trend-label">P1 Consolidation</span>
+        <div style="flex:1;">
+          <svg width="100%" height="30" viewBox="0 0 500 30" preserveAspectRatio="none">
+            <polyline points="0,20 71,19 143,18 214,17 286,16 357,15 429,15 500,14" fill="none" stroke="#ffd166" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="500" cy="14" r="4" fill="#ffd166"/>
+          </svg>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:#ffd166;width:44px;text-align:right;">1,204</span>
+      </div>
+      <div class="trend-row">
+        <span class="trend-label">P2 Extension</span>
+        <div style="flex:1;">
+          <svg width="100%" height="30" viewBox="0 0 500 30" preserveAspectRatio="none">
+            <polyline points="0,16 71,16 143,15 214,16 286,15 357,16 429,15 500,15" fill="none" stroke="#66aaff" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="500" cy="15" r="4" fill="#66aaff"/>
+          </svg>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:#66aaff;width:44px;text-align:right;">682</span>
+      </div>
+      <div class="trend-row">
+        <span class="trend-label">P3 Challenge</span>
+        <div style="flex:1;">
+          <svg width="100%" height="30" viewBox="0 0 500 30" preserveAspectRatio="none">
+            <polyline points="0,10 71,11 143,12 214,14 286,16 357,18 429,20 500,22" fill="none" stroke="#ff6666" stroke-width="2" stroke-linejoin="round"/>
+            <circle cx="500" cy="22" r="4" fill="#ff6666"/>
+          </svg>
+        </div>
+        <span style="font-size:12px;font-weight:800;color:#ff6666;width:44px;text-align:right;">214</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Band Adoption (detailed) -->
+<div class="panel" id="t2">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Adoption</span><div class="nav-right"><div class="nav-avatar">OM</div></div></div>
+  <div class="content">
+    <div class="page-hdr"><div><div class="page-hdr-title">Band Adoption — Full Detail</div><div class="page-hdr-sub">Per-band breakdown with streak, score, and session distributions</div></div></div>
+
+    <div class="band-tbl-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Band</th>
+            <th>Active HH</th>
+            <th>New HH (30d)</th>
+            <th>Sessions (30d)</th>
+            <th>Sess/HH</th>
+            <th>Avg Streak</th>
+            <th>Avg Score</th>
+            <th>Completion %</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="band-chip band-p0">P0 Core</span></td>
+            <td><strong>1,842</strong></td>
+            <td style="color:#44cc88;">+112</td>
+            <td>24,360</td>
+            <td>13.2</td>
+            <td style="color:#44cc88;font-weight:700;">6.2d</td>
+            <td>68%</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:82%;background:#44cc88;"></div></div>
+                <span style="font-size:10px;color:#607080;">82%</span>
+              </div>
+            </td>
+            <td><span class="trend-arrow arr-up">↑ +4%</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p1">P1 Consol.</span></td>
+            <td><strong>1,204</strong></td>
+            <td style="color:#44cc88;">+68</td>
+            <td>14,448</td>
+            <td>12.0</td>
+            <td style="color:#ffd166;font-weight:700;">4.8d</td>
+            <td>61%</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:74%;background:#ffd166;"></div></div>
+                <span style="font-size:10px;color:#607080;">74%</span>
+              </div>
+            </td>
+            <td><span class="trend-arrow arr-up">↑ +2%</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p2">P2 Exten.</span></td>
+            <td><strong>682</strong></td>
+            <td style="color:#607080;">+8</td>
+            <td>6,820</td>
+            <td>10.0</td>
+            <td style="color:#ffd166;font-weight:700;">3.9d</td>
+            <td>54%</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:65%;background:#ffd166;"></div></div>
+                <span style="font-size:10px;color:#607080;">65%</span>
+              </div>
+            </td>
+            <td><span class="trend-arrow arr-flat">→ flat</span></td>
+          </tr>
+          <tr>
+            <td><span class="band-chip band-p3">P3 Chall.</span></td>
+            <td><strong>214</strong></td>
+            <td style="color:#ff6666;">-12</td>
+            <td>1,498</td>
+            <td>7.0</td>
+            <td style="color:#ff8888;font-weight:700;">2.4d</td>
+            <td>47%</td>
+            <td>
+              <div class="mini-bar-wrap">
+                <div class="mini-bar"><div class="mini-fill" style="width:52%;background:#ff6666;"></div></div>
+                <span style="font-size:10px;color:#607080;">52%</span>
+              </div>
+            </td>
+            <td><span class="trend-arrow arr-down">↓ -6%</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="background:#1a0808;border:1px solid #3a1010;border-radius:10px;padding:12px 16px;font-size:11px;color:#ff8888;line-height:1.5;">
+      <strong>P3 Alert:</strong> P3 Challenge adoption is declining (-6%) and streak is lowest across all bands (2.4 days). Consider reviewing difficulty level or introducing scaffolded entry to P3 content.
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Teacher Uptake -->
+<div class="panel" id="t3">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Adoption</span><div class="nav-right"><div class="nav-avatar">OM</div></div></div>
+  <div class="content">
+    <div class="page-hdr"><div><div class="page-hdr-title">School / Teacher Uptake</div><div class="page-hdr-sub">% of assigned learners active this month · 14 schools</div></div></div>
+
+    <div class="chart-card">
+      <div class="cc-title">School Adoption Rate — Active Households ÷ Linked Households</div>
+      <div class="bar-chart-horiz">
+        <div class="bch-row"><span class="bch-label">Maple Street Primary</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:92%;background:#44cc88;">92%</div></div><span class="bch-pct">92%</span></div>
+        <div class="bch-row"><span class="bch-label">Thornfield Academy</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:88%;background:#44cc88;">88%</div></div><span class="bch-pct">88%</span></div>
+        <div class="bch-row"><span class="bch-label">Riverside School</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:82%;background:#44cc88;">82%</div></div><span class="bch-pct">82%</span></div>
+        <div class="bch-row"><span class="bch-label">Oak Hill CE Primary</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:74%;background:#ffd166;">74%</div></div><span class="bch-pct">74%</span></div>
+        <div class="bch-row"><span class="bch-label">Sunnyside Juniors</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:68%;background:#ffd166;">68%</div></div><span class="bch-pct">68%</span></div>
+        <div class="bch-row"><span class="bch-label">Wellington Primary</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:61%;background:#ffd166;">61%</div></div><span class="bch-pct">61%</span></div>
+        <div class="bch-row"><span class="bch-label">St. Mary's Catholic</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:55%;background:#ffd166;">55%</div></div><span class="bch-pct">55%</span></div>
+        <div class="bch-row"><span class="bch-label">Greenfield Academy</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:48%;background:#ff6666;">48%</div></div><span class="bch-pct">48%</span></div>
+        <div class="bch-row"><span class="bch-label">Park Lane Primary</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:42%;background:#ff6666;">42%</div></div><span class="bch-pct">42%</span></div>
+        <div class="bch-row"><span class="bch-label">Brookside School</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:38%;background:#ff6666;">38%</div></div><span class="bch-pct">38%</span></div>
+      </div>
+    </div>
+
+    <div style="background:#111824;border:1px solid #1e2d40;border-radius:10px;padding:12px 16px;font-size:11px;color:#8090a8;line-height:1.5;">
+      <strong style="color:#ffd166;">Legend:</strong> Green ≥80% (strong adoption) · Amber 50–79% (moderate) · Red &lt;50% (low — intervention recommended)
+      <br><strong style="color:#ffd166;">Action:</strong> 3 schools below 50% threshold — consider outreach, training, or support calls.
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Retention Curve -->
+<div class="panel" id="t4">
+  <div class="app-nav"><div class="nav-logo">Wonder<span>Quest</span></div><span class="nav-link active">Adoption</span><div class="nav-right"><div class="nav-avatar">OM</div></div></div>
+  <div class="content">
+    <div class="page-hdr"><div><div class="page-hdr-title">Retention Curve</div><div class="page-hdr-sub">% of new households still active at each week · March 2026 cohort</div></div></div>
+
+    <div class="retention-card">
+      <div class="rc-title">New User Cohort — March 2026 (n=112 households)</div>
+      <div class="retention-grid">
+        <div class="ret-week">
+          <div class="ret-week-lbl">Week 1</div>
+          <div class="ret-circle" style="border-color:#44cc88;"><div class="ret-pct-val" style="color:#44cc88;">100%</div></div>
+          <div style="font-size:11px;color:#4a6080;">112 households</div>
+          <div class="ret-drop" style="color:#44cc88;">Baseline</div>
+        </div>
+        <div class="ret-week">
+          <div class="ret-week-lbl">Week 2</div>
+          <div class="ret-circle" style="border-color:#44cc88;"><div class="ret-pct-val" style="color:#44cc88;">88%</div></div>
+          <div style="font-size:11px;color:#4a6080;">99 households</div>
+          <div class="ret-drop" style="color:#ff6666;">-12% drop</div>
+        </div>
+        <div class="ret-week">
+          <div class="ret-week-lbl">Week 3</div>
+          <div class="ret-circle" style="border-color:#ffd166;"><div class="ret-pct-val" style="color:#ffd166;">79%</div></div>
+          <div style="font-size:11px;color:#4a6080;">89 households</div>
+          <div class="ret-drop" style="color:#ff6666;">-9% drop</div>
+        </div>
+        <div class="ret-week">
+          <div class="ret-week-lbl">Week 4</div>
+          <div class="ret-circle" style="border-color:#ffd166;"><div class="ret-pct-val" style="color:#ffd166;">74%</div></div>
+          <div style="font-size:11px;color:#4a6080;">83 households</div>
+          <div class="ret-drop" style="color:#ff6666;">-5% drop</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Historical cohort comparison -->
+    <div class="chart-card">
+      <div class="cc-title">Retention by Cohort — Week 4 Comparison</div>
+      <div class="bar-chart-horiz">
+        <div class="bch-row"><span class="bch-label">Mar 2026 cohort</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:74%;background:#ffd166;">74%</div></div><span class="bch-pct">74%</span></div>
+        <div class="bch-row"><span class="bch-label">Feb 2026 cohort</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:77%;background:#44cc88;">77%</div></div><span class="bch-pct">77%</span></div>
+        <div class="bch-row"><span class="bch-label">Jan 2026 cohort</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:71%;background:#ffd166;">71%</div></div><span class="bch-pct">71%</span></div>
+        <div class="bch-row"><span class="bch-label">Dec 2025 cohort</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:68%;background:#ffd166;">68%</div></div><span class="bch-pct">68%</span></div>
+        <div class="bch-row"><span class="bch-label">Nov 2025 cohort</span><div class="bch-bar-wrap"><div class="bch-fill" style="width:62%;background:#ff6666;">62%</div></div><span class="bch-pct">62%</span></div>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:#4a6080;line-height:1.5;">Trend: Week 4 retention improving month-on-month since Nov 2025 (+12 points over 5 cohorts). Target is 80%+ W4 retention. Current gap: 6 points.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div class="panel" id="t5">
+  <div class="spec-body">
+    <div class="spec-block">
+      <div class="spec-title">Component Spec: Owner Adoption Detail Desktop v2</div>
+      <ul class="spec-list">
+        <li>Desktop 900px+, Sora, bg #0d1117, gold #ffd166</li>
+        <li>KPI strip: Overall Adoption, Active Households, Avg Sessions/Week, Week 4 Retention</li>
+        <li>Tab 1 overview: band adoption summary table + SVG polyline trend per band</li>
+        <li>Tab 2: full band detail table with completion % mini-bar per row; P3 alert callout</li>
+        <li>Tab 3: school uptake horizontal SVG bar chart — green ≥80%, amber 50–79%, red &lt;50%</li>
+        <li>Tab 4: retention curve — 4 circles (W1–W4) with % and drop; cohort comparison bar chart</li>
+        <li>Trend arrows: ↑ green, → flat grey, ↓ red; inline with table rows</li>
+        <li>All charts use inline SVG — no external library required</li>
+        <li>Export CSV button in nav right; data window toggle: 7-day / 30-day</li>
+        <li>Alert callout for declining bands/schools: red border card with action recommendation</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

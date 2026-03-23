@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Child Offline Placeholder v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#e8e0ff;width:375px;min-height:100vh;margin:0 auto}
+.screen{width:375px;min-height:100vh;background:#100b2e;overflow:hidden}
+.tabs{display:flex;gap:0;background:#0a0620;border-bottom:2px solid #1e1450;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:11px;font-weight:900;color:#5a4a99;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab.active{color:#9b72ff;border-bottom-color:#9b72ff}
+.pane{display:none;padding:0}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin:20px;font-size:12px;color:#ffd166;line-height:1.5}
+.hint-box strong{color:#ffe08a}
+
+/* Offline state */
+.offline-bg{background:linear-gradient(180deg,#100b2e 0%,#0a0620 100%);min-height:calc(100vh - 46px);display:flex;flex-direction:column;align-items:center;padding:40px 24px 24px}
+.offline-clouds{position:relative;margin-bottom:8px}
+.cloud{font-size:40px;opacity:.15;position:absolute}
+.cloud.c1{top:-20px;left:-30px}
+.cloud.c2{top:-10px;right:-20px;font-size:28px}
+.hero-icon{font-size:96px;margin-bottom:20px;animation:float 3s ease-in-out infinite;display:block;text-align:center}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.offline-title{font-size:28px;font-weight:900;color:#fff;text-align:center;margin-bottom:10px;line-height:1.2}
+.offline-sub{font-size:16px;font-weight:900;color:#7a6acc;text-align:center;margin-bottom:32px;line-height:1.4}
+.dots-row{display:flex;gap:10px;margin-bottom:40px}
+.dot{width:14px;height:14px;border-radius:50%;background:#2a1a60;animation:blink 1.4s ease-in-out infinite}
+.dot:nth-child(2){animation-delay:.2s}
+.dot:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{background:#2a1a60;transform:scale(1)}40%{background:#9b72ff;transform:scale(1.3)}}
+.try-again-btn{background:linear-gradient(135deg,#9b72ff,#7044d0);border:none;border-radius:18px;padding:18px 40px;font-size:18px;font-weight:900;color:#fff;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 20px #9b72ff44;width:100%;margin-bottom:16px}
+.try-again-btn:active{transform:scale(.97)}
+.safe-message{background:#1a1050;border:2px solid #2a1a60;border-radius:14px;padding:16px;text-align:center;margin-bottom:16px}
+.safe-message .icon{font-size:28px;margin-bottom:6px}
+.safe-message p{font-size:14px;font-weight:900;color:#7a6acc;line-height:1.5}
+
+/* Connecting state */
+.connecting-bg{background:linear-gradient(180deg,#100b2e 0%,#0a0620 100%);min-height:calc(100vh - 46px);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center}
+.pulse-ring{width:120px;height:120px;border-radius:50%;border:4px solid #9b72ff33;margin:0 auto 24px;display:flex;align-items:center;justify-content:center;position:relative;animation:pulse-ring 2s ease-in-out infinite}
+@keyframes pulse-ring{0%,100%{box-shadow:0 0 0 0 #9b72ff44,0 0 0 0 #9b72ff22}50%{box-shadow:0 0 0 20px #9b72ff11,0 0 0 40px #9b72ff05}}
+.pulse-ring .icon{font-size:60px}
+.connecting-title{font-size:24px;font-weight:900;color:#fff;margin-bottom:10px}
+.connecting-sub{font-size:15px;font-weight:900;color:#7a6acc;margin-bottom:24px}
+.progress-track{width:100%;height:8px;background:#1a1050;border-radius:4px;overflow:hidden;margin-bottom:24px}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#9b72ff,#58c8f0);animation:connect-progress 3s ease-in-out infinite}
+@keyframes connect-progress{0%{width:10%}50%{width:75%}100%{width:95%}}
+.connecting-fact{background:#1a1050;border:2px solid #2a1a60;border-radius:14px;padding:14px 16px;font-size:14px;font-weight:900;color:#7a6acc;text-align:center;line-height:1.5}
+
+/* Back online */
+.online-bg{background:linear-gradient(180deg,#0d1a10 0%,#0a0620 100%);min-height:calc(100vh - 46px);display:flex;flex-direction:column;align-items:center;padding:40px 24px 24px;text-align:center}
+.online-burst{font-size:96px;margin-bottom:16px;animation:burst .5s ease-out;display:block}
+@keyframes burst{0%{transform:scale(0)}70%{transform:scale(1.2)}100%{transform:scale(1)}}
+.online-title{font-size:28px;font-weight:900;color:#58e8c1;margin-bottom:8px}
+.online-sub{font-size:16px;font-weight:900;color:#2a6a44;margin-bottom:28px}
+.where-left{background:#0d2010;border:2px solid #58e8c133;border-radius:16px;padding:20px;margin-bottom:20px;width:100%;text-align:left}
+.where-left h3{font-size:16px;font-weight:900;color:#e8e0ff;margin-bottom:10px}
+.where-left .node-row{display:flex;align-items:center;gap:12px;font-size:15px;font-weight:900;color:#e8e0ff}
+.where-left .node-row .icon{font-size:28px}
+.where-left .node-row .sub{font-size:12px;color:#3a6a44;font-weight:900}
+.resume-btn{background:linear-gradient(135deg,#58e8c1,#2ab87e);border:none;border-radius:18px;padding:18px;font-size:18px;font-weight:900;color:#0a2010;cursor:pointer;font-family:'Nunito',sans-serif;width:100%;margin-bottom:12px}
+.later-btn{background:#1a1050;border:2px solid #2a1a60;border-radius:18px;padding:16px;font-size:16px;font-weight:900;color:#9b72ff;cursor:pointer;font-family:'Nunito',sans-serif;width:100%}
+
+/* Cached content */
+.cached-bg{background:#100b2e;min-height:calc(100vh - 46px);padding:20px 24px}
+.cached-header{text-align:center;margin-bottom:20px}
+.cached-header .icon{font-size:48px;margin-bottom:8px;display:block}
+.cached-header h2{font-size:20px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.cached-header p{font-size:13px;color:#7a6050}
+.cached-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.cached-item{background:#1a1050;border:2px solid #2a1a60;border-radius:14px;padding:16px;display:flex;align-items:center;gap:12px}
+.cached-item .ci-icon{font-size:28px;flex-shrink:0}
+.cached-item .ci-info{flex:1}
+.cached-item .ci-info .name{font-size:14px;font-weight:900;color:#e8e0ff}
+.cached-item .ci-info .sub{font-size:12px;color:#5a4a99}
+.cached-item .ci-badge{background:#ffd16622;border:1px solid #ffd16644;color:#ffd166;font-size:10px;font-weight:900;padding:3px 8px;border-radius:8px}
+.play-cached-btn{background:linear-gradient(135deg,#ffd166,#e0a800);border:none;border-radius:16px;padding:16px;font-size:16px;font-weight:900;color:#1a1000;cursor:pointer;font-family:'Nunito',sans-serif;width:100%}
+
+/* Spec */
+.spec-body{padding:20px}
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:13px;font-weight:900;color:#9b72ff;margin-bottom:8px}
+.spec-section p,.spec-section li{font-size:12px;color:#7a6acc;line-height:1.7;margin-bottom:4px}
+.spec-section ul{padding-left:16px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="tabs">
+    <div class="tab active" onclick="show('offline')">Offline State</div>
+    <div class="tab" onclick="show('connecting')">Connecting...</div>
+    <div class="tab" onclick="show('online')">Back Online!</div>
+    <div class="tab" onclick="show('cached')">Saved Games</div>
+    <div class="tab" onclick="show('spec')">Spec</div>
+  </div>
+
+  <!-- OFFLINE STATE -->
+  <div id="offline" class="pane active">
+    <div class="hint-box">
+      <strong>Never say "error" or use technical language.</strong> Dinosaur/rocket emoji with gentle messaging. "Try again" button. Calm, reassuring tone.
+    </div>
+    <div class="offline-bg">
+      <div class="offline-clouds">
+        <span class="cloud c1">☁️</span>
+        <span class="cloud c2">☁️</span>
+      </div>
+      <span class="hero-icon">🦕</span>
+      <div class="offline-title">Oops! No signal!</div>
+      <div class="offline-sub">WonderQuest is waiting for your connection to come back. Just like a dinosaur waiting for its snack!</div>
+      <div class="dots-row">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+      <button class="try-again-btn" onclick="show('connecting')">🔄 Try again!</button>
+      <div class="safe-message">
+        <div class="icon">🌙</div>
+        <p>Your stars and badges are safe and waiting for you!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONNECTING STATE -->
+  <div id="connecting" class="pane">
+    <div class="connecting-bg">
+      <div class="pulse-ring"><span class="icon">🚀</span></div>
+      <div class="connecting-title">Finding the signal...</div>
+      <div class="connecting-sub">Your rocket is looking for WonderQuest! Won't be long!</div>
+      <div class="progress-track"><div class="progress-fill"></div></div>
+      <div class="connecting-fact">
+        <span style="font-size:20px">🦕</span><br>
+        Did you know? Dinosaurs lived for 165 million years! That's way longer than waiting for Wi-Fi 😄
+      </div>
+      <button style="background:transparent;border:2px solid #2a1a60;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:900;color:#5a4a99;cursor:pointer;font-family:'Nunito',sans-serif;margin-top:20px" onclick="show('offline')">← Go back</button>
+    </div>
+  </div>
+
+  <!-- BACK ONLINE -->
+  <div id="online" class="pane">
+    <div class="online-bg">
+      <span class="online-burst">🎉</span>
+      <div class="online-title">You're back!</div>
+      <div class="online-sub">WonderQuest is ready to play!</div>
+      <div class="where-left">
+        <h3>Where you left off</h3>
+        <div class="node-row">
+          <span class="icon">🐾</span>
+          <div>
+            <div>Animal Friends</div>
+            <div class="sub">Jungle World · Stop 3 of 8</div>
+          </div>
+        </div>
+      </div>
+      <button class="resume-btn" onclick="alert('Resuming game!')">🎮 Jump back in!</button>
+      <button class="later-btn" onclick="alert('Going home')">🏠 Go to home</button>
+    </div>
+  </div>
+
+  <!-- CACHED CONTENT -->
+  <div id="cached" class="pane">
+    <div class="hint-box"><strong>Saved games</strong> — content downloaded for offline play. Never say "cached" to the child — call it "Saved Games."</div>
+    <div class="cached-header">
+      <span class="icon">💾</span>
+      <h2>Your saved games!</h2>
+      <p>You can play these even without signal</p>
+    </div>
+    <div class="cached-list">
+      <div class="cached-item">
+        <span class="ci-icon">🐾</span>
+        <div class="ci-info">
+          <div class="name">Animal Friends</div>
+          <div class="sub">Jungle World · 8 questions saved</div>
+        </div>
+        <span class="ci-badge">✓ Saved</span>
+      </div>
+      <div class="cached-item">
+        <span class="ci-icon">🔢</span>
+        <div class="ci-info">
+          <div class="name">Number Jungle</div>
+          <div class="sub">Jungle World · 6 questions saved</div>
+        </div>
+        <span class="ci-badge">✓ Saved</span>
+      </div>
+      <div class="cached-item">
+        <span class="ci-icon">⚡</span>
+        <div class="ci-info">
+          <div class="name">Today's Challenge</div>
+          <div class="sub">5 quick questions saved</div>
+        </div>
+        <span class="ci-badge">✓ Saved</span>
+      </div>
+    </div>
+    <button class="play-cached-btn" onclick="alert('Playing saved game!')">🎮 Play saved games!</button>
+  </div>
+
+  <!-- SPEC -->
+  <div id="spec" class="pane">
+    <div class="spec-body">
+      <div class="hint-box"><strong>Offline Placeholder spec.</strong> Child-safe fallback — never technical.</div>
+      <div class="spec-section">
+        <h3>Language Rules</h3>
+        <ul>
+          <li>Never: "error", "connection failed", "network unavailable", "timeout"</li>
+          <li>Always: friendly, animals/rockets/space metaphors</li>
+          <li>Reassure: stars and badges are safe</li>
+          <li>"Saved Games" instead of "Cached Content"</li>
+        </ul>
+      </div>
+      <div class="spec-section">
+        <h3>States</h3>
+        <ul>
+          <li>Offline — dinosaur floats gently, dots animate, Try Again button</li>
+          <li>Connecting — rocket pulse ring, fun fact to entertain while waiting</li>
+          <li>Back Online — celebration burst, resume exactly where they left off</li>
+          <li>Cached — pre-downloaded content playable offline</li>
+        </ul>
+      </div>
+      <div class="spec-section">
+        <h3>Animation</h3>
+        <p>Float animation on hero icon (3s cycle). Dot blink animation for waiting state. Pulse ring for connecting. No jarring transitions.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['offline','connecting','online','cached','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

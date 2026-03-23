@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Child Practice Mode Picker v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:#100b2e;color:#e8e0ff;width:375px;min-height:100vh;margin:0 auto}
+.screen{width:375px;min-height:100vh;background:#100b2e;overflow:hidden}
+.tabs{display:flex;gap:0;background:#0a0620;border-bottom:2px solid #1e1450;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:11px;font-weight:900;color:#5a4a99;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab.active{color:#9b72ff;border-bottom-color:#9b72ff}
+.pane{display:none;padding:20px}
+.pane.active{display:block}
+.hint-box{background:#2a1f00;border:2px solid #ffd166;border-radius:12px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#ffd166;line-height:1.5}
+.hint-box strong{color:#ffe08a}
+.picker-header{text-align:center;padding:20px 0 16px}
+.picker-header .emoji{font-size:36px;margin-bottom:8px;display:block}
+.picker-header h1{font-size:22px;font-weight:900;color:#fff;line-height:1.2}
+.picker-header p{font-size:14px;color:#7a6acc;margin-top:6px}
+.mode-card{border-radius:20px;padding:24px 20px;margin-bottom:16px;cursor:pointer;transition:transform .1s,box-shadow .1s;border:3px solid transparent;position:relative;overflow:hidden}
+.mode-card:active{transform:scale(.97)}
+.mode-quest{background:linear-gradient(160deg,#1a0a50 0%,#2a1080 100%);border-color:#9b72ff44}
+.mode-quest:hover{border-color:#9b72ff;box-shadow:0 8px 32px #9b72ff33}
+.mode-challenge{background:linear-gradient(160deg,#1a1000 0%,#2a1a00 100%);border-color:#ffd16644}
+.mode-challenge:hover{border-color:#ffd166;box-shadow:0 8px 32px #ffd16633}
+.mode-card .mode-icon{font-size:52px;margin-bottom:10px;display:block;text-align:center}
+.mode-card h2{font-size:22px;font-weight:900;color:#fff;text-align:center;margin-bottom:8px}
+.mode-card .mode-tagline{font-size:14px;font-weight:900;text-align:center;margin-bottom:14px}
+.mode-features{display:flex;flex-direction:column;gap:8px}
+.feature-row{display:flex;align-items:center;gap:10px;font-size:14px;font-weight:900;color:#e8e0ff}
+.feature-row .feat-emoji{font-size:18px;flex-shrink:0}
+.mode-card .cta{width:100%;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:900;cursor:pointer;font-family:'Nunito',sans-serif;margin-top:16px;transition:opacity .15s}
+.cta-quest{background:#9b72ff;color:#fff}
+.cta-challenge{background:#ffd166;color:#1a1000}
+.random-section{text-align:center;padding:10px 0 20px}
+.random-section p{font-size:13px;color:#5a4a99;margin-bottom:12px;font-weight:900}
+.random-btn{background:#1a1050;border:2px solid #2a1a60;border-radius:14px;padding:14px 28px;font-size:15px;font-weight:900;color:#9b72ff;cursor:pointer;font-family:'Nunito',sans-serif}
+/* Quest preview */
+.preview-hero{text-align:center;padding:24px 0;margin-bottom:16px}
+.preview-hero .big-icon{font-size:72px;margin-bottom:10px;display:block}
+.preview-hero h2{font-size:20px;font-weight:900;color:#9b72ff;margin-bottom:6px}
+.preview-hero p{font-size:14px;color:#7a6acc}
+.preview-steps{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.preview-step{background:#1a1050;border:2px solid #2a1a60;border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.step-circle{width:32px;height:32px;border-radius:50%;background:#9b72ff22;border:2px solid #9b72ff44;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.step-info .title{font-size:14px;font-weight:900;color:#e8e0ff}
+.step-info .sub{font-size:12px;color:#5a4a99}
+.cta-btn{width:100%;background:linear-gradient(135deg,#9b72ff,#7044d0);border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:900;color:#fff;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 20px #9b72ff44}
+.cta-btn-gold{width:100%;background:linear-gradient(135deg,#ffd166,#e0a800);border:none;border-radius:16px;padding:18px;font-size:18px;font-weight:900;color:#1a1000;cursor:pointer;font-family:'Nunito',sans-serif;box-shadow:0 4px 20px #ffd16633}
+/* Challenge preview */
+.challenge-timer{background:#1a1000;border:2px solid #ffd16644;border-radius:20px;padding:20px;text-align:center;margin-bottom:16px}
+.challenge-timer .timer-icon{font-size:48px;margin-bottom:8px;display:block}
+.challenge-timer h3{font-size:18px;font-weight:900;color:#ffd166;margin-bottom:4px}
+.challenge-timer p{font-size:13px;color:#7a6050}
+.challenge-prizes{display:flex;gap:10px;margin-bottom:20px}
+.prize-card{flex:1;background:#1a1000;border:2px solid #ffd16633;border-radius:14px;padding:14px;text-align:center}
+.prize-card .icon{font-size:28px;margin-bottom:4px}
+.prize-card .val{font-size:16px;font-weight:900;color:#ffd166}
+.prize-card .lbl{font-size:11px;color:#7a6050}
+/* Random */
+.spin-section{text-align:center;padding:32px 20px}
+.spin-section .spin-icon{font-size:80px;margin-bottom:16px;display:block;animation:spin 2s linear infinite}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+.spin-section h2{font-size:22px;font-weight:900;color:#fff;margin-bottom:8px}
+.spin-section p{font-size:14px;color:#7a6acc;margin-bottom:24px}
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:13px;font-weight:900;color:#9b72ff;margin-bottom:8px}
+.spec-section p,.spec-section li{font-size:12px;color:#7a6acc;line-height:1.7;margin-bottom:4px}
+.spec-section ul{padding-left:16px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="tabs">
+    <div class="tab active" onclick="show('picker')">Mode Picker</div>
+    <div class="tab" onclick="show('quest-preview')">Quest Mode</div>
+    <div class="tab" onclick="show('challenge-preview')">Challenge Mode</div>
+    <div class="tab" onclick="show('random')">Random Pick!</div>
+    <div class="tab" onclick="show('spec')">Spec</div>
+  </div>
+
+  <!-- MODE PICKER -->
+  <div id="picker" class="pane active">
+    <div class="picker-header">
+      <span class="emoji">🎮</span>
+      <h1>How do you want to play?</h1>
+      <p>Pick your adventure!</p>
+    </div>
+
+    <div class="mode-card mode-quest" onclick="show('quest-preview')">
+      <span class="mode-icon">🗺️</span>
+      <h2>Guided Quest</h2>
+      <div class="mode-tagline" style="color:#9b72ff">Follow the story, earn stars!</div>
+      <div class="mode-features">
+        <div class="feature-row"><span class="feat-emoji">🌍</span>Explore your world map</div>
+        <div class="feature-row"><span class="feat-emoji">⭐</span>Earn stars at every stop</div>
+        <div class="feature-row"><span class="feat-emoji">📖</span>Story unfolds as you go</div>
+        <div class="feature-row"><span class="feat-emoji">🏆</span>Collect badges and rewards</div>
+      </div>
+      <button class="cta cta-quest" onclick="event.stopPropagation();alert('Starting Quest Mode!')">🗺️ Start my quest!</button>
+    </div>
+
+    <div class="mode-card mode-challenge" onclick="show('challenge-preview')">
+      <span class="mode-icon">⚡</span>
+      <h2>Daily Challenge</h2>
+      <div class="mode-tagline" style="color:#ffd166">Fast, fun, and wins gold!</div>
+      <div class="mode-features">
+        <div class="feature-row"><span class="feat-emoji">🎯</span>5 quick questions today</div>
+        <div class="feature-row"><span class="feat-emoji">🥇</span>Win special gold rewards</div>
+        <div class="feature-row"><span class="feat-emoji">⚡</span>Takes only 2 minutes!</div>
+        <div class="feature-row"><span class="feat-emoji">🔥</span>Keep your streak alive!</div>
+      </div>
+      <button class="cta cta-challenge" onclick="event.stopPropagation();alert('Starting Daily Challenge!')">⚡ Take today's challenge!</button>
+    </div>
+
+    <div class="random-section">
+      <p>Can't decide? Let us pick for you!</p>
+      <button class="random-btn" onclick="show('random')">🎲 Surprise me!</button>
+    </div>
+  </div>
+
+  <!-- QUEST PREVIEW -->
+  <div id="quest-preview" class="pane">
+    <div class="preview-hero">
+      <span class="big-icon">🗺️</span>
+      <h2>Guided Quest Mode</h2>
+      <p>Your world adventure awaits!</p>
+    </div>
+    <div class="preview-steps">
+      <div class="preview-step">
+        <div class="step-circle">🌍</div>
+        <div class="step-info">
+          <div class="title">Pick your world</div>
+          <div class="sub">Jungle, Ocean, Space and more!</div>
+        </div>
+      </div>
+      <div class="preview-step">
+        <div class="step-circle">🚶</div>
+        <div class="step-info">
+          <div class="title">Go stop by stop</div>
+          <div class="sub">Each stop is a mini adventure</div>
+        </div>
+      </div>
+      <div class="preview-step">
+        <div class="step-circle">⭐</div>
+        <div class="step-info">
+          <div class="title">Earn stars</div>
+          <div class="sub">3 stars = perfect score at that stop!</div>
+        </div>
+      </div>
+      <div class="preview-step">
+        <div class="step-circle">🦁</div>
+        <div class="step-info">
+          <div class="title">Unlock badges</div>
+          <div class="sub">New badge every time you finish a world!</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#1a1050;border:2px solid #9b72ff33;border-radius:14px;padding:14px 16px;margin-bottom:20px;text-align:center">
+      <div style="font-size:20px;font-weight:900;color:#e8e0ff">🌿 Jungle World</div>
+      <div style="font-size:13px;color:#5a4a99;margin-top:4px">Stop 3 of 8 — Animal Friends</div>
+      <div style="margin-top:8px;display:flex;justify-content:center;gap:4px">
+        <span style="font-size:20px">⭐</span><span style="font-size:20px">⭐</span><span style="font-size:20px">☆</span>
+      </div>
+    </div>
+    <button class="cta-btn" onclick="alert('Continue quest!')">🗺️ Continue my quest!</button>
+  </div>
+
+  <!-- CHALLENGE PREVIEW -->
+  <div id="challenge-preview" class="pane">
+    <div class="challenge-timer">
+      <span class="timer-icon">⚡</span>
+      <h3>Today's Challenge</h3>
+      <p>5 questions · Resets at midnight</p>
+    </div>
+    <div class="challenge-prizes">
+      <div class="prize-card">
+        <div class="icon">🥇</div>
+        <div class="val">+100✨</div>
+        <div class="lbl">XP bonus</div>
+      </div>
+      <div class="prize-card">
+        <div class="icon">💎</div>
+        <div class="val">Gold gem</div>
+        <div class="lbl">If all 5 right</div>
+      </div>
+      <div class="prize-card">
+        <div class="icon">🔥</div>
+        <div class="val">+1 day</div>
+        <div class="lbl">Streak</div>
+      </div>
+    </div>
+    <div class="preview-steps" style="margin-bottom:20px">
+      <div class="preview-step" style="background:#1a1000;border-color:#ffd16622">
+        <div class="step-circle" style="background:#ffd16622;border-color:#ffd16644;font-size:14px">⭐</div>
+        <div class="step-info">
+          <div class="title">Yesterday: 5/5</div>
+          <div class="sub">You're on a 🔥 3-day streak!</div>
+        </div>
+      </div>
+    </div>
+    <button class="cta-btn-gold" onclick="alert('Starting challenge!')">⚡ Start today's challenge!</button>
+  </div>
+
+  <!-- RANDOM PICK -->
+  <div id="random" class="pane">
+    <div class="hint-box"><strong>Mystery mode!</strong> We'll pick the perfect adventure for you right now.</div>
+    <div class="spin-section">
+      <span class="spin-icon">🎲</span>
+      <h2>Choosing your adventure...</h2>
+      <p>Almost there!</p>
+      <button class="cta-btn" onclick="pickRandom()">🎲 Pick for me!</button>
+    </div>
+  </div>
+
+  <!-- SPEC -->
+  <div id="spec" class="pane">
+    <div class="hint-box"><strong>Mode Picker spec.</strong> Two-mode chooser — zero skill/difficulty labels.</div>
+    <div class="spec-section">
+      <h3>Design Rules</h3>
+      <ul>
+        <li>No skill labels, no difficulty labels, no band names</li>
+        <li>Emoji-first, big friendly cards</li>
+        <li>Quest = story, journey, stars</li>
+        <li>Challenge = speed, gold, streak</li>
+        <li>Random pick option for indecisive learners</li>
+      </ul>
+    </div>
+    <div class="spec-section">
+      <h3>Quest vs Challenge</h3>
+      <p>Quest follows the world map linearly. Challenge is a daily 5-question burst from any skill. Both reward XP but Challenge gives gold bonuses.</p>
+    </div>
+    <div class="spec-section">
+      <h3>Random Pick</h3>
+      <p>Selects between Quest (continue current node) and Challenge (if not done today) with a fun spin animation.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['picker','quest-preview','challenge-preview','random','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+function pickRandom(){
+  const modes=['🗺️ Quest mode selected — continuing Animal Friends!','⚡ Challenge mode selected — today\'s challenge starts now!'];
+  alert(modes[Math.floor(Math.random()*2)]);
+}
+</script>
+</body>
+</html>

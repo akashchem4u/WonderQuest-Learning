@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Feedback Category Mix v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#0d1117;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#0d1117;position:sticky;top:0;z-index:100;border-bottom:1px solid #1e2630}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#131c28;border:1px solid #1e2630;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2535;color:#ffd166;border-color:#ffd166}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#ffd166;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#ffd166}
+
+.layout-row{display:grid;grid-template-columns:320px 1fr;gap:20px;align-items:start}
+.card{background:#131c28;border-radius:12px;padding:18px;border:1px solid #1e2630}
+.card-title{font-size:14px;font-weight:700;color:#ffd166;margin-bottom:14px}
+
+/* Donut */
+.donut-wrap{position:relative;display:flex;justify-content:center;margin-bottom:16px}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-total{font-size:28px;font-weight:800;color:#e8eaf0;line-height:1}
+.donut-label{font-size:11px;color:#7a8a9a}
+
+.legend-item{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.leg-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
+.leg-name{font-size:12px;color:#e8eaf0;flex:1}
+.leg-count{font-size:12px;font-weight:700}
+.leg-pct{font-size:11px;color:#7a8a9a;width:36px;text-align:right}
+
+/* Trend chart */
+.trend-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.mini-chart{background:#131c28;border-radius:10px;padding:12px;border:1px solid #1e2630}
+.mini-chart-title{font-size:12px;font-weight:700;margin-bottom:8px}
+.mini-bars{display:flex;gap:3px;height:50px;align-items:flex-end}
+.mini-bar{flex:1;border-radius:2px 2px 0 0}
+.mini-labels{display:flex;gap:3px;margin-top:4px}
+.mini-label{flex:1;text-align:center;font-size:8px;color:#4a5a6a}
+
+/* Stats row */
+.stat-row{display:flex;gap:10px;margin-bottom:16px}
+.stat-item{flex:1;background:#0d1117;border-radius:8px;padding:10px;text-align:center;border:1px solid #1e2630}
+.stat-item-val{font-size:20px;font-weight:700}
+.stat-item-lbl{font-size:10px;color:#7a8a9a;margin-top:3px}
+
+/* Top items table */
+.top-table{width:100%;border-collapse:collapse}
+.top-table th{font-size:11px;font-weight:700;color:#7a8a9a;padding:8px 10px;text-align:left;border-bottom:1px solid #1e2630;letter-spacing:.5px}
+.top-table td{font-size:12px;padding:10px 10px;border-bottom:1px solid #1a2030;vertical-align:top}
+.top-table tr:last-child td{border-bottom:none}
+
+/* Res rate bars */
+.res-row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.res-label{font-size:12px;color:#e8eaf0;width:110px;flex-shrink:0}
+.res-bar{flex:1;height:10px;background:#1e2630;border-radius:5px;overflow:hidden}
+.res-fill{height:100%;border-radius:5px}
+.res-pct{font-size:11px;font-weight:700;width:36px;text-align:right}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('mix')">Category Mix</div>
+  <div class="tab" onclick="show('bugs')">Bug Reports</div>
+  <div class="tab" onclick="show('ux')">UX Feedback</div>
+  <div class="tab" onclick="show('content')">Content Issues</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Category Mix -->
+<div id="mix" class="panel active">
+  <div class="hint">Feedback distribution by category. Donut shows current period. Trend lines show 4-week trajectory. Resolution rate = resolved/total.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Feedback <span>Category Mix</span></div>
+      <div style="font-size:12px;color:#7a8a9a">247 total items · Last 28 days · Active testers: 142</div>
+    </div>
+    <button style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Export</button>
+  </div>
+  <div class="layout-row">
+    <div>
+      <div class="card">
+        <div class="card-title">Category Distribution</div>
+        <div class="donut-wrap">
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <!-- Bug: 34% → ~123° → 214 circumference → 73 -->
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#ef4444" stroke-width="30" stroke-dasharray="74 366" stroke-dashoffset="0" transform="rotate(-90 100 100)"/>
+            <!-- UX: 26% → 56 -->
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#58c8f0" stroke-width="30" stroke-dasharray="57 366" stroke-dashoffset="-74" transform="rotate(-90 100 100)"/>
+            <!-- Content: 22% → 48 -->
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#ffd166" stroke-width="30" stroke-dasharray="48 366" stroke-dashoffset="-131" transform="rotate(-90 100 100)"/>
+            <!-- Performance: 11% → 24 -->
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#22c55e" stroke-width="30" stroke-dasharray="24 366" stroke-dashoffset="-179" transform="rotate(-90 100 100)"/>
+            <!-- Other: 7% → 15 -->
+            <circle cx="100" cy="100" r="70" fill="none" stroke="#c084fc" stroke-width="30" stroke-dasharray="15 366" stroke-dashoffset="-203" transform="rotate(-90 100 100)"/>
+          </svg>
+          <div class="donut-center">
+            <div class="donut-total">247</div>
+            <div class="donut-label">total items</div>
+          </div>
+        </div>
+        <div>
+          <div class="legend-item"><div class="leg-dot" style="background:#ef4444"></div><div class="leg-name">Bug Reports</div><div class="leg-count" style="color:#ef4444">84</div><div class="leg-pct">34%</div></div>
+          <div class="legend-item"><div class="leg-dot" style="background:#58c8f0"></div><div class="leg-name">UX Feedback</div><div class="leg-count" style="color:#58c8f0">64</div><div class="leg-pct">26%</div></div>
+          <div class="legend-item"><div class="leg-dot" style="background:#ffd166"></div><div class="leg-name">Content Issues</div><div class="leg-count" style="color:#ffd166">54</div><div class="leg-pct">22%</div></div>
+          <div class="legend-item"><div class="leg-dot" style="background:#22c55e"></div><div class="leg-name">Performance</div><div class="leg-count" style="color:#22c55e">28</div><div class="leg-pct">11%</div></div>
+          <div class="legend-item"><div class="leg-dot" style="background:#c084fc"></div><div class="leg-name">Other</div><div class="leg-count" style="color:#c084fc">17</div><div class="leg-pct">7%</div></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">4-Week Trend by Category</div>
+        <div class="trend-grid">
+          <div class="mini-chart">
+            <div class="mini-chart-title" style="color:#ef4444">Bug Reports</div>
+            <div class="mini-bars">
+              <div class="mini-bar" style="height:60%;background:#ef4444;opacity:.5"></div>
+              <div class="mini-bar" style="height:75%;background:#ef4444;opacity:.6"></div>
+              <div class="mini-bar" style="height:85%;background:#ef4444;opacity:.7"></div>
+              <div class="mini-bar" style="height:100%;background:#ef4444"></div>
+            </div>
+            <div class="mini-labels"><div class="mini-label">W1</div><div class="mini-label">W2</div><div class="mini-label">W3</div><div class="mini-label">W4</div></div>
+            <div style="font-size:11px;color:#ef4444;margin-top:6px">↑ Increasing — 18/22/26/18 items</div>
+          </div>
+          <div class="mini-chart">
+            <div class="mini-chart-title" style="color:#58c8f0">UX Feedback</div>
+            <div class="mini-bars">
+              <div class="mini-bar" style="height:80%;background:#58c8f0;opacity:.5"></div>
+              <div class="mini-bar" style="height:75%;background:#58c8f0;opacity:.6"></div>
+              <div class="mini-bar" style="height:60%;background:#58c8f0;opacity:.7"></div>
+              <div class="mini-bar" style="height:50%;background:#58c8f0"></div>
+            </div>
+            <div class="mini-labels"><div class="mini-label">W1</div><div class="mini-label">W2</div><div class="mini-label">W3</div><div class="mini-label">W4</div></div>
+            <div style="font-size:11px;color:#22c55e;margin-top:6px">↓ Decreasing — 20/19/15/10 items</div>
+          </div>
+          <div class="mini-chart">
+            <div class="mini-chart-title" style="color:#ffd166">Content Issues</div>
+            <div class="mini-bars">
+              <div class="mini-bar" style="height:55%;background:#ffd166;opacity:.5"></div>
+              <div class="mini-bar" style="height:65%;background:#ffd166;opacity:.6"></div>
+              <div class="mini-bar" style="height:70%;background:#ffd166;opacity:.7"></div>
+              <div class="mini-bar" style="height:80%;background:#ffd166"></div>
+            </div>
+            <div class="mini-labels"><div class="mini-label">W1</div><div class="mini-label">W2</div><div class="mini-label">W3</div><div class="mini-label">W4</div></div>
+            <div style="font-size:11px;color:#f59e0b;margin-top:6px">↑ Slight increase — 11/13/14/16</div>
+          </div>
+          <div class="mini-chart">
+            <div class="mini-chart-title" style="color:#22c55e">Performance</div>
+            <div class="mini-bars">
+              <div class="mini-bar" style="height:90%;background:#22c55e;opacity:.5"></div>
+              <div class="mini-bar" style="height:70%;background:#22c55e;opacity:.6"></div>
+              <div class="mini-bar" style="height:50%;background:#22c55e;opacity:.7"></div>
+              <div class="mini-bar" style="height:30%;background:#22c55e"></div>
+            </div>
+            <div class="mini-labels"><div class="mini-label">W1</div><div class="mini-label">W2</div><div class="mini-label">W3</div><div class="mini-label">W4</div></div>
+            <div style="font-size:11px;color:#22c55e;margin-top:6px">↓ Improving — 12/8/5/3 items</div>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">Resolution Rate by Category</div>
+        <div class="res-row"><div class="res-label">Bug Reports</div><div class="res-bar"><div class="res-fill" style="width:72%;background:#ef4444"></div></div><div class="res-pct" style="color:#ef4444">72%</div></div>
+        <div class="res-row"><div class="res-label">UX Feedback</div><div class="res-bar"><div class="res-fill" style="width:88%;background:#58c8f0"></div></div><div class="res-pct" style="color:#58c8f0">88%</div></div>
+        <div class="res-row"><div class="res-label">Content Issues</div><div class="res-bar"><div class="res-fill" style="width:63%;background:#ffd166"></div></div><div class="res-pct" style="color:#ffd166">63%</div></div>
+        <div class="res-row"><div class="res-label">Performance</div><div class="res-bar"><div class="res-fill" style="width:95%;background:#22c55e"></div></div><div class="res-pct" style="color:#22c55e">95%</div></div>
+        <div class="res-row"><div class="res-label">Other</div><div class="res-bar"><div class="res-fill" style="width:80%;background:#c084fc"></div></div><div class="res-pct" style="color:#c084fc">80%</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bug Reports -->
+<div id="bugs" class="panel">
+  <div class="hint">Bug reports breakdown. P0/P1 bugs are release blockers.</div>
+  <div class="page-header">
+    <div class="page-title">Bug <span>Reports</span></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-item"><div class="stat-item-val" style="color:#ef4444">84</div><div class="stat-item-lbl">Total Bugs</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#ef4444">3</div><div class="stat-item-lbl">P0</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#f59e0b">8</div><div class="stat-item-lbl">P1</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#22c55e">60</div><div class="stat-item-lbl">Resolved</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#22c55e">72%</div><div class="stat-item-lbl">Res. Rate</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Bug Reports</div>
+    <table class="top-table">
+      <thead><tr><th>ID</th><th>SUMMARY</th><th>SEV</th><th>COUNT</th><th>STATE</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:monospace;color:#ef4444">FB-0142</td><td>Session crash on resume — iOS 17</td><td><span style="background:rgba(239,68,68,.2);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P0</span></td><td style="font-weight:700;color:#ef4444">47</td><td><span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 8px;border-radius:20px;font-size:11px">OPEN</span></td></tr>
+        <tr><td style="font-family:monospace;color:#f59e0b">FB-0135</td><td>Audio not playing — Android Chrome</td><td><span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P1</span></td><td style="font-weight:700;color:#f59e0b">31</td><td><span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 8px;border-radius:20px;font-size:11px">OVERDUE</span></td></tr>
+        <tr><td style="font-family:monospace;color:#ffd166">FB-0146</td><td>Progress bar not updating after session</td><td><span style="background:rgba(245,158,11,.2);color:#f59e0b;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P1</span></td><td style="font-weight:700;color:#e8eaf0">18</td><td><span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 8px;border-radius:20px;font-size:11px">IN PROG</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0130</td><td>Loading spinner stuck on first session</td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td style="font-weight:700;color:#e8eaf0">12</td><td><span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 8px;border-radius:20px;font-size:11px">RESOLVED</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0128</td><td>Back button causing white screen</td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td style="font-weight:700;color:#e8eaf0">9</td><td><span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 8px;border-radius:20px;font-size:11px">RESOLVED</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- UX Feedback -->
+<div id="ux" class="panel">
+  <div class="hint">UX feedback items. High resolution rate indicates team is actively addressing UX concerns.</div>
+  <div class="page-header">
+    <div class="page-title">UX <span>Feedback</span></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-item"><div class="stat-item-val" style="color:#58c8f0">64</div><div class="stat-item-lbl">UX Items</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#22c55e">56</div><div class="stat-item-lbl">Resolved</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#22c55e">88%</div><div class="stat-item-lbl">Res. Rate</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#f59e0b">8</div><div class="stat-item-lbl">Open</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#58c8f0">↓</div><div class="stat-item-lbl">Trending Down</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top UX Feedback Items</div>
+    <table class="top-table">
+      <thead><tr><th>ID</th><th>SUMMARY</th><th>UPVOTES</th><th>PRIORITY</th><th>STATE</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:monospace;color:#ffd166">FB-0141</td><td>Font size too small in question text on mobile</td><td style="color:#ffd166;font-weight:700">23</td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td><span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 8px;border-radius:20px;font-size:11px">IN PROG</span></td></tr>
+        <tr><td style="font-family:monospace;color:#ffd166">FB-0144</td><td>Confetti animation laggy on older devices</td><td style="color:#ffd166;font-weight:700">18</td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td><span style="background:rgba(88,200,240,.15);color:#58c8f0;padding:3px 8px;border-radius:20px;font-size:11px">OPEN</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0133</td><td>Navigation back button hard to find</td><td style="color:#e8eaf0;font-weight:700">14</td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td><span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 8px;border-radius:20px;font-size:11px">RESOLVED</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0125</td><td>Session complete screen dismisses too quickly</td><td style="color:#e8eaf0;font-weight:700">11</td><td><span style="background:rgba(88,200,240,.2);color:#58c8f0;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P3</span></td><td><span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 8px;border-radius:20px;font-size:11px">RESOLVED</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0149</td><td>Add adaptive difficulty setting</td><td style="color:#e8eaf0;font-weight:700">32</td><td><span style="background:rgba(88,200,240,.2);color:#58c8f0;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P3</span></td><td><span style="background:rgba(88,200,240,.15);color:#58c8f0;padding:3px 8px;border-radius:20px;font-size:11px">BACKLOG</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Content Issues -->
+<div id="content" class="panel">
+  <div class="hint">Content-specific feedback: wrong answers, typos, confusing question wording, missing explainers.</div>
+  <div class="page-header">
+    <div class="page-title">Content <span>Issues</span></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-item"><div class="stat-item-val" style="color:#ffd166">54</div><div class="stat-item-lbl">Content Items</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#ef4444">2</div><div class="stat-item-lbl">P0 (wrong answer)</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#22c55e">34</div><div class="stat-item-lbl">Resolved</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#ffd166">63%</div><div class="stat-item-lbl">Res. Rate</div></div>
+    <div class="stat-item"><div class="stat-item-val" style="color:#f59e0b">20</div><div class="stat-item-lbl">Open</div></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Top Content Issues</div>
+    <table class="top-table">
+      <thead><tr><th>ID</th><th>SUMMARY</th><th>BAND</th><th>SEV</th><th>STATE</th></tr></thead>
+      <tbody>
+        <tr><td style="font-family:monospace;color:#ef4444">FB-0138</td><td>Wrong answer marked correct — Q#47</td><td><span style="background:#2a2000;color:#f0c030;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">B2</span></td><td><span style="background:rgba(239,68,68,.2);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P0</span></td><td><span style="background:rgba(239,68,68,.15);color:#ef4444;padding:3px 8px;border-radius:20px;font-size:11px">OVERDUE</span></td></tr>
+        <tr><td style="font-family:monospace;color:#ef4444">FB-0136</td><td>Duplicate answer options — Q#83</td><td><span style="background:#2a0808;color:#ff6060;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">B4</span></td><td><span style="background:rgba(239,68,68,.2);color:#ef4444;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P0</span></td><td><span style="background:rgba(88,200,240,.15);color:#58c8f0;padding:3px 8px;border-radius:20px;font-size:11px">OPEN</span></td></tr>
+        <tr><td style="font-family:monospace;color:#ffd166">FB-0143</td><td>Question wording confusing for age group</td><td><span style="background:#1a5030;color:#50c880;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">B1</span></td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td><span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:3px 8px;border-radius:20px;font-size:11px">IN PROG</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0139</td><td>Typo in Band 1 question #22</td><td><span style="background:#1a5030;color:#50c880;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">B1</span></td><td><span style="background:rgba(88,200,240,.2);color:#58c8f0;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P3</span></td><td><span style="background:rgba(88,200,240,.15);color:#58c8f0;padding:3px 8px;border-radius:20px;font-size:11px">OPEN</span></td></tr>
+        <tr><td style="font-family:monospace;color:#7a8a9a">FB-0131</td><td>Missing explainer for fractions topic</td><td><span style="background:#0f1e30;color:#58c8f0;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">B3</span></td><td><span style="background:rgba(255,209,102,.2);color:#ffd166;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">P2</span></td><td><span style="background:rgba(34,197,94,.15);color:#22c55e;padding:3px 8px;border-radius:20px;font-size:11px">RESOLVED</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the feedback category mix view.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">CATEGORIES</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Bug / UX / Content / Performance / Other</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">CHARTS</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Donut SVG (current period) + bar trend (4 weeks) + resolution rate bars</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">VIEWPORT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Desktop 900px+ · Sora · #0d1117 · #ffd166</div>
+    </div>
+    <div style="background:#131c28;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px">RESOLUTION RATE</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Resolved / Total per category. Target ≥80% across all categories.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

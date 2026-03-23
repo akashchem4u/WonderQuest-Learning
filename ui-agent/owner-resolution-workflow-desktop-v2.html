@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Resolution Workflow Desktop v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh}
+  nav{background:#161b22;border-bottom:1px solid #21262d;display:flex;align-items:center;padding:0 24px;height:56px;gap:16px}
+  nav .logo{font-weight:700;font-size:17px;color:#ffd166}
+  nav .subtitle{font-size:13px;color:#8b949e}
+  nav .spacer{flex:1}
+  .nav-user{font-size:12px;color:#8b949e}
+  .tabs{display:flex;background:#161b22;border-bottom:1px solid #21262d;overflow-x:auto;padding:0 24px}
+  .tab{padding:14px 18px;font-size:13px;font-weight:600;color:#8b949e;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s}
+  .tab.active{color:#ffd166;border-bottom-color:#ffd166}
+  .tab:hover:not(.active){color:#e2e8f0}
+  .panel{display:none;padding:28px;max-width:1100px;margin:0 auto}
+  .panel.active{display:block}
+  .hint{background:#1a1400;border:1.5px solid #ffd166;border-radius:10px;padding:12px 16px;font-size:12px;color:#ffd166;margin-bottom:22px}
+  .hint strong{font-weight:700}
+  /* State machine */
+  .state-machine{display:flex;align-items:center;gap:0;margin-bottom:28px;background:#161b22;border-radius:14px;padding:20px 24px;border:1px solid #21262d;overflow-x:auto}
+  .state-node{background:#21262d;border-radius:10px;padding:14px 20px;text-align:center;flex-shrink:0;position:relative}
+  .sn-label{font-size:11px;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .sn-name{font-size:15px;font-weight:700}
+  .sn-count{font-size:11px;color:#8b949e;margin-top:4px}
+  .state-node.active-state{background:#1a2d4d;border:1.5px solid #388bfd}
+  .state-node.active-state .sn-name{color:#388bfd}
+  .state-node.resolved-state{background:#0d2118;border:1.5px solid #3fb950}
+  .state-node.resolved-state .sn-name{color:#3fb950}
+  .state-node.archived-state{background:#1a1400;border:1.5px solid #8b949e}
+  .state-node.archived-state .sn-name{color:#8b949e}
+  .state-arrow{font-size:20px;color:#30363d;margin:0 12px;flex-shrink:0}
+  /* Kanban grid of incidents */
+  .incident-pipeline{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+  @media(max-width:900px){.incident-pipeline{grid-template-columns:1fr 1fr}}
+  .pipe-col{background:#161b22;border-radius:12px;overflow:hidden;border:1px solid #21262d}
+  .pc-header{padding:12px 16px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .pc-header.open{background:#2d0a0a;color:#f85149}
+  .pc-header.inprog{background:#0a1628;color:#388bfd}
+  .pc-header.resolved{background:#0d2118;color:#3fb950}
+  .pc-header.archived{background:#1a1400;color:#8b949e}
+  .pc-count{background:rgba(255,255,255,.1);border-radius:20px;padding:2px 8px;font-size:11px}
+  .pipe-cards{padding:12px;display:flex;flex-direction:column;gap:8px;min-height:120px}
+  .p-card{background:#21262d;border-radius:8px;padding:10px 12px;cursor:pointer;transition:background .15s;border:1px solid #30363d}
+  .p-card:hover{background:#2d333b}
+  .p-card-id{font-size:10px;color:#8b949e;margin-bottom:4px;font-family:monospace}
+  .p-card-title{font-size:12px;font-weight:600;color:#f0f6fc;margin-bottom:4px}
+  .p-card-meta{font-size:11px;color:#8b949e;display:flex;justify-content:space-between}
+  .sev-badge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:20px}
+  .sev-crit{background:#f85149;color:#fff}
+  .sev-warn{background:#d29922;color:#fff}
+  .sev-info{background:#388bfd;color:#fff}
+  /* Resolution form */
+  .resolve-form{background:#161b22;border-radius:14px;padding:24px;border:1px solid #21262d;max-width:680px}
+  .rf-incident-header{background:#21262d;border-radius:10px;padding:14px 18px;margin-bottom:20px;border:1px solid #30363d}
+  .rfih-id{font-size:11px;color:#8b949e;font-family:monospace;margin-bottom:4px}
+  .rfih-title{font-size:16px;font-weight:700;color:#f0f6fc}
+  .form-section{margin-bottom:20px}
+  .fs-label{font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:block}
+  .type-chips{display:flex;gap:8px;flex-wrap:wrap}
+  .type-chip{padding:8px 16px;border-radius:8px;border:1.5px solid #30363d;background:#21262d;color:#8b949e;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif;transition:all .15s}
+  .type-chip:hover{border-color:#ffd166;color:#ffd166}
+  .type-chip.selected{background:#1a1400;border-color:#ffd166;color:#ffd166}
+  .form-textarea{width:100%;background:#21262d;border:1.5px solid #30363d;border-radius:8px;padding:12px;font-size:13px;font-family:'Sora',sans-serif;color:#e2e8f0;resize:none;min-height:100px}
+  .form-textarea::placeholder{color:#8b949e}
+  .form-input{width:100%;background:#21262d;border:1.5px solid #30363d;border-radius:8px;padding:10px 12px;font-size:13px;font-family:'Sora',sans-serif;color:#e2e8f0}
+  .form-input::placeholder{color:#8b949e}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .resolved-by-row{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#21262d;border-radius:8px;border:1px solid #30363d;margin-bottom:20px}
+  .rb-avatar{width:32px;height:32px;border-radius:50%;background:#388bfd;color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .rb-name{font-size:13px;font-weight:600;color:#f0f6fc}
+  .rb-role{font-size:11px;color:#8b949e}
+  .btn-full{width:100%;background:#3fb950;color:#0d1117;border:none;border-radius:10px;padding:14px;font-size:14px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Bulk resolve */
+  .bulk-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .bl-item{background:#161b22;border-radius:10px;padding:12px 16px;border:1px solid #21262d;display:flex;align-items:center;gap:12px}
+  .bl-check{width:20px;height:20px;border-radius:4px;border:1.5px solid #30363d;background:#21262d;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+  .bl-check.checked{background:#ffd166;border-color:#ffd166;color:#0d1117;font-weight:700}
+  .bl-info{flex:1}
+  .bl-id{font-size:11px;color:#8b949e;font-family:monospace}
+  .bl-title{font-size:13px;font-weight:600;color:#f0f6fc}
+  .bulk-actions{display:flex;gap:10px}
+  .btn-bulk-resolve{background:#3fb950;color:#0d1117;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  .btn-bulk-archive{background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Audit log */
+  .audit-list{display:flex;flex-direction:column;gap:8px}
+  .audit-item{background:#161b22;border-radius:10px;padding:12px 16px;border:1px solid #21262d;display:flex;gap:12px;align-items:flex-start}
+  .ai-icon{font-size:16px;width:32px;height:32px;border-radius:8px;background:#21262d;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .ai-info{flex:1}
+  .ai-action{font-size:13px;font-weight:600;color:#f0f6fc;margin-bottom:3px}
+  .ai-meta{font-size:11px;color:#8b949e}
+  .ai-time{font-size:11px;color:#8b949e;white-space:nowrap}
+  /* Spec */
+  .spec-table{width:100%;border-collapse:collapse;font-size:13px}
+  .spec-table th{background:#161b22;color:#ffd166;text-align:left;padding:10px 14px;font-weight:600;border-bottom:1px solid #21262d}
+  .spec-table td{padding:10px 14px;border-bottom:1px solid #21262d;vertical-align:top;color:#8b949e}
+  .spec-table td:first-child{color:#e2e8f0;font-weight:500}
+  .spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="subtitle">Owner Console · Resolution Workflow</div>
+  <div class="spacer"></div>
+  <div class="nav-user">Jay Park · Owner</div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('overview')">Workflow Overview</div>
+  <div class="tab" onclick="show('form')">Resolve Form</div>
+  <div class="tab" onclick="show('bulk')">Bulk Resolve</div>
+  <div class="tab" onclick="show('audit')">Audit Log</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Workflow Overview -->
+<div id="overview" class="panel active">
+  <div class="hint"><strong>Routes:</strong> State machine shows pipeline stages · Click incident card → Resolve Form · Bulk select → Bulk Resolve tab · Audit log → Audit Log tab</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+    <div>
+      <h1 style="font-size:22px;font-weight:700;color:#f0f6fc">Resolution Workflow</h1>
+      <div style="font-size:13px;color:#8b949e;margin-top:3px">Incident state machine · 12 active incidents</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button style="background:#21262d;color:#8b949e;border:1px solid #30363d;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">Filter</button>
+      <button onclick="show('bulk')" style="background:#ffd166;color:#0d1117;border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif">Bulk Resolve</button>
+    </div>
+  </div>
+  <div class="state-machine">
+    <div class="state-node" style="background:#2d0a0a;border:1.5px solid #f85149">
+      <div class="sn-label">Stage 1</div>
+      <div class="sn-name" style="color:#f85149">Open</div>
+      <div class="sn-count" style="color:#f85149">5 incidents</div>
+    </div>
+    <div class="state-arrow">→</div>
+    <div class="state-node active-state">
+      <div class="sn-label">Stage 2</div>
+      <div class="sn-name">In Progress</div>
+      <div class="sn-count">4 incidents</div>
+    </div>
+    <div class="state-arrow">→</div>
+    <div class="state-node resolved-state">
+      <div class="sn-label">Stage 3</div>
+      <div class="sn-name">Resolved</div>
+      <div class="sn-count" style="color:#3fb950">2 today</div>
+    </div>
+    <div class="state-arrow">→</div>
+    <div class="state-node archived-state">
+      <div class="sn-label">Stage 4</div>
+      <div class="sn-name">Archived</div>
+      <div class="sn-count">47 total</div>
+    </div>
+  </div>
+  <div class="incident-pipeline">
+    <div class="pipe-col">
+      <div class="pc-header open">🔴 Open <span class="pc-count">5</span></div>
+      <div class="pipe-cards">
+        <div class="p-card" onclick="show('form')">
+          <div class="p-card-id">INC-2026-0083</div>
+          <div class="p-card-title">Play Session API — Error Rate Spike</div>
+          <div class="p-card-meta"><span>Mar 23</span><span class="sev-badge sev-crit">CRIT</span></div>
+        </div>
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0081</div>
+          <div class="p-card-title">Content CDN — Slow Media Load</div>
+          <div class="p-card-meta"><span>Mar 22</span><span class="sev-badge sev-warn">WARN</span></div>
+        </div>
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0079</div>
+          <div class="p-card-title">Parent Dashboard — Login Errors</div>
+          <div class="p-card-meta"><span>Mar 22</span><span class="sev-badge sev-warn">WARN</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-col">
+      <div class="pc-header inprog">🔵 In Progress <span class="pc-count">4</span></div>
+      <div class="pipe-cards">
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0080</div>
+          <div class="p-card-title">Teacher Analytics — Query Timeout</div>
+          <div class="p-card-meta"><span>Mar 22</span><span class="sev-badge sev-warn">WARN</span></div>
+        </div>
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0077</div>
+          <div class="p-card-title">Notification Service — Delay</div>
+          <div class="p-card-meta"><span>Mar 21</span><span class="sev-badge sev-info">INFO</span></div>
+        </div>
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0075</div>
+          <div class="p-card-title">Score Submission — Race Condition</div>
+          <div class="p-card-meta"><span>Mar 20</span><span class="sev-badge sev-crit">CRIT</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-col">
+      <div class="pc-header resolved">✅ Resolved <span class="pc-count">2 today</span></div>
+      <div class="pipe-cards">
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0074</div>
+          <div class="p-card-title">Badge Service — Cache Miss</div>
+          <div class="p-card-meta"><span>Resolved 08:30</span><span class="sev-badge sev-info">INFO</span></div>
+        </div>
+        <div class="p-card">
+          <div class="p-card-id">INC-2026-0073</div>
+          <div class="p-card-title">Streak API — Timeout</div>
+          <div class="p-card-meta"><span>Resolved 07:15</span><span class="sev-badge sev-warn">WARN</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="pipe-col">
+      <div class="pc-header archived">📦 Archived <span class="pc-count">47</span></div>
+      <div class="pipe-cards">
+        <div class="p-card" style="opacity:.6">
+          <div class="p-card-id">INC-2026-0072</div>
+          <div class="p-card-title">Multiplayer Sync — Stale State</div>
+          <div class="p-card-meta"><span>Mar 19</span><span class="sev-badge" style="background:#8b949e;color:#fff">ARCH</span></div>
+        </div>
+        <div style="text-align:center;padding:10px;font-size:11px;color:#8b949e">+ 46 more archived</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Resolve Form -->
+<div id="form" class="panel">
+  <div class="hint"><strong>Routes:</strong> Submit resolution → moves incident to Resolved → posts to Audit Log · Resolution type chips: Fixed/Acknowledged/Won't Fix/Duplicate · PR/issue field optional</div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
+    <h2 style="font-size:20px;font-weight:700;color:#f0f6fc">Resolve Incident</h2>
+    <span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:#f85149;color:#fff">CRITICAL</span>
+  </div>
+  <div class="resolve-form">
+    <div class="rf-incident-header">
+      <div class="rfih-id">INC-2026-0083</div>
+      <div class="rfih-title">Play Session API — Elevated Error Rate</div>
+      <div style="font-size:12px;color:#8b949e;margin-top:4px">Onset: Mar 23, 09:14 AM · Duration: 1h 09m</div>
+    </div>
+    <div class="form-section">
+      <label class="fs-label">Resolution Type</label>
+      <div class="type-chips">
+        <button class="type-chip selected">✓ Fixed</button>
+        <button class="type-chip">Acknowledged</button>
+        <button class="type-chip">Won't Fix</button>
+        <button class="type-chip">Duplicate</button>
+      </div>
+    </div>
+    <div class="form-section">
+      <label class="fs-label">Resolution Description</label>
+      <textarea class="form-textarea" placeholder="Describe what was done to resolve this incident…">Database connection pool size increased from 50 to 200 connections. Root cause was insufficient pool capacity due to rapid student onboarding (Riverside USD +2,400 students). Pool config updated in infrastructure-as-code and deployed. Error rate returned to baseline (0.3%) at 10:23 AM.</textarea>
+    </div>
+    <div class="form-section">
+      <div class="form-row">
+        <div>
+          <label class="fs-label">PR / Commit Link (optional)</label>
+          <input class="form-input" placeholder="github.com/wonderquest/... or PR #" value="github.com/wonderquest/infra/pull/482">
+        </div>
+        <div>
+          <label class="fs-label">Issue Tracker Link (optional)</label>
+          <input class="form-input" placeholder="Linear / Jira issue URL" value="linear.app/wonderquest/issue/ENG-8841">
+        </div>
+      </div>
+    </div>
+    <div class="form-section">
+      <label class="fs-label">Resolved By</label>
+      <div class="resolved-by-row">
+        <div class="rb-avatar">JP</div>
+        <div><div class="rb-name">Jay Park</div><div class="rb-role">Owner · On-call Engineer</div></div>
+        <div style="margin-left:auto;font-size:12px;color:#8b949e">10:23 AM</div>
+      </div>
+    </div>
+    <div style="background:#21262d;border-radius:8px;padding:10px 14px;font-size:12px;color:#8b949e;margin-bottom:16px;border:1px solid #30363d">
+      ✓ Submitting will move this incident to <strong style="color:#3fb950">Resolved</strong> state, post a resolution entry to the Audit Log, and close the alert in the monitoring dashboard.
+    </div>
+    <button class="btn-full">Submit Resolution → Mark as Resolved</button>
+  </div>
+</div>
+
+<!-- TAB 3: Bulk Resolve -->
+<div id="bulk" class="panel">
+  <div class="hint"><strong>Routes:</strong> Select incidents → choose bulk action → applies to all selected · Bulk Resolve requires resolution type · Bulk Archive available for INFO/WARN only</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+    <div>
+      <h2 style="font-size:20px;font-weight:700;color:#f0f6fc">Bulk Resolve</h2>
+      <div style="font-size:13px;color:#8b949e;margin-top:3px">2 incidents selected</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button style="background:none;border:none;color:#8b949e;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif">Select All</button>
+      <button style="background:none;border:none;color:#8b949e;font-size:12px;cursor:pointer;font-family:'Sora',sans-serif">Clear</button>
+    </div>
+  </div>
+  <div class="bulk-list">
+    <div class="bl-item">
+      <div class="bl-check checked">✓</div>
+      <div class="bl-info"><div class="bl-id">INC-2026-0077</div><div class="bl-title">Notification Service — Message Delay (INFO)</div></div>
+      <span class="sev-badge sev-info" style="font-size:10px">INFO</span>
+    </div>
+    <div class="bl-item">
+      <div class="bl-check checked">✓</div>
+      <div class="bl-info"><div class="bl-id">INC-2026-0074</div><div class="bl-title">Badge Service — Cache Miss (INFO)</div></div>
+      <span class="sev-badge sev-info" style="font-size:10px">INFO</span>
+    </div>
+    <div class="bl-item" style="opacity:.5">
+      <div class="bl-check"></div>
+      <div class="bl-info"><div class="bl-id">INC-2026-0083</div><div class="bl-title">Play Session API — Error Rate Spike (CRITICAL)</div></div>
+      <span class="sev-badge sev-crit" style="font-size:10px">CRIT</span>
+    </div>
+    <div class="bl-item" style="opacity:.5">
+      <div class="bl-check"></div>
+      <div class="bl-info"><div class="bl-id">INC-2026-0080</div><div class="bl-title">Teacher Analytics — Query Timeout (WARN)</div></div>
+      <span class="sev-badge sev-warn" style="font-size:10px">WARN</span>
+    </div>
+  </div>
+  <div style="background:#161b22;border-radius:12px;padding:16px;border:1px solid #21262d;margin-bottom:14px">
+    <div style="font-size:12px;font-weight:700;color:#8b949e;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Bulk Resolution Type</div>
+    <div class="type-chips">
+      <button class="type-chip selected">Acknowledged</button>
+      <button class="type-chip">Fixed</button>
+      <button class="type-chip">Won't Fix</button>
+      <button class="type-chip">Duplicate</button>
+    </div>
+  </div>
+  <div class="bulk-actions">
+    <button class="btn-bulk-resolve">Resolve 2 Selected →</button>
+    <button class="btn-bulk-archive">Archive 2 Selected</button>
+  </div>
+  <div style="font-size:11px;color:#8b949e;margin-top:10px">CRITICAL incidents cannot be bulk-resolved — use individual resolution form for proper RCA documentation.</div>
+</div>
+
+<!-- TAB 4: Audit Log -->
+<div id="audit" class="panel">
+  <div class="hint"><strong>Routes:</strong> Audit log is append-only · Each entry links to incident detail · Filter by action type · Export to CSV</div>
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">
+    <div>
+      <h2 style="font-size:20px;font-weight:700;color:#f0f6fc">Audit Log</h2>
+      <div style="font-size:13px;color:#8b949e;margin-top:3px">All resolution actions — append-only</div>
+    </div>
+    <button style="background:#21262d;color:#ffd166;border:1px solid #ffd166;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif">Export CSV</button>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+    <div style="padding:5px 12px;border-radius:20px;background:#21262d;color:#ffd166;border:1px solid #ffd166;font-size:11px;font-weight:600;cursor:pointer">All Actions</div>
+    <div style="padding:5px 12px;border-radius:20px;background:#21262d;color:#8b949e;border:1px solid #30363d;font-size:11px;font-weight:600;cursor:pointer">Resolved</div>
+    <div style="padding:5px 12px;border-radius:20px;background:#21262d;color:#8b949e;border:1px solid #30363d;font-size:11px;font-weight:600;cursor:pointer">Escalated</div>
+    <div style="padding:5px 12px;border-radius:20px;background:#21262d;color:#8b949e;border:1px solid #30363d;font-size:11px;font-weight:600;cursor:pointer">Archived</div>
+  </div>
+  <div class="audit-list">
+    <div class="audit-item">
+      <div class="ai-icon">✅</div>
+      <div class="ai-info">
+        <div class="ai-action">INC-2026-0074 resolved — Badge Service Cache Miss</div>
+        <div class="ai-meta">Type: Fixed · By: @jaypark · Resolution: Cache TTL corrected, redeployed. <a href="#" style="color:#388bfd">PR #480</a></div>
+      </div>
+      <div class="ai-time">08:30 AM</div>
+    </div>
+    <div class="audit-item">
+      <div class="ai-icon">✅</div>
+      <div class="ai-info">
+        <div class="ai-action">INC-2026-0073 resolved — Streak API Timeout</div>
+        <div class="ai-meta">Type: Fixed · By: @sarahc · Resolution: DB index added on user_id+date column. <a href="#" style="color:#388bfd">PR #479</a></div>
+      </div>
+      <div class="ai-time">07:15 AM</div>
+    </div>
+    <div class="audit-item">
+      <div class="ai-icon">↑</div>
+      <div class="ai-info">
+        <div class="ai-action">INC-2026-0083 escalated — Play Session API Error Rate</div>
+        <div class="ai-meta">Escalated to: @jaypark · Reason: Exceeded critical threshold (5%) for 8+ min · Auto-triggered</div>
+      </div>
+      <div class="ai-time">09:22 AM</div>
+    </div>
+    <div class="audit-item">
+      <div class="ai-icon">📦</div>
+      <div class="ai-info">
+        <div class="ai-action">INC-2026-0072 archived — Multiplayer Sync Stale State</div>
+        <div class="ai-meta">Type: Won't Fix · By: @jaypark · Rationale: Feature being redesigned in Q2 sprint</div>
+      </div>
+      <div class="ai-time">Mar 19</div>
+    </div>
+    <div class="audit-item">
+      <div class="ai-icon">🔁</div>
+      <div class="ai-info">
+        <div class="ai-action">INC-2026-0070 marked as Duplicate — Auth Token Expiry</div>
+        <div class="ai-meta">Type: Duplicate · Duplicate of: INC-2026-0068 · By: @sarahc</div>
+      </div>
+      <div class="ai-time">Mar 18</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>File:</strong> owner-resolution-workflow-desktop-v2.html · Desktop 900px+ · Dark theme</div>
+  <h2 style="font-size:20px;font-weight:700;margin-bottom:16px;color:#f0f6fc">Spec — Resolution Workflow Desktop v2</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+ (1100px max content width)</td></tr>
+    <tr><td>Theme</td><td>Dark #0d1117 · gold #ffd166 · surface #161b22</td></tr>
+    <tr><td>State machine</td><td>4 stages: Open → In Progress → Resolved → Archived</td></tr>
+    <tr><td>Resolution types</td><td>Fixed · Acknowledged · Won't Fix · Duplicate — single-select chips</td></tr>
+    <tr><td>Resolution form fields</td><td>Type chip · Resolution text · PR/issue link · Resolved-by</td></tr>
+    <tr><td>Bulk resolve</td><td>Multi-select checkbox list · type chip · submit all · CRITICAL excluded</td></tr>
+    <tr><td>Audit log</td><td>Append-only · all actions logged · filter by type · CSV export</td></tr>
+    <tr><td>Pipeline view</td><td>4-column Kanban grid · incident cards with severity badges</td></tr>
+    <tr><td>GO score target</td><td>≥ 90/100</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['overview','form','bulk','audit','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

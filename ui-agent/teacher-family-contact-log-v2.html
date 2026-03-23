@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Teacher Family Contact Log v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#f0f4f8;color:#1a2533;max-width:390px;margin:0 auto;min-height:100vh}
+  nav{background:#2a5080;color:#fff;display:flex;align-items:center;padding:0 16px;height:52px;gap:12px}
+  nav .logo{font-weight:700;font-size:16px}
+  nav .spacer{flex:1}
+  nav .back{font-size:20px;cursor:pointer;opacity:.8}
+  .contact-safe-banner{background:#e8f0fb;border-bottom:2px solid #2a5080;padding:10px 16px;font-size:11px;color:#1a3a5c;display:flex;align-items:center;gap:8px}
+  .cs-icon{font-size:16px}
+  .tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto}
+  .tab{padding:12px 14px;font-size:12px;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;flex-shrink:0}
+  .tab.active{color:#2a5080;border-bottom-color:#2a5080}
+  .panel{display:none;padding:16px}
+  .panel.active{display:block}
+  .hint{background:#e8f0fb;border:1.5px solid #2a5080;border-radius:10px;padding:10px 14px;font-size:11px;color:#1a3a5c;margin-bottom:16px}
+  .hint strong{font-weight:700}
+  /* Contact Log */
+  .log-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+  .log-header h2{font-size:18px;font-weight:700}
+  .log-search{width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;font-family:'Sora',sans-serif;color:#1a2533;margin-bottom:14px}
+  .log-search::placeholder{color:#94a3b8}
+  .log-filters{display:flex;gap:6px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px}
+  .lf-chip{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;background:#fff;border:1.5px solid #e2e8f0;color:#64748b;white-space:nowrap;cursor:pointer;flex-shrink:0}
+  .lf-chip.active{background:#2a5080;color:#fff;border-color:#2a5080}
+  .msg-list{display:flex;flex-direction:column;gap:10px}
+  .msg-item{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);cursor:pointer;transition:box-shadow .2s}
+  .msg-item:hover{box-shadow:0 3px 10px rgba(42,80,128,.12)}
+  .mi-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .mi-avatar{width:34px;height:34px;border-radius:50%;background:#2a5080;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+  .mi-name{font-weight:600;font-size:14px}
+  .mi-student{font-size:11px;color:#64748b;margin-top:1px}
+  .mi-time{font-size:11px;color:#94a3b8;margin-left:auto}
+  .mi-preview{font-size:12px;color:#475569;line-height:1.5;margin-bottom:8px}
+  .mi-footer{display:flex;align-items:center;gap:6px}
+  .status-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+  .status-sent{background:#e8f0fb;color:#2a5080}
+  .status-read{background:#e8f5ef;color:#1a8050}
+  .status-replied{background:#f5f0ff;color:#5b21b6}
+  .status-pending{background:#fef3cd;color:#c07800}
+  .quick-reply-btn{margin-left:auto;background:#2a5080;color:#fff;border:none;border-radius:7px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Message Detail */
+  .msg-detail-header{background:#fff;border-radius:12px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .mdh-row{display:flex;justify-content:space-between;margin-bottom:6px}
+  .mdh-label{font-size:11px;color:#64748b}
+  .mdh-value{font-size:13px;font-weight:500}
+  .thread-container{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+  .thread-msg{max-width:85%;border-radius:12px;padding:10px 14px}
+  .thread-msg.outbound{background:#2a5080;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+  .thread-msg.inbound{background:#fff;color:#1a2533;align-self:flex-start;border-bottom-left-radius:4px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  .tm-meta{font-size:10px;margin-top:4px;opacity:.7}
+  .tm-text{font-size:13px;line-height:1.5}
+  .reply-box{background:#fff;border-radius:12px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .reply-input{width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:10px 12px;font-size:13px;font-family:'Sora',sans-serif;resize:none;min-height:80px;color:#1a2533}
+  .reply-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px}
+  .char-count{font-size:11px;color:#94a3b8}
+  .send-btn{background:#2a5080;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:600;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Send New Message */
+  .form-group{margin-bottom:16px}
+  .form-label{font-size:12px;font-weight:600;color:#475569;margin-bottom:6px;display:block}
+  .form-input{width:100%;background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 14px;font-size:13px;font-family:'Sora',sans-serif;color:#1a2533}
+  .form-input::placeholder{color:#94a3b8}
+  select.form-input{cursor:pointer}
+  .template-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+  .template-item{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;cursor:pointer;transition:border-color .2s}
+  .template-item:hover{border-color:#2a5080}
+  .template-item.selected{border-color:#2a5080;background:#e8f0fb}
+  .ti-title{font-size:13px;font-weight:600}
+  .ti-preview{font-size:11px;color:#64748b;margin-top:3px}
+  /* Contact-Safe Rules */
+  .rule-list{display:flex;flex-direction:column;gap:10px}
+  .rule-item{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.05);display:flex;gap:12px}
+  .rule-icon{font-size:20px;flex-shrink:0;margin-top:2px}
+  .rule-text{font-size:13px;line-height:1.5;color:#475569}
+  .rule-text strong{color:#1a2533;font-weight:700}
+  /* Spec */
+  .spec-table{width:100%;border-collapse:collapse;font-size:12px}
+  .spec-table th{background:#2a5080;color:#fff;text-align:left;padding:8px 12px;font-weight:600}
+  .spec-table td{padding:8px 12px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+  .spec-table tr:last-child td{border-bottom:none}
+  .spec-table tr:nth-child(even) td{background:#f8fafc}
+  .code{font-family:monospace;font-size:11px;background:#e8f0fb;padding:1px 5px;border-radius:3px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="back">←</div>
+  <div class="logo">WonderQuest</div>
+  <div class="spacer"></div>
+  <div style="font-size:12px;opacity:.8">Ms. Chen</div>
+</nav>
+
+<div class="contact-safe-banner">
+  <div class="cs-icon">🔒</div>
+  <div><strong>Contact-Safe:</strong> No email or phone numbers are displayed. All messages route through WonderQuest.</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('log')">Contact Log</div>
+  <div class="tab" onclick="show('detail')">Message Detail</div>
+  <div class="tab" onclick="show('new')">Send New</div>
+  <div class="tab" onclick="show('rules')">CS Rules</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Contact Log -->
+<div id="log" class="panel active">
+  <div class="hint"><strong>Routes:</strong> Tap message → Message Detail tab · Quick Reply → opens composer · Send New → Send New tab · Filter chips filter the list</div>
+  <div class="log-header">
+    <h2>Contact Log</h2>
+    <div style="font-size:12px;color:#64748b">24 messages</div>
+  </div>
+  <input class="log-search" placeholder="Search by student or keyword…">
+  <div class="log-filters">
+    <div class="lf-chip active">All</div>
+    <div class="lf-chip">Sent</div>
+    <div class="lf-chip">Read</div>
+    <div class="lf-chip">Replied</div>
+    <div class="lf-chip">Pending</div>
+    <div class="lf-chip">This Week</div>
+  </div>
+  <div class="msg-list">
+    <div class="msg-item" onclick="show('detail')">
+      <div class="mi-top">
+        <div class="mi-avatar">JR</div>
+        <div><div class="mi-name">Parent of Amir R.</div><div class="mi-student">Re: Amir R. · Grade 3</div></div>
+        <div class="mi-time">Mar 22</div>
+      </div>
+      <div class="mi-preview">Amir has shown some difficulty with place value this week. We wanted to share some activities that might help at home…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-replied">Replied</span>
+        <button class="quick-reply-btn" onclick="show('detail');event.stopPropagation()">Reply</button>
+      </div>
+    </div>
+    <div class="msg-item" onclick="show('detail')">
+      <div class="mi-top">
+        <div class="mi-avatar" style="background:#c07800">PF</div>
+        <div><div class="mi-name">Parent of Priya L.</div><div class="mi-student">Re: Priya L. · Grade 3</div></div>
+        <div class="mi-time">Mar 21</div>
+      </div>
+      <div class="mi-preview">We noticed Priya's recent quiz scores in fractions. Here are some suggestions for additional practice sessions at home…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-read">Read</span>
+        <button class="quick-reply-btn" onclick="show('new');event.stopPropagation()">Reply</button>
+      </div>
+    </div>
+    <div class="msg-item">
+      <div class="mi-top">
+        <div class="mi-avatar" style="background:#1a8050">EH</div>
+        <div><div class="mi-name">Parent of Emma H.</div><div class="mi-student">Re: Emma H. · Grade 3</div></div>
+        <div class="mi-time">Mar 20</div>
+      </div>
+      <div class="mi-preview">Great news — Emma has reached the Strong tier in all P0 skills. We wanted to share her progress report…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-replied">Replied</span>
+        <button class="quick-reply-btn">Reply</button>
+      </div>
+    </div>
+    <div class="msg-item">
+      <div class="mi-top">
+        <div class="mi-avatar" style="background:#5b21b6">TK</div>
+        <div><div class="mi-name">Parent of Tom K.</div><div class="mi-student">Re: Tom K. · Grade 3</div></div>
+        <div class="mi-time">Mar 19</div>
+      </div>
+      <div class="mi-preview">Tom's word problem scores have been lower this week. We recommend increased practice in the WonderQuest Math Quest module…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-sent">Sent</span>
+        <button class="quick-reply-btn">Follow Up</button>
+      </div>
+    </div>
+    <div class="msg-item">
+      <div class="mi-top">
+        <div class="mi-avatar" style="background:#94a3b8">JM</div>
+        <div><div class="mi-name">Parent of Jamie M.</div><div class="mi-student">Re: Jamie M. · Grade 3</div></div>
+        <div class="mi-time">Mar 18</div>
+      </div>
+      <div class="mi-preview">Jamie's division fluency is below the Watch threshold. We'd like to discuss strategies for home practice. Please respond…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-pending">Pending Reply</span>
+        <button class="quick-reply-btn">Send Reminder</button>
+      </div>
+    </div>
+    <div class="msg-item">
+      <div class="mi-top">
+        <div class="mi-avatar" style="background:#1a8050">LC</div>
+        <div><div class="mi-name">Parent of Leo C.</div><div class="mi-student">Re: Leo C. · Grade 3</div></div>
+        <div class="mi-time">Mar 17</div>
+      </div>
+      <div class="mi-preview">Leo's weekly progress report is ready. He completed all assigned sessions and improved in ELA P0 skills by 12%…</div>
+      <div class="mi-footer">
+        <span class="status-chip status-read">Read</span>
+        <button class="quick-reply-btn">Reply</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Message Detail -->
+<div id="detail" class="panel">
+  <div class="hint"><strong>Routes:</strong> Back → Contact Log · Reply → appends to thread · Archive → removes from active log · No PII in thread — all contact via WonderQuest</div>
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <button onclick="show('log')" style="background:none;border:none;font-size:20px;cursor:pointer">←</button>
+    <h2 style="font-size:17px;font-weight:700">Thread with Parent of Amir R.</h2>
+  </div>
+  <div class="msg-detail-header">
+    <div class="mdh-row"><span class="mdh-label">Student</span><span class="mdh-value">Amir R. · Grade 3</span></div>
+    <div class="mdh-row"><span class="mdh-label">Thread ID</span><span class="mdh-value">WQ-MSG-20260319-004</span></div>
+    <div class="mdh-row"><span class="mdh-label">Status</span><span class="status-chip status-replied">Replied</span></div>
+    <div class="mdh-row"><span class="mdh-label">Last updated</span><span class="mdh-value">Mar 22, 2026 · 3:14 PM</span></div>
+  </div>
+  <div class="thread-container">
+    <div class="thread-msg outbound">
+      <div class="tm-text">Amir has shown difficulty with place value over the past 2 weeks. We recommend practicing the WonderQuest Place Value Quest module for 10 min/day.</div>
+      <div class="tm-meta">You · Mar 19, 2026 · 9:02 AM · Sent</div>
+    </div>
+    <div class="thread-msg inbound">
+      <div class="tm-text">Thank you for letting us know. We've started practicing at home and have noticed some improvement already!</div>
+      <div class="tm-meta">Parent of Amir R. · Mar 20, 2026 · 6:45 PM · Read</div>
+    </div>
+    <div class="thread-msg outbound">
+      <div class="tm-text">Wonderful! Amir's last session score was 54% — up from 42% last week. Keep up the home practice. We'll check in again next week.</div>
+      <div class="tm-meta">You · Mar 22, 2026 · 10:15 AM · Read</div>
+    </div>
+  </div>
+  <div class="reply-box">
+    <div style="font-size:12px;font-weight:600;color:#2a5080;margin-bottom:8px">Add to Thread</div>
+    <textarea class="reply-input" placeholder="Type your message… (no personal contact info needed)"></textarea>
+    <div class="reply-footer">
+      <div class="char-count">0 / 500 characters</div>
+      <button class="send-btn">Send via WonderQuest</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Send New Message -->
+<div id="new" class="panel">
+  <div class="hint"><strong>Routes:</strong> Send → routes via WonderQuest · Template selection → prefills message body · Student selector → filters by your class · Delivery confirmation shown after send</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">Send New Message</h2>
+  <div style="background:#fef3cd;border:1.5px solid #c07800;border-radius:10px;padding:10px 14px;font-size:12px;color:#7a4f00;margin-bottom:16px">
+    🔒 Messages are routed through WonderQuest. Parent contact details are never visible to you.
+  </div>
+  <div class="form-group">
+    <label class="form-label">Student (required)</label>
+    <select class="form-input">
+      <option value="">Select student…</option>
+      <option>Amir R. · Grade 3</option>
+      <option>Priya L. · Grade 3</option>
+      <option>Tom K. · Grade 3</option>
+      <option>Jamie M. · Grade 3</option>
+      <option>Emma H. · Grade 3</option>
+      <option>Leo C. · Grade 3</option>
+    </select>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Message Template (optional)</label>
+    <div class="template-list">
+      <div class="template-item selected">
+        <div class="ti-title">Skill Concern</div>
+        <div class="ti-preview">Student is showing difficulty with [skill]. Recommend practice in WonderQuest…</div>
+      </div>
+      <div class="template-item">
+        <div class="ti-title">Progress Update</div>
+        <div class="ti-preview">Happy to share that [student] improved by [X]% this week in [skill]…</div>
+      </div>
+      <div class="template-item">
+        <div class="ti-title">Assignment Reminder</div>
+        <div class="ti-preview">[Student] has an upcoming WonderQuest assignment due [date]…</div>
+      </div>
+      <div class="template-item">
+        <div class="ti-title">Custom Message</div>
+        <div class="ti-preview">Write your own message from scratch</div>
+      </div>
+    </div>
+  </div>
+  <div class="form-group">
+    <label class="form-label">Message Body</label>
+    <textarea class="form-input" style="resize:none;min-height:120px" placeholder="Type your message here… No personal contact information (email, phone) should be included."></textarea>
+  </div>
+  <div style="background:#e8f0fb;border-radius:8px;padding:10px 14px;font-size:11px;color:#1a3a5c;margin-bottom:16px">
+    ✓ WonderQuest will deliver this message to the parent(s) of the selected student. You'll be notified when they read or reply.
+  </div>
+  <button style="width:100%;background:#2a5080;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif">Send Message via WonderQuest</button>
+</div>
+
+<!-- TAB 4: Contact-Safe Rules -->
+<div id="rules" class="panel">
+  <div class="hint"><strong>Policy:</strong> These rules protect parent privacy and ensure all communications remain within WonderQuest's managed system.</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:16px">Contact-Safe Rules</h2>
+  <div class="rule-list">
+    <div class="rule-item">
+      <div class="rule-icon">🔒</div>
+      <div class="rule-text"><strong>No PII displayed.</strong> Parent email addresses, phone numbers, and home addresses are never shown in the teacher portal. All contact is anonymous to the teacher.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">📨</div>
+      <div class="rule-text"><strong>All messages route through WonderQuest.</strong> Messages are delivered by WonderQuest's notification system. Teachers cannot initiate direct email or SMS.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">🧾</div>
+      <div class="rule-text"><strong>Full audit trail.</strong> Every message is logged with date, teacher ID, student, delivery status, and read receipt. Logs are retained for 12 months.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">🚫</div>
+      <div class="rule-text"><strong>No personal information in message body.</strong> The system will flag messages containing potential PII patterns (phone numbers, email addresses, home addresses) before sending.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">👨‍👩‍👧</div>
+      <div class="rule-text"><strong>Parent opt-in required.</strong> Messages are only delivered to parents who have linked their WonderQuest account. Unlinked parents are flagged in the contact log.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">⚖️</div>
+      <div class="rule-text"><strong>FERPA compliant.</strong> Student data referenced in messages is governed by FERPA. Messages must relate only to the student's academic progress within WonderQuest.</div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-icon">📵</div>
+      <div class="rule-text"><strong>Parent quiet hours respected.</strong> WonderQuest honors parent-configured quiet hours. Messages sent outside allowed windows are delivered the next morning.</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="hint"><strong>File:</strong> teacher-family-contact-log-v2.html · 390px mobile</div>
+  <h2 style="font-size:18px;font-weight:700;margin-bottom:14px">Spec — Family Contact Log v2</h2>
+  <table class="spec-table">
+    <tr><th>Property</th><th>Value</th></tr>
+    <tr><td>Viewport</td><td>390px mobile, max-width enforced</td></tr>
+    <tr><td>Contact-safe</td><td>No PII displayed; no email/phone; WonderQuest-routed only</td></tr>
+    <tr><td>Status states</td><td>Sent · Read · Replied · Pending Reply</td></tr>
+    <tr><td>Status colors</td><td>Sent=blue · Read=green · Replied=purple · Pending=amber</td></tr>
+    <tr><td>Thread view</td><td>Chat-style inbound/outbound bubbles, no PII</td></tr>
+    <tr><td>Message templates</td><td>Skill Concern · Progress Update · Assignment Reminder · Custom</td></tr>
+    <tr><td>PII guard</td><td>System flags potential PII before send</td></tr>
+    <tr><td>Audit log</td><td>Date, teacher ID, student, status, read receipt; 12-month retention</td></tr>
+    <tr><td>Parent opt-in</td><td>Required for delivery; unlinked parents shown with flag</td></tr>
+    <tr><td>Quiet hours</td><td>WonderQuest enforces parent-configured quiet windows</td></tr>
+  </table>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['log','detail','new','rules','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

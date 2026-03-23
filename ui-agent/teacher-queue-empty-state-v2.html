@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Teacher Queue Empty States v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#f0f4f8;color:#1a2e44;width:390px;min-height:100vh;margin:0 auto}
+.screen{width:390px;min-height:100vh;background:#f0f4f8}
+.nav{background:#2a5080;padding:14px 20px;display:flex;align-items:center;gap:12px}
+.nav .back{color:#fff;font-size:20px;cursor:pointer;font-weight:700}
+.nav h1{font-size:16px;font-weight:700;color:#fff;flex:1}
+.nav .avatar{width:32px;height:32px;border-radius:50%;background:#3a70a8;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff}
+.tabs{display:flex;gap:0;background:#fff;border-bottom:2px solid #dde8f0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:11px;font-weight:700;color:#6b8099;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;white-space:nowrap;transition:all .2s}
+.tab.active{color:#2a5080;border-bottom-color:#2a5080}
+.tab:hover:not(.active){color:#2a5080}
+.pane{display:none;padding:20px}
+.pane.active{display:block}
+.hint-box{background:#fffbeb;border:2px solid #ffd166;border-radius:10px;padding:12px 14px;margin-bottom:18px;font-size:12px;color:#7a5800;line-height:1.5}
+.hint-box strong{color:#5a3a00}
+
+/* Queue Empty — All Clear */
+.celebration-hero{text-align:center;padding:32px 20px;background:linear-gradient(180deg,#f0fff4 0%,#f0f4f8 100%);border-radius:16px;margin-bottom:20px;border:2px solid #a8ecc4}
+.celebration-hero .big-icon{font-size:72px;margin-bottom:12px;display:block}
+.celebration-hero h2{font-size:22px;font-weight:700;color:#1a5c2a;margin-bottom:8px}
+.celebration-hero p{font-size:14px;color:#3a7a4a;line-height:1.5}
+.stat-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px}
+.stat-mini{background:#fff;border:1px solid #dde8f0;border-radius:10px;padding:14px;text-align:center;box-shadow:0 1px 4px #0001}
+.stat-mini .val{font-size:22px;font-weight:700;color:#2a5080;margin-bottom:2px}
+.stat-mini .lbl{font-size:10px;color:#6b8099;text-transform:uppercase;font-weight:700}
+.well-done-card{background:#f0fff4;border:1px solid #a8ecc4;border-radius:12px;padding:16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px}
+.well-done-card .icon{font-size:28px;flex-shrink:0}
+.well-done-card h3{font-size:14px;font-weight:700;color:#1a5c2a;margin-bottom:4px}
+.well-done-card p{font-size:13px;color:#3a7a4a;line-height:1.5}
+.next-steps{display:flex;flex-direction:column;gap:10px}
+.next-step{background:#fff;border:1px solid #dde8f0;border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;box-shadow:0 1px 4px #0001}
+.next-step:hover{border-color:#2a5080}
+.next-step .ns-icon{font-size:22px;flex-shrink:0}
+.next-step .ns-info{flex:1}
+.next-step .ns-info .title{font-size:14px;font-weight:700;color:#1a2e44}
+.next-step .ns-info .sub{font-size:12px;color:#6b8099;margin-top:2px}
+.next-step .arrow{color:#6b8099;font-size:16px}
+
+/* First-Time Setup */
+.setup-progress{background:#fff;border:1px solid #dde8f0;border-radius:12px;padding:16px;margin-bottom:20px;box-shadow:0 1px 4px #0001}
+.setup-progress .progress-label{font-size:12px;font-weight:700;color:#6b8099;margin-bottom:8px;display:flex;justify-content:space-between}
+.setup-bar{height:8px;background:#dde8f0;border-radius:4px;overflow:hidden;margin-bottom:12px}
+.setup-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#2a5080,#58c8f0)}
+.setup-steps{display:flex;flex-direction:column;gap:10px}
+.setup-step{background:#f8fafc;border:1px solid #dde8f0;border-radius:10px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.setup-step.done{background:#f0fff4;border-color:#a8ecc4}
+.setup-step.active{background:#eff6ff;border-color:#93c5fd;border-width:2px}
+.step-check{width:28px;height:28px;border-radius:50%;border:2px solid #dde8f0;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;background:#fff}
+.step-check.done-check{background:#d1fae5;border-color:#a8ecc4;color:#059669}
+.step-check.active-check{background:#dbeafe;border-color:#93c5fd;color:#2563eb}
+.step-info .title{font-size:14px;font-weight:700;color:#1a2e44}
+.step-info .sub{font-size:12px;color:#6b8099;margin-top:2px}
+.step-cta{background:#2a5080;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;white-space:nowrap}
+.step-cta:hover{background:#3a70a8}
+.welcome-card{background:linear-gradient(135deg,#2a5080,#3a70a8);border-radius:14px;padding:20px;margin-bottom:20px;color:#fff}
+.welcome-card h2{font-size:18px;font-weight:700;margin-bottom:6px}
+.welcome-card p{font-size:13px;color:#b3d4f0;line-height:1.5}
+
+/* Waiting for Data */
+.waiting-hero{text-align:center;padding:28px 20px;background:#fff;border-radius:16px;margin-bottom:20px;border:1px solid #dde8f0;box-shadow:0 1px 4px #0001}
+.waiting-hero .wait-icon{font-size:64px;margin-bottom:10px;display:block;animation:gentle-pulse 2s ease-in-out infinite}
+@keyframes gentle-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.8}}
+.waiting-hero h2{font-size:20px;font-weight:700;color:#2a5080;margin-bottom:6px}
+.waiting-hero p{font-size:13px;color:#6b8099;line-height:1.5}
+.waiting-checklist{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.wait-item{background:#fff;border:1px solid #dde8f0;border-radius:10px;padding:14px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px #0001}
+.wait-item .wi-status{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.wi-done{background:#10b981}
+.wi-pending{background:#f59e0b;animation:blink-dot 1.5s ease-in-out infinite}
+.wi-waiting{background:#d1d5db}
+@keyframes blink-dot{0%,100%{opacity:1}50%{opacity:.3}}
+.wait-item .wi-text{flex:1;font-size:13px;font-weight:600;color:#1a2e44}
+.wait-item .wi-sub{font-size:11px;color:#6b8099;margin-top:2px}
+.info-card{background:#eff6ff;border:1px solid #93c5fd;border-radius:12px;padding:16px;margin-bottom:20px;font-size:13px;color:#1e40af;line-height:1.5}
+
+/* Low Activity */
+.low-hero{text-align:center;padding:24px;background:#fff;border-radius:14px;margin-bottom:20px;border:1px solid #dde8f0;box-shadow:0 1px 4px #0001}
+.low-hero .icon{font-size:52px;margin-bottom:10px;display:block}
+.low-hero h2{font-size:18px;font-weight:700;color:#2a5080;margin-bottom:6px}
+.low-hero p{font-size:13px;color:#6b8099;line-height:1.5}
+.activity-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.activity-item{background:#fff;border:1px solid #dde8f0;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 1px 4px #0001}
+.activity-item .ai-avatar{width:36px;height:36px;border-radius:50%;background:#e2eaf5;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#2a5080;flex-shrink:0}
+.activity-item .ai-info{flex:1}
+.activity-item .ai-name{font-size:13px;font-weight:700;color:#1a2e44}
+.activity-item .ai-sub{font-size:11px;color:#6b8099;margin-top:2px}
+.activity-item .ai-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:8px;white-space:nowrap}
+.badge-inactive{background:#f3f4f6;color:#9ca3af}
+.nudge-btn{background:#2a5080;color:#fff;border:none;padding:12px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;width:100%}
+.nudge-btn:hover{background:#3a70a8}
+
+/* Spec */
+.spec-section{margin-bottom:20px}
+.spec-section h3{font-size:13px;font-weight:700;color:#2a5080;margin-bottom:8px}
+.spec-section p,.spec-section li{font-size:12px;color:#6b8099;line-height:1.7;margin-bottom:4px}
+.spec-section ul{padding-left:16px}
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="nav">
+    <span class="back">←</span>
+    <h1>Support Queue</h1>
+    <div class="avatar">T</div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" onclick="show('clear')">Queue Empty!</div>
+    <div class="tab" onclick="show('first-time')">First-Time Setup</div>
+    <div class="tab" onclick="show('waiting')">Waiting for Data</div>
+    <div class="tab" onclick="show('low-activity')">Low Activity</div>
+    <div class="tab" onclick="show('spec')">Spec</div>
+  </div>
+
+  <!-- QUEUE EMPTY — ALL CLEAR -->
+  <div id="clear" class="pane active">
+    <div class="hint-box">
+      <strong>Celebration state!</strong> Teacher's support queue is empty. Positive reinforcement — don't just show nothing, show that this is a great outcome.
+    </div>
+    <div class="celebration-hero">
+      <span class="big-icon">🎉</span>
+      <h2>All clear! Great work!</h2>
+      <p>Every student in your class is on track. No one needs extra support right now — that's amazing teaching!</p>
+    </div>
+    <div class="stat-strip">
+      <div class="stat-mini">
+        <div class="val" style="color:#10b981">24</div>
+        <div class="lbl">Students on track</div>
+      </div>
+      <div class="stat-mini">
+        <div class="val" style="color:#2a5080">0</div>
+        <div class="lbl">In support queue</div>
+      </div>
+      <div class="stat-mini">
+        <div class="val" style="color:#f59e0b">3</div>
+        <div class="lbl">Near threshold</div>
+      </div>
+    </div>
+    <div class="well-done-card">
+      <div class="icon">⭐</div>
+      <div>
+        <h3>Best queue this month!</h3>
+        <p>You've cleared your queue 4 days in a row. Your class is doing really well with the current skill sequence.</p>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:700;color:#2a5080;margin-bottom:12px">While you have a moment...</div>
+    <div class="next-steps">
+      <div class="next-step" onclick="alert('Opening skill map')">
+        <span class="ns-icon">📊</span>
+        <div class="ns-info">
+          <div class="title">Review class skill progress</div>
+          <div class="sub">3 students nearing threshold</div>
+        </div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="next-step" onclick="alert('Opening assignments')">
+        <span class="ns-icon">📝</span>
+        <div class="ns-info">
+          <div class="title">Set this week's focus skill</div>
+          <div class="sub">Last set 5 days ago</div>
+        </div>
+        <span class="arrow">›</span>
+      </div>
+      <div class="next-step" onclick="alert('Opening reports')">
+        <span class="ns-icon">📬</span>
+        <div class="ns-info">
+          <div class="title">Send weekly report to parents</div>
+          <div class="sub">Thursday is a great day for this</div>
+        </div>
+        <span class="arrow">›</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- FIRST-TIME SETUP -->
+  <div id="first-time" class="pane">
+    <div class="hint-box">
+      <strong>First-time teacher state.</strong> Guide teacher through setup before queue can populate. Progress indicator shows completion.
+    </div>
+    <div class="welcome-card">
+      <h2>Welcome to WonderQuest, Ms. Rivera! 👋</h2>
+      <p>Let's set up your class so you can start seeing student progress in your queue.</p>
+    </div>
+    <div class="setup-progress">
+      <div class="progress-label"><span>Setup Progress</span><span>2 of 4 complete</span></div>
+      <div class="setup-bar"><div class="setup-fill" style="width:50%"></div></div>
+      <div class="setup-steps">
+        <div class="setup-step done">
+          <div class="step-check done-check">✓</div>
+          <div class="step-info">
+            <div class="title">Create your account</div>
+            <div class="sub">Done!</div>
+          </div>
+        </div>
+        <div class="setup-step done">
+          <div class="step-check done-check">✓</div>
+          <div class="step-info">
+            <div class="title">Set up your class</div>
+            <div class="sub">Grade 1 · 24 students</div>
+          </div>
+        </div>
+        <div class="setup-step active">
+          <div class="step-check active-check">3</div>
+          <div class="step-info">
+            <div class="title">Add your students</div>
+            <div class="sub">0 of 24 students linked so far</div>
+          </div>
+          <button class="step-cta" onclick="alert('Opening student invite flow')">Add →</button>
+        </div>
+        <div class="setup-step">
+          <div class="step-check">4</div>
+          <div class="step-info">
+            <div class="title">Set your first focus skill</div>
+            <div class="sub">Unlocks after students are added</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      💡 Once students are added and start playing, you'll see their progress and any who need support right here in your queue.
+    </div>
+  </div>
+
+  <!-- WAITING FOR DATA -->
+  <div id="waiting" class="pane">
+    <div class="hint-box">
+      <strong>Waiting state.</strong> Class is set up, students are linked, but haven't played yet this week. Helpful, not alarming.
+    </div>
+    <div class="waiting-hero">
+      <span class="wait-icon">⏳</span>
+      <h2>Waiting for your students...</h2>
+      <p>Your class is all set up! Once students start playing, you'll see their progress here. Check back after school time.</p>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Setup checklist</div>
+    <div class="waiting-checklist">
+      <div class="wait-item">
+        <div class="wi-status wi-done"></div>
+        <div>
+          <div class="wi-text">Class created</div>
+          <div class="wi-sub">Grade 1 · 24 students</div>
+        </div>
+      </div>
+      <div class="wait-item">
+        <div class="wi-status wi-done"></div>
+        <div>
+          <div class="wi-text">Students linked</div>
+          <div class="wi-sub">22 of 24 have family accounts</div>
+        </div>
+      </div>
+      <div class="wait-item">
+        <div class="wi-status wi-pending"></div>
+        <div>
+          <div class="wi-text">First play session</div>
+          <div class="wi-sub">Waiting for students to play today...</div>
+        </div>
+      </div>
+      <div class="wait-item">
+        <div class="wi-status wi-waiting"></div>
+        <div>
+          <div class="wi-text">Support queue active</div>
+          <div class="wi-sub">Unlocks after first session data arrives</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-card">
+      📬 Want to encourage students to play? Send a quick reminder through the parent messenger.
+    </div>
+    <button style="background:#2a5080;color:#fff;border:none;padding:12px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;width:100%" onclick="alert('Opening parent messenger')">📬 Message parents</button>
+  </div>
+
+  <!-- LOW ACTIVITY -->
+  <div id="low-activity" class="pane">
+    <div class="hint-box">
+      <strong>Low activity state.</strong> Students are enrolled but haven't played recently. Actionable suggestions for the teacher.
+    </div>
+    <div class="low-hero">
+      <span class="icon">🌙</span>
+      <h2>Things are quiet this week</h2>
+      <p>Most students haven't played in 3+ days. Here's who hasn't been active recently.</p>
+    </div>
+    <div style="font-size:12px;font-weight:700;color:#6b8099;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Inactive students (7)</div>
+    <div class="activity-list">
+      <div class="activity-item">
+        <div class="ai-avatar">AJ</div>
+        <div class="ai-info">
+          <div class="ai-name">Alex J.</div>
+          <div class="ai-sub">Last played 5 days ago</div>
+        </div>
+        <span class="ai-badge badge-inactive">5d</span>
+      </div>
+      <div class="activity-item">
+        <div class="ai-avatar">MK</div>
+        <div class="ai-info">
+          <div class="ai-name">Maya K.</div>
+          <div class="ai-sub">Last played 4 days ago</div>
+        </div>
+        <span class="ai-badge badge-inactive">4d</span>
+      </div>
+      <div class="activity-item">
+        <div class="ai-avatar">TL</div>
+        <div class="ai-info">
+          <div class="ai-name">Tyler L.</div>
+          <div class="ai-sub">Last played 4 days ago</div>
+        </div>
+        <span class="ai-badge badge-inactive">4d</span>
+      </div>
+      <div class="activity-item">
+        <div class="ai-avatar">SR</div>
+        <div class="ai-info">
+          <div class="ai-name">Sofia R.</div>
+          <div class="ai-sub">Last played 3 days ago</div>
+        </div>
+        <span class="ai-badge badge-inactive">3d</span>
+      </div>
+    </div>
+    <button class="nudge-btn" onclick="alert('Parent nudge sent to 7 families!')">📬 Nudge all families (7)</button>
+  </div>
+
+  <!-- SPEC -->
+  <div id="spec" class="pane">
+    <div class="hint-box"><strong>Teacher Queue Empty States spec.</strong> Four distinct empty/low-data states with actionable guidance.</div>
+    <div class="spec-section">
+      <h3>States</h3>
+      <ul>
+        <li>Queue Empty (All Clear): celebration + proactive suggestions while queue is clear</li>
+        <li>First-Time Setup: guided checklist for new teachers</li>
+        <li>Waiting for Data: class set up, students not yet played — gentle waiting state</li>
+        <li>Low Activity: students enrolled but inactive — nudge tools</li>
+      </ul>
+    </div>
+    <div class="spec-section">
+      <h3>Design Principles</h3>
+      <ul>
+        <li>Empty state is never blank — always provide value or a next step</li>
+        <li>Celebrate the positive (all clear = great work!)</li>
+        <li>Don't alarm when things are just quiet — frame as normal</li>
+        <li>Always give teacher a clear action they can take</li>
+      </ul>
+    </div>
+    <div class="spec-section">
+      <h3>Design Tokens</h3>
+      <p>Sora font, bg #f0f4f8, nav #2a5080, 390px mobile. Follows teacher design system.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.pane').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['clear','first-time','waiting','low-activity','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

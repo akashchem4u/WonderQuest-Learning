@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=375px, initial-scale=1.0">
+<title>Parent Home Practice History v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Sora',sans-serif;background:#f5f0e8;color:#2c3e2d;width:375px;min-height:100vh;overflow-x:hidden}
+.tabs{display:flex;background:#fff;border-bottom:2px solid #e8e0d0;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{flex:0 0 auto;padding:10px 12px;font-family:'Sora',sans-serif;font-weight:700;font-size:10px;color:#2c7a6e;background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;transition:all 0.2s}
+.tab.active{color:#2c7a6e;border-bottom-color:#2c7a6e}
+.screen{display:none;min-height:calc(100vh - 48px)}
+.screen.active{display:block}
+.hint-box{background:#2a1f00;border:1.5px solid #ffd166;border-radius:10px;padding:12px 14px;margin:16px;font-size:11px;color:#ffd166;font-weight:700;line-height:1.5}
+.hint-box span{opacity:0.7;font-weight:400}
+
+/* Nav */
+.nav-bar{background:#fff;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #e8e0d0}
+.nav-back{background:transparent;border:none;color:#2c7a6e;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer}
+.nav-title{font-size:16px;font-weight:700;color:#1a2e1e;flex:1}
+
+/* Weekly calendar grid */
+.week-header{padding:16px 16px 8px;font-size:14px;font-weight:700;color:#1a2e1e}
+.week-sub{padding:0 16px 12px;font-size:12px;color:#6b7a6e}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;padding:0 16px 16px}
+.day-cell{text-align:center;padding:4px 2px}
+.day-label{font-size:10px;color:#a0987e;font-weight:700;margin-bottom:4px}
+.day-dot{width:34px;height:34px;border-radius:50%;border:2px solid #e8e0d0;display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto;transition:all 0.2s}
+.day-dot.done{background:#2c7a6e;border-color:#2c7a6e;color:#fff}
+.day-dot.partial{background:#f0f5f0;border-color:#b8dfc0;color:#2c7a6e}
+.day-dot.empty{background:#fff;color:#c0b8a8}
+.day-dot.today{border-color:#2c7a6e;font-weight:700}
+
+/* Practice items */
+.practice-list{padding:0 16px}
+.practice-item{background:#fff;border-radius:12px;border:1.5px solid #e8e0d0;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px}
+.pi-check{width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px}
+.pi-check.done{background:#2c7a6e;color:#fff}
+.pi-check.pending{background:#f5f0e8;border:2px solid #e8e0d0;color:#c0b8a8}
+.pi-info{flex:1}
+.pi-title{font-size:13px;font-weight:700;color:#1a2e1e}
+.pi-meta{font-size:11px;color:#6b7a6e;margin-top:2px}
+.pi-child{font-size:10px;font-weight:700;color:#2c7a6e;background:#eef7f0;padding:2px 6px;border-radius:4px;margin-top:4px;display:inline-block}
+
+/* Monthly view */
+.month-weeks{padding:0 16px}
+.week-row{display:flex;align-items:center;gap:12px;background:#fff;border-radius:12px;border:1.5px solid #e8e0d0;padding:12px 14px;margin-bottom:8px}
+.week-dot-row{display:flex;gap:4px}
+.week-day{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700}
+.wd-done{background:#2c7a6e;color:#fff}
+.wd-empty{background:#f0e8dc;color:#a0987e}
+.week-info{flex:1}
+.week-label{font-size:13px;font-weight:700;color:#1a2e1e}
+.week-desc{font-size:11px;color:#6b7a6e;margin-top:2px}
+.week-badge{font-size:18px}
+
+/* Streak card */
+.streak-hero{background:linear-gradient(135deg,#2c7a6e,#1e5c52);margin:16px;border-radius:18px;padding:20px;text-align:center;color:#fff}
+.streak-hero .s-number{font-size:56px;font-weight:700;color:#ffd166;line-height:1}
+.streak-hero .s-label{font-size:14px;font-weight:700;margin-top:4px;color:rgba(255,255,255,0.9)}
+.streak-hero .s-sub{font-size:12px;margin-top:6px;color:rgba(255,255,255,0.7);line-height:1.5}
+.streak-badges{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.streak-badge{background:rgba(255,255,255,0.15);border-radius:10px;padding:10px;text-align:center}
+.streak-badge .sb-icon{font-size:22px}
+.streak-badge .sb-label{font-size:10px;color:rgba(255,255,255,0.8);margin-top:4px;font-weight:700}
+.celebrate-strip{background:#fff8e8;border:1.5px solid #ffd166;border-radius:12px;padding:14px;margin:0 16px 16px;display:flex;align-items:center;gap:12px}
+.celebrate-strip .cs-icon{font-size:28px}
+.celebrate-strip .cs-body h4{font-size:14px;font-weight:700;color:#7a4e00}
+.celebrate-strip .cs-body p{font-size:12px;color:#b07020;line-height:1.4;margin-top:2px}
+
+/* Upcoming */
+.upcoming-card{background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;margin:0 16px 10px;overflow:hidden}
+.uc-header{background:#f0f5f0;padding:12px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid #e8e0d0}
+.uc-header .uch-date{font-size:12px;font-weight:700;color:#2c7a6e}
+.uc-header .uch-label{font-size:11px;color:#6b7a6e}
+.uc-item{padding:12px 14px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #f5f0e8}
+.uc-item:last-child{border-bottom:none}
+.uc-emoji{font-size:22px;flex-shrink:0}
+.uc-info .uc-title{font-size:13px;font-weight:700;color:#1a2e1e}
+.uc-info .uc-desc{font-size:11px;color:#6b7a6e;margin-top:2px}
+
+/* Spec */
+.spec-section{margin:0 16px 20px}
+.spec-section h3{font-size:14px;font-weight:700;color:#2c7a6e;margin-bottom:8px;border-bottom:1px solid #e8e0d0;padding-bottom:6px}
+.spec-row{display:flex;justify-content:space-between;align-items:flex-start;padding:8px 0;border-bottom:1px solid #f0e8dc;font-size:12px}
+.spec-row .spec-key{color:#6b7a6e;font-weight:700;flex:0 0 130px}
+.spec-row .spec-val{color:#1a2e1e;font-weight:700;text-align:right;flex:1}
+.spec-note{background:#f0f5f0;border-radius:10px;padding:12px;font-size:11px;color:#6b7a6e;line-height:1.6;margin-top:8px}
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('history')">Practice History</button>
+  <button class="tab" onclick="show('thisweek')">This Week</button>
+  <button class="tab" onclick="show('streak')">Practice Streak</button>
+  <button class="tab" onclick="show('upcoming')">Upcoming</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- TAB 1: Practice History -->
+<div id="history" class="screen active">
+  <div class="hint-box">Route: /parent/home-practice/history — weekly view of marked-done home practice activities. <span>No accuracy % anywhere.</span></div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">Practice History</span>
+  </div>
+  <div class="week-header">March 2026</div>
+  <div class="week-sub">Your family's home practice activity log.</div>
+  <div class="month-weeks">
+    <div class="week-row">
+      <div class="week-dot-row">
+        <div class="week-day wd-done">M</div>
+        <div class="week-day wd-empty">T</div>
+        <div class="week-day wd-done">W</div>
+        <div class="week-day wd-done">Th</div>
+        <div class="week-day wd-empty">F</div>
+        <div class="week-day wd-done">Sa</div>
+        <div class="week-day wd-done">Su</div>
+      </div>
+      <div class="week-info">
+        <div class="week-label">Mar 17–23</div>
+        <div class="week-desc">5 activities done</div>
+      </div>
+      <div class="week-badge">⭐</div>
+    </div>
+    <div class="week-row">
+      <div class="week-dot-row">
+        <div class="week-day wd-done">M</div>
+        <div class="week-day wd-done">T</div>
+        <div class="week-day wd-done">W</div>
+        <div class="week-day wd-done">Th</div>
+        <div class="week-day wd-done">F</div>
+        <div class="week-day wd-empty">Sa</div>
+        <div class="week-day wd-empty">Su</div>
+      </div>
+      <div class="week-info">
+        <div class="week-label">Mar 10–16</div>
+        <div class="week-desc">5 activities done</div>
+      </div>
+      <div class="week-badge">⭐</div>
+    </div>
+    <div class="week-row">
+      <div class="week-dot-row">
+        <div class="week-day wd-done">M</div>
+        <div class="week-day wd-empty">T</div>
+        <div class="week-day wd-empty">W</div>
+        <div class="week-day wd-done">Th</div>
+        <div class="week-day wd-done">F</div>
+        <div class="week-day wd-empty">Sa</div>
+        <div class="week-day wd-done">Su</div>
+      </div>
+      <div class="week-info">
+        <div class="week-label">Mar 3–9</div>
+        <div class="week-desc">4 activities done</div>
+      </div>
+      <div class="week-badge">🌱</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: This Week -->
+<div id="thisweek" class="screen">
+  <div class="hint-box">Route: /parent/home-practice/this-week — current week's practice activities, each with done/pending state.</div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">This Week</span>
+  </div>
+  <div class="week-header">Week of Mar 17–23</div>
+  <div class="week-grid">
+    <div class="day-cell"><div class="day-label">M</div><div class="day-dot done">✓</div></div>
+    <div class="day-cell"><div class="day-label">T</div><div class="day-dot empty">–</div></div>
+    <div class="day-cell"><div class="day-label">W</div><div class="day-dot done">✓</div></div>
+    <div class="day-cell"><div class="day-label">Th</div><div class="day-dot done today">✓</div></div>
+    <div class="day-cell"><div class="day-label">F</div><div class="day-dot empty today">·</div></div>
+    <div class="day-cell"><div class="day-label">Sa</div><div class="day-dot empty">·</div></div>
+    <div class="day-cell"><div class="day-label">Su</div><div class="day-dot empty">·</div></div>
+  </div>
+  <div class="practice-list">
+    <div class="practice-item">
+      <div class="pi-check done">✓</div>
+      <div class="pi-info">
+        <div class="pi-title">Read a book together</div>
+        <div class="pi-meta">Mon, March 17 · 15 min</div>
+        <div class="pi-child">Maya + Liam</div>
+      </div>
+    </div>
+    <div class="practice-item">
+      <div class="pi-check pending"></div>
+      <div class="pi-info">
+        <div class="pi-title">Count objects around the house</div>
+        <div class="pi-meta">Suggested for today · 5–10 min</div>
+        <div class="pi-child">Liam</div>
+      </div>
+    </div>
+    <div class="practice-item">
+      <div class="pi-check done">✓</div>
+      <div class="pi-info">
+        <div class="pi-title">WonderQuest Session — Maya</div>
+        <div class="pi-meta">Wed, March 19 · 18 min</div>
+        <div class="pi-child">Maya</div>
+      </div>
+    </div>
+    <div class="practice-item">
+      <div class="pi-check done">✓</div>
+      <div class="pi-info">
+        <div class="pi-title">Spell words with fridge magnets</div>
+        <div class="pi-meta">Thu, March 20 · 10 min</div>
+        <div class="pi-child">Maya</div>
+      </div>
+    </div>
+    <div class="practice-item">
+      <div class="pi-check pending"></div>
+      <div class="pi-info">
+        <div class="pi-title">Rhyming game in the car</div>
+        <div class="pi-meta">Suggested for this weekend · 5 min</div>
+        <div class="pi-child">Maya</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Practice Streak -->
+<div id="streak" class="screen">
+  <div class="hint-box">Route: /parent/home-practice/streak — family streak count and celebration for consistent weeks.</div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">Practice Streak</span>
+  </div>
+  <div class="streak-hero">
+    <div class="s-number">5</div>
+    <div class="s-label">Weeks of practice in a row!</div>
+    <div class="s-sub">Consistent family practice is the most powerful gift you can give. You're doing it!</div>
+    <div class="streak-badges">
+      <div class="streak-badge">
+        <div class="sb-icon">🔥</div>
+        <div class="sb-label">5-Week Streak</div>
+      </div>
+      <div class="streak-badge">
+        <div class="sb-icon">⭐</div>
+        <div class="sb-label">Consistent Family</div>
+      </div>
+      <div class="streak-badge">
+        <div class="sb-icon">🌱</div>
+        <div class="sb-label">Growth Mindset</div>
+      </div>
+    </div>
+  </div>
+  <div class="celebrate-strip">
+    <span class="cs-icon">🎉</span>
+    <div class="cs-body">
+      <h4>You did it! 5 weeks consistent!</h4>
+      <p>Families who practice together consistently see the biggest leaps. You're building something real.</p>
+    </div>
+  </div>
+  <div style="padding:0 16px">
+    <div style="background:#fff;border-radius:14px;border:1.5px solid #e8e0d0;padding:14px">
+      <div style="font-size:13px;font-weight:700;color:#1a2e1e;margin-bottom:8px">Streak Milestones</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="background:#eef7f0;border-radius:8px;padding:8px 10px;text-align:center;flex:1">
+          <div style="font-size:18px;margin-bottom:2px">🌱</div>
+          <div style="font-size:10px;font-weight:700;color:#2c7a6e">2 Weeks</div>
+          <div style="font-size:9px;color:#6b7a6e">Earned!</div>
+        </div>
+        <div style="background:#eef7f0;border-radius:8px;padding:8px 10px;text-align:center;flex:1">
+          <div style="font-size:18px;margin-bottom:2px">⭐</div>
+          <div style="font-size:10px;font-weight:700;color:#2c7a6e">5 Weeks</div>
+          <div style="font-size:9px;color:#6b7a6e">Earned!</div>
+        </div>
+        <div style="background:#f5f0e8;border-radius:8px;padding:8px 10px;text-align:center;flex:1;opacity:0.5">
+          <div style="font-size:18px;margin-bottom:2px">🏆</div>
+          <div style="font-size:10px;font-weight:700;color:#a0987e">10 Weeks</div>
+          <div style="font-size:9px;color:#a0987e">5 more to go!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Upcoming -->
+<div id="upcoming" class="screen">
+  <div class="hint-box">Route: /parent/home-practice/upcoming — suggested activities for the next few days based on current skill focus.</div>
+  <div class="nav-bar">
+    <button class="nav-back">←</button>
+    <span class="nav-title">Coming Up</span>
+  </div>
+  <div style="padding:16px 16px 8px;font-size:12px;color:#6b7a6e">Suggested home practice for the next few days. Tap to mark done!</div>
+  <div class="upcoming-card">
+    <div class="uc-header">
+      <span class="uch-date">Today · Friday, March 22</span>
+    </div>
+    <div class="uc-item">
+      <span class="uc-emoji">🚗</span>
+      <div class="uc-info">
+        <div class="uc-title">Rhyming game on the drive home</div>
+        <div class="uc-desc">Take turns saying words that rhyme — "cat, hat, bat…" 5 min · Maya</div>
+      </div>
+    </div>
+    <div class="uc-item">
+      <span class="uc-emoji">🔢</span>
+      <div class="uc-info">
+        <div class="uc-title">Count out snack items together</div>
+        <div class="uc-desc">Count grapes, crackers, or raisins out loud. 5 min · Liam</div>
+      </div>
+    </div>
+  </div>
+  <div class="upcoming-card">
+    <div class="uc-header">
+      <span class="uch-date">This Weekend · Sat–Sun Mar 23–24</span>
+    </div>
+    <div class="uc-item">
+      <span class="uc-emoji">📚</span>
+      <div class="uc-info">
+        <div class="uc-title">Read a rhyming picture book</div>
+        <div class="uc-desc">"Llama Llama" or anything with rhymes — great for Maya. 15 min</div>
+      </div>
+    </div>
+    <div class="uc-item">
+      <span class="uc-emoji">🌟</span>
+      <div class="uc-info">
+        <div class="uc-title">WonderQuest session — both kids</div>
+        <div class="uc-desc">20 minutes together or separately. Stars add up!</div>
+      </div>
+    </div>
+    <div class="uc-item">
+      <span class="uc-emoji">🔤</span>
+      <div class="uc-info">
+        <div class="uc-title">Fridge magnet word building</div>
+        <div class="uc-desc">Build cat, dog, bug — great way to practice CVC words. 10 min</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="screen">
+  <div class="hint-box">Design spec for parent-home-practice-history-v2.</div>
+  <div style="padding-top:16px">
+    <div class="spec-section">
+      <h3>Component Identity</h3>
+      <div class="spec-row"><span class="spec-key">File</span><span class="spec-val">parent-home-practice-history-v2.html</span></div>
+      <div class="spec-row"><span class="spec-key">Audience</span><span class="spec-val">Parent</span></div>
+      <div class="spec-row"><span class="spec-key">Route</span><span class="spec-val">/parent/home-practice</span></div>
+      <div class="spec-row"><span class="spec-key">Width</span><span class="spec-val">375px mobile</span></div>
+      <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    </div>
+    <div class="spec-section">
+      <h3>Rules</h3>
+      <div class="spec-note">NEVER show accuracy % or missed-day framing. Activity completion shown as count (5 activities done), not as percentage. Streak celebrates consistency — never penalizes breaks. "Upcoming" is forward-looking suggestions, not assignments. All practice activities are optional and family-paced.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['history','thisweek','streak','upcoming','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>

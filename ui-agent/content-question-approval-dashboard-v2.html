@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest – Question Approval Dashboard v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Sora',sans-serif;background:#10161e;color:#e8eaf0;min-width:900px;min-height:100vh}
+.tabs{display:flex;gap:4px;padding:14px 24px 0;background:#10161e;position:sticky;top:0;z-index:100;border-bottom:1px solid #1a2535}
+.tab{padding:10px 20px;border-radius:8px 8px 0 0;cursor:pointer;font-size:12px;font-weight:600;color:#7a8a9a;background:#151e2a;border:1px solid #1a2535;border-bottom:none;transition:all .2s}
+.tab.active{background:#1a2a3e;color:#58c8f0;border-color:#58c8f0}
+.panel{display:none;padding:24px}
+.panel.active{display:block}
+.hint{background:#0a1a2a;border:1px solid #58c8f0;border-radius:8px;padding:12px 16px;margin-bottom:20px;font-size:12px;color:#58c8f0;line-height:1.5}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.page-title{font-size:22px;font-weight:800;color:#fff}
+.page-title span{color:#58c8f0}
+
+/* KPI bar */
+.kpi-bar{display:flex;gap:10px;margin-bottom:18px}
+.kpi-item{flex:1;background:#151e2a;border-radius:10px;padding:12px 14px;border:1px solid #1a2535;display:flex;align-items:center;gap:10px}
+.kpi-val{font-size:24px;font-weight:800;line-height:1}
+.kpi-lbl{font-size:10px;color:#7a8a9a;margin-top:2px}
+
+/* Two-panel layout */
+.dual-panel{display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start}
+
+/* Queue list */
+.queue-list{background:#151e2a;border-radius:12px;border:1px solid #1a2535;overflow:hidden;max-height:calc(100vh - 250px);overflow-y:auto}
+.queue-header{padding:12px 14px;border-bottom:1px solid #1a2535;display:flex;align-items:center;justify-content:space-between}
+.queue-title{font-size:13px;font-weight:700;color:#58c8f0}
+.queue-item{padding:10px 14px;border-bottom:1px solid #1a2535;cursor:pointer;transition:background .2s;display:flex;align-items:flex-start;gap:8px}
+.queue-item:last-child{border-bottom:none}
+.queue-item:hover{background:#1a2535}
+.queue-item.selected{background:#1a2a3e;border-left:3px solid #58c8f0}
+.queue-item.blocked{background:rgba(239,68,68,.05)}
+.queue-item.selected-blocked{background:#2a1a1a;border-left:3px solid #ef4444}
+.band-chip{display:inline-block;padding:3px 7px;border-radius:4px;font-size:9px;font-weight:700;flex-shrink:0}
+.b1{background:#1a5030;color:#50c880}
+.b2{background:#1a2a40;color:#58c8f0}
+.b3{background:#2a2000;color:#f0c030}
+.b4{background:#2a0a2a;color:#c084fc}
+.q-item-text{font-size:12px;color:#e8eaf0;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.q-item-status{flex-shrink:0}
+.status-badge{display:inline-block;padding:2px 7px;border-radius:20px;font-size:9px;font-weight:700}
+.sb-pend{background:rgba(245,158,11,.15);color:#f59e0b}
+.sb-blocked{background:rgba(239,68,68,.15);color:#ef4444}
+.sb-approved{background:rgba(34,197,94,.15);color:#22c55e}
+
+/* Preview panel */
+.preview-panel{background:#151e2a;border-radius:12px;padding:20px;border:1px solid #1a2535}
+.preview-q-text{font-size:18px;font-weight:700;color:#e8eaf0;line-height:1.4;margin:12px 0}
+.answer-option{display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:8px;margin-bottom:8px;border:2px solid #1a2535;transition:all .2s}
+.answer-option.correct{border-color:#22c55e;background:rgba(34,197,94,.08)}
+.answer-letter{width:26px;height:26px;border-radius:50%;background:#1a2535;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+.correct .answer-letter{background:#22c55e;color:#0a1a0d}
+.answer-text{flex:1;font-size:13px;color:#e8eaf0}
+
+.val-row{display:flex;align-items:center;gap:6px;font-size:12px;margin-bottom:5px}
+.val-check{font-weight:700}
+.val-ok{color:#22c55e}
+.val-fail{color:#ef4444}
+
+.approve-bar{display:flex;gap:10px;margin-top:16px}
+.btn-approve{flex:2;background:#22c55e;color:#0a1a0d;border:none;border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer}
+.btn-reject{flex:1;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;cursor:pointer}
+.btn-skip{flex:1;background:#151e2a;color:#7a8a9a;border:1px solid #1a2535;border-radius:10px;padding:12px;font-family:'Sora',sans-serif;font-size:14px;cursor:pointer}
+
+/* Bulk actions */
+.bulk-zone{background:#151e2a;border-radius:12px;padding:20px;border:1px solid #1a2535;margin-bottom:14px}
+.bulk-title{font-size:14px;font-weight:700;color:#58c8f0;margin-bottom:12px}
+.bulk-check-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #1a2535;font-size:12px}
+.bulk-check-row:last-child{border-bottom:none}
+
+/* Rejected queue */
+.rejected-card{background:#2a0808;border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:14px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="tabs">
+  <div class="tab active" onclick="show('dash')">Approval Dashboard</div>
+  <div class="tab" onclick="show('preview')">Question Preview</div>
+  <div class="tab" onclick="show('bulk')">Bulk Actions</div>
+  <div class="tab" onclick="show('rejected')">Rejected Queue</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- Approval Dashboard -->
+<div id="dash" class="panel active">
+  <div class="hint">Two-panel: left = queue list, right = question preview. Click any queue item to load preview. Approve/reject from the preview panel.</div>
+  <div class="page-header">
+    <div>
+      <div class="page-title">Question <span>Approval Dashboard</span></div>
+      <div style="font-size:12px;color:#7a8a9a">58 pending review · 20 blocked · 38 clean · Last updated: 14:40 UTC</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button style="background:#151e2a;color:#58c8f0;border:1px solid #2a3a50;border-radius:8px;padding:10px 16px;font-family:'Sora',sans-serif;font-size:12px;font-weight:600;cursor:pointer">Filter</button>
+      <button style="background:#58c8f0;color:#0a1a2a;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Bulk Approve 38 →</button>
+    </div>
+  </div>
+  <div class="kpi-bar">
+    <div class="kpi-item"><div><div class="kpi-val" style="color:#f59e0b">58</div><div class="kpi-lbl">Pending</div></div></div>
+    <div class="kpi-item"><div><div class="kpi-val" style="color:#ef4444">20</div><div class="kpi-lbl">Blocked</div></div></div>
+    <div class="kpi-item"><div><div class="kpi-val" style="color:#22c55e">38</div><div class="kpi-lbl">Clean (bulk-eligible)</div></div></div>
+    <div class="kpi-item"><div><div class="kpi-val" style="color:#58c8f0">634</div><div class="kpi-lbl">Approved (total)</div></div></div>
+  </div>
+  <!-- Filter chips -->
+  <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#1a2a3e;color:#58c8f0;border:1px solid #58c8f0;cursor:pointer">All (58)</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#151e2a;color:#22c55e;border:1px solid rgba(34,197,94,.3);cursor:pointer">Clean (38)</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#151e2a;color:#ef4444;border:1px solid rgba(239,68,68,.3);cursor:pointer">Blocked (20)</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#1a5030;color:#50c880;border:1px solid rgba(80,200,128,.3);cursor:pointer">Band 1</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#1a2a40;color:#58c8f0;border:1px solid rgba(88,200,240,.3);cursor:pointer">Band 2</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#2a2000;color:#f0c030;border:1px solid rgba(240,192,48,.3);cursor:pointer">Band 3</div>
+    <div style="padding:5px 12px;border-radius:20px;font-size:11px;font-weight:700;background:#2a0a2a;color:#c084fc;border:1px solid rgba(192,132,252,.3);cursor:pointer">Band 4</div>
+  </div>
+  <div class="dual-panel">
+    <!-- Left queue -->
+    <div>
+      <div class="queue-list">
+        <div class="queue-header">
+          <span class="queue-title">Review Queue</span>
+          <span style="font-size:11px;color:#7a8a9a">58 items</span>
+        </div>
+        <div class="queue-item selected" onclick="selectItem(this)">
+          <span class="band-chip b3">B3</span>
+          <div style="flex:1"><div class="q-item-text">What is 3 × 4?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">multiplication-intro · Q-0892</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item blocked" onclick="selectItem(this)">
+          <span class="band-chip b2">B2</span>
+          <div style="flex:1"><div class="q-item-text">What is 7 + 8?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">addition-facts · Q-1047</div></div>
+          <span class="status-badge sb-blocked">BLOCKED</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b4">B4</span>
+          <div style="flex:1"><div class="q-item-text">Solve: 2x + 5 = 13. What is x?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">algebra-intro · Q-1103</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item blocked" onclick="selectItem(this)">
+          <span class="band-chip b2">B2</span>
+          <div style="flex:1"><div class="q-item-text">Which is greater: 14 or 41?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">number-comparison · Q-1048</div></div>
+          <span class="status-badge sb-blocked">BLOCKED</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b1">B1</span>
+          <div style="flex:1"><div class="q-item-text">Count the blue circles: ● ● ●</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">counting-cardinality · Q-0316</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b3">B3</span>
+          <div style="flex:1"><div class="q-item-text">What is 24 ÷ 6?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">division-intro · Q-0912</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b1">B1</span>
+          <div style="flex:1"><div class="q-item-text">Which shape has 4 equal sides?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">geometry-shapes · Q-0217</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b4">B4</span>
+          <div style="flex:1"><div class="q-item-text">What is 25% of 80?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">percentages · Q-1104</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div class="queue-item blocked" onclick="selectItem(this)">
+          <span class="band-chip b4">B4</span>
+          <div style="flex:1"><div class="q-item-text">Word problem: apples and oranges</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">word-problems · Q-1205</div></div>
+          <span class="status-badge sb-blocked">BLOCKED</span>
+        </div>
+        <div class="queue-item" onclick="selectItem(this)">
+          <span class="band-chip b2">B2</span>
+          <div style="flex:1"><div class="q-item-text">What comes after 29?</div><div style="font-size:10px;color:#7a8a9a;margin-top:2px">place-value · Q-0508</div></div>
+          <span class="status-badge sb-pend">PENDING</span>
+        </div>
+        <div style="padding:10px 14px;font-size:11px;color:#4a6080;text-align:center;border-top:1px solid #1a2535">+48 more items</div>
+      </div>
+    </div>
+
+    <!-- Right preview -->
+    <div>
+      <div class="preview-panel">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span class="band-chip b3">Band 3</span>
+          <span style="background:#1a2a3e;color:#58c8f0;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700">multiplication-intro</span>
+          <span style="font-family:monospace;font-size:11px;color:#4a6080">Q-0892</span>
+          <span style="background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:auto">PENDING</span>
+        </div>
+        <div class="preview-q-text">What is 3 × 4?</div>
+        <div style="font-size:11px;color:#4a6080;margin-bottom:14px">Grade 2-3 · Added by d.miller · Mar 22, 2026</div>
+        <div class="answer-option">
+          <div class="answer-letter">A</div>
+          <div class="answer-text">7</div>
+        </div>
+        <div class="answer-option correct">
+          <div class="answer-letter">B</div>
+          <div class="answer-text">12</div>
+          <span style="font-size:11px;color:#22c55e;font-weight:700">✓ Correct</span>
+        </div>
+        <div class="answer-option">
+          <div class="answer-letter">C</div>
+          <div class="answer-text">34</div>
+        </div>
+        <div class="answer-option">
+          <div class="answer-letter">D</div>
+          <div class="answer-text">9</div>
+        </div>
+        <div style="background:#0a1a2a;border-radius:8px;padding:12px;margin-top:14px">
+          <div style="font-size:11px;font-weight:700;color:#58c8f0;margin-bottom:8px">VALIDATION</div>
+          <div class="val-row"><span class="val-check val-ok">✓</span><span>Correct answer marked (B)</span></div>
+          <div class="val-row"><span class="val-check val-ok">✓</span><span>No duplicate options</span></div>
+          <div class="val-row"><span class="val-check val-ok">✓</span><span>4 options provided</span></div>
+          <div class="val-row"><span class="val-check val-ok">✓</span><span>Skill & band assigned</span></div>
+          <div style="margin-top:8px;font-size:12px;font-weight:700;color:#22c55e">✓ Ready for approval — no hard blocks</div>
+        </div>
+        <div class="approve-bar">
+          <button class="btn-approve">Approve ✓</button>
+          <button class="btn-reject">Reject</button>
+          <button class="btn-skip">Skip →</button>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;font-size:11px;color:#4a6080">
+          <span>↑ Prev (Q-1048)</span>
+          <span style="margin-left:auto">Next (Q-1103) ↓</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Question Preview (standalone) -->
+<div id="preview" class="panel">
+  <div class="hint">Standalone question preview for a selected question before approval decision.</div>
+  <div class="page-header">
+    <div class="page-title">Question <span>Preview</span></div>
+  </div>
+  <div style="max-width:640px;margin:0 auto">
+    <div style="background:#151e2a;border-radius:12px;padding:24px;border:1px solid #1a2535">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span class="band-chip b3">Band 3</span>
+        <span style="background:#1a2a3e;color:#58c8f0;padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700">multiplication-intro</span>
+        <span style="margin-left:auto;background:rgba(245,158,11,.15);color:#f59e0b;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700">PENDING</span>
+      </div>
+      <div style="font-size:20px;font-weight:700;color:#e8eaf0;line-height:1.4;margin:16px 0">What is 3 × 4?</div>
+      <div class="answer-option"><div class="answer-letter">A</div><div class="answer-text">7</div></div>
+      <div class="answer-option correct"><div class="answer-letter">B</div><div class="answer-text">12 — <span style="color:#22c55e;font-size:12px">marked correct</span></div></div>
+      <div class="answer-option"><div class="answer-letter">C</div><div class="answer-text">34</div></div>
+      <div class="answer-option"><div class="answer-letter">D</div><div class="answer-text">9</div></div>
+      <div style="display:flex;gap:10px;margin-top:16px">
+        <button style="flex:2;background:#22c55e;color:#0a1a0d;border:none;border-radius:10px;padding:14px;font-family:'Sora',sans-serif;font-size:15px;font-weight:700;cursor:pointer">Approve ✓</button>
+        <button style="flex:1;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px;font-family:'Sora',sans-serif;font-size:14px;cursor:pointer">Reject</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Actions -->
+<div id="bulk" class="panel">
+  <div class="hint">Bulk approve all clean (no hard blocks) questions. Blocked questions cannot be bulk-approved.</div>
+  <div class="page-header">
+    <div class="page-title">Bulk <span>Actions</span></div>
+  </div>
+  <div style="background:#0a2e1a;border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:18px;margin-bottom:16px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="text-align:center"><div style="font-size:36px;font-weight:800;color:#22c55e">38</div><div style="font-size:11px;color:#86efac">clean questions</div></div>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:700;color:#22c55e;margin-bottom:6px">Eligible for Bulk Approval</div>
+        <div style="font-size:12px;color:#86efac;line-height:1.5">All 38 questions have correct answers marked and no duplicate options. They can be approved in a single action.</div>
+      </div>
+      <button style="background:#22c55e;color:#0a1a0d;border:none;border-radius:10px;padding:14px 24px;font-family:'Sora',sans-serif;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Bulk Approve 38 →</button>
+    </div>
+  </div>
+  <div style="background:#2a0808;border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:16px;margin-bottom:16px">
+    <div style="font-size:13px;font-weight:700;color:#ef4444;margin-bottom:10px">20 Blocked Questions (Cannot Bulk-Approve)</div>
+    <div style="font-size:12px;color:#fca5a5;margin-bottom:10px;line-height:1.5">These questions have hard blocks (missing correct answer or duplicate options). They must be fixed individually before they can be approved.</div>
+    <button style="background:#ef4444;color:#fff;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:12px;font-weight:700;cursor:pointer">Review Blocked Questions →</button>
+  </div>
+  <div class="bulk-zone">
+    <div class="bulk-title">Select Questions to Bulk Approve</div>
+    <div class="bulk-check-row">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#22c55e">
+      <span class="band-chip b3">B3</span>
+      <span style="flex:1;font-size:12px">What is 3 × 4?</span>
+      <span style="font-size:10px;color:#22c55e;font-weight:700">CLEAN</span>
+    </div>
+    <div class="bulk-check-row">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#22c55e">
+      <span class="band-chip b4">B4</span>
+      <span style="flex:1;font-size:12px">Solve: 2x + 5 = 13</span>
+      <span style="font-size:10px;color:#22c55e;font-weight:700">CLEAN</span>
+    </div>
+    <div class="bulk-check-row">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#22c55e">
+      <span class="band-chip b1">B1</span>
+      <span style="flex:1;font-size:12px">Count the blue circles: ● ● ●</span>
+      <span style="font-size:10px;color:#22c55e;font-weight:700">CLEAN</span>
+    </div>
+    <div class="bulk-check-row" style="opacity:.4;pointer-events:none">
+      <input type="checkbox" disabled style="width:14px;height:14px">
+      <span class="band-chip b2">B2</span>
+      <span style="flex:1;font-size:12px">What is 7 + 8?</span>
+      <span style="font-size:10px;color:#ef4444;font-weight:700">BLOCKED</span>
+    </div>
+    <div class="bulk-check-row">
+      <input type="checkbox" checked style="width:14px;height:14px;accent-color:#22c55e">
+      <span class="band-chip b4">B4</span>
+      <span style="flex:1;font-size:12px">What is 25% of 80?</span>
+      <span style="font-size:10px;color:#22c55e;font-weight:700">CLEAN</span>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid #1a2535;display:flex;align-items:center;justify-content:space-between">
+      <span style="font-size:12px;color:#7a8a9a">35 selected · 3 more on next page</span>
+      <button style="background:#58c8f0;color:#0a1a2a;border:none;border-radius:8px;padding:10px 20px;font-family:'Sora',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Approve Selected (35) →</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rejected Queue -->
+<div id="rejected" class="panel">
+  <div class="hint">Questions that were rejected. Author can edit and resubmit. Shows rejection reason.</div>
+  <div class="page-header">
+    <div class="page-title">Rejected <span>Queue</span></div>
+  </div>
+  <div style="display:flex;gap:12px;margin-bottom:18px">
+    <div style="background:#151e2a;border-radius:10px;padding:14px;border:1px solid #1a2535;flex:1;text-align:center"><div style="font-size:24px;font-weight:800;color:#ef4444">12</div><div style="font-size:11px;color:#7a8a9a">Rejected</div></div>
+    <div style="background:#151e2a;border-radius:10px;padding:14px;border:1px solid #1a2535;flex:1;text-align:center"><div style="font-size:24px;font-weight:800;color:#f59e0b">8</div><div style="font-size:11px;color:#7a8a9a">Awaiting Resubmit</div></div>
+    <div style="background:#151e2a;border-radius:10px;padding:14px;border:1px solid #1a2535;flex:1;text-align:center"><div style="font-size:24px;font-weight:800;color:#58c8f0">4</div><div style="font-size:11px;color:#7a8a9a">Resubmitted</div></div>
+  </div>
+  <div class="rejected-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="band-chip b2">B2</span>
+      <span style="font-family:monospace;font-size:12px;color:#ef4444">Q-1047</span>
+      <span style="font-size:12px;color:#fca5a5">What is 7 + 8?</span>
+      <span style="margin-left:auto;font-size:10px;color:#7a8a9a">Rejected Mar 23</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:4px">REJECTION REASON</div>
+    <div style="font-size:12px;color:#fca5a5;margin-bottom:10px">No correct answer marked. Options 13, 14, 15, 16 all present but none set as correct. Author: please mark "15" as correct answer.</div>
+    <div style="display:flex;gap:6px">
+      <button style="flex:1;background:#151e2a;color:#58c8f0;border:1px solid #2a3a50;border-radius:6px;padding:7px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer">Edit &amp; Resubmit</button>
+      <button style="flex:1;background:#151e2a;color:#7a8a9a;border:1px solid #1a2535;border-radius:6px;padding:7px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer">Delete</button>
+    </div>
+  </div>
+  <div class="rejected-card">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="band-chip b4">B4</span>
+      <span style="font-family:monospace;font-size:12px;color:#ef4444">Q-1205</span>
+      <span style="font-size:12px;color:#fca5a5">Word problem: apples and oranges</span>
+      <span style="margin-left:auto;font-size:10px;color:#7a8a9a">Rejected Mar 22</span>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:4px">REJECTION REASON</div>
+    <div style="font-size:12px;color:#fca5a5;margin-bottom:10px">Ambiguous question wording — "how many apples do you have?" without specifying starting count. Also options B and D are identical (both "12"). Please clarify the question and fix duplicate options.</div>
+    <div style="display:flex;gap:6px">
+      <button style="flex:1;background:#151e2a;color:#58c8f0;border:1px solid #2a3a50;border-radius:6px;padding:7px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer">Edit &amp; Resubmit</button>
+      <button style="flex:1;background:#151e2a;color:#7a8a9a;border:1px solid #1a2535;border-radius:6px;padding:7px;font-family:'Sora',sans-serif;font-size:11px;cursor:pointer">Delete</button>
+    </div>
+  </div>
+  <div style="background:#151e2a;border-radius:10px;padding:14px;border:1px solid rgba(88,200,240,.2);margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+      <span class="band-chip b3">B3</span>
+      <span style="font-family:monospace;font-size:12px;color:#58c8f0">Q-0875</span>
+      <span style="font-size:12px;color:#e8eaf0">What is the perimeter of a square...?</span>
+      <span style="margin-left:auto;background:rgba(88,200,240,.15);color:#58c8f0;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700">RESUBMITTED</span>
+    </div>
+    <div style="font-size:11px;color:#7a8a9a">Resubmitted Mar 23 — pending re-review by QA team</div>
+  </div>
+</div>
+
+<!-- Spec -->
+<div id="spec" class="panel">
+  <div class="hint">Specification for the question approval dashboard.</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">LAYOUT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Two-panel: 320px queue list (left) + question preview (right). Click queue item to load preview.</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">BULK APPROVE</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Only available for clean questions (no hard blocks). Blocked questions must be fixed individually.</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">VIEWPORT</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Desktop 900px+ · Sora · #10161e bg · #58c8f0 cyan</div>
+    </div>
+    <div style="background:#151e2a;border-radius:10px;padding:16px">
+      <div style="font-size:13px;font-weight:700;color:#58c8f0;margin-bottom:10px">REJECTED FLOW</div>
+      <div style="font-size:12px;line-height:2;color:#7a8a9a">Reject → reason required → author notified → can edit + resubmit → re-enters QA queue</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function selectItem(item){
+  document.querySelectorAll('.queue-item').forEach(i=>{i.classList.remove('selected','selected-blocked')});
+  item.classList.add(item.classList.contains('blocked') ? 'selected-blocked' : 'selected');
+}
+</script>
+</body>
+</html>

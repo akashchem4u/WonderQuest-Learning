@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Teacher Filter Drawer Mobile v2 – WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Sora',sans-serif;background:#f0f4f8;color:#1a2533;max-width:390px;margin:0 auto;min-height:100vh;position:relative;overflow-x:hidden}
+  nav{background:#2a5080;color:#fff;display:flex;align-items:center;padding:0 16px;height:52px;gap:12px}
+  nav .logo{font-weight:700;font-size:16px}
+  nav .spacer{flex:1}
+  .tabs{display:flex;background:#fff;border-bottom:2px solid #e2e8f0;overflow-x:auto}
+  .tab{padding:12px 12px;font-size:11px;font-weight:600;color:#64748b;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;flex-shrink:0}
+  .tab.active{color:#2a5080;border-bottom-color:#2a5080}
+  .panel{display:none;padding:0}
+  .panel.active{display:block}
+  .hint{background:#e8f0fb;border:1.5px solid #2a5080;border-radius:10px;padding:10px 14px;font-size:11px;color:#1a3a5c;margin:16px;margin-bottom:0}
+  .hint strong{font-weight:700}
+  /* Page content area */
+  .page-content{padding:16px;padding-bottom:80px}
+  .page-title{font-size:18px;font-weight:700;margin-bottom:6px}
+  .page-sub{font-size:12px;color:#64748b;margin-bottom:14px}
+  /* Active filter chips bar */
+  .chips-bar{background:#fff;border-radius:10px;padding:10px 12px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+  .chips-bar-label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+  .active-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .active-chip{display:flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer}
+  .ac-band{background:#e8f0fb;color:#2a5080}
+  .ac-tier{background:#fde8e8;color:#9a2a2a}
+  .ac-sort{background:#e8f5ef;color:#1a8050}
+  .ac-date{background:#fef3cd;color:#c07800}
+  .ac-x{font-size:12px;opacity:.7;font-weight:400}
+  .open-filter-btn{width:100%;background:#2a5080;color:#fff;border:none;border-radius:10px;padding:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px}
+  /* Mock result list */
+  .result-list{display:flex;flex-direction:column;gap:8px}
+  .result-item{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px}
+  .ri-avatar{width:32px;height:32px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+  .ri-info{flex:1}
+  .ri-name{font-size:13px;font-weight:600}
+  .ri-meta{font-size:11px;color:#64748b;margin-top:1px}
+  .tier-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+  .tc-flag{background:#fde8e8;color:#9a2a2a}
+  .tc-watch{background:#fef3cd;color:#c07800}
+  .tc-strong{background:#e8f5ef;color:#1a8050}
+  /* DRAWER */
+  .drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:10;display:none;max-width:390px;margin:0 auto}
+  .drawer-overlay.visible{display:block}
+  .drawer{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:390px;background:#fff;border-radius:20px 20px 0 0;z-index:11;padding:0;max-height:88vh;overflow-y:auto}
+  .drawer-handle{width:40px;height:4px;background:#e2e8f0;border-radius:2px;margin:12px auto 0}
+  .drawer-header{padding:16px 16px 12px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between}
+  .dh-title{font-size:16px;font-weight:700}
+  .dh-reset{font-size:12px;font-weight:600;color:#e53e3e;cursor:pointer;background:none;border:none;font-family:'Sora',sans-serif}
+  .drawer-body{padding:16px}
+  .filter-section{margin-bottom:18px}
+  .fs-label{font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px}
+  .filter-chips{display:flex;gap:6px;flex-wrap:wrap}
+  .f-chip{padding:7px 14px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:12px;font-weight:600;cursor:pointer;color:#475569;background:#fff;transition:all .15s}
+  .f-chip:hover{border-color:#2a5080;color:#2a5080}
+  .f-chip.selected{background:#2a5080;color:#fff;border-color:#2a5080}
+  .f-chip.sel-flag{background:#9a2a2a;color:#fff;border-color:#9a2a2a}
+  .f-chip.sel-watch{background:#c07800;color:#fff;border-color:#c07800}
+  .f-chip.sel-strong{background:#1a8050;color:#fff;border-color:#1a8050}
+  .date-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .date-input{background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:8px 10px;font-size:12px;font-family:'Sora',sans-serif;color:#1a2533;width:100%}
+  .sort-list{display:flex;flex-direction:column;gap:6px}
+  .sort-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1.5px solid #e2e8f0;cursor:pointer;transition:all .15s}
+  .sort-item:hover{border-color:#2a5080;background:#f8fafc}
+  .sort-item.selected{border-color:#2a5080;background:#e8f0fb}
+  .si-radio{width:18px;height:18px;border-radius:50%;border:2px solid #e2e8f0;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .si-radio.checked{border-color:#2a5080;background:#2a5080}
+  .si-radio.checked::after{content:'';width:6px;height:6px;border-radius:50%;background:#fff}
+  .si-label{font-size:13px;font-weight:600}
+  .drawer-footer{padding:14px 16px;border-top:1px solid #f1f5f9;display:grid;grid-template-columns:1fr 2fr;gap:10px;position:sticky;bottom:0;background:#fff}
+  .btn-reset-lg{background:#fff;color:#e53e3e;border:1.5px solid #e53e3e;border-radius:10px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  .btn-apply{background:#2a5080;color:#fff;border:none;border-radius:10px;padding:13px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif}
+  /* Spec */
+  .spec-pad{padding:16px}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">WonderQuest</div>
+  <div class="spacer"></div>
+  <div style="font-size:12px;opacity:.8">Class 3B</div>
+</nav>
+
+<div class="tabs">
+  <div class="tab active" onclick="show('closed')">Drawer Closed</div>
+  <div class="tab" onclick="show('open')">Drawer Open</div>
+  <div class="tab" onclick="show('applied')">Filters Applied</div>
+  <div class="tab" onclick="show('reset')">Reset State</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<!-- TAB 1: Drawer Closed (chips) -->
+<div id="closed" class="panel active">
+  <div class="hint"><strong>Routes:</strong> Open Filters → Drawer Open tab · Chip × → removes that filter · No chips = no active filters · Results list updates based on active filters</div>
+  <div class="page-content">
+    <div class="page-title">Student List</div>
+    <div class="page-sub">28 students · No active filters</div>
+    <div class="chips-bar">
+      <div class="chips-bar-label"><span>Active Filters</span><span style="font-size:11px;color:#94a3b8">None</span></div>
+      <div style="font-size:12px;color:#94a3b8;font-style:italic">No filters applied — showing all students</div>
+    </div>
+    <button class="open-filter-btn" onclick="show('open')">⚙️ Open Filters</button>
+    <div class="result-list">
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">AR</div><div class="ri-info"><div class="ri-name">Amir R.</div><div class="ri-meta">Band P0 · Place Value, Subtraction</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">PL</div><div class="ri-info"><div class="ri-name">Priya L.</div><div class="ri-meta">Band P0 · Fractions, Phonics</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#c07800">JM</div><div class="ri-info"><div class="ri-name">Jamie M.</div><div class="ri-meta">Band P0 · Division, Fluency</div></div><span class="tier-chip tc-watch">Watch</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#1a8050">EH</div><div class="ri-info"><div class="ri-name">Emma H.</div><div class="ri-meta">Band P0 · All P0 Skills</div></div><span class="tier-chip tc-strong">Strong</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#1a8050">LC</div><div class="ri-info"><div class="ri-name">Leo C.</div><div class="ri-meta">Band P0 · Math P0, ELA P0</div></div><span class="tier-chip tc-strong">Strong</span></div>
+      <div style="text-align:center;padding:12px;font-size:12px;color:#94a3b8">+ 23 more students</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Drawer Open -->
+<div id="open" class="panel">
+  <div class="hint"><strong>Routes:</strong> Apply Filters → Filters Applied tab · Reset → clears all filters, shows Reset State · Close (overlay tap) → returns to Drawer Closed</div>
+  <div class="page-content">
+    <div class="page-title">Student List</div>
+    <div class="page-sub">28 students</div>
+    <div class="chips-bar">
+      <div class="chips-bar-label">Active Filters</div>
+      <div style="font-size:12px;color:#94a3b8;font-style:italic">Drawer is open — see below</div>
+    </div>
+    <button class="open-filter-btn">⚙️ Filters (drawer open)</button>
+  </div>
+  <!-- Simulated drawer -->
+  <div style="background:#fff;border-radius:20px 20px 0 0;border-top:3px solid #e2e8f0;margin-top:0">
+    <div class="drawer-handle"></div>
+    <div class="drawer-header">
+      <div class="dh-title">Filter Students</div>
+      <button class="dh-reset">Reset All</button>
+    </div>
+    <div class="drawer-body">
+      <div class="filter-section">
+        <div class="fs-label">Band</div>
+        <div class="filter-chips">
+          <div class="f-chip selected">P0</div>
+          <div class="f-chip">P1</div>
+          <div class="f-chip">P2</div>
+          <div class="f-chip">P3</div>
+          <div class="f-chip">All Bands</div>
+        </div>
+      </div>
+      <div class="filter-section">
+        <div class="fs-label">SNS Tier</div>
+        <div class="filter-chips">
+          <div class="f-chip sel-flag">🚩 Flag</div>
+          <div class="f-chip sel-watch">👁 Watch</div>
+          <div class="f-chip">✅ Strong</div>
+        </div>
+      </div>
+      <div class="filter-section">
+        <div class="fs-label">Date Range (Last Session)</div>
+        <div class="date-row">
+          <input class="date-input" type="date" value="2026-03-16">
+          <input class="date-input" type="date" value="2026-03-23">
+        </div>
+      </div>
+      <div class="filter-section">
+        <div class="fs-label">Sort By</div>
+        <div class="sort-list">
+          <div class="sort-item selected"><div class="si-radio checked"></div><div class="si-label">Tier (Flag → Strong)</div></div>
+          <div class="sort-item"><div class="si-radio"></div><div class="si-label">Last Session (Newest)</div></div>
+          <div class="sort-item"><div class="si-radio"></div><div class="si-label">Score (Lowest → Highest)</div></div>
+          <div class="sort-item"><div class="si-radio"></div><div class="si-label">Name (A → Z)</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="drawer-footer">
+      <button class="btn-reset-lg" onclick="show('reset')">Reset</button>
+      <button class="btn-apply" onclick="show('applied')">Apply Filters (10 results)</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Filters Applied -->
+<div id="applied" class="panel">
+  <div class="hint"><strong>Routes:</strong> Chip × removes filter → list updates · Open Filters → modify filters · Result items tap → student card / detail</div>
+  <div class="page-content">
+    <div class="page-title">Student List</div>
+    <div class="page-sub">10 of 28 students · 3 filters active</div>
+    <div class="chips-bar">
+      <div class="chips-bar-label"><span>Active Filters</span><span style="color:#2a5080;font-weight:700;font-size:11px">3 active</span></div>
+      <div class="active-chips">
+        <div class="active-chip ac-band">P0 <span class="ac-x">×</span></div>
+        <div class="active-chip ac-tier">Flag + Watch <span class="ac-x">×</span></div>
+        <div class="active-chip ac-sort">Sort: Tier <span class="ac-x">×</span></div>
+        <div class="active-chip ac-date">Mar 16–23 <span class="ac-x">×</span></div>
+      </div>
+    </div>
+    <button class="open-filter-btn" onclick="show('open')">⚙️ Modify Filters</button>
+    <div class="result-list">
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">AR</div><div class="ri-info"><div class="ri-name">Amir R.</div><div class="ri-meta">Band P0 · Place Value, Subtraction</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">PL</div><div class="ri-info"><div class="ri-name">Priya L.</div><div class="ri-meta">Band P0 · Fractions, Phonics</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">TK</div><div class="ri-info"><div class="ri-name">Tom K.</div><div class="ri-meta">Band P0 · Number Sense</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">SN</div><div class="ri-info"><div class="ri-name">Sofia N.</div><div class="ri-meta">Band P0 · Multiplication</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#c07800">JM</div><div class="ri-info"><div class="ri-name">Jamie M.</div><div class="ri-meta">Band P0 · Division, Fluency</div></div><span class="tier-chip tc-watch">Watch</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#c07800">RD</div><div class="ri-info"><div class="ri-name">Rosa D.</div><div class="ri-meta">Band P0 · Place Value</div></div><span class="tier-chip tc-watch">Watch</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Reset State -->
+<div id="reset" class="panel">
+  <div class="hint"><strong>Routes:</strong> Reset clears all chips → returns to Drawer Closed (no filters) · Open Filters → fresh drawer with all deselected</div>
+  <div class="page-content">
+    <div class="page-title">Student List</div>
+    <div class="page-sub">28 students · Filters cleared</div>
+    <div style="background:#e8f5ef;border:1.5px solid #1a8050;border-radius:10px;padding:10px 14px;font-size:12px;color:#1a4030;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      <span style="font-size:16px">✓</span> All filters have been reset. Showing all students.
+    </div>
+    <div class="chips-bar">
+      <div class="chips-bar-label"><span>Active Filters</span><span style="font-size:11px;color:#94a3b8">None</span></div>
+      <div style="font-size:12px;color:#94a3b8;font-style:italic">No filters applied — showing all 28 students</div>
+    </div>
+    <button class="open-filter-btn" onclick="show('open')">⚙️ Open Filters</button>
+    <div class="result-list">
+      <div class="result-item"><div class="ri-avatar" style="background:#9a2a2a">AR</div><div class="ri-info"><div class="ri-name">Amir R.</div><div class="ri-meta">Band P0 · Place Value</div></div><span class="tier-chip tc-flag">Flag</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#c07800">JM</div><div class="ri-info"><div class="ri-name">Jamie M.</div><div class="ri-meta">Band P0 · Division</div></div><span class="tier-chip tc-watch">Watch</span></div>
+      <div class="result-item"><div class="ri-avatar" style="background:#1a8050">EH</div><div class="ri-info"><div class="ri-name">Emma H.</div><div class="ri-meta">Band P0 · All P0</div></div><span class="tier-chip tc-strong">Strong</span></div>
+      <div style="text-align:center;padding:12px;font-size:12px;color:#94a3b8">+ 25 more students</div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="spec" class="panel">
+  <div class="spec-pad">
+    <div class="hint"><strong>File:</strong> teacher-filter-drawer-mobile-v2.html · 390px mobile · Bottom sheet filter drawer</div>
+    <h2 style="font-size:18px;font-weight:700;margin-bottom:14px;margin-top:16px">Spec — Filter Drawer Mobile v2</h2>
+    <table style="width:100%;border-collapse:collapse;font-size:12px">
+      <tr style="background:#2a5080;color:#fff"><th style="text-align:left;padding:8px 12px">Property</th><th style="text-align:left;padding:8px 12px">Value</th></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Viewport</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">390px mobile</td></tr>
+      <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Drawer entry</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Slides up from bottom (fixed position), max-height 88vh</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Filter groups</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Band (P0–P3) · Tier (Flag/Watch/Strong) · Date range · Sort by</td></tr>
+      <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Active chips</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Shown in chips bar when drawer closed · each chip has × to remove</td></tr>
+      <tr><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Apply behavior</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Shows result count in button · closes drawer on apply</td></tr>
+      <tr style="background:#f8fafc"><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Reset behavior</td><td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">Clears all filter state · shows confirmation toast · chips bar goes empty</td></tr>
+      <tr><td style="padding:8px 12px">Sort options</td><td style="padding:8px 12px">Tier severity · Last session · Score · Name A-Z · radio single-select</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function show(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const tabs=['closed','open','applied','reset','spec'];
+  document.querySelectorAll('.tab')[tabs.indexOf(id)].classList.add('active');
+}
+</script>
+</body>
+</html>
