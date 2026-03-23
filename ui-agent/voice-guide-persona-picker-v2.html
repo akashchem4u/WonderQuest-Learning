@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Guide Persona Picker v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  .screen { background: #1e1540; border-radius: 20px; padding: 20px; max-width: 375px; margin: 0 auto; min-height: 520px; }
+  .screen-title { font-size: 20px; font-weight: 900; color: #fff; text-align: center; margin-bottom: 6px; }
+  .screen-sub { font-size: 13px; color: #9b72ff; text-align: center; margin-bottom: 20px; font-weight: 700; }
+
+  /* Persona Cards Grid */
+  .personas-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .persona-card { background: #2d2060; border-radius: 18px; padding: 20px 14px; text-align: center; cursor: pointer; border: 3px solid transparent; transition: all 0.22s; position: relative; }
+  .persona-card:hover { border-color: #9b72ff; transform: translateY(-2px); }
+  .persona-card.selected { border-color: #ffd166; background: #3a2d6e; }
+  .persona-card.selected::after { content: '✓'; position: absolute; top: 10px; right: 10px; width: 22px; height: 22px; background: #ffd166; border-radius: 50%; color: #100b2e; font-size: 13px; font-weight: 900; display: flex; align-items: center; justify-content: center; line-height: 22px; }
+  .persona-emoji { font-size: 52px; margin-bottom: 10px; display: block; }
+  .persona-name { font-size: 16px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .persona-traits { font-size: 11px; font-weight: 700; color: #9b72ff; line-height: 1.4; }
+  .persona-card.selected .persona-traits { color: #ffd166; }
+
+  /* Hear Me Button */
+  .hear-btn { width: 100%; margin-top: 10px; background: #1e1540; border: 2px solid #58e8c1; border-radius: 12px; color: #58e8c1; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 12px; padding: 8px 10px; cursor: pointer; transition: all 0.2s; }
+  .hear-btn:hover { background: #58e8c1; color: #100b2e; }
+
+  /* Selected Preview */
+  .preview-card { background: #2d2060; border-radius: 20px; padding: 28px 20px; text-align: center; border: 3px solid #ffd166; }
+  .preview-emoji-large { font-size: 80px; margin-bottom: 12px; display: block; }
+  .preview-name { font-size: 26px; font-weight: 900; color: #ffd166; margin-bottom: 6px; }
+  .preview-tagline { font-size: 14px; font-weight: 700; color: #9b72ff; margin-bottom: 20px; }
+  .preview-quote { background: #1e1540; border-radius: 14px; padding: 16px; font-size: 15px; font-weight: 700; color: #e0d4ff; line-height: 1.5; margin-bottom: 16px; font-style: italic; }
+  .preview-quote::before { content: '"'; color: #9b72ff; font-size: 24px; }
+  .preview-quote::after { content: '"'; color: #9b72ff; font-size: 24px; }
+  .confirm-btn { width: 100%; background: #9b72ff; border: none; border-radius: 14px; color: #fff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+  .confirm-btn:hover { background: #b998ff; transform: translateY(-1px); }
+
+  /* In-Play Preview */
+  .inplay-screen { background: #2d2060; border-radius: 16px; padding: 16px; margin-bottom: 16px; }
+  .inplay-bar { display: flex; align-items: center; gap: 12px; background: #12082a; border-radius: 12px; padding: 12px 14px; }
+  .inplay-avatar { width: 40px; height: 40px; border-radius: 50%; background: #2d1f5e; display: flex; align-items: center; justify-content: center; font-size: 22px; border: 2px solid #ffd166; }
+  .inplay-speech { flex: 1; background: #2d1f5e; border-radius: 10px; padding: 8px 12px; font-size: 13px; color: #e0d4ff; font-weight: 700; }
+  .waveform { display: flex; align-items: center; gap: 3px; height: 20px; }
+  .wave-bar { width: 3px; background: #9b72ff; border-radius: 2px; animation: wave 1s ease-in-out infinite; }
+  .wave-bar:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { height: 14px; animation-delay: 0.15s; }
+  .wave-bar:nth-child(3) { height: 20px; animation-delay: 0.3s; }
+  .wave-bar:nth-child(4) { height: 14px; animation-delay: 0.15s; }
+  .wave-bar:nth-child(5) { height: 6px; animation-delay: 0s; }
+  @keyframes wave { 0%,100% { transform: scaleY(0.5); } 50% { transform: scaleY(1); } }
+
+  /* Spec */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+  .tag { display: inline-block; background: #2d1f5e; border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 900; color: #9b72ff; margin: 2px; }
+
+  /* Change Persona */
+  .change-banner { background: #2d1f5e; border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .change-current { font-size: 40px; }
+  .change-text h4 { font-size: 15px; font-weight: 900; color: #fff; }
+  .change-text p { font-size: 12px; color: #9b72ff; font-weight: 700; }
+  .change-link { background: none; border: 2px solid #ffd166; border-radius: 10px; color: #ffd166; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 12px; padding: 6px 14px; cursor: pointer; margin-left: auto; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Voice Guide Persona Picker</strong><br>
+  GET /api/voice/personas → [{id, name, emoji, traits[], voiceId, sampleAudioUrl}]<br>
+  GET /api/voice/persona/current → {personaId, name, emoji}<br>
+  POST /api/voice/persona/select → body: {personaId}<br>
+  GET /api/voice/persona/{id}/preview → streams audio sample
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('picker')">Persona Picker</button>
+  <button class="tab" onclick="show('selected')">Selected Preview</button>
+  <button class="tab" onclick="show('inplay')">In-Play Preview</button>
+  <button class="tab" onclick="show('change')">Change Persona</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- PERSONA PICKER -->
+<div id="picker" class="panel active">
+  <div class="screen">
+    <div class="screen-title">Pick Your Guide!</div>
+    <div class="screen-sub">Who will help you on your quest?</div>
+    <div class="personas-grid">
+      <div class="persona-card selected" onclick="selectPersona(this)">
+        <span class="persona-emoji">🦉</span>
+        <div class="persona-name">Ollie</div>
+        <div class="persona-traits">Wise · Calm · Kind</div>
+        <button class="hear-btn">🔊 Hear me!</button>
+      </div>
+      <div class="persona-card" onclick="selectPersona(this)">
+        <span class="persona-emoji">🦊</span>
+        <div class="persona-name">Finn</div>
+        <div class="persona-traits">Energetic · Fun · Clever</div>
+        <button class="hear-btn">🔊 Hear me!</button>
+      </div>
+      <div class="persona-card" onclick="selectPersona(this)">
+        <span class="persona-emoji">🐻</span>
+        <div class="persona-name">Bruno</div>
+        <div class="persona-traits">Gentle · Cozy · Warm</div>
+        <button class="hear-btn">🔊 Hear me!</button>
+      </div>
+      <div class="persona-card" onclick="selectPersona(this)">
+        <span class="persona-emoji">🐰</span>
+        <div class="persona-name">Pip</div>
+        <div class="persona-traits">Cheerful · Bouncy · Sweet</div>
+        <button class="hear-btn">🔊 Hear me!</button>
+      </div>
+    </div>
+    <button class="confirm-btn" style="margin-top:20px;">Start with Ollie! ✨</button>
+  </div>
+</div>
+
+<!-- SELECTED PREVIEW -->
+<div id="selected" class="panel">
+  <div class="screen" style="background:transparent;padding:0;">
+    <div style="max-width:375px;margin:0 auto;">
+      <div class="preview-card">
+        <span class="preview-emoji-large">🦉</span>
+        <div class="preview-name">Ollie the Owl</div>
+        <div class="preview-tagline">Wise · Calm · Kind</div>
+        <div class="preview-quote">Hello there, young adventurer! I am so excited to learn with you today. Ready to explore?</div>
+        <button class="confirm-btn" onclick="">Use Ollie! ✨</button>
+      </div>
+      <div style="margin-top:16px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <div style="background:#2d2060;border-radius:14px;padding:14px;text-align:center;cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#3a2d6e'" onmouseout="this.style.borderColor='transparent'">
+          <div style="font-size:32px;margin-bottom:6px;">🦊</div>
+          <div style="font-size:12px;font-weight:900;color:#6b5a9e;">Finn</div>
+        </div>
+        <div style="background:#2d2060;border-radius:14px;padding:14px;text-align:center;cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#3a2d6e'" onmouseout="this.style.borderColor='transparent'">
+          <div style="font-size:32px;margin-bottom:6px;">🐻</div>
+          <div style="font-size:12px;font-weight:900;color:#6b5a9e;">Bruno</div>
+        </div>
+        <div style="background:#2d2060;border-radius:14px;padding:14px;text-align:center;cursor:pointer;border:2px solid transparent;" onmouseover="this.style.borderColor='#3a2d6e'" onmouseout="this.style.borderColor='transparent'">
+          <div style="font-size:32px;margin-bottom:6px;">🐰</div>
+          <div style="font-size:12px;font-weight:900;color:#6b5a9e;">Pip</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- IN-PLAY PREVIEW -->
+<div id="inplay" class="panel">
+  <div style="max-width:375px;margin:0 auto;">
+    <div class="inplay-screen">
+      <div style="font-size:13px;font-weight:700;color:#9b72ff;margin-bottom:10px;">Question in progress...</div>
+      <div style="background:#1e1540;border-radius:14px;padding:16px;text-align:center;margin-bottom:12px;">
+        <div style="font-size:40px;margin-bottom:8px;">🌟</div>
+        <p style="font-size:15px;font-weight:700;color:#e0d4ff;">How many stars do you see?</p>
+        <div style="display:flex;justify-content:center;gap:6px;margin-top:10px;">
+          <span style="font-size:28px;">⭐</span><span style="font-size:28px;">⭐</span><span style="font-size:28px;">⭐</span>
+        </div>
+      </div>
+      <div class="inplay-bar">
+        <div class="inplay-avatar">🦉</div>
+        <div class="inplay-speech">"How many stars can you count? Look carefully!"</div>
+        <div class="waveform">
+          <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#1e1540;border-radius:16px;padding:16px;">
+      <div style="font-size:13px;font-weight:900;color:#ffd166;margin-bottom:10px;">Other guides look like:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="inplay-bar">
+          <div class="inplay-avatar" style="border-color:#ff7b6b;">🦊</div>
+          <div class="inplay-speech" style="font-size:12px;">"Woah — let's count those stars! 1, 2, 3… go!"</div>
+        </div>
+        <div class="inplay-bar">
+          <div class="inplay-avatar" style="border-color:#58e8c1;">🐻</div>
+          <div class="inplay-speech" style="font-size:12px;">"Take your time, little one. Count with me…"</div>
+        </div>
+        <div class="inplay-bar">
+          <div class="inplay-avatar" style="border-color:#9b72ff;">🐰</div>
+          <div class="inplay-speech" style="font-size:12px;">"Ooh ooh! Stars! Count them — you can do it!"</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHANGE PERSONA -->
+<div id="change" class="panel">
+  <div style="max-width:375px;margin:0 auto;">
+    <div class="change-banner">
+      <span class="change-current">🦉</span>
+      <div class="change-text">
+        <h4>Ollie the Owl</h4>
+        <p>Your current guide</p>
+      </div>
+      <button class="change-link">Change</button>
+    </div>
+    <div style="background:#1e1540;border-radius:16px;padding:16px;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:900;color:#fff;margin-bottom:12px;">Try a different guide?</div>
+      <div class="personas-grid">
+        <div class="persona-card" style="opacity:0.5;cursor:not-allowed;border-color:#3a2d6e;">
+          <span class="persona-emoji" style="font-size:36px;">🦉</span>
+          <div class="persona-name" style="font-size:14px;">Ollie</div>
+          <div class="persona-traits">Current ✓</div>
+        </div>
+        <div class="persona-card">
+          <span class="persona-emoji" style="font-size:36px;">🦊</span>
+          <div class="persona-name" style="font-size:14px;">Finn</div>
+          <div class="persona-traits">Energetic · Fun</div>
+          <button class="hear-btn">🔊 Hear me!</button>
+        </div>
+        <div class="persona-card">
+          <span class="persona-emoji" style="font-size:36px;">🐻</span>
+          <div class="persona-name" style="font-size:14px;">Bruno</div>
+          <div class="persona-traits">Gentle · Cozy</div>
+          <button class="hear-btn">🔊 Hear me!</button>
+        </div>
+        <div class="persona-card">
+          <span class="persona-emoji" style="font-size:36px;">🐰</span>
+          <div class="persona-name" style="font-size:14px;">Pip</div>
+          <div class="persona-traits">Cheerful · Bouncy</div>
+          <button class="hear-btn">🔊 Hear me!</button>
+        </div>
+      </div>
+    </div>
+    <p style="text-align:center;font-size:12px;color:#6b5a9e;font-weight:700;">You can change your guide anytime from Settings</p>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>Personas</h3>
+    <div class="spec-row"><span class="spec-label">Owl (Ollie)</span><span class="spec-value">Wise, calm — ElevenLabs voice: "calm-narrator"</span></div>
+    <div class="spec-row"><span class="spec-label">Fox (Finn)</span><span class="spec-value">Energetic, fun — voice: "energetic-kid"</span></div>
+    <div class="spec-row"><span class="spec-label">Bear (Bruno)</span><span class="spec-value">Gentle, cozy — voice: "soft-storyteller"</span></div>
+    <div class="spec-row"><span class="spec-label">Bunny (Pip)</span><span class="spec-value">Cheerful, bouncy — voice: "bright-guide"</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Interaction Rules</h3>
+    <div class="spec-row"><span class="spec-label">Selection</span><span class="spec-value">Gold border + checkmark overlay</span></div>
+    <div class="spec-row"><span class="spec-label">"Hear me!" tap</span><span class="spec-value">Streams 4s preview audio clip</span></div>
+    <div class="spec-row"><span class="spec-label">Confirm</span><span class="spec-value">POST /api/voice/persona/select</span></div>
+    <div class="spec-row"><span class="spec-label">Storage</span><span class="spec-value">childId → personaId in profile</span></div>
+    <div class="spec-row"><span class="spec-label">Change access</span><span class="spec-value">Settings → Voice Guide → Change</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Visual Tokens</h3>
+    <div class="spec-row"><span class="spec-label">Card size</span><span class="spec-value">2-col grid, ~160×160px each</span></div>
+    <div class="spec-row"><span class="spec-label">Selected glow</span><span class="spec-value">border: 3px solid #ffd166</span></div>
+    <div class="spec-row"><span class="spec-label">Emoji size</span><span class="spec-value">52px in grid, 80px in preview</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+function selectPersona(card) {
+  document.querySelectorAll('.persona-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+}
+</script>
+</body>
+</html>

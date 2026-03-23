@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Coach Control Bar v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+  .screen { background: #1e1540; border-radius: 20px; padding: 20px; max-width: 375px; margin: 0 auto; min-height: 400px; display: flex; flex-direction: column; justify-content: flex-end; position: relative; overflow: hidden; }
+  .screen-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding-bottom: 20px; }
+  .question-mock { background: #2d2060; border-radius: 16px; padding: 20px; text-align: center; width: 100%; }
+  .question-mock p { font-size: 16px; font-weight: 700; color: #e0d4ff; line-height: 1.5; }
+  .question-mock .emoji { font-size: 48px; margin-bottom: 8px; }
+
+  /* Control Bar Base */
+  .control-bar { background: #12082a; border-top: 2px solid #2d1f5e; border-radius: 0 0 20px 20px; padding: 14px 20px; display: flex; align-items: center; gap: 16px; }
+  .control-bar-inner { display: flex; align-items: center; gap: 12px; flex: 1; }
+  .coach-avatar { width: 44px; height: 44px; border-radius: 50%; background: #2d1f5e; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; border: 2px solid #3a2d6e; }
+  .coach-label { font-size: 12px; font-weight: 700; color: #9b72ff; }
+  .coach-name { font-size: 14px; font-weight: 900; color: #fff; }
+  .voice-btn { width: 48px; height: 48px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; transition: all 0.2s; }
+
+  /* Idle State */
+  .btn-idle { background: #2d1f5e; }
+  .btn-idle:hover { background: #3a2d6e; transform: scale(1.05); }
+  .status-idle { font-size: 12px; color: #6b5a9e; font-weight: 700; }
+
+  /* Playing State - Waveform */
+  .btn-playing { background: #9b72ff; animation: pulse-glow 1.5s ease-in-out infinite; }
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
+    50% { box-shadow: 0 0 0 10px rgba(155,114,255,0); }
+  }
+  .waveform { display: flex; align-items: center; gap: 3px; height: 24px; }
+  .wave-bar { width: 4px; background: #9b72ff; border-radius: 2px; animation: wave 1s ease-in-out infinite; }
+  .wave-bar:nth-child(1) { animation-delay: 0s; height: 8px; }
+  .wave-bar:nth-child(2) { animation-delay: 0.15s; height: 16px; }
+  .wave-bar:nth-child(3) { animation-delay: 0.3s; height: 24px; }
+  .wave-bar:nth-child(4) { animation-delay: 0.15s; height: 16px; }
+  .wave-bar:nth-child(5) { animation-delay: 0s; height: 8px; }
+  @keyframes wave {
+    0%, 100% { transform: scaleY(0.5); opacity: 0.7; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+  .status-playing { font-size: 12px; color: #9b72ff; font-weight: 700; }
+
+  /* Replay State */
+  .btn-replay { background: #ffd166; position: relative; }
+  .replay-ring { position: absolute; border-radius: 50%; border: 3px solid #ffd166; animation: ring-expand 1.2s ease-out infinite; }
+  @keyframes ring-expand {
+    0% { width: 48px; height: 48px; opacity: 0.8; top: 0; left: 0; }
+    100% { width: 80px; height: 80px; opacity: 0; top: -16px; left: -16px; }
+  }
+  .btn-replay-wrap { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+  .status-replay { font-size: 12px; color: #ffd166; font-weight: 700; }
+
+  /* Disabled State */
+  .btn-disabled { background: #2a2040; cursor: not-allowed; opacity: 0.5; }
+  .control-bar-disabled { opacity: 0.6; }
+  .status-disabled { font-size: 12px; color: #4a3d6e; font-weight: 700; }
+
+  /* Spec panel */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+  .tag { display: inline-block; background: #2d1f5e; border-radius: 8px; padding: 3px 10px; font-size: 11px; font-weight: 900; color: #9b72ff; margin: 2px; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Voice Coach Control Bar</strong><br>
+  GET /api/voice/guide-config → {guideId, name, emoji, voice}<br>
+  POST /api/voice/replay → triggers audio replay for current question<br>
+  GET /api/voice/status → {state: "idle"|"playing"|"replay"|"disabled"}<br>
+  POST /api/voice/skip → skips current audio narration
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('idle')">Idle State</button>
+  <button class="tab" onclick="show('playing')">Playing State</button>
+  <button class="tab" onclick="show('replay')">Replay State</button>
+  <button class="tab" onclick="show('disabled')">Disabled State</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- IDLE STATE -->
+<div id="idle" class="panel active">
+  <div class="screen">
+    <div class="screen-content">
+      <div class="question-mock">
+        <div class="emoji">🐸</div>
+        <p>Which picture shows something that <strong>jumps</strong>?</p>
+      </div>
+      <div style="display:flex;gap:12px;width:100%;">
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐸</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐢</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐠</div>
+      </div>
+    </div>
+    <div class="control-bar">
+      <div class="coach-avatar">🦉</div>
+      <div style="flex:1;">
+        <div class="coach-label">Your Guide</div>
+        <div class="coach-name">Ollie the Owl</div>
+        <div class="status-idle">Tap speaker to hear the question</div>
+      </div>
+      <div class="control-bar-inner" style="flex:0;">
+        <button class="voice-btn btn-idle" title="Play audio">🔇</button>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;color:#6b5a9e;font-size:12px;font-weight:700;margin-top:12px;">Audio not yet played — speaker is muted icon</p>
+</div>
+
+<!-- PLAYING STATE -->
+<div id="playing" class="panel">
+  <div class="screen">
+    <div class="screen-content">
+      <div class="question-mock">
+        <div class="emoji">🐸</div>
+        <p>Which picture shows something that <strong>jumps</strong>?</p>
+      </div>
+      <div style="display:flex;gap:12px;width:100%;">
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐸</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐢</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐠</div>
+      </div>
+    </div>
+    <div class="control-bar">
+      <div class="coach-avatar" style="border-color:#9b72ff;">🦉</div>
+      <div style="flex:1;">
+        <div class="coach-label">Your Guide</div>
+        <div class="coach-name">Ollie the Owl</div>
+        <div class="status-playing">Speaking now...</div>
+      </div>
+      <div class="waveform">
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+        <div class="wave-bar"></div>
+      </div>
+      <button class="voice-btn btn-playing" title="Playing audio">🔊</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:12px;">Audio playing — waveform animates, coach avatar glows</p>
+</div>
+
+<!-- REPLAY STATE -->
+<div id="replay" class="panel">
+  <div class="screen">
+    <div class="screen-content">
+      <div class="question-mock">
+        <div class="emoji">🐸</div>
+        <p>Which picture shows something that <strong>jumps</strong>?</p>
+      </div>
+      <div style="display:flex;gap:12px;width:100%;">
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐸</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐢</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐠</div>
+      </div>
+    </div>
+    <div class="control-bar">
+      <div class="coach-avatar" style="border-color:#ffd166;">🦉</div>
+      <div style="flex:1;">
+        <div class="coach-label">Your Guide</div>
+        <div class="coach-name">Ollie the Owl</div>
+        <div class="status-replay">Tap to hear again!</div>
+      </div>
+      <div class="btn-replay-wrap">
+        <div class="replay-ring"></div>
+        <button class="voice-btn btn-replay" title="Replay audio" style="position:relative;z-index:1;">↩️</button>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;color:#ffd166;font-size:12px;font-weight:700;margin-top:12px;">Audio finished — pulsing ring invites replay</p>
+</div>
+
+<!-- DISABLED STATE -->
+<div id="disabled" class="panel">
+  <div class="screen">
+    <div class="screen-content">
+      <div class="question-mock" style="opacity:0.7;">
+        <div class="emoji">🐸</div>
+        <p>Which picture shows something that <strong>jumps</strong>?</p>
+      </div>
+      <div style="display:flex;gap:12px;width:100%;opacity:0.7;">
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐸</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐢</div>
+        <div style="flex:1;background:#2d2060;border-radius:16px;padding:20px;text-align:center;font-size:36px;">🐠</div>
+      </div>
+    </div>
+    <div class="control-bar control-bar-disabled">
+      <div class="coach-avatar" style="opacity:0.5;">🦉</div>
+      <div style="flex:1;">
+        <div class="coach-label" style="color:#4a3d6e;">Your Guide</div>
+        <div class="coach-name" style="color:#6b5a9e;">Ollie the Owl</div>
+        <div class="status-disabled">Audio not available</div>
+      </div>
+      <button class="voice-btn btn-disabled" disabled title="Audio disabled">🔕</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:#4a3d6e;font-size:12px;font-weight:700;margin-top:12px;">Voice disabled — greyed out, non-interactive</p>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>Component Anatomy</h3>
+    <div class="spec-row"><span class="spec-label">Height</span><span class="spec-value">72px fixed</span></div>
+    <div class="spec-row"><span class="spec-label">Position</span><span class="spec-value">Bottom dock, above nav</span></div>
+    <div class="spec-row"><span class="spec-label">Coach Avatar</span><span class="spec-value">44×44px, emoji, rounded</span></div>
+    <div class="spec-row"><span class="spec-label">Voice Button</span><span class="spec-value">48×48px circular FAB</span></div>
+    <div class="spec-row"><span class="spec-label">Waveform Bars</span><span class="spec-value">5 bars, CSS keyframe wave</span></div>
+    <div class="spec-row"><span class="spec-label">Replay Ring</span><span class="spec-value">CSS expand + fade loop</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>States</h3>
+    <div class="spec-row"><span class="spec-label">idle</span><span class="spec-value">Muted icon, grey btn, tap to play</span></div>
+    <div class="spec-row"><span class="spec-label">playing</span><span class="spec-value">Speaker icon, violet btn, waveform</span></div>
+    <div class="spec-row"><span class="spec-label">replay</span><span class="spec-value">Replay icon, gold btn, pulse ring</span></div>
+    <div class="spec-row"><span class="spec-label">disabled</span><span class="spec-value">No-sound icon, all opacity 0.5</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Tokens</h3>
+    <div class="spec-row"><span class="spec-label">Colors</span><span class="spec-value"><span class="tag">#9b72ff</span><span class="tag">#ffd166</span><span class="tag">#12082a</span></span></div>
+    <div class="spec-row"><span class="spec-label">Font</span><span class="spec-value">Nunito 900 for name, 700 for status</span></div>
+    <div class="spec-row"><span class="spec-label">Animation</span><span class="spec-value">1s wave, 1.2s ring expand, 1.5s pulse</span></div>
+    <div class="spec-row"><span class="spec-label">Accessibility</span><span class="spec-value">aria-label on all buttons, role</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>API Integration</h3>
+    <div class="spec-row"><span class="spec-label">Play trigger</span><span class="spec-value">POST /api/voice/play</span></div>
+    <div class="spec-row"><span class="spec-label">Replay trigger</span><span class="spec-value">POST /api/voice/replay</span></div>
+    <div class="spec-row"><span class="spec-label">Status poll</span><span class="spec-value">GET /api/voice/status (250ms)</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

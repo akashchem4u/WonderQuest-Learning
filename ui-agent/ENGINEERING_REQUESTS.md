@@ -4,6 +4,19 @@ Use this file as the current engineering-facing request list. The goal is to
 produce route-specific assets that can be ported into the live WonderQuest app
 without re-inventing layouts in code.
 
+## Engineering Hold
+
+Engineering is pausing new UI-agent queue additions for now.
+
+Use this file only to:
+
+- preserve status for work already completed
+- note exact files already delivered
+- wait for engineering to reopen the queue
+
+Do not auto-advance into new backlog items until engineering explicitly removes
+this hold.
+
 ## Working Rules
 
 - Keep using `design-system.css` as the source of truth for tokens.
