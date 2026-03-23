@@ -290,6 +290,55 @@ function buildParentWeekendActivities(
   return activities.slice(0, 3);
 }
 
+const parentPreviewWeekly = {
+  childName: "Maya",
+  bandLabel: "Kinder – Grade 1",
+  summary:
+    "Maya had a calmer week with stronger counting confidence and one clear next step in sight words.",
+  chips: ["3 strengths", "1 building", "2 next ideas"],
+  kpis: [
+    {
+      label: "Days practiced",
+      value: "4",
+      detail: "short sessions",
+    },
+    {
+      label: "Effective time",
+      value: "18 min",
+      detail: "steady engagement",
+    },
+    {
+      label: "Badges earned",
+      value: "2",
+      detail: "this week",
+    },
+  ],
+  strengths: ["Counting objects", "Matching shapes", "Quick number recognition"],
+  support: "Sight words · List 2",
+  teacherMessage:
+    "Maya is looking more comfortable with counting. A short, playful sight-word check-in at home would be the best next step this week.",
+  activities: [
+    {
+      icon: "📚",
+      title: "Two-minute sight word warmup",
+      body: "Pick one target word, say it together, then spot it once in a book or label nearby.",
+      tag: "2 min",
+    },
+    {
+      icon: "🍓",
+      title: "Count small groups out loud",
+      body: "Use snacks, blocks, or fruit and let Maya touch each item while counting slowly.",
+      tag: "Confidence",
+    },
+    {
+      icon: "🎉",
+      title: "Stop after one clear win",
+      body: "Leave the session while it still feels easy so the next return to WonderQuest feels positive.",
+      tag: "Routine",
+    },
+  ],
+};
+
 export default function ParentAccessPage() {
   const [notifyWeekly, setNotifyWeekly] = useState(true);
   const [notifyMilestones, setNotifyMilestones] = useState(true);
@@ -730,127 +779,261 @@ export default function ParentAccessPage() {
         ) : null}
 
         {!result ? (
-          <form
-            className="route-grid route-grid-parent"
-            id="parent-access-form"
-            onSubmit={handleSubmit}
-          >
-            <ShellCard
-              className="shell-card-emphasis"
-              eyebrow="Step 1"
-              title="Parent access"
-            >
-              <span className="step-chip">Step 1 · Parent account</span>
-              <div className="field-grid">
-                <FieldBlock
-                  autoComplete="username"
-                  label="Username"
-                  onChange={(event) => setUsername(event.target.value)}
-                  placeholder="parent username"
-                  value={username}
-                />
-                <FieldBlock
-                  autoComplete="current-password"
-                  helper="Quick access for the prototype."
-                  label="4-digit PIN"
-                  maxLength={4}
-                  onChange={(event) => setPin(event.target.value)}
-                  placeholder="0000"
-                  type="password"
-                  value={pin}
-                />
-                <FieldBlock
-                  helper="Shown in summaries and notifications."
-                  label="Display name"
-                  onChange={(event) => setDisplayName(event.target.value)}
-                  placeholder="Parent name"
-                  value={displayName}
-                />
-              </div>
-            </ShellCard>
+          <section className="parent-preview-layout" id="parent-access-form">
+            <div className="parent-preview-main">
+              <article className="parent-summary-hero is-single parent-preview-hero">
+                <div className="parent-hub-greeting">
+                  <span className="eyebrow">This week</span>
+                  <h2>Family learning snapshot with calmer, actionable signals.</h2>
+                  <p>{parentPreviewWeekly.summary}</p>
+                  <div className="parent-week-chip-row">
+                    {parentPreviewWeekly.chips.map((chip) => (
+                      <span className="parent-week-chip" key={chip}>
+                        {chip}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="parent-preview-kpi-stack">
+                  {parentPreviewWeekly.kpis.map((item) => (
+                    <div className="parent-preview-kpi" key={item.label}>
+                      <span>{item.label}</span>
+                      <strong>{item.value}</strong>
+                      <small>{item.detail}</small>
+                    </div>
+                  ))}
+                </div>
+              </article>
 
-            <ShellCard
-              className="shell-card-soft"
-              eyebrow="Step 2"
-              title="Link a child profile"
-            >
-              <span className="step-chip">Step 2 · Child link</span>
-              <div className="field-grid">
-                <FieldBlock
-                  helper="Use the child username already created in the app."
-                  label="Child username"
-                  onChange={(event) => setChildUsername(event.target.value)}
-                  placeholder="child quest name"
-                  value={childUsername}
-                />
-                <FieldBlock
-                  label="Relationship"
-                  onChange={(event) => setRelationship(event.target.value)}
-                  placeholder="parent, guardian, etc."
-                  value={relationship}
-                />
-              </div>
-              <p className="soft-copy">
-                You can sign in without linking right away, or connect a child in the
-                same step.
-              </p>
-            </ShellCard>
+              <div className="parent-preview-grid">
+                <article className="parent-weekly-card parent-preview-card">
+                  <span className="parent-weekly-label">Weekly summary</span>
+                  <strong>{parentPreviewWeekly.childName}</strong>
+                  <p>
+                    {parentPreviewWeekly.bandLabel}. Parents should see strengths,
+                    support areas, and one clear next step before they have to
+                    think about settings.
+                  </p>
+                  <div className="parent-weekly-stats">
+                    <div>
+                      <span>Strengths</span>
+                      <strong>3</strong>
+                    </div>
+                    <div>
+                      <span>Building</span>
+                      <strong>1</strong>
+                    </div>
+                    <div>
+                      <span>Next ideas</span>
+                      <strong>2</strong>
+                    </div>
+                  </div>
+                </article>
 
-            <ShellCard
-              className="shell-card-soft"
-              eyebrow="Step 3"
-              title="Notification preferences"
-            >
-              <span className="step-chip">Step 3 · Alerts</span>
-              <div className="choice-column">
-                <button
-                  className={`mode-card ${notifyWeekly ? "is-selected" : ""}`}
-                  onClick={() => setNotifyWeekly((value) => !value)}
-                  type="button"
-                >
-                  Weekly summary
-                  <span>Time spent, productive time, and next focus areas.</span>
-                </button>
-                <button
-                  className={`mode-card ${notifyMilestones ? "is-selected" : ""}`}
-                  onClick={() => setNotifyMilestones((value) => !value)}
-                  type="button"
-                >
-                  Milestones and badges
-                  <span>Celebrate progress without noisy reminders.</span>
-                </button>
+                <article className="parent-next-step-card">
+                  <span className="parent-insight-label">Strongest next step</span>
+                  <strong>{parentPreviewWeekly.support}</strong>
+                  <p>
+                    Keep the next practice short, calm, and clear. One targeted
+                    activity is more useful than a long session.
+                  </p>
+                  <div className="parent-action-list">
+                    <div>
+                      <span>Best practice window</span>
+                      <strong>2–5 minutes</strong>
+                    </div>
+                    <div>
+                      <span>Family mode</span>
+                      <strong>Quiet + positive</strong>
+                    </div>
+                    <div>
+                      <span>Next route</span>
+                      <strong>Home practice</strong>
+                    </div>
+                  </div>
+                </article>
               </div>
-            </ShellCard>
 
-            <ShellCard
-              className="shell-card-spotlight"
-              eyebrow="Result"
-              title="Parent dashboard"
-            >
-              <ul className="route-list">
-                <li>How is my child doing right now?</li>
-                <li>What changed recently?</li>
-                <li>What should we try next at home?</li>
-                <li>How do I report a confusing flow or bug?</li>
-              </ul>
-              {error ? <p className="status-banner status-error">{error}</p> : null}
-              <div className="status-panel">
-                <strong>The calmer family dashboard appears right after access is saved.</strong>
-                <p>
-                  Once linked, the route switches into the family hub with child switching, recent activity,
-                  and home practice guidance.
+              <ShellCard
+                className="shell-card-soft parent-preview-highlights"
+                eyebrow="Family view"
+                title="What parents should understand in seconds"
+              >
+                <div className="parent-answer-list">
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      ✅
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>What is going well right now?</strong>
+                      <p>{parentPreviewWeekly.strengths.join(", ")} are reading as current strengths.</p>
+                    </div>
+                  </div>
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      🌱
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>What needs a little more support?</strong>
+                      <p>{parentPreviewWeekly.support} is the clearest place for one calm home follow-up.</p>
+                    </div>
+                  </div>
+                  <div className="parent-answer-row">
+                    <span className="parent-answer-icon" aria-hidden="true">
+                      🧭
+                    </span>
+                    <div className="parent-answer-copy">
+                      <strong>What should we do next?</strong>
+                      <p>Start with one tiny practice idea, then stop while it still feels easy.</p>
+                    </div>
+                  </div>
+                </div>
+              </ShellCard>
+
+              <div className="parent-preview-grid">
+                <article className="parent-teacher-strip-card">
+                  <span className="parent-insight-label">From school</span>
+                  <div className="parent-teacher-strip-header">
+                    <span className="parent-teacher-avatar" aria-hidden="true">
+                      JL
+                    </span>
+                    <div>
+                      <strong>Teacher guidance</strong>
+                      <p>Shared in plain family language</p>
+                    </div>
+                  </div>
+                  <blockquote>{parentPreviewWeekly.teacherMessage}</blockquote>
+                </article>
+
+                <article className="parent-activity-card">
+                  <span className="parent-insight-label">Try this week</span>
+                  <div className="parent-activity-stack">
+                    {parentPreviewWeekly.activities.map((activity) => (
+                      <div className="parent-activity-row" key={activity.title}>
+                        <span className="parent-activity-icon" aria-hidden="true">
+                          {activity.icon}
+                        </span>
+                        <div>
+                          <strong>{activity.title}</strong>
+                          <p>{activity.body}</p>
+                        </div>
+                        <small>{activity.tag}</small>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <aside className="parent-preview-side">
+              <ShellCard
+                className="shell-card-emphasis parent-access-manager-card"
+                eyebrow="Quick access"
+                title="Set up parent access"
+              >
+                <p className="soft-copy">
+                  Keep setup short. The goal is to get the parent into the family
+                  view quickly, not make them fill a long form first.
                 </p>
-              </div>
-              <div className="form-actions">
-                <button className="primary-link button-link" disabled={submitting} type="submit">
-                  {submitting ? "Saving..." : "Save parent access"}
-                </button>
-                <Link className="secondary-link" href="/owner">
-                  Owner view
-                </Link>
-              </div>
-            </ShellCard>
-          </form>
+                <form className="parent-access-compact-form" onSubmit={handleSubmit}>
+                  <div className="field-grid">
+                    <FieldBlock
+                      autoComplete="username"
+                      label="Username"
+                      onChange={(event) => setUsername(event.target.value)}
+                      placeholder="parent username"
+                      value={username}
+                    />
+                    <FieldBlock
+                      autoComplete="current-password"
+                      helper="Quick prototype access."
+                      label="4-digit PIN"
+                      maxLength={4}
+                      onChange={(event) => setPin(event.target.value)}
+                      placeholder="0000"
+                      type="password"
+                      value={pin}
+                    />
+                    <FieldBlock
+                      helper="Shown in family summaries."
+                      label="Display name"
+                      onChange={(event) => setDisplayName(event.target.value)}
+                      placeholder="Parent name"
+                      value={displayName}
+                    />
+                    <FieldBlock
+                      helper="Use the child username already created in the app."
+                      label="Child username"
+                      onChange={(event) => setChildUsername(event.target.value)}
+                      placeholder="child quest name"
+                      value={childUsername}
+                    />
+                  </div>
+
+                  <div className="parent-preview-toggle-list">
+                    <button
+                      className={`parent-toggle-row ${notifyWeekly ? "is-on" : ""}`}
+                      onClick={() => setNotifyWeekly((value) => !value)}
+                      type="button"
+                    >
+                      <div>
+                        <strong>Weekly summary</strong>
+                        <span>Time spent, calm insights, and next focus.</span>
+                      </div>
+                      <b>{notifyWeekly ? "On" : "Off"}</b>
+                    </button>
+                    <button
+                      className={`parent-toggle-row ${notifyMilestones ? "is-on" : ""}`}
+                      onClick={() => setNotifyMilestones((value) => !value)}
+                      type="button"
+                    >
+                      <div>
+                        <strong>Milestones</strong>
+                        <span>Badges, trophies, and level moments.</span>
+                      </div>
+                      <b>{notifyMilestones ? "On" : "Off"}</b>
+                    </button>
+                  </div>
+
+                  {error ? <p className="status-banner status-error">{error}</p> : null}
+
+                  <div className="form-actions">
+                    <button className="primary-link button-link" disabled={submitting} type="submit">
+                      {submitting ? "Saving..." : "Enter family view"}
+                    </button>
+                    <Link className="secondary-link" href="/child">
+                      Child access
+                    </Link>
+                  </div>
+                </form>
+              </ShellCard>
+
+              <article className="parent-settings-card parent-preview-settings-card">
+                <span className="parent-insight-label">What opens next</span>
+                <strong>Linked children, weekly reports, and next-home-practice ideas</strong>
+                <p>
+                  After access is saved, the route switches into the calmer family hub with child switching,
+                  activity history, and recommended next steps.
+                </p>
+                <div className="parent-settings-list">
+                  <div className="parent-settings-row">
+                    <div>
+                      <strong>Child-aware reporting</strong>
+                      <span>Every linked child stays visible.</span>
+                    </div>
+                    <b>Ready</b>
+                  </div>
+                  <div className="parent-settings-row">
+                    <div>
+                      <strong>Teacher-style guidance</strong>
+                      <span>One plain-language message, not a wall of data.</span>
+                    </div>
+                    <b>Included</b>
+                  </div>
+                </div>
+              </article>
+            </aside>
+          </section>
         ) : null}
 
         {result && activeChild && activeChildDashboard ? (
