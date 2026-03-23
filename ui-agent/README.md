@@ -7,6 +7,12 @@ external UI/design agent.
 
 - Poll and append updates to [`ENGINEERING_REQUESTS.md`](./ENGINEERING_REQUESTS.md) only.
 - Treat that file as the single status and instruction source.
+- Treat [`DESIGN_BACKLOG.md`](./DESIGN_BACKLOG.md) as the parked long-horizon
+  backlog behind the active batch.
+- If the active batch is complete and no newer engineering block exists yet,
+  auto-advance by pulling the next six highest-priority unbuilt items from
+  `DESIGN_BACKLOG.md`, then append the status update back into
+  `ENGINEERING_REQUESTS.md`.
 
 ## Canonical Top-Level Files
 

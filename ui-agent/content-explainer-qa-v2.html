@@ -1,0 +1,1559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Explainer QA v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #10161e;
+      --card:        #141e28;
+      --border:      #1e2e3e;
+      --accent:      #58c8f0;
+      --accent-bg:   rgba(88,200,240,.1);
+      --accent-dim:  rgba(88,200,240,.25);
+      --text:        #d0e8f0;
+      --muted:       #7a9ab0;
+      --faint:       #1e2e3e;
+
+      /* status */
+      --pass-bg:     #1a5030;
+      --pass:        #50c880;
+      --fail-bg:     #2a0808;
+      --fail:        #ff6060;
+      --warn-bg:     #2a2000;
+      --warn:        #f0c030;
+      --review-bg:   #1a3a5a;
+      --review:      #58c8f0;
+
+      /* legacy compat */
+      --green:       #50c880;
+      --green-bg:    #1a5030;
+      --amber:       #f0c030;
+      --amber-bg:    #2a2000;
+      --red:         #ff6060;
+      --red-bg:      #2a0808;
+      --violet:      #9b72ff;
+      --violet-bg:   rgba(155,114,255,.12);
+      --gold:        #f0c040;
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TAB BAR ── */
+    .tab-bar {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(16,22,30,.97);
+      backdrop-filter: blur(12px);
+      border-bottom: 2px solid var(--border);
+      display: flex; align-items: stretch;
+      padding: 0 32px;
+      overflow-x: auto; scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      flex-shrink: 0;
+      padding: 16px 22px;
+      border: none; background: transparent;
+      color: var(--muted);
+      font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 500;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color .2s, border-color .2s;
+      white-space: nowrap;
+    }
+    .tab-btn:hover:not(.active) { color: var(--text); }
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 600;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── PAGE WRAPPER ── */
+    .page-wrap {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 32px 60px;
+    }
+
+    /* ── ENGINEERING HINT BOX ── */
+    .eng-hint {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 28px;
+      color: #5a4000;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+    .eng-hint strong {
+      display: block;
+      font-size: 13px;
+      margin-bottom: 6px;
+      color: #3d2900;
+    }
+    .eng-hint code {
+      background: rgba(0,0,0,.08);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ── CARD ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    /* ── CHIP ── */
+    .chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 11px; font-weight: 600;
+      border: 1px solid transparent;
+    }
+    .chip-accent   { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-dim); }
+    .chip-green    { background: var(--green-bg); color: var(--green); border-color: rgba(80,200,128,.3); }
+    .chip-amber    { background: var(--amber-bg); color: var(--amber); border-color: rgba(240,192,48,.3); }
+    .chip-red      { background: var(--red-bg); color: var(--red); border-color: rgba(255,96,96,.3); }
+    .chip-muted    { background: var(--faint); color: var(--muted); border-color: var(--border); }
+    .chip-violet   { background: var(--violet-bg); color: var(--violet); border-color: rgba(155,114,255,.3); }
+    .chip-outline  { background: transparent; color: var(--muted); border-color: var(--border); }
+
+    /* band chips */
+    .band-p0 { background: rgba(255,96,96,.12); color: #ff6060; border-color: rgba(255,96,96,.3); }
+    .band-p1 { background: rgba(240,192,48,.12); color: #f0c030; border-color: rgba(240,192,48,.3); }
+    .band-p2 { background: rgba(88,200,240,.12); color: #58c8f0; border-color: rgba(88,200,240,.3); }
+    .band-p3 { background: rgba(122,154,176,.12); color: #7a9ab0; border-color: rgba(122,154,176,.3); }
+
+    /* ── BUTTONS ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 600;
+      cursor: pointer; border: none;
+      transition: opacity .2s, transform .1s;
+    }
+    .btn:hover:not(:disabled) { opacity: .85; }
+    .btn:active:not(:disabled) { transform: scale(.97); }
+    .btn-primary  { background: var(--accent); color: #0a1420; }
+    .btn-green    { background: var(--green-bg); color: var(--green); border: 1.5px solid rgba(80,200,128,.3); }
+    .btn-amber    { background: var(--amber-bg); color: var(--amber); border: 1.5px solid rgba(240,192,48,.3); }
+    .btn-red      { background: var(--red-bg); color: var(--red); border: 1.5px solid rgba(255,96,96,.3); }
+    .btn-ghost    { background: var(--faint); color: var(--text); border: 1px solid var(--border); }
+    .btn-outline  { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+    .btn-sm       { padding: 5px 12px; font-size: 12px; }
+    .btn-lg       { padding: 12px 28px; font-size: 15px; }
+    .btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-size: 11px; font-weight: 700; letter-spacing: .1em;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    /* ── DIVIDER ── */
+    .divider { border: none; border-top: 1px solid var(--border); margin: 18px 0; }
+
+    /* ═══════════════════════════════════════════
+       TAB 1 — REVIEW QUEUE
+    ═══════════════════════════════════════════ */
+    .qa-queue-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 20px; flex-wrap: wrap;
+    }
+    .qa-queue-header h1 {
+      font-size: 22px; font-weight: 700; color: var(--text);
+    }
+
+    .queue-stats-bar {
+      display: flex; gap: 28px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 20px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .stats-item { display: flex; flex-direction: column; gap: 2px; }
+    .stats-item .label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .stats-item .value { font-size: 17px; font-weight: 700; }
+    .stats-item .value.pending { color: var(--accent); }
+    .stats-item .value.flagged { color: var(--amber); }
+    .stats-item .value.approved { color: var(--green); }
+    .stats-item .value.avg { color: var(--text); }
+
+    .queue-filter-row {
+      display: flex; align-items: center; gap: 10px;
+      margin-bottom: 18px; flex-wrap: wrap;
+    }
+    .filter-group { display: flex; gap: 6px; flex-wrap: wrap; }
+    .filter-btn {
+      padding: 5px 14px;
+      border-radius: 20px;
+      font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600;
+      cursor: pointer; border: 1.5px solid var(--border);
+      background: transparent; color: var(--muted);
+      transition: all .15s;
+    }
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-dim); }
+    .filter-sep { width: 1px; height: 24px; background: var(--border); }
+
+    .explainer-queue-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .queue-item-card {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 16px;
+      cursor: pointer;
+      transition: border-color .15s, background .15s;
+    }
+    .queue-item-card:hover { background: rgba(88,200,240,.04); border-left-color: var(--accent); }
+    .queue-item-card.flagged { border-left-color: var(--amber); }
+    .queue-item-card.approved { border-left-color: var(--green); opacity: .7; }
+    .queue-item-card.rejected { border-left-color: var(--red); opacity: .6; }
+
+    .qi-main { flex: 1; min-width: 0; }
+    .qi-skill { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .qi-node  { font-size: 12px; color: var(--muted); }
+    .qi-meta  { display: flex; gap: 8px; align-items: center; flex-shrink: 0; flex-wrap: wrap; }
+
+    /* ═══════════════════════════════════════════
+       TAB 2 — SCRIPT REVIEW
+    ═══════════════════════════════════════════ */
+    .script-review-layout {
+      display: grid;
+      grid-template-columns: 560px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    /* Left — Script Display */
+    .script-left { display: flex; flex-direction: column; gap: 16px; }
+
+    .script-header {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .script-header h2 { font-size: 18px; font-weight: 700; color: var(--text); }
+
+    .script-content-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .script-content-inner {
+      padding: 20px;
+      max-height: 480px;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border) transparent;
+    }
+    .script-content-inner::-webkit-scrollbar { width: 6px; }
+    .script-content-inner::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .script-sentence {
+      display: flex; align-items: flex-start; gap: 10px;
+      margin-bottom: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid transparent;
+    }
+    .script-sentence:hover { border-color: var(--border); }
+    .script-sentence-text { flex: 1; font-size: 14px; line-height: 1.6; color: var(--text); }
+    .word-count-badge {
+      font-size: 10px; font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; flex-shrink: 0; margin-top: 2px;
+    }
+    .word-count-ok   { background: var(--green-bg); color: var(--green); }
+    .word-count-warn { background: var(--amber-bg); color: var(--amber); }
+
+    /* Inline tokens */
+    .word-token {
+      display: inline-flex; align-items: center;
+      background: rgba(88,200,240,.15);
+      color: var(--accent);
+      border: 1px solid var(--accent-dim);
+      border-radius: 6px;
+      padding: 1px 8px;
+      font-size: 13px; font-weight: 700;
+      margin: 0 2px;
+    }
+    .pause-token {
+      display: inline-flex; align-items: center;
+      background: var(--faint);
+      color: var(--muted);
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 10px; font-weight: 600; letter-spacing: .05em;
+      margin: 0 2px;
+    }
+
+    .script-rules-bar {
+      display: flex; gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      flex-wrap: wrap;
+      background: rgba(255,255,255,.01);
+    }
+
+    .char-count-row {
+      display: flex; align-items: center; justify-content: flex-end;
+      padding: 8px 16px;
+      border-top: 1px solid var(--border);
+      font-size: 12px; color: var(--muted);
+    }
+    .char-count-row span.ok { color: var(--green); font-weight: 600; }
+
+    /* Right — Reviewer Notes */
+    .review-right { display: flex; flex-direction: column; gap: 18px; }
+
+    .review-checklist { display: flex; flex-direction: column; gap: 10px; }
+    .check-row {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .check-row:hover { background: rgba(88,200,240,.04); }
+    .check-row input[type="checkbox"] { accent-color: var(--accent); width: 15px; height: 15px; flex-shrink: 0; margin-top: 1px; cursor: pointer; }
+    .check-row label { font-size: 13px; color: var(--text); cursor: pointer; line-height: 1.4; }
+    .check-row.auto-checked label { color: var(--green); }
+
+    .note-textarea {
+      width: 100%; border-radius: 8px;
+      background: var(--card); border: 1.5px solid var(--border);
+      color: var(--text); font-family: 'Sora', sans-serif; font-size: 13px;
+      padding: 10px 14px; resize: vertical;
+      transition: border-color .2s;
+    }
+    .note-textarea:focus { outline: none; border-color: var(--accent); }
+    .note-textarea::placeholder { color: var(--muted); }
+
+    .script-actions {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+
+    /* ═══════════════════════════════════════════
+       TAB 3 — MEDIA HINTS
+    ═══════════════════════════════════════════ */
+    .hints-header {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 20px;
+    }
+    .hints-header h2 { font-size: 20px; font-weight: 700; }
+
+    .hints-review-list { display: flex; flex-direction: column; gap: 14px; }
+
+    .hint-review-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+    .hint-review-card.hint-pass   { border-left-color: var(--green); }
+    .hint-review-card.hint-warn   { border-left-color: var(--amber); }
+    .hint-review-card.hint-block  { border-left-color: var(--red); }
+
+    .hint-top-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 14px;
+    }
+    .hint-thumb {
+      width: 80px; height: 60px;
+      background: var(--faint);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      font-size: 10px; color: var(--muted); text-align: center; line-height: 1.4;
+    }
+    .hint-audio-player {
+      width: 80px; height: 60px;
+      background: var(--faint);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; cursor: pointer;
+      transition: background .15s;
+    }
+    .hint-audio-player:hover { background: rgba(88,200,240,.1); }
+    .play-icon { font-size: 22px; }
+
+    .hint-info { flex: 1; }
+    .hint-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .hint-trigger { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+    .hint-status-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    .hint-qa-checks { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+    .hint-check-row {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px; color: var(--muted);
+    }
+    .hint-check-row input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+    .hint-check-row.hard-block { color: var(--red); }
+    .hint-check-row.hard-block input[type="checkbox"] { accent-color: var(--red); }
+
+    .hint-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .hints-summary-bar {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 20px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .summary-stat { font-size: 13px; font-weight: 600; }
+    .summary-stat.s-pass   { color: var(--green); }
+    .summary-stat.s-warn   { color: var(--amber); }
+    .summary-stat.s-block  { color: var(--red); }
+    .summary-message { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+    /* ═══════════════════════════════════════════
+       TAB 4 — QA DECISION
+    ═══════════════════════════════════════════ */
+    .decision-header {
+      display: flex; align-items: center; gap: 14px;
+      margin-bottom: 24px;
+    }
+    .decision-header h2 { font-size: 20px; font-weight: 700; }
+
+    .qa-summary-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .qa-summary-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .qa-summary-row:last-child { border-bottom: none; }
+    .qa-summary-label { width: 200px; color: var(--muted); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; flex-shrink: 0; }
+    .qa-summary-value { flex: 1; font-weight: 600; }
+    .qa-summary-value.ok   { color: var(--green); }
+    .qa-summary-value.fail { color: var(--red); }
+    .qa-summary-value.overall-blocked { color: var(--red); font-size: 16px; font-weight: 700; }
+
+    .blocker-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+    .blocker-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--red-bg);
+      border: 1px solid rgba(255,96,96,.2);
+      border-left: 4px solid var(--red);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .blocker-text { flex: 1; font-size: 13px; color: var(--text); }
+    .blocker-text strong { display: block; color: var(--red); font-size: 12px; margin-bottom: 2px; }
+    .blocker-req-chip {
+      font-size: 10px; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(255,96,96,.15); color: var(--red);
+      border: 1px solid rgba(255,96,96,.3);
+      flex-shrink: 0;
+    }
+
+    .warning-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 24px; }
+    .warning-row {
+      display: flex; align-items: center; gap: 12px;
+      background: var(--amber-bg);
+      border: 1px solid rgba(240,192,48,.2);
+      border-left: 4px solid var(--amber);
+      border-radius: 10px;
+      padding: 12px 16px;
+    }
+    .warning-text { flex: 1; font-size: 13px; color: var(--text); }
+    .warning-text strong { display: block; color: var(--amber); font-size: 12px; margin-bottom: 2px; }
+    .override-chip {
+      font-size: 10px; font-weight: 700; padding: 3px 8px;
+      border-radius: 20px;
+      background: rgba(240,192,48,.12); color: var(--amber);
+      border: 1px solid rgba(240,192,48,.3);
+      flex-shrink: 0;
+    }
+
+    .qa-verdict-card {
+      background: var(--card);
+      border: 2px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+    .qa-verdict-card.blocked { border-color: rgba(255,96,96,.4); background: rgba(42,8,8,.4); }
+    .qa-verdict-card.approved { border-color: rgba(80,200,128,.4); background: rgba(26,80,48,.3); }
+
+    .verdict-chip {
+      display: inline-flex; align-items: center; gap: 10px;
+      padding: 10px 28px;
+      border-radius: 30px;
+      font-size: 20px; font-weight: 800; letter-spacing: .04em;
+      margin-bottom: 14px;
+    }
+    .verdict-chip.blocked { background: var(--red-bg); color: var(--red); border: 2px solid rgba(255,96,96,.4); }
+    .verdict-chip.approved { background: var(--green-bg); color: var(--green); border: 2px solid rgba(80,200,128,.4); }
+    .verdict-sub { font-size: 14px; color: var(--muted); }
+
+    .decision-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; }
+
+    .qa-history-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .qa-history-title {
+      padding: 14px 18px;
+      font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted); border-bottom: 1px solid var(--border);
+    }
+    .history-row {
+      display: flex; align-items: flex-start; gap: 14px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-row:last-child { border-bottom: none; }
+    .history-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: var(--faint);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: var(--accent);
+      flex-shrink: 0;
+    }
+    .history-info { flex: 1; }
+    .history-reviewer { font-size: 13px; font-weight: 600; color: var(--text); }
+    .history-action-chip {
+      display: inline-flex; align-items: center;
+      padding: 1px 8px; border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+      margin-left: 6px;
+    }
+    .history-note { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .history-date { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+
+    /* ═══════════════════════════════════════════
+       TAB 5 — SPEC
+    ═══════════════════════════════════════════ */
+    .spec-section { margin-bottom: 28px; }
+    .spec-section h3 { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 10px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .spec-section p, .spec-section li { font-size: 13px; color: var(--muted); line-height: 1.7; }
+    .spec-section ul, .spec-section ol { padding-left: 20px; }
+    .spec-section li { margin-bottom: 5px; }
+    .spec-section code { background: rgba(88,200,240,.1); color: var(--accent); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: 'Courier New', monospace; }
+    .spec-route { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .method-chip { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; font-family: monospace; }
+    .method-get  { background: rgba(80,200,128,.15); color: var(--green); }
+    .method-post { background: rgba(88,200,240,.15); color: var(--accent); }
+    .route-path  { font-family: monospace; font-size: 13px; color: var(--text); }
+    .route-desc  { font-size: 12px; color: var(--muted); }
+
+    .token-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 10px; }
+    .token-cell { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+    .token-name  { font-size: 10px; font-family: monospace; color: var(--muted); margin-bottom: 4px; }
+    .token-swatch { width: 100%; height: 28px; border-radius: 6px; margin-bottom: 6px; }
+    .token-val   { font-size: 11px; font-family: monospace; color: var(--text); }
+  </style>
+</head>
+<body>
+
+<!-- TAB BAR -->
+<nav class="tab-bar">
+  <button class="tab-btn active" onclick="show('q1-queue')">1 — Review Queue</button>
+  <button class="tab-btn" onclick="show('q2-script')">2 — Script Review</button>
+  <button class="tab-btn" onclick="show('q3-hints')">3 — Media Hints</button>
+  <button class="tab-btn" onclick="show('q4-decision')">4 — QA Decision</button>
+  <button class="tab-btn" onclick="show('q5-spec')">5 — Spec</button>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 1 — REVIEW QUEUE
+════════════════════════════════════════════════════════ -->
+<div id="q1-queue" class="panel active">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙ Engineering — Tab 1: Explainer QA Queue</strong>
+      Route: <code>GET /content/explainers/qa-queue</code> — returns paginated list of explainers with
+      <code>{ id, skill, band, node, status, submitter, submittedAt, flags[] }</code>.
+      Status enum: <code>pending | flagged | approved | rejected</code>.
+      Click on any row or "Review →" navigates to Tab 2 with that explainer pre-loaded
+      (<code>?explainerId=:id</code>). Filter chips are client-side for this prototype.
+      "Flagged" items have a non-empty <code>flags[]</code> array. Amber left border = flagged.
+      Queue auto-refreshes every 60 s via polling or SSE.
+    </div>
+
+    <div class="qa-queue-header">
+      <h1>Explainer QA Queue</h1>
+      <span class="chip chip-accent">18 pending review</span>
+    </div>
+
+    <div class="queue-stats-bar">
+      <div class="stats-item">
+        <div class="label">Pending</div>
+        <div class="value pending">18</div>
+      </div>
+      <div class="stats-item">
+        <div class="label">Flagged</div>
+        <div class="value flagged">4</div>
+      </div>
+      <div class="stats-item">
+        <div class="label">Approved today</div>
+        <div class="value approved">6</div>
+      </div>
+      <div class="stats-item">
+        <div class="label">Avg review time</div>
+        <div class="value avg">8 min</div>
+      </div>
+    </div>
+
+    <div class="queue-filter-row">
+      <div class="filter-group">
+        <button class="filter-btn active" onclick="filterQ(this,'status','all')">All</button>
+        <button class="filter-btn" onclick="filterQ(this,'status','pending')">Pending</button>
+        <button class="filter-btn" onclick="filterQ(this,'status','flagged')">Flagged</button>
+        <button class="filter-btn" onclick="filterQ(this,'status','approved')">Approved</button>
+        <button class="filter-btn" onclick="filterQ(this,'status','rejected')">Rejected</button>
+      </div>
+      <div class="filter-sep"></div>
+      <div class="filter-group">
+        <button class="filter-btn" onclick="filterQ(this,'band','p0')">P0</button>
+        <button class="filter-btn" onclick="filterQ(this,'band','p1')">P1</button>
+        <button class="filter-btn" onclick="filterQ(this,'band','p2')">P2</button>
+        <button class="filter-btn" onclick="filterQ(this,'band','p3')">P3</button>
+      </div>
+    </div>
+
+    <div class="explainer-queue-list" id="queue-list">
+
+      <!-- Flagged item -->
+      <div class="queue-item-card flagged" onclick="openExplainer('sight-words-node3')">
+        <span class="chip band-p1 chip">P1</span>
+        <div class="qi-main">
+          <div class="qi-skill">Sight Words — "said, the, and"</div>
+          <div class="qi-node">Node 3 · Pre-reader band · v2.1</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-amber">Flagged</span>
+          <span class="chip chip-muted">audio-transcript-missing</span>
+          <span class="chip chip-muted">mia.chen</span>
+          <span class="chip chip-muted">2 h ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('sight-words-node3')">Review →</button>
+        </div>
+      </div>
+
+      <!-- Flagged item 2 -->
+      <div class="queue-item-card flagged" onclick="openExplainer('letter-sounds-node7')">
+        <span class="chip band-p0 chip">P0</span>
+        <div class="qi-main">
+          <div class="qi-skill">Letter Sounds — "b, d, p"</div>
+          <div class="qi-node">Node 7 · Pre-reader band · v1.0</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-amber">Flagged</span>
+          <span class="chip chip-muted">word-limit-exceeded</span>
+          <span class="chip chip-muted">dev.patel</span>
+          <span class="chip chip-muted">4 h ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('letter-sounds-node7')">Review →</button>
+        </div>
+      </div>
+
+      <!-- Pending items -->
+      <div class="queue-item-card" onclick="openExplainer('number-recognition-node2')">
+        <span class="chip band-p1 chip">P1</span>
+        <div class="qi-main">
+          <div class="qi-skill">Number Recognition — 1–10</div>
+          <div class="qi-node">Node 2 · K–1 band · v3.0</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-accent">Pending</span>
+          <span class="chip chip-muted">sara.kim</span>
+          <span class="chip chip-muted">5 h ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('number-recognition-node2')">Review →</button>
+        </div>
+      </div>
+
+      <div class="queue-item-card" onclick="openExplainer('rhyming-words-node1')">
+        <span class="chip band-p2 chip">P2</span>
+        <div class="qi-main">
+          <div class="qi-skill">Rhyming Words — cat/hat/sat</div>
+          <div class="qi-node">Node 1 · Pre-reader band · v1.2</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-accent">Pending</span>
+          <span class="chip chip-muted">alex.jones</span>
+          <span class="chip chip-muted">6 h ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('rhyming-words-node1')">Review →</button>
+        </div>
+      </div>
+
+      <div class="queue-item-card" onclick="openExplainer('shapes-node4')">
+        <span class="chip band-p2 chip">P2</span>
+        <div class="qi-main">
+          <div class="qi-skill">Shapes — Circle, Square, Triangle</div>
+          <div class="qi-node">Node 4 · Pre-reader band · v2.0</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-accent">Pending</span>
+          <span class="chip chip-muted">mia.chen</span>
+          <span class="chip chip-muted">8 h ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('shapes-node4')">Review →</button>
+        </div>
+      </div>
+
+      <!-- Approved items -->
+      <div class="queue-item-card approved">
+        <span class="chip band-p1 chip">P1</span>
+        <div class="qi-main">
+          <div class="qi-skill">Colors — Primary Colors</div>
+          <div class="qi-node">Node 1 · Pre-reader band · v2.3</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-green">Approved</span>
+          <span class="chip chip-muted">dev.patel</span>
+          <span class="chip chip-muted">Today</span>
+        </div>
+      </div>
+
+      <div class="queue-item-card approved">
+        <span class="chip band-p2 chip">P2</span>
+        <div class="qi-main">
+          <div class="qi-skill">Counting — 1 to 5</div>
+          <div class="qi-node">Node 1 · K–1 band · v1.1</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-green">Approved</span>
+          <span class="chip chip-muted">sara.kim</span>
+          <span class="chip chip-muted">Today</span>
+        </div>
+      </div>
+
+      <!-- Flagged item 3 -->
+      <div class="queue-item-card flagged" onclick="openExplainer('alphabet-node5')">
+        <span class="chip band-p0 chip">P0</span>
+        <div class="qi-main">
+          <div class="qi-skill">Alphabet — Letters A–E</div>
+          <div class="qi-node">Node 5 · Pre-reader band · v1.0</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-amber">Flagged</span>
+          <span class="chip chip-muted">no-correct-answer-linked</span>
+          <span class="chip chip-muted">alex.jones</span>
+          <span class="chip chip-muted">1 d ago</span>
+          <button class="btn btn-primary btn-sm" onclick="event.stopPropagation();openExplainer('alphabet-node5')">Review →</button>
+        </div>
+      </div>
+
+      <!-- Rejected -->
+      <div class="queue-item-card rejected">
+        <span class="chip band-p3 chip">P3</span>
+        <div class="qi-main">
+          <div class="qi-skill">Patterns — AB Patterns</div>
+          <div class="qi-node">Node 2 · K–1 band · v0.9</div>
+        </div>
+        <div class="qi-meta">
+          <span class="chip chip-red">Rejected</span>
+          <span class="chip chip-muted">mia.chen</span>
+          <span class="chip chip-muted">Yesterday</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 2 — SCRIPT REVIEW
+════════════════════════════════════════════════════════ -->
+<div id="q2-script" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙ Engineering — Tab 2: Script Review</strong>
+      Route: <code>GET /content/explainer/:id/review</code> — returns full explainer object including
+      <code>script[]</code> (array of sentences with token markup), <code>media_hints[]</code>, and
+      <code>qa_history[]</code>. Script tokens: <code>[WORD: "x"]</code> → rendered as cyan word cards;
+      <code>[PAUSE]</code> → grey chip. Word count per sentence computed client-side.
+      Rule validation is client-side for prototype; production: server provides <code>rule_results{}</code>.
+      Reviewer actions POST to <code>/content/explainer/:id/qa-decision</code> with
+      <code>{ action: "pass_script"|"flag_script"|"block_script", notes }</code>.
+    </div>
+
+    <div class="script-review-layout">
+
+      <!-- LEFT — Script Display -->
+      <div class="script-left">
+        <div class="script-header">
+          <h2>Sight Words · P1 · Node 3</h2>
+          <span class="chip chip-muted">v2.1</span>
+          <span class="chip chip-accent">mia.chen</span>
+        </div>
+
+        <div class="script-content-card">
+          <div class="script-content-inner" id="script-body">
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                🌟 Let's learn some special words today!
+                <span class="pause-token">PAUSE</span>
+              </div>
+              <span class="word-count-badge word-count-ok">7 words ✅</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                ✨ These words show up in almost every book you'll ever read.
+              </div>
+              <span class="word-count-badge word-count-warn">12 words ⚠️</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                🔤 The first word is <span class="word-token">said</span>.
+                <span class="pause-token">PAUSE</span>
+              </div>
+              <span class="word-count-badge word-count-ok">6 words ✅</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                👁️ Look at it — <span class="word-token">said</span> — say it with me!
+                <span class="pause-token">PAUSE</span>
+              </div>
+              <span class="word-count-badge word-count-ok">8 words ✅</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                🎉 Great job! Next is the word <span class="word-token">the</span>.
+                <span class="pause-token">PAUSE</span>
+              </div>
+              <span class="word-count-badge word-count-ok">7 words ✅</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                💬 <span class="word-token">The</span> is the most common word in English — you're a superstar for learning it!
+              </div>
+              <span class="word-count-badge word-count-warn">16 words ⚠️</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                🤝 Last one — <span class="word-token">and</span>. It connects ideas together!
+                <span class="pause-token">PAUSE</span>
+              </div>
+              <span class="word-count-badge word-count-ok">8 words ✅</span>
+            </div>
+
+            <div class="script-sentence">
+              <div class="script-sentence-text">
+                🌈 You learned <span class="word-token">said</span>, <span class="word-token">the</span>, and <span class="word-token">and</span>. Amazing work today!
+              </div>
+              <span class="word-count-badge word-count-ok">8 words ✅</span>
+            </div>
+
+          </div>
+
+          <div class="script-rules-bar">
+            <span class="chip chip-green">Max 8 words/sentence ⚠️ 2 over</span>
+            <span class="chip chip-green">Emoji-first ✅</span>
+            <span class="chip chip-green">No timer refs ✅</span>
+            <span class="chip chip-green">Friendly tone ✅</span>
+          </div>
+
+          <div class="char-count-row">
+            Character count: <span class="ok" style="margin-left:6px;">247 / 400</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT — Reviewer Notes -->
+      <div class="review-right">
+
+        <div class="card">
+          <div class="section-title">Review Checklist</div>
+          <div class="review-checklist">
+            <div class="check-row" id="chk-row-1" onclick="toggleCheck('chk1',this)">
+              <input type="checkbox" id="chk1" />
+              <label for="chk1">Script follows word limits per sentence</label>
+            </div>
+            <div class="check-row auto-checked" id="chk-row-2" onclick="toggleCheck('chk2',this)">
+              <input type="checkbox" id="chk2" checked />
+              <label for="chk2">Emoji-first pattern followed</label>
+            </div>
+            <div class="check-row auto-checked" id="chk-row-3" onclick="toggleCheck('chk3',this)">
+              <input type="checkbox" id="chk3" checked />
+              <label for="chk3">No grade labels or skill IDs in script</label>
+            </div>
+            <div class="check-row" id="chk-row-4" onclick="toggleCheck('chk4',this)">
+              <input type="checkbox" id="chk4" />
+              <label for="chk4">Age-appropriate vocabulary throughout</label>
+            </div>
+            <div class="check-row" id="chk-row-5" onclick="toggleCheck('chk5',this)">
+              <input type="checkbox" id="chk5" />
+              <label for="chk5">Friendly and encouraging tone</label>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Script Review Notes</div>
+          <textarea class="note-textarea" rows="4" placeholder="Add notes for the content author — be specific about which sentences need editing and why…"></textarea>
+        </div>
+
+        <div class="card">
+          <div class="section-title">Script Decision</div>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+            2 sentences exceed the 8-word limit. Reviewer must decide whether to flag for edit or block.
+          </p>
+          <div class="script-actions">
+            <button class="btn btn-green" onclick="scriptAction('pass')">Pass Script ✅</button>
+            <button class="btn btn-amber" onclick="scriptAction('flag')">Flag for Edit ⚠️</button>
+            <button class="btn btn-red" onclick="scriptAction('block')">Block ❌</button>
+          </div>
+          <div id="script-action-feedback" style="margin-top:12px;font-size:12px;display:none;"></div>
+        </div>
+
+        <div class="card" style="border-color:var(--border)">
+          <div class="section-title">Explainer Context</div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted);">
+            <div style="display:flex;gap:8px;"><span style="width:110px;flex-shrink:0;">Skill ID</span><span style="color:var(--text);">sight-words-p1-n3</span></div>
+            <div style="display:flex;gap:8px;"><span style="width:110px;flex-shrink:0;">Target age</span><span style="color:var(--text);">4–6 yrs (Pre-reader)</span></div>
+            <div style="display:flex;gap:8px;"><span style="width:110px;flex-shrink:0;">Word tokens</span><span style="color:var(--text);">3 (said, the, and)</span></div>
+            <div style="display:flex;gap:8px;"><span style="width:110px;flex-shrink:0;">Media hints</span><span style="color:var(--text);">5 attached</span></div>
+            <div style="display:flex;gap:8px;"><span style="width:110px;flex-shrink:0;">Version</span><span style="color:var(--text);">v2.1 — 3rd submission</span></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 3 — MEDIA HINTS REVIEW
+════════════════════════════════════════════════════════ -->
+<div id="q3-hints" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙ Engineering — Tab 3: Media Hints Review</strong>
+      Route: <code>GET /content/explainer/:id/review</code> → <code>media_hints[]</code> array.
+      Each hint: <code>{ id, type, title, trigger, thumbnail_url, audio_url, alt_text, transcript, flags[] }</code>.
+      Hard block conditions: <code>type==="audio" && !transcript</code> (COPPA compliance),
+      <code>content_prohibited===true</code>. Block status prevents approval at Tab 4.
+      Reviewer actions: <code>POST /content/explainer/:id/hint/:hintId/review</code>
+      with <code>{ status: "pass"|"warn"|"block", notes }</code>.
+      Audio play is simulated in prototype — production streams from CDN URL.
+    </div>
+
+    <div class="hints-header">
+      <h2>Media Hints — Sight Words Node 3</h2>
+      <span class="chip chip-muted">5 hints</span>
+    </div>
+
+    <div class="hints-review-list">
+
+      <!-- Hint 1 — Image, pass -->
+      <div class="hint-review-card hint-pass" id="hint-card-1">
+        <div class="hint-top-row">
+          <div class="hint-thumb" title="Image: Flash card — 'said'">
+            📷<br/>Flash card<br/>"said"
+          </div>
+          <div class="hint-info">
+            <div class="hint-title">Flash card: "said"</div>
+            <div class="hint-trigger">Trigger: On first mention of word token [WORD: "said"]</div>
+            <div class="hint-status-row">
+              <span class="chip chip-muted">Image</span>
+              <span class="chip chip-green" id="hint1-status">Pass</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint-qa-checks">
+          <div class="hint-check-row">
+            <input type="checkbox" id="h1c1" checked /> <label for="h1c1">Alt text present: "Flash card showing the word 'said' in large print"</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h1c2" checked /> <label for="h1c2">Does not directly reveal answer</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h1c3" checked /> <label for="h1c3">Age-appropriate content</label>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-green btn-sm">Approve</button>
+          <button class="btn btn-amber btn-sm">Flag</button>
+          <button class="btn btn-red btn-sm">Block</button>
+        </div>
+      </div>
+
+      <!-- Hint 2 — Audio, BLOCKED (no transcript) -->
+      <div class="hint-review-card hint-block" id="hint-card-2">
+        <div class="hint-top-row">
+          <div class="hint-audio-player" title="Play audio hint" onclick="simulateAudio(this)">
+            <span class="play-icon">▶️</span>
+          </div>
+          <div class="hint-info">
+            <div class="hint-title">Audio pronunciation: "said"</div>
+            <div class="hint-trigger">Trigger: After visual display of word "said"</div>
+            <div class="hint-status-row">
+              <span class="chip chip-muted">Audio</span>
+              <span class="chip chip-red" id="hint2-status">⛔ Blocked — no transcript</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint-qa-checks">
+          <div class="hint-check-row hard-block">
+            <input type="checkbox" id="h2c1" /> <label for="h2c1">⛔ Transcript present — REQUIRED (COPPA compliance) — MISSING</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h2c2" checked /> <label for="h2c2">Does not directly reveal answer</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h2c3" checked /> <label for="h2c3">Age-appropriate content</label>
+          </div>
+        </div>
+        <div style="background:var(--red-bg);border:1px solid rgba(255,96,96,.2);border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;color:var(--red);">
+          ⛔ Hard block — audio transcript is missing. This is a COPPA compliance requirement. Cannot approve until transcript is added.
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-green btn-sm" disabled>Approve</button>
+          <button class="btn btn-amber btn-sm">Flag</button>
+          <button class="btn btn-red btn-sm">Block</button>
+        </div>
+      </div>
+
+      <!-- Hint 3 — Animation, pass -->
+      <div class="hint-review-card hint-pass" id="hint-card-3">
+        <div class="hint-top-row">
+          <div class="hint-thumb" title="Animation: bouncing word 'said'">
+            🎬<br/>Animation<br/>"said"
+          </div>
+          <div class="hint-info">
+            <div class="hint-title">Word bounce animation: "said"</div>
+            <div class="hint-trigger">Trigger: Reinforcement after correct tap</div>
+            <div class="hint-status-row">
+              <span class="chip chip-muted">Animation</span>
+              <span class="chip chip-green" id="hint3-status">Pass</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint-qa-checks">
+          <div class="hint-check-row">
+            <input type="checkbox" id="h3c1" checked /> <label for="h3c1">Does not directly reveal answer</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h3c2" checked /> <label for="h3c2">Age-appropriate content</label>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-green btn-sm">Approve</button>
+          <button class="btn btn-amber btn-sm">Flag</button>
+          <button class="btn btn-red btn-sm">Block</button>
+        </div>
+      </div>
+
+      <!-- Hint 4 — Image, warning (missing alt text) -->
+      <div class="hint-review-card hint-warn" id="hint-card-4">
+        <div class="hint-top-row">
+          <div class="hint-thumb" title="Image: child reading a book">
+            📷<br/>Child<br/>reading
+          </div>
+          <div class="hint-info">
+            <div class="hint-title">Contextual image: child reading book</div>
+            <div class="hint-trigger">Trigger: On script line about books</div>
+            <div class="hint-status-row">
+              <span class="chip chip-muted">Image</span>
+              <span class="chip chip-amber" id="hint4-status">⚠️ Warning</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint-qa-checks">
+          <div class="hint-check-row" style="color:var(--amber);">
+            <input type="checkbox" id="h4c1" /> <label for="h4c1">⚠️ Alt text present — MISSING (can approve with override)</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h4c2" checked /> <label for="h4c2">Does not directly reveal answer</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h4c3" checked /> <label for="h4c3">Age-appropriate content</label>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-green btn-sm">Approve</button>
+          <button class="btn btn-amber btn-sm">Flag</button>
+          <button class="btn btn-red btn-sm">Block</button>
+        </div>
+      </div>
+
+      <!-- Hint 5 — Audio, pass -->
+      <div class="hint-review-card hint-pass" id="hint-card-5">
+        <div class="hint-top-row">
+          <div class="hint-audio-player" title="Play audio" onclick="simulateAudio(this)">
+            <span class="play-icon">▶️</span>
+          </div>
+          <div class="hint-info">
+            <div class="hint-title">Encouragement audio: "You're doing great!"</div>
+            <div class="hint-trigger">Trigger: After completing all three words</div>
+            <div class="hint-status-row">
+              <span class="chip chip-muted">Audio</span>
+              <span class="chip chip-green" id="hint5-status">Pass</span>
+            </div>
+          </div>
+        </div>
+        <div class="hint-qa-checks">
+          <div class="hint-check-row">
+            <input type="checkbox" id="h5c1" checked /> <label for="h5c1">Transcript present: "You're doing great! Keep it up, star learner!" ✅</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h5c2" checked /> <label for="h5c2">Does not directly reveal answer</label>
+          </div>
+          <div class="hint-check-row">
+            <input type="checkbox" id="h5c3" checked /> <label for="h5c3">Age-appropriate content</label>
+          </div>
+        </div>
+        <div class="hint-actions">
+          <button class="btn btn-green btn-sm">Approve</button>
+          <button class="btn btn-amber btn-sm">Flag</button>
+          <button class="btn btn-red btn-sm">Block</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="hints-summary-bar">
+      <span class="summary-stat s-pass">3 pass</span>
+      <span style="color:var(--muted);">/</span>
+      <span class="summary-stat s-warn">1 warn</span>
+      <span style="color:var(--muted);">/</span>
+      <span class="summary-stat s-block">1 block</span>
+      <span class="summary-message">⛔ Cannot publish until block resolved — audio transcript missing on Hint #2</span>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 4 — QA DECISION
+════════════════════════════════════════════════════════ -->
+<div id="q4-decision" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙ Engineering — Tab 4: QA Decision</strong>
+      Route: <code>POST /content/explainer/:id/qa-decision</code> —
+      body: <code>{ verdict: "approved"|"blocked"|"returned", override_warnings: boolean, notes: string }</code>.
+      Hard blocks prevent approval; <code>override_warnings</code> only applies to warning-level issues.
+      All QA actions are append-only to the audit log (<code>qa_history[]</code>) — never mutated.
+      Reviewer identity comes from auth session. "Return to Content Team" sets status to
+      <code>"returned_for_edit"</code> and triggers notification to original submitter.
+      Override requires explicit <code>override_reason</code> string in production.
+    </div>
+
+    <div class="decision-header">
+      <h2>QA Decision — Sight Words Node 3</h2>
+      <span class="chip chip-muted">v2.1</span>
+    </div>
+
+    <!-- QA Summary Card -->
+    <div class="qa-summary-card">
+      <div class="section-title" style="margin-bottom:10px;">QA Status Summary</div>
+      <div class="qa-summary-row">
+        <div class="qa-summary-label">Script status</div>
+        <div class="qa-summary-value" style="color:var(--amber);">⚠️ Flagged — 2 sentences over word limit</div>
+      </div>
+      <div class="qa-summary-row">
+        <div class="qa-summary-label">Media hints status</div>
+        <div class="qa-summary-value fail">⛔ 1 hard block — audio transcript missing (Hint #2)</div>
+      </div>
+      <div class="qa-summary-row">
+        <div class="qa-summary-label">Auto-checks</div>
+        <div class="qa-summary-value ok">✅ All automated checks passed</div>
+      </div>
+      <div class="qa-summary-row">
+        <div class="qa-summary-label">Checklist items</div>
+        <div class="qa-summary-value" style="color:var(--amber);">⚠️ 3 of 5 reviewer checks confirmed</div>
+      </div>
+      <div class="qa-summary-row" style="margin-top:6px;">
+        <div class="qa-summary-label">Overall verdict</div>
+        <div class="qa-summary-value overall-blocked">⛔ BLOCKED — 1 hard block must be resolved</div>
+      </div>
+    </div>
+
+    <!-- Blockers -->
+    <div class="section-title">Hard Blocks (must resolve before approval)</div>
+    <div class="blocker-list">
+      <div class="blocker-row">
+        <span class="chip chip-red">Audio</span>
+        <div class="blocker-text">
+          <strong>Audio transcript missing — Hint #2 — COPPA compliance requirement</strong>
+          Any audio hint attached to a learner-facing explainer must include a complete text transcript. This is non-negotiable under COPPA accessibility requirements.
+        </div>
+        <span class="blocker-req-chip">Fix required</span>
+      </div>
+    </div>
+
+    <!-- Warnings -->
+    <div class="section-title" style="margin-top:20px;">Warnings (can approve with reviewer override)</div>
+    <div class="warning-list">
+      <div class="warning-row">
+        <span class="chip chip-amber">Script</span>
+        <div class="warning-text">
+          <strong>2 sentences exceed 8-word limit — sentence 2 (12 words) and sentence 6 (16 words)</strong>
+          Word limits protect younger learners from cognitive overload. Consider breaking long sentences into shorter units.
+        </div>
+        <span class="override-chip">Override allowed</span>
+      </div>
+      <div class="warning-row">
+        <span class="chip chip-amber">Image</span>
+        <div class="warning-text">
+          <strong>Missing alt text — Hint #4 contextual image</strong>
+          Alt text is strongly recommended for accessibility but not a hard block at this time.
+        </div>
+        <span class="override-chip">Override allowed</span>
+      </div>
+    </div>
+
+    <!-- Verdict -->
+    <div class="qa-verdict-card blocked" id="verdict-card">
+      <div class="verdict-chip blocked" id="verdict-chip">⛔ BLOCKED</div>
+      <div class="verdict-sub" id="verdict-sub">Resolve hard blocks before this explainer can be approved and sent to publish queue.</div>
+    </div>
+
+    <!-- Actions -->
+    <div class="decision-actions">
+      <button class="btn btn-amber btn-lg" onclick="decisionAction('return')">Return to Content Team ↩️</button>
+      <button class="btn btn-red" disabled id="approve-override-btn" title="Cannot override hard blocks — fix audio transcript first">Approve with Override 🔓</button>
+      <button class="btn btn-primary btn-lg" disabled id="approve-btn" title="Hard blocks present — resolve before approval">Approve &amp; Submit for Publish ✅</button>
+    </div>
+
+    <div id="decision-feedback" style="text-align:center;font-size:13px;margin-bottom:28px;min-height:20px;"></div>
+
+    <!-- QA History -->
+    <div class="qa-history-card">
+      <div class="qa-history-title">QA Audit History — Last 3 Actions</div>
+
+      <div class="history-row">
+        <div class="history-avatar">JL</div>
+        <div class="history-info">
+          <div class="history-reviewer">
+            Jamie Lee
+            <span class="history-action-chip chip-red">Returned</span>
+          </div>
+          <div class="history-note">"Script sentence 6 is way too long for pre-readers — needs a full rewrite. Audio hint also missing transcript."</div>
+        </div>
+        <div class="history-date">2026-03-20 14:22</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-avatar">MC</div>
+        <div class="history-info">
+          <div class="history-reviewer">
+            Mia Chen (Author)
+            <span class="history-action-chip chip-amber" style="background:var(--amber-bg);color:var(--amber);">Resubmitted</span>
+          </div>
+          <div class="history-note">"Revised sentences 2 and 6. Added v2.1 tag. Audio transcript still pending from audio team."</div>
+        </div>
+        <div class="history-date">2026-03-21 09:48</div>
+      </div>
+
+      <div class="history-row">
+        <div class="history-avatar">SR</div>
+        <div class="history-info">
+          <div class="history-reviewer">
+            Sam Rivera
+            <span class="history-action-chip chip-muted">In Review</span>
+          </div>
+          <div class="history-note">"Assigned for QA review. Checking script and media hints."</div>
+        </div>
+        <div class="history-date">2026-03-22 10:05</div>
+      </div>
+
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     TAB 5 — SPEC
+════════════════════════════════════════════════════════ -->
+<div id="q5-spec" class="panel">
+  <div class="page-wrap">
+
+    <div class="eng-hint">
+      <strong>⚙ Engineering — Tab 5: Spec Reference</strong>
+      This tab is the single source of truth for QA surface behavior, API contracts, hard block rules,
+      and design tokens. Content-admin reviewers can reference this tab to understand enforcement rules.
+      Keep this in sync with the backend <code>ExplainerQAPolicy</code> service.
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px;">
+
+      <div>
+        <div class="spec-section">
+          <h3>API Routes</h3>
+          <div class="spec-route">
+            <span class="method-chip method-get">GET</span>
+            <span class="route-path">/content/explainers/qa-queue</span>
+          </div>
+          <div class="route-desc" style="margin-bottom:10px;padding-left:52px;font-size:12px;color:var(--muted);">
+            Paginated queue of explainers pending QA. Supports <code>?status=&band=&page=</code> filters.
+          </div>
+          <div class="spec-route">
+            <span class="method-chip method-get">GET</span>
+            <span class="route-path">/content/explainer/:id/review</span>
+          </div>
+          <div class="route-desc" style="margin-bottom:10px;padding-left:52px;font-size:12px;color:var(--muted);">
+            Full explainer object: script, media hints, rule results, qa_history. Used by Tabs 2–4.
+          </div>
+          <div class="spec-route">
+            <span class="method-chip method-post">POST</span>
+            <span class="route-path">/content/explainer/:id/qa-decision</span>
+          </div>
+          <div class="route-desc" style="padding-left:52px;font-size:12px;color:var(--muted);">
+            Submit QA verdict. Body: <code>{ verdict, override_warnings, override_reason?, notes }</code>.
+            Appends to audit log. Triggers status transition and submitter notification.
+          </div>
+        </div>
+
+        <div class="spec-section">
+          <h3>Hard Blocks — Must resolve before approval</h3>
+          <ul>
+            <li><strong>Missing audio transcript</strong> — any <code>type==="audio"</code> hint must have a non-empty <code>transcript</code> field. COPPA compliance. No override permitted.</li>
+            <li><strong>Missing correct answer link</strong> — explainer must be linked to at least one question node with a defined correct answer.</li>
+            <li><strong>Prohibited content flag</strong> — any hint or script segment flagged by automated content moderation with severity <code>HIGH</code>.</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Warnings — Reviewer can override</h3>
+          <ul>
+            <li><strong>Borderline word length</strong> — sentence exceeds 8-word soft limit but passes automated grammar check. Reviewer override requires explicit note.</li>
+            <li><strong>Missing image alt text</strong> — accessibility best practice. Override allowed but noted in audit log.</li>
+            <li><strong>Single missing media hint</strong> — explainer has fewer than recommended hints but at least one. Override allowed if context justifies.</li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Override Rules</h3>
+          <ul>
+            <li>Content-admin can override <strong>warnings only</strong>. Hard blocks always require a fix.</li>
+            <li>Override requires a written reason stored in audit log (<code>override_reason</code> field).</li>
+            <li>Override is surfaced in publish queue with a visible "Approved with override" chip.</li>
+            <li>Hard blocks: <code>Approve with Override</code> button is disabled until all hard blocks are cleared.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div>
+        <div class="spec-section">
+          <h3>QA Decision Flow</h3>
+          <ol>
+            <li>Reviewer opens explainer from queue (Tab 1).</li>
+            <li>Reviews script line by line, checks word limits and tone (Tab 2).</li>
+            <li>Reviews each media hint, checks transcripts and alt text (Tab 3).</li>
+            <li>Reviews aggregated blockers and warnings (Tab 4).</li>
+            <li>Makes verdict: <strong>Approve</strong>, <strong>Return for edit</strong>, or <strong>Approve with override</strong> (warnings only).</li>
+            <li>Verdict appended to append-only audit log. Submitter notified.</li>
+          </ol>
+        </div>
+
+        <div class="spec-section">
+          <h3>Transcript Requirement</h3>
+          <p>
+            Any audio hint attached to a learner-facing explainer must include a text transcript.
+            This is a hard block and cannot be overridden. The requirement derives from COPPA accessibility
+            provisions and WonderQuest's WCAG 2.1 AA commitment. Transcript must be stored on the hint
+            object (<code>hint.transcript</code>) before the QA surface marks the hint as reviewable.
+          </p>
+        </div>
+
+        <div class="spec-section">
+          <h3>QA Audit Log</h3>
+          <ul>
+            <li>Append-only — no mutations after write.</li>
+            <li>Each entry: <code>{ reviewer_id, action, timestamp, notes, override_reason? }</code></li>
+            <li>Surfaced on Tab 4 (last 3 shown; full log accessible via API).</li>
+            <li>Action enum: <code>passed | flagged | blocked | returned | approved | approved_with_override</code></li>
+          </ul>
+        </div>
+
+        <div class="spec-section">
+          <h3>Design Tokens</h3>
+          <div class="token-grid">
+            <div class="token-cell">
+              <div class="token-name">--bg</div>
+              <div class="token-swatch" style="background:#10161e;border:1px solid #1e2e3e;"></div>
+              <div class="token-val">#10161e</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--card</div>
+              <div class="token-swatch" style="background:#141e28;border:1px solid #1e2e3e;"></div>
+              <div class="token-val">#141e28</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--accent</div>
+              <div class="token-swatch" style="background:#58c8f0;"></div>
+              <div class="token-val">#58c8f0</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--pass</div>
+              <div class="token-swatch" style="background:#50c880;"></div>
+              <div class="token-val">#50c880</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--fail</div>
+              <div class="token-swatch" style="background:#ff6060;"></div>
+              <div class="token-val">#ff6060</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--warn</div>
+              <div class="token-swatch" style="background:#f0c030;"></div>
+              <div class="token-val">#f0c030</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--text</div>
+              <div class="token-swatch" style="background:#d0e8f0;border:1px solid #1e2e3e;"></div>
+              <div class="token-val">#d0e8f0</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--muted</div>
+              <div class="token-swatch" style="background:#7a9ab0;border:1px solid #1e2e3e;"></div>
+              <div class="token-val">#7a9ab0</div>
+            </div>
+            <div class="token-cell">
+              <div class="token-name">--border</div>
+              <div class="token-swatch" style="background:#1e2e3e;border:1px solid #2a3e52;"></div>
+              <div class="token-val">#1e2e3e</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="spec-section" style="margin-top:20px;">
+          <h3>Tab Bar Rule</h3>
+          <p>Tab bar is always at top for desktop layout. No bottom nav on content-admin surfaces.
+          Active tab = cyan bottom underline. Max content width: <code>1200px</code>. Font: Sora.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ── TAB SWITCHER ── */
+  function show(tabId) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    const panel = document.getElementById(tabId);
+    if (panel) panel.classList.add('active');
+    const idx = ['q1-queue','q2-script','q3-hints','q4-decision','q5-spec'].indexOf(tabId);
+    const btns = document.querySelectorAll('.tab-btn');
+    if (btns[idx]) btns[idx].classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  /* ── QUEUE FILTER ── */
+  function filterQ(btn, group, value) {
+    const siblings = btn.closest('.filter-group').querySelectorAll('.filter-btn');
+    siblings.forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    // In a real app: filter the queue list. For prototype, visual only.
+  }
+
+  /* ── OPEN EXPLAINER (navigate to Tab 2) ── */
+  function openExplainer(id) {
+    show('q2-script');
+    // In production: load explainer data for the given id
+  }
+
+  /* ── CHECKBOX TOGGLE ── */
+  function toggleCheck(id, row) {
+    const cb = document.getElementById(id);
+    if (event.target === cb) return; // let native checkbox handle it
+    cb.checked = !cb.checked;
+  }
+
+  /* ── SCRIPT ACTIONS ── */
+  function scriptAction(action) {
+    const el = document.getElementById('script-action-feedback');
+    el.style.display = 'block';
+    if (action === 'pass') {
+      el.style.color = 'var(--green)';
+      el.textContent = '✅ Script marked as passed. Proceeding to media hints review.';
+      setTimeout(() => show('q3-hints'), 1200);
+    } else if (action === 'flag') {
+      el.style.color = 'var(--amber)';
+      el.textContent = '⚠️ Script flagged for edit. Author will be notified with your notes.';
+    } else if (action === 'block') {
+      el.style.color = 'var(--red)';
+      el.textContent = '⛔ Script blocked. Explainer cannot proceed to publish until script issues are resolved.';
+    }
+  }
+
+  /* ── SIMULATE AUDIO PLAY ── */
+  function simulateAudio(el) {
+    const icon = el.querySelector('.play-icon');
+    if (icon.textContent === '▶️') {
+      icon.textContent = '⏸️';
+      setTimeout(() => { icon.textContent = '▶️'; }, 2500);
+    } else {
+      icon.textContent = '▶️';
+    }
+  }
+
+  /* ── QA DECISION ACTIONS ── */
+  function decisionAction(action) {
+    const fb = document.getElementById('decision-feedback');
+    if (action === 'return') {
+      fb.style.color = 'var(--amber)';
+      fb.textContent = '↩️ Explainer returned to content team. Mia Chen will be notified with blockers and notes.';
+    } else if (action === 'approve') {
+      fb.style.color = 'var(--green)';
+      fb.textContent = '✅ Explainer approved and submitted to publish queue.';
+    } else if (action === 'override') {
+      fb.style.color = 'var(--accent)';
+      fb.textContent = '🔓 Override recorded. Explainer approved with noted warnings.';
+    }
+  }
+</script>
+</body>
+</html>

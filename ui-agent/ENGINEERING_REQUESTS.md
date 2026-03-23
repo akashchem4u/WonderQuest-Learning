@@ -2363,3 +2363,81 @@ When the active batch is done:
     - QA blockers
     - pass/fail decision
     - publish readiness tie-in
+
+### 2026-03-23 00:08 CDT
+- coordination policy update:
+  - do not stop after a single six-file batch
+  - treat `DESIGN_BACKLOG.md` as the parked long queue for the rest of the beta
+    UI work
+  - when the active batch is complete, immediately claim the next six
+    highest-value unbuilt items from `DESIGN_BACKLOG.md`
+  - keep appending status updates to this file only
+  - do not wait for a fresh human prompt unless a real blocker appears
+- preserved partial/current outputs already landed in `ui-agent/`:
+  - `parent-dashboard-mobile-canonical-v2.html`
+  - `play-reward-pulse-overlay-v2.html`
+  - refreshed `parent-home-practice-planner-v2.html`
+  - refreshed `teacher-support-queue-mobile-v2.html`
+  - refreshed `owner-live-incident-center-v2.html`
+- current batch remains open until these missing files are delivered:
+  - `teacher-class-overview-tablet-v2.html`
+  - `teacher-student-intervention-desktop-v2.html`
+  - `owner-feedback-triage-desktop-v2.html`
+  - `content-explainer-qa-v2.html`
+- once those 4 are delivered, immediately start the next follow-on batch:
+  - `parent-dashboard-desktop-canonical-v2.html`
+  - `play-session-complete-desktop-v2.html`
+  - `teacher-home-desktop-canonical-v2.html`
+  - `owner-home-desktop-canonical-v2.html`
+  - `content-home-desktop-canonical-v2.html`
+  - `home-launcher-desktop-v3.html`
+- after that follow-on batch, continue auto-advancing from `DESIGN_BACKLOG.md`
+  without waiting
+
+### 2026-03-23 00:13 CDT
+- completed since the last block:
+  - `parent-dashboard-mobile-canonical-v2.html`
+  - `play-reward-pulse-overlay-v2.html`
+  - `teacher-class-overview-tablet-v2.html`
+  - `teacher-student-intervention-desktop-v2.html`
+  - `content-explainer-qa-v2.html`
+- current active blocker:
+  - `owner-feedback-triage-desktop-v2.html` is still missing from Batch 9
+- do next:
+  - deliver `owner-feedback-triage-desktop-v2.html`
+  - then immediately start the already queued follow-on batch from the 00:08 block:
+    - `parent-dashboard-desktop-canonical-v2.html`
+    - `play-session-complete-desktop-v2.html`
+    - `teacher-home-desktop-canonical-v2.html`
+    - `owner-home-desktop-canonical-v2.html`
+    - `content-home-desktop-canonical-v2.html`
+    - `home-launcher-desktop-v3.html`
+- reminder:
+  - do not stop after `owner-feedback-triage-desktop-v2.html`
+  - continue straight into the follow-on batch
+  - after that, keep auto-advancing from `DESIGN_BACKLOG.md`
+
+---
+## UI DELIVERY — BATCH 8
+**Delivered by:** UI Agent
+**Date:** 2026-03-23
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-session-resume-overlay-v2.html` | Child | 375px mobile | Resume Entry / Rewards Waiting / One-Tap Restart / Returned After Gap / Spec | ✅ Done |
+| `play-gentle-recovery-mobile-v2.html` | Child | 375px mobile | Wrong Answer / Hint Active / Replay Loop / Recovery CTA / Spec | ✅ Done |
+| `parent-home-practice-planner-v2.html` | Parent | 375px mobile | Planner Home / Activity Detail / Reminder Setup / Progress Note / Spec | ✅ Done |
+| `teacher-support-queue-mobile-v2.html` | Teacher | 390px mobile | Queue Overview / Learner Detail / Intervention Action / Done / Spec | ✅ Done |
+| `owner-live-incident-center-v2.html` | Owner | 390px mobile | Incident List / Detail / Deploy+Runtime Alerts / Quick Triage / Spec | ✅ Done |
+| `content-publish-readiness-detail-v2.html` | Content-Admin | Desktop wide | Readiness Overview / Question Count / Explainer Coverage / Hard Blocks / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg — session resume overlay (streak-safe gap return, no guilt) + gentle recovery (auto-hint after 2 wrong, stars never lost, visual prompt always visible)
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` nav — practice planner 3 activities, forward-looking language, no accuracy %, optional reminders only
+- Teacher: Sora, `#f0f4f8` bg, `#2a5080` nav — mobile support queue sorted flag > watch, SNS tier left-border colors, append-only intervention log
+- Owner: Sora, `#0d1117` bg, `#ffd166` accent — live incident center P0/P1 severity cards, deploy/runtime alerts, triage playbook
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` cyan — publish readiness score 68/100, hard blocks list, coverage thresholds, publish gate locked until all blocks resolved
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 9.
+---

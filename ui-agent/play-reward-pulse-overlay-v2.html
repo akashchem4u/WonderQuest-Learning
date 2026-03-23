@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Reward Pulse Overlays v2 — WonderQuest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&display=swap" rel="stylesheet">
+<style>
+/* ─── Reset & Base ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Nunito', sans-serif;
+  background: #f0eff8;
+  color: #100b2e;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Engineering Tab Bar ─── */
+.eng-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 16px 20px 0;
+  flex-wrap: wrap;
+  background: #1a1630;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.eng-tab {
+  padding: 8px 16px;
+  border-radius: 8px 8px 0 0;
+  background: #241f40;
+  border: none;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: #776aaa;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.eng-tab.active { background: #100b2e; color: #e0d8f8; }
+.eng-tab:hover:not(.active) { background: #2e2760; color: #b0a8e0; }
+
+.panel { display: none; padding: 24px 20px 48px; background: #100b2e; min-height: calc(100vh - 52px); }
+.panel.active { display: block; }
+
+/* ─── Engineering Hint Box ─── */
+.hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  font-size: 12px;
+  color: #6a4a00;
+  line-height: 1.65;
+  font-family: 'Segoe UI', 'Nunito', sans-serif;
+}
+.hint strong { color: #a06800; }
+.hint code {
+  background: #fff3c0;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #7a4a00;
+}
+
+/* ─── Phone Frame ─── */
+.canvas-row { display: flex; gap: 32px; flex-wrap: wrap; align-items: flex-start; }
+.phone-wrap { display: flex; flex-direction: column; align-items: center; }
+.phone-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #665599;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+  font-family: 'Segoe UI', sans-serif;
+}
+.phone {
+  width: 375px;
+  min-height: 812px;
+  background: #100b2e;
+  border-radius: 40px;
+  border: 8px solid #2a2050;
+  box-shadow:
+    0 20px 60px rgba(0,0,0,0.7),
+    0 0 0 1px rgba(155,114,255,0.08),
+    0 0 80px rgba(155,114,255,0.12);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ─── Play Surface Ghost (behind overlays) ─── */
+.play-surface {
+  position: absolute;
+  inset: 0;
+  background: #100b2e;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 20px 20px;
+  gap: 12px;
+  z-index: 0;
+}
+.ghost-progress {
+  width: 100%;
+  height: 8px;
+  background: rgba(155,114,255,0.18);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  position: relative;
+  overflow: hidden;
+}
+.ghost-progress-fill {
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, #9b72ff, #7b52df);
+  border-radius: 8px;
+}
+.ghost-card {
+  width: 100%;
+  background: rgba(155,114,255,0.06);
+  border: 1.5px solid rgba(155,114,255,0.12);
+  border-radius: 20px;
+  padding: 20px;
+}
+.ghost-line {
+  height: 12px;
+  background: rgba(155,114,255,0.15);
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+.ghost-line.short { width: 60%; }
+.ghost-line.med { width: 80%; }
+.ghost-answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ghost-ans {
+  height: 56px;
+  background: rgba(155,114,255,0.08);
+  border: 1.5px solid rgba(155,114,255,0.1);
+  border-radius: 16px;
+}
+
+/* ─── KEYFRAME ANIMATIONS ─── */
+
+/* Card pop */
+@keyframes card-pop {
+  0%   { transform: scale(0.5) translateY(40px); opacity: 0; }
+  65%  { transform: scale(1.05) translateY(-4px); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Spin once (badge icon) */
+@keyframes spin-once {
+  0%   { transform: rotate(0deg) scale(0.6); }
+  60%  { transform: rotate(360deg) scale(1.15); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+
+/* Confetti radiate (dots) */
+@keyframes confetti-radiate {
+  0%   { transform: translate(0,0) scale(1); opacity: 1; }
+  100% { transform: translate(var(--tx), var(--ty)) scale(0.3); opacity: 0; }
+}
+
+/* Fire dance */
+@keyframes fire-dance {
+  0%, 100% { transform: scale(1) rotate(-4deg); }
+  25%       { transform: scale(1.12) rotate(4deg); }
+  50%       { transform: scale(1.06) rotate(-2deg); }
+  75%       { transform: scale(1.1) rotate(6deg); }
+}
+
+/* Level blast (background pulse) */
+@keyframes level-blast {
+  0%   { opacity: 0; transform: scale(0.6); }
+  40%  { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.6; transform: scale(1); }
+}
+
+/* Badge bloom (level number) */
+@keyframes badge-bloom {
+  0%   { transform: scale(0); opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  80%  { transform: scale(0.95); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Stars burst */
+@keyframes stars-burst {
+  0%   { transform: translate(0,0) scale(0); opacity: 1; }
+  70%  { opacity: 1; }
+  100% { transform: translate(var(--sx), var(--sy)) scale(1); opacity: 0; }
+}
+
+/* Slide up (node unlock) */
+@keyframes slide-up {
+  0%   { transform: translateY(100%); opacity: 0; }
+  60%  { transform: translateY(-6px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Node pulse */
+@keyframes node-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(88,232,193,0.6); }
+  50%       { box-shadow: 0 0 0 8px rgba(88,232,193,0); }
+}
+
+/* Shimmer bg */
+@keyframes shimmer-bg {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Spin bounce (trophy) */
+@keyframes spin-bounce {
+  0%   { transform: rotate(-10deg) scale(0.5); opacity: 0; }
+  40%  { transform: rotate(370deg) scale(1.15); opacity: 1; }
+  60%  { transform: rotate(350deg) scale(0.95); }
+  80%  { transform: rotate(358deg) scale(1.05); }
+  100% { transform: rotate(360deg) scale(1); opacity: 1; }
+}
+
+/* Confetti burst (session complete, 32 dots) */
+@keyframes confetti-burst {
+  0%   { transform: translate(0,0) scale(1) rotate(0deg); opacity: 1; }
+  100% { transform: translate(var(--bx), var(--by)) scale(0.4) rotate(var(--br)); opacity: 0; }
+}
+
+/* Reward chip stagger pop */
+@keyframes chip-pop {
+  0%   { transform: scale(0) translateY(10px); opacity: 0; }
+  70%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Old level fade */
+@keyframes old-level-fade {
+  0%   { opacity: 1; transform: scale(1) translateY(0); }
+  100% { opacity: 0; transform: scale(0.7) translateY(-20px); }
+}
+
+/* Streak pill slide in from top */
+@keyframes pill-drop {
+  0%   { transform: translateY(-80px); opacity: 0; }
+  60%  { transform: translateY(4px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* ─── SHARED OVERLAY BASE ─── */
+.overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* ─── TAB 1: BADGE EARNED ─── */
+.badge-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(16,11,46,0.88);
+  z-index: 1;
+}
+.badge-overlay-card {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(160deg, #1e1650 0%, #140f3a 100%);
+  border: 2px solid rgba(155,114,255,0.35);
+  border-radius: 28px;
+  padding: 32px 28px 28px;
+  width: 310px;
+  text-align: center;
+  margin: auto;
+  box-shadow: 0 8px 40px rgba(155,114,255,0.3), 0 2px 12px rgba(0,0,0,0.5);
+  animation: card-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.badge-emoji {
+  font-size: 80px;
+  display: block;
+  margin-bottom: 12px;
+  animation: spin-once 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+  animation-fill-mode: forwards;
+}
+.badge-heading {
+  font-size: 26px;
+  font-weight: 900;
+  color: #ffd166;
+  margin-bottom: 6px;
+  line-height: 1.1;
+}
+.badge-name {
+  font-size: 22px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+.badge-flavor {
+  font-size: 14px;
+  font-weight: 700;
+  color: #9b8fd4;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+.badge-cta {
+  display: inline-block;
+  background: #ffd166;
+  color: #100b2e;
+  font-size: 16px;
+  font-weight: 900;
+  border-radius: 50px;
+  padding: 12px 28px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  box-shadow: 0 4px 16px rgba(255,209,102,0.35);
+  transition: transform 0.15s;
+}
+.badge-cta:hover { transform: scale(1.04); }
+.auto-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(155,114,255,0.5);
+  margin-top: 10px;
+}
+
+/* Confetti dots */
+.confetti-wrap {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.c-dot {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: confetti-radiate 1.0s cubic-bezier(0.2,0.8,0.4,1) both;
+}
+
+/* Dimmed progress strip behind overlay */
+.behind-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 14px 20px;
+  background: rgba(16,11,46,0.6);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  z-index: 2;
+  opacity: 0.45;
+}
+.behind-bar {
+  flex: 1;
+  height: 6px;
+  background: rgba(155,114,255,0.2);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.behind-bar-fill {
+  width: 55%;
+  height: 100%;
+  background: #9b72ff;
+  border-radius: 6px;
+}
+.behind-node-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9b8fd4;
+}
+
+/* ─── TAB 2: STREAK SAVED ─── */
+.streak-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(16,11,46,0.45);
+  z-index: 1;
+}
+.streak-overlay-pill {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(135deg, #1e1650 0%, #14103a 100%);
+  border: 2px solid rgba(255,209,102,0.35);
+  border-radius: 999px;
+  padding: 16px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 60px;
+  box-shadow: 0 4px 24px rgba(255,209,102,0.2), 0 2px 12px rgba(0,0,0,0.4);
+  animation: pill-drop 0.45s cubic-bezier(0.34,1.56,0.64,1) both;
+  min-width: 280px;
+}
+.streak-flame {
+  font-size: 44px;
+  display: inline-block;
+  animation: fire-dance 0.5s ease-in-out infinite;
+}
+.streak-text {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffd166;
+  line-height: 1.1;
+  text-align: center;
+}
+.streak-dots {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.streak-day {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(155,114,255,0.15);
+  border: 2px solid rgba(155,114,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: #7b69b8;
+}
+.streak-day.done {
+  background: rgba(255,209,102,0.15);
+  border-color: rgba(255,209,102,0.4);
+  color: #ffd166;
+}
+.streak-day.today {
+  background: #ffd166;
+  border-color: #ffd166;
+  color: #100b2e;
+  box-shadow: 0 0 10px rgba(255,209,102,0.6);
+}
+
+/* ─── TAB 3: LEVEL UP ─── */
+.level-blast-ring {
+  position: absolute;
+  width: 400px;
+  height: 400px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(155,114,255,0.5) 0%, rgba(155,114,255,0) 70%);
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%,-50%);
+  z-index: 1;
+  animation: level-blast 0.8s ease-out both;
+}
+.level-overlay-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(16,11,46,0.92);
+  z-index: 0;
+}
+.level-overlay-card {
+  position: relative;
+  z-index: 3;
+  text-align: center;
+  padding: 40px 28px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin: auto;
+}
+.level-heading {
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffffff;
+  margin-bottom: 4px;
+  line-height: 1.1;
+}
+.level-old {
+  font-size: 36px;
+  font-weight: 900;
+  color: #9b72ff;
+  opacity: 0.5;
+  margin-bottom: -8px;
+  animation: old-level-fade 0.5s 0.3s both;
+}
+.level-new {
+  font-size: 80px;
+  font-weight: 900;
+  color: #ffd166;
+  line-height: 1;
+  margin-bottom: 8px;
+  animation: badge-bloom 0.6s 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  text-shadow: 0 4px 32px rgba(255,209,102,0.5);
+}
+.level-label {
+  font-size: 20px;
+  font-weight: 900;
+  color: #ffd166;
+  margin-bottom: 6px;
+}
+.level-unlock-text {
+  font-size: 15px;
+  font-weight: 700;
+  color: #9b8fd4;
+  margin-bottom: 24px;
+}
+.level-cta {
+  display: inline-block;
+  background: #ffd166;
+  color: #100b2e;
+  font-size: 17px;
+  font-weight: 900;
+  border-radius: 50px;
+  padding: 13px 32px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  box-shadow: 0 4px 20px rgba(255,209,102,0.4);
+  transition: transform 0.15s;
+}
+.level-cta:hover { transform: scale(1.04); }
+.stars-container {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  pointer-events: none;
+}
+.star-b {
+  position: absolute;
+  font-size: 24px;
+  animation: stars-burst 1.0s cubic-bezier(0.2,0.8,0.4,1) both;
+}
+
+/* ─── TAB 4: NODE UNLOCK ─── */
+.node-dim-bg {
+  position: absolute;
+  inset: 0;
+  background: rgba(16,11,46,0.6);
+  z-index: 1;
+}
+.node-unlock-card {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: linear-gradient(160deg, #1e1650 0%, #140f3a 100%);
+  border: 2px solid rgba(88,232,193,0.3);
+  border-radius: 28px 28px 0 0;
+  padding: 28px 24px 36px;
+  animation: slide-up 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
+  box-shadow: 0 -8px 40px rgba(88,232,193,0.15), 0 -2px 12px rgba(0,0,0,0.4);
+}
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+.node-world-emoji {
+  font-size: 56px;
+  line-height: 1;
+}
+.node-title-group {}
+.node-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: #58e8c1;
+  line-height: 1.1;
+}
+.node-desc {
+  font-size: 14px;
+  font-weight: 700;
+  color: #9b8fd4;
+  margin-bottom: 18px;
+}
+.node-progress-strip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: rgba(155,114,255,0.08);
+  border-radius: 16px;
+  border: 1px solid rgba(155,114,255,0.12);
+}
+.np-node {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+.np-node.done {
+  background: rgba(255,209,102,0.15);
+  border: 2px solid rgba(255,209,102,0.4);
+  color: #ffd166;
+}
+.np-node.new-node {
+  background: rgba(88,232,193,0.15);
+  border: 2px solid #58e8c1;
+  color: #58e8c1;
+  animation: node-pulse 1.5s ease-in-out infinite;
+}
+.np-connector {
+  flex: 1;
+  height: 3px;
+  background: rgba(155,114,255,0.2);
+  border-radius: 3px;
+}
+.np-connector.done-line { background: rgba(255,209,102,0.4); }
+.node-cta-primary {
+  display: block;
+  width: 100%;
+  background: #58e8c1;
+  color: #100b2e;
+  font-size: 16px;
+  font-weight: 900;
+  border-radius: 50px;
+  padding: 13px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+  margin-bottom: 10px;
+  box-shadow: 0 4px 16px rgba(88,232,193,0.3);
+  transition: transform 0.15s;
+}
+.node-cta-primary:hover { transform: scale(1.03); }
+.node-back-link {
+  display: block;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #9b8fd4;
+  cursor: pointer;
+  padding: 4px;
+}
+.node-back-link:hover { color: #c0b4e8; }
+
+/* ─── TAB 5: SESSION COMPLETE ─── */
+.session-complete-bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, #1a0e4a 0%, #0e1a3a 30%, #0a2a1e 60%, #1a0e4a 100%);
+  background-size: 400% 400%;
+  animation: shimmer-bg 6s ease-in-out infinite;
+  z-index: 0;
+}
+.session-overlay {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 36px 20px 24px;
+  min-height: 812px;
+  width: 100%;
+}
+.celebration-hero {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.trophy-emoji {
+  font-size: 80px;
+  display: block;
+  margin-bottom: 8px;
+  animation: spin-bounce 1.0s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.session-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+}
+.reward-summary-card {
+  width: 100%;
+  background: rgba(255,255,255,0.07);
+  border: 2px solid rgba(155,114,255,0.25);
+  border-radius: 24px;
+  padding: 18px 16px;
+  margin-bottom: 14px;
+}
+.reward-summary-title {
+  font-size: 12px;
+  font-weight: 900;
+  color: #776aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+}
+.reward-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.r-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(155,114,255,0.12);
+  border: 1.5px solid rgba(155,114,255,0.25);
+  border-radius: 50px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 900;
+  color: #e0d8f8;
+  animation: chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.r-chip.gold { background: rgba(255,209,102,0.12); border-color: rgba(255,209,102,0.3); color: #ffd166; }
+.r-chip.mint { background: rgba(88,232,193,0.12); border-color: rgba(88,232,193,0.3); color: #58e8c1; }
+.r-chip:nth-child(1) { animation-delay: 0.1s; }
+.r-chip:nth-child(2) { animation-delay: 0.22s; }
+.r-chip:nth-child(3) { animation-delay: 0.34s; }
+.r-chip:nth-child(4) { animation-delay: 0.46s; }
+.session-progress-line {
+  font-size: 13px;
+  font-weight: 700;
+  color: #776aaa;
+  text-align: center;
+  margin-bottom: 20px;
+  line-height: 1.5;
+}
+.session-progress-line span { color: #9b8fd4; }
+.session-ctas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  margin-top: auto;
+}
+.cta-gold-large {
+  display: block;
+  width: 100%;
+  background: #ffd166;
+  color: #100b2e;
+  font-size: 18px;
+  font-weight: 900;
+  border-radius: 50px;
+  padding: 16px;
+  border: none;
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+  box-shadow: 0 6px 24px rgba(255,209,102,0.4);
+  transition: transform 0.15s;
+}
+.cta-gold-large:hover { transform: scale(1.03); }
+.cta-violet-outline {
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: #9b72ff;
+  font-size: 15px;
+  font-weight: 900;
+  border-radius: 50px;
+  padding: 13px;
+  border: 2px solid rgba(155,114,255,0.45);
+  cursor: pointer;
+  font-family: 'Nunito', sans-serif;
+  text-align: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.cta-violet-outline:hover { border-color: #9b72ff; color: #b898ff; }
+
+/* Session confetti burst wrapper */
+.session-confetti-wrap {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  z-index: 3;
+}
+.b-dot {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  animation: confetti-burst 1.2s cubic-bezier(0.2,0.8,0.3,1) both;
+}
+
+/* ─── TAB 6: SPEC ─── */
+.spec-section {
+  margin-bottom: 20px;
+}
+.spec-section h3 {
+  font-size: 13px;
+  font-weight: 900;
+  color: #a06800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 8px;
+}
+.spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Segoe UI', monospace;
+  color: #6a4a00;
+}
+.spec-table th {
+  background: #fff3c0;
+  padding: 6px 10px;
+  text-align: left;
+  font-weight: 700;
+  border-bottom: 1px solid #f0c040;
+}
+.spec-table td {
+  padding: 5px 10px;
+  border-bottom: 1px solid rgba(240,192,64,0.3);
+  vertical-align: top;
+}
+.spec-table tr:nth-child(even) td { background: rgba(255,251,234,0.5); }
+.spec-tag {
+  display: inline-block;
+  background: #fff3c0;
+  border: 1px solid #f0c040;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #7a4a00;
+  margin: 1px 2px;
+}
+.token-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 6px;
+}
+.token-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff3c0;
+  border: 1px solid #f0c040;
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-family: 'Courier New', monospace;
+  color: #6a4a00;
+}
+.token-swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+</style>
+</head>
+<body>
+
+<!-- ─── Engineering Tab Bar ─── -->
+<nav class="eng-tabs" id="tabBar">
+  <button class="eng-tab active" onclick="show(1)">1 · Badge Earned</button>
+  <button class="eng-tab" onclick="show(2)">2 · Streak Saved</button>
+  <button class="eng-tab" onclick="show(3)">3 · Level Up</button>
+  <button class="eng-tab" onclick="show(4)">4 · Node Unlocked</button>
+  <button class="eng-tab" onclick="show(5)">5 · Session Complete</button>
+  <button class="eng-tab" onclick="show(6)">6 · Spec</button>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     TAB 1 — BADGE EARNED OVERLAY
+══════════════════════════════════════════ -->
+<div class="panel active" id="panel-1">
+  <div class="hint">
+    <strong>Badge Earned Overlay — Engineering Notes</strong>
+    Trigger: <code>BADGE_EARNED</code> event from session engine (e.g. after question streak or world completion).<br>
+    Auto-dismiss after <code>2.5s</code> via <code>setTimeout</code>; tap-anywhere listener on overlay bg also dismisses.<br>
+    Badge data: <code>{ id, name, emoji, flavorText }</code> fetched from <code>GET /player/badges/:id</code>.<br>
+    Confetti: 16 CSS-only dots — no canvas, no library. <code>--tx / --ty</code> CSS vars set per dot.<br>
+    Progress strip remains visible (dimmed, <code>opacity: 0.45</code>) beneath overlay for continuity.<br>
+    <strong>No score shown. No wrong-answer mention. Reward is additive only.</strong>
+  </div>
+
+  <div class="canvas-row">
+    <div class="phone-wrap">
+      <div class="phone-label">Badge Earned · Auto-dismiss 2.5s</div>
+      <div class="phone" id="badge-phone" onclick="dismissOverlay('badge-overlay')">
+
+        <!-- Play surface ghost -->
+        <div class="play-surface">
+          <div class="ghost-progress"><div class="ghost-progress-fill"></div></div>
+          <div class="ghost-card">
+            <div class="ghost-line med"></div>
+            <div class="ghost-line short"></div>
+            <div class="ghost-answers">
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Badge overlay -->
+        <div class="overlay" id="badge-overlay" style="justify-content:center;">
+          <div class="badge-overlay-bg"></div>
+
+          <!-- Confetti dots -->
+          <div class="confetti-wrap" id="badge-confetti"></div>
+
+          <!-- Card -->
+          <div class="badge-overlay-card">
+            <span class="badge-emoji">🏅</span>
+            <div class="badge-heading">New Badge! 🏅</div>
+            <div class="badge-name">Ocean Explorer</div>
+            <div class="badge-flavor">You explored every corner of Ocean World! 🌊</div>
+            <button class="badge-cta" onclick="event.stopPropagation(); dismissOverlay('badge-overlay')">Keep playing! ▶</button>
+            <div class="auto-label">Auto-continues in 2.5s</div>
+          </div>
+
+          <!-- Dimmed progress strip -->
+          <div class="behind-progress">
+            <span class="behind-node-label">Node 4</span>
+            <div class="behind-bar"><div class="behind-bar-fill"></div></div>
+            <span class="behind-node-label">60%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 2 — STREAK SAVED OVERLAY
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-2">
+  <div class="hint">
+    <strong>Streak Saved Overlay — Engineering Notes</strong>
+    Trigger: <code>STREAK_MAINTAINED</code> event, fired once per day on first session start.<br>
+    Pill format (not full card) — deliberately lighter in visual weight than badge/level overlays.<br>
+    Positioned near top of screen; does NOT block the question area below.<br>
+    Auto-dismisses in <code>1.5s</code> — no CTA needed, this is a micro-moment.<br>
+    Streak data: <code>{ currentStreak, daysThisWeek: [bool×7] }</code> from <code>GET /player/streak</code>.<br>
+    <strong>No confetti — streak is a micro-reward. Only fire animation + brief pill.</strong>
+  </div>
+
+  <div class="canvas-row">
+    <div class="phone-wrap">
+      <div class="phone-label">Streak Saved · Auto-dismiss 1.5s</div>
+      <div class="phone" id="streak-phone" onclick="dismissOverlay('streak-overlay')">
+
+        <!-- Play surface ghost -->
+        <div class="play-surface">
+          <div class="ghost-progress"><div class="ghost-progress-fill" style="width:40%"></div></div>
+          <div class="ghost-card">
+            <div class="ghost-line med"></div>
+            <div class="ghost-line short"></div>
+            <div class="ghost-answers">
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Streak overlay -->
+        <div class="overlay" id="streak-overlay" style="justify-content:flex-start; align-items:center; background: rgba(16,11,46,0.45); z-index:10;">
+          <div class="streak-overlay-pill">
+            <span class="streak-flame">🔥</span>
+            <div class="streak-text">Streak saved! 🔥 7 days!</div>
+            <div class="streak-dots">
+              <div class="streak-day done">M</div>
+              <div class="streak-day done">T</div>
+              <div class="streak-day done">W</div>
+              <div class="streak-day done">T</div>
+              <div class="streak-day done">F</div>
+              <div class="streak-day done">S</div>
+              <div class="streak-day today">S</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 3 — LEVEL UP OVERLAY
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-3">
+  <div class="hint">
+    <strong>Level Up Overlay — Engineering Notes</strong>
+    Trigger: <code>LEVEL_UP</code> event from XP engine when <code>player.xp &gt;= level.threshold</code>.<br>
+    Full-screen with <code>@keyframes level-blast</code> violet radial pulse on enter.<br>
+    Old level fades out while new level blooms in with <code>@keyframes badge-bloom</code>.<br>
+    8 star emojis burst from center via <code>--sx / --sy</code> CSS vars (set by JS).<br>
+    Auto-dismiss in <code>3s</code> OR tap/CTA. Level data: <code>GET /player/level</code>.<br>
+    Unlock text is conditional: <code>unlockType: 'world' | 'badge'</code> from level definition.<br>
+    <strong>Confetti applies — level up is a major milestone.</strong>
+  </div>
+
+  <div class="canvas-row">
+    <div class="phone-wrap">
+      <div class="phone-label">Level Up · Auto-dismiss 3s</div>
+      <div class="phone" id="level-phone" onclick="dismissOverlay('level-overlay')">
+
+        <!-- Play surface ghost -->
+        <div class="play-surface">
+          <div class="ghost-progress"><div class="ghost-progress-fill" style="width:85%"></div></div>
+          <div class="ghost-card">
+            <div class="ghost-line med"></div>
+            <div class="ghost-line short"></div>
+            <div class="ghost-answers">
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Level overlay -->
+        <div class="overlay" id="level-overlay" style="justify-content:center;">
+          <div class="level-overlay-bg"></div>
+          <div class="level-blast-ring"></div>
+
+          <!-- Stars burst -->
+          <div class="stars-container" id="level-stars"></div>
+
+          <!-- Confetti -->
+          <div class="confetti-wrap" id="level-confetti"></div>
+
+          <div class="level-overlay-card">
+            <div class="level-old">Level 7</div>
+            <div class="level-new">8</div>
+            <div class="level-heading">Level Up! ⚡</div>
+            <div class="level-label">Level 8</div>
+            <div class="level-unlock-text">New worlds coming! 🗺️</div>
+            <button class="level-cta" onclick="event.stopPropagation(); dismissOverlay('level-overlay')">Continue ▶</button>
+            <div class="auto-label" style="color:rgba(155,114,255,0.5); margin-top:10px;">Auto-continues in 3s</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 4 — WORLD NODE UNLOCKED
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-4">
+  <div class="hint">
+    <strong>World Node Unlocked — Engineering Notes</strong>
+    Trigger: <code>NODE_COMPLETE</code> event when node questions all answered and score &gt;= pass threshold.<br>
+    Bottom-sheet format (slides up) — mid-weight overlay, not full-screen. Leaves question area still ghosted above.<br>
+    Progress strip shows previous node (gold ✓) → new node (mint glow, pulsing via <code>@keyframes node-pulse</code>).<br>
+    Auto-dismisses in <code>4s</code> if no action taken — both CTA buttons remain active.<br>
+    "Play Node 5!" routes to <code>/play/node/5</code>; "Back to map" routes to <code>/world/map</code>.<br>
+    Node data: <code>{ worldId, completedNode, nextNode, nextNodeName }</code> from <code>GET /session/rewards</code>.<br>
+    <strong>No confetti for node unlock — reserved for badge/level/session complete.</strong>
+  </div>
+
+  <div class="canvas-row">
+    <div class="phone-wrap">
+      <div class="phone-label">Node Unlocked · Auto-dismiss 4s</div>
+      <div class="phone" id="node-phone">
+
+        <!-- Play surface ghost -->
+        <div class="play-surface">
+          <div class="ghost-progress"><div class="ghost-progress-fill" style="width:100%"></div></div>
+          <div class="ghost-card">
+            <div class="ghost-line med"></div>
+            <div class="ghost-line short"></div>
+            <div class="ghost-answers">
+              <div class="ghost-ans"></div>
+              <div class="ghost-ans"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Node overlay -->
+        <div class="overlay" id="node-overlay" style="justify-content:flex-end;">
+          <div class="node-dim-bg" onclick="dismissOverlay('node-overlay')"></div>
+          <div class="node-unlock-card">
+            <div class="node-header">
+              <span class="node-world-emoji">🌊</span>
+              <div class="node-title-group">
+                <div class="node-title">Node 5 Unlocked! 🔓</div>
+              </div>
+            </div>
+            <div class="node-desc">Crystal Caves await! ✨</div>
+
+            <div class="node-progress-strip">
+              <div class="np-node done">✓<br><span style="font-size:9px;font-weight:700;color:#ffd166;">N4</span></div>
+              <div class="np-connector done-line"></div>
+              <div class="np-node done">✓<br><span style="font-size:9px;font-weight:700;color:#ffd166;">N3</span></div>
+              <div class="np-connector done-line"></div>
+              <div class="np-node done">✓<br><span style="font-size:9px;font-weight:700;color:#ffd166;">N2</span></div>
+              <div class="np-connector"></div>
+              <div class="np-node new-node">🔓<br><span style="font-size:9px;font-weight:700;color:#58e8c1;">N5</span></div>
+            </div>
+
+            <button class="node-cta-primary" onclick="dismissOverlay('node-overlay')">Play Node 5! →</button>
+            <span class="node-back-link" onclick="dismissOverlay('node-overlay')">Back to map</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 5 — SESSION COMPLETE CELEBRATION
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-5">
+  <div class="hint">
+    <strong>Session Complete Celebration — Engineering Notes</strong>
+    Trigger: <code>SESSION_COMPLETE</code> event from <code>POST /session/complete</code> response.<br>
+    Full-screen celebration — biggest moment in session. Stays until user taps a CTA (no auto-dismiss).<br>
+    Reward summary pulled from <code>GET /session/rewards</code>: <code>{ stars, xp, badgeEarned?, streakUpdated, nodesCompleted }</code>.<br>
+    32-dot confetti burst on mount. Reward chips stagger-pop in (delay per index).<br>
+    "Play Next Node!" → <code>/play/node/:nextId</code>; "Go to World Map" → <code>/world/map/:worldId</code>.<br>
+    <code>@keyframes shimmer-bg</code> cycles the deep-violet gradient behind all content.<br>
+    <strong>Session complete is the only overlay that does NOT auto-dismiss.</strong>
+  </div>
+
+  <div class="canvas-row">
+    <div class="phone-wrap">
+      <div class="phone-label">Session Complete · No auto-dismiss</div>
+      <div class="phone">
+
+        <!-- Shimmer bg -->
+        <div class="session-complete-bg"></div>
+
+        <!-- 32-dot confetti burst -->
+        <div class="session-confetti-wrap" id="session-confetti"></div>
+
+        <!-- Session content -->
+        <div class="session-overlay">
+          <div class="celebration-hero">
+            <span class="trophy-emoji">🏆</span>
+            <div class="session-title">Quest Complete! 🎉</div>
+          </div>
+
+          <div class="reward-summary-card">
+            <div class="reward-summary-title">This Session</div>
+            <div class="reward-chips">
+              <div class="r-chip gold">⭐ +4 stars</div>
+              <div class="r-chip gold">+80 XP</div>
+              <div class="r-chip mint">🏅 Ocean Explorer</div>
+              <div class="r-chip">🔥 7-day streak</div>
+            </div>
+          </div>
+
+          <div class="session-progress-line">
+            Node 4 complete &nbsp;·&nbsp; <span>4 of 8 nodes in Ocean World 🌊</span>
+          </div>
+
+          <div class="session-ctas">
+            <button class="cta-gold-large">Play Next Node! ▶</button>
+            <button class="cta-violet-outline">Go to World Map 🗺️</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TAB 6 — SPEC
+══════════════════════════════════════════ -->
+<div class="panel" id="panel-6">
+  <div class="hint">
+    <strong>Reward Pulse Overlays — Full Spec</strong>
+
+    <div class="spec-section" style="margin-top:12px;">
+      <h3>API Routes</h3>
+      <table class="spec-table">
+        <tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+        <tr><td>GET</td><td><code>GET /session/rewards</code></td><td>Rewards earned this session (stars, XP, badges, nodes)</td></tr>
+        <tr><td>POST</td><td><code>POST /session/complete</code></td><td>Finalize session; triggers SESSION_COMPLETE event</td></tr>
+        <tr><td>GET</td><td><code>GET /player/level</code></td><td>Current level, XP, threshold, unlock type/content</td></tr>
+        <tr><td>GET</td><td><code>GET /player/streak</code></td><td>Current streak count, days-this-week bitmask</td></tr>
+        <tr><td>GET</td><td><code>GET /player/badges/:id</code></td><td>Badge metadata: name, emoji, flavor text</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section" style="margin-top:14px;">
+      <h3>Overlay Timing</h3>
+      <table class="spec-table">
+        <tr><th>Overlay</th><th>Auto-dismiss</th><th>Tap-to-dismiss</th><th>Confetti</th></tr>
+        <tr><td>Badge Earned</td><td>2.5s</td><td>Yes — tap anywhere</td><td>Yes (16 dots)</td></tr>
+        <tr><td>Streak Saved</td><td>1.5s</td><td>Yes — tap anywhere</td><td>No</td></tr>
+        <tr><td>Level Up</td><td>3s</td><td>Yes — tap anywhere</td><td>Yes (16 dots)</td></tr>
+        <tr><td>Node Unlocked</td><td>4s</td><td>Yes — tap anywhere</td><td>No</td></tr>
+        <tr><td>Session Complete</td><td>Never</td><td>No — CTA required</td><td>Yes (32 dots)</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section" style="margin-top:14px;">
+      <h3>Overlay Stacking — Simultaneous Rewards</h3>
+      If multiple reward events fire at the same time (e.g. badge + level-up + streak on the same question):<br><br>
+      <strong>Sequence order (never stack):</strong>
+      <span class="spec-tag">1. Badge Earned</span>
+      <span class="spec-tag">2. Level Up</span>
+      <span class="spec-tag">3. Streak Saved</span>
+      <span class="spec-tag">4. Node Unlocked</span>
+      <span class="spec-tag">5. Session Complete</span><br><br>
+      Queue overlays in an array. When one dismisses (auto or tap), dequeue and show next.
+      Session Complete always shows last (it is the summary of everything).
+    </div>
+
+    <div class="spec-section" style="margin-top:14px;">
+      <h3>No-Noise Rules</h3>
+      <table class="spec-table">
+        <tr><th>Rule</th><th>Detail</th></tr>
+        <tr><td>No timers shown</td><td>Never display countdown timers in reward overlays</td></tr>
+        <tr><td>No score comparisons</td><td>No "you beat X%" or leaderboard references</td></tr>
+        <tr><td>No wrong-answer mention</td><td>Rewards never reference mistakes; always additive framing</td></tr>
+        <tr><td>Replay safety</td><td>Replaying a node never removes earned rewards or reduces XP</td></tr>
+        <tr><td>Streak = pill only</td><td>Streak uses pill format, not full card — lightest visual weight</td></tr>
+        <tr><td>Confetti = earned</td><td>Confetti only for: Badge Earned, Level Up, Session Complete</td></tr>
+        <tr><td>Streak pill = top of screen</td><td>Never blocks question area; positioned at top</td></tr>
+      </table>
+    </div>
+
+    <div class="spec-section" style="margin-top:14px;">
+      <h3>Design Tokens</h3>
+      <div class="token-row">
+        <span class="token-chip"><span class="token-swatch" style="background:#100b2e;"></span>bg #100b2e</span>
+        <span class="token-chip"><span class="token-swatch" style="background:#9b72ff;"></span>violet #9b72ff</span>
+        <span class="token-chip"><span class="token-swatch" style="background:#ffd166;"></span>gold #ffd166</span>
+        <span class="token-chip"><span class="token-swatch" style="background:#58e8c1;"></span>mint #58e8c1</span>
+        <span class="token-chip" style="font-family:'Courier New',monospace;">Nunito 900</span>
+        <span class="token-chip">Phone 375×812px · r40px</span>
+      </div>
+    </div>
+
+    <div class="spec-section" style="margin-top:14px;">
+      <h3>Keyframes Summary</h3>
+      <table class="spec-table">
+        <tr><th>Name</th><th>Used On</th><th>Duration</th></tr>
+        <tr><td><code>card-pop</code></td><td>Badge card, Level card enter</td><td>0.55s</td></tr>
+        <tr><td><code>spin-once</code></td><td>Badge emoji</td><td>0.6s (holds at end)</td></tr>
+        <tr><td><code>confetti-radiate</code></td><td>Badge + Level confetti dots</td><td>1.0s</td></tr>
+        <tr><td><code>fire-dance</code></td><td>Streak flame emoji</td><td>0.5s infinite</td></tr>
+        <tr><td><code>pill-drop</code></td><td>Streak pill</td><td>0.45s</td></tr>
+        <tr><td><code>level-blast</code></td><td>Level Up background ring</td><td>0.8s</td></tr>
+        <tr><td><code>badge-bloom</code></td><td>New level number</td><td>0.6s delay 0.5s</td></tr>
+        <tr><td><code>old-level-fade</code></td><td>Old level number</td><td>0.5s delay 0.3s</td></tr>
+        <tr><td><code>stars-burst</code></td><td>8 star emojis (level up)</td><td>1.0s staggered</td></tr>
+        <tr><td><code>slide-up</code></td><td>Node unlock bottom sheet</td><td>0.55s</td></tr>
+        <tr><td><code>node-pulse</code></td><td>New node dot</td><td>1.5s infinite</td></tr>
+        <tr><td><code>shimmer-bg</code></td><td>Session complete background</td><td>6s infinite</td></tr>
+        <tr><td><code>spin-bounce</code></td><td>Trophy emoji</td><td>1.0s</td></tr>
+        <tr><td><code>confetti-burst</code></td><td>32-dot session confetti</td><td>1.2s</td></tr>
+        <tr><td><code>chip-pop</code></td><td>Session reward chips</td><td>0.4s staggered</td></tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ─── JavaScript ─── -->
+<script>
+  // ── Tab switcher ──
+  function show(n) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.eng-tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('panel-' + n).classList.add('active');
+    document.querySelectorAll('.eng-tab')[n - 1].classList.add('active');
+    // Re-init animations when switching to tab
+    if (n === 1) initBadgeConfetti();
+    if (n === 3) initLevelStars();
+    if (n === 5) initSessionConfetti();
+  }
+
+  // ── Dismiss overlay ──
+  function dismissOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) {
+      el.style.transition = 'opacity 0.3s';
+      el.style.opacity = '0';
+      setTimeout(() => { el.style.display = 'none'; }, 320);
+    }
+  }
+
+  // ── Badge confetti (16 dots) ──
+  function initBadgeConfetti() {
+    const wrap = document.getElementById('badge-confetti');
+    wrap.innerHTML = '';
+    const colors = ['#ffd166','#9b72ff','#58e8c1','#ff6b9d','#ff9f43','#a8e6cf'];
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * 360;
+      const dist  = 90 + Math.random() * 60;
+      const rad   = (angle * Math.PI) / 180;
+      const tx    = Math.cos(rad) * dist;
+      const ty    = Math.sin(rad) * dist;
+      const dot   = document.createElement('div');
+      dot.className = 'c-dot';
+      dot.style.cssText = `
+        background: ${colors[i % colors.length]};
+        --tx: ${tx}px;
+        --ty: ${ty}px;
+        animation-delay: ${(i * 0.04).toFixed(2)}s;
+        animation-duration: ${(0.9 + Math.random() * 0.3).toFixed(2)}s;
+        width: ${8 + Math.floor(Math.random() * 6)}px;
+        height: ${8 + Math.floor(Math.random() * 6)}px;
+      `;
+      wrap.appendChild(dot);
+    }
+  }
+
+  // ── Level stars (8 bursting stars) ──
+  function initLevelStars() {
+    const container = document.getElementById('level-stars');
+    container.innerHTML = '';
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * 360;
+      const dist  = 80 + Math.random() * 50;
+      const rad   = (angle * Math.PI) / 180;
+      const sx    = Math.cos(rad) * dist;
+      const sy    = Math.sin(rad) * dist;
+      const star  = document.createElement('div');
+      star.className = 'star-b';
+      star.textContent = '⭐';
+      star.style.cssText = `
+        --sx: ${sx}px;
+        --sy: ${sy}px;
+        animation-delay: ${(i * 0.07 + 0.5).toFixed(2)}s;
+        animation-duration: 1.0s;
+        top: -12px;
+        left: -12px;
+      `;
+      container.appendChild(star);
+    }
+    // Also init confetti for level
+    const lvlConfetti = document.getElementById('level-confetti');
+    lvlConfetti.innerHTML = '';
+    const colors = ['#ffd166','#9b72ff','#58e8c1','#ff6b9d','#ff9f43'];
+    for (let i = 0; i < 16; i++) {
+      const angle = (i / 16) * 360;
+      const dist  = 100 + Math.random() * 80;
+      const rad   = (angle * Math.PI) / 180;
+      const tx    = Math.cos(rad) * dist;
+      const ty    = Math.sin(rad) * dist;
+      const dot   = document.createElement('div');
+      dot.className = 'c-dot';
+      dot.style.cssText = `
+        background: ${colors[i % colors.length]};
+        --tx: ${tx}px;
+        --ty: ${ty}px;
+        animation-delay: ${(i * 0.035 + 0.3).toFixed(2)}s;
+        animation-duration: ${(1.0 + Math.random() * 0.4).toFixed(2)}s;
+        width: ${8 + Math.floor(Math.random() * 8)}px;
+        height: ${8 + Math.floor(Math.random() * 8)}px;
+      `;
+      lvlConfetti.appendChild(dot);
+    }
+  }
+
+  // ── Session confetti (32 dots) ──
+  function initSessionConfetti() {
+    const wrap = document.getElementById('session-confetti');
+    wrap.innerHTML = '';
+    const colors = ['#ffd166','#9b72ff','#58e8c1','#ff6b9d','#ff9f43','#a8e6cf','#ffffff','#c084fc'];
+    for (let i = 0; i < 32; i++) {
+      const angle = (i / 32) * 360 + (Math.random() * 10 - 5);
+      const dist  = 100 + Math.random() * 120;
+      const rad   = (angle * Math.PI) / 180;
+      const bx    = Math.cos(rad) * dist;
+      const by    = Math.sin(rad) * dist;
+      const br    = Math.floor(Math.random() * 360) + 'deg';
+      const dot   = document.createElement('div');
+      dot.className = 'b-dot';
+      dot.style.cssText = `
+        background: ${colors[i % colors.length]};
+        --bx: ${bx}px;
+        --by: ${by}px;
+        --br: ${br};
+        animation-delay: ${(i * 0.025).toFixed(2)}s;
+        animation-duration: ${(1.1 + Math.random() * 0.4).toFixed(2)}s;
+        width: ${8 + Math.floor(Math.random() * 8)}px;
+        height: ${8 + Math.floor(Math.random() * 8)}px;
+        border-radius: ${Math.random() > 0.5 ? '50%' : '3px'};
+        top: -6px;
+        left: -6px;
+      `;
+      wrap.appendChild(dot);
+    }
+  }
+
+  // ── Auto-dismiss timers ──
+  // These run once on page load for whatever tab is active.
+  // In production, these would be triggered by event handlers.
+  function startAutoDismiss(overlayId, delay) {
+    setTimeout(() => {
+      const el = document.getElementById(overlayId);
+      if (el && el.style.display !== 'none') dismissOverlay(overlayId);
+    }, delay);
+  }
+
+  // ── Init on load ──
+  window.addEventListener('DOMContentLoaded', () => {
+    // Initialize confetti/stars for the default tab (tab 1)
+    initBadgeConfetti();
+
+    // Note: In production each overlay's auto-dismiss fires when
+    // the overlay mounts, not on page load. These demonstrate timing.
+    // Uncomment to demo auto-dismiss behavior:
+    // startAutoDismiss('badge-overlay', 2500);
+    // startAutoDismiss('streak-overlay', 1500);
+    // startAutoDismiss('level-overlay', 3000);
+    // startAutoDismiss('node-overlay', 4000);
+  });
+
+  // Re-init on tab switch for panels that need JS
+  const origShow = show;
+  // show() already handles re-init per tab above.
+</script>
+</body>
+</html>

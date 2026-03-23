@@ -3,1613 +3,381 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Owner Live Incident Center v2 — WonderQuest</title>
+<title>owner-live-incident-center-v2 · WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&display=swap');
-
-  /* ─── Reset ─── */
-  *{box-sizing:border-box;margin:0;padding:0}
-
-  /* ─── Canvas ─── */
-  body{
-    font-family:'Sora',sans-serif;
-    background:#ffffff;
-    min-height:100vh;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    padding:40px 16px 60px;
-  }
-  .canvas-label{
-    font-family:'Sora',sans-serif;
-    font-size:11px;
-    font-weight:700;
-    letter-spacing:1.2px;
-    text-transform:uppercase;
-    color:#aaa;
-    margin-bottom:18px;
-  }
-
-  /* ─── Phone Frame ─── */
-  .phone{
-    width:390px;
-    min-height:844px;
-    background:#0d1117;
-    border-radius:40px;
-    border:2px solid #2a3548;
-    box-shadow:0 8px 60px rgba(0,0,0,0.25), 0 2px 12px rgba(0,0,0,0.12);
-    overflow:hidden;
-    display:flex;
-    flex-direction:column;
-    position:relative;
-  }
-
-  /* ─── Status Bar ─── */
-  .status-bar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    padding:12px 20px 8px;
-    background:#0d1117;
-    flex-shrink:0;
-  }
-  .status-time{font-size:13px;font-weight:700;color:#e8edf5}
-  .status-icons{display:flex;gap:6px;align-items:center;font-size:11px;color:#e8edf5}
-
-  /* ─── App Header ─── */
-  .app-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:8px 20px 12px;
-    background:#0d1117;
-    border-bottom:1px solid #2a3548;
-    flex-shrink:0;
-  }
-  .app-title{font-size:15px;font-weight:800;color:#e8edf5;letter-spacing:-0.3px}
-  .app-subtitle{font-size:10px;color:#7a90a8;margin-top:1px}
-  .header-badge{
-    background:#ff4444;
-    color:#fff;
-    font-size:10px;
-    font-weight:800;
-    padding:3px 8px;
-    border-radius:20px;
-    animation:pulse-badge 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse-badge{
-    0%,100%{opacity:1;transform:scale(1)}
-    50%{opacity:.8;transform:scale(1.05)}
-  }
-
-  /* ─── Scroll area ─── */
-  .panel{display:none;flex:1;overflow-y:auto;padding-bottom:80px}
-  .panel.active{display:block}
-
-  /* ─── Tab Bar ─── */
-  .tab-bar{
-    display:flex;
-    background:#161d2a;
-    border-top:1px solid #2a3548;
-    position:sticky;
-    bottom:0;
-    z-index:100;
-    flex-shrink:0;
-  }
-  .tab-btn{
-    flex:1;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:3px;
-    padding:10px 4px 12px;
-    cursor:pointer;
-    border:none;
-    background:transparent;
-    color:#7a90a8;
-    font-family:'Sora',sans-serif;
-    font-size:9px;
-    font-weight:600;
-    transition:color .15s;
-    position:relative;
-  }
-  .tab-btn.active{color:#ffd166}
-  .tab-btn .tab-icon{font-size:16px}
-  .tab-dot{
-    position:absolute;
-    top:8px;
-    right:calc(50% - 12px);
-    width:6px;height:6px;
-    background:#ff4444;
-    border-radius:50%;
-    display:none;
-  }
-  .tab-dot.visible{display:block}
-
-  /* ─── Engineering Hint Box ─── */
-  .eng-hint{
-    background:#fffbea;
-    border:2px solid #f0c040;
-    border-radius:10px;
-    margin:14px 14px 0;
-    padding:12px 14px;
-    font-size:11px;
-    color:#6b5000;
-    line-height:1.6;
-  }
-  .eng-hint strong{
-    display:block;
-    font-size:10px;
-    font-weight:800;
-    text-transform:uppercase;
-    letter-spacing:.8px;
-    color:#f0c040;
-    margin-bottom:4px;
-  }
-
-  /* ─── Shared Components ─── */
-  .section{padding:14px 14px 0}
-  .section-label{
-    font-size:10px;
-    font-weight:800;
-    text-transform:uppercase;
-    letter-spacing:1px;
-    color:#7a90a8;
-    margin-bottom:8px;
-  }
-  .card{
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:12px;
-    overflow:hidden;
-  }
-  .chip{
-    display:inline-flex;
-    align-items:center;
-    gap:4px;
-    padding:2px 8px;
-    border-radius:20px;
-    font-size:10px;
-    font-weight:700;
-    flex-shrink:0;
-  }
-  .chip-p0{background:rgba(255,68,68,.15);color:#ff4444;border:1px solid rgba(255,68,68,.3)}
-  .chip-p1{background:rgba(255,153,0,.15);color:#ff9900;border:1px solid rgba(255,153,0,.3)}
-  .chip-p2{background:rgba(240,192,48,.15);color:#f0c030;border:1px solid rgba(240,192,48,.3)}
-  .chip-ok{background:rgba(80,232,144,.15);color:#50e890;border:1px solid rgba(80,232,144,.3)}
-  .chip-resolved{background:rgba(122,144,168,.15);color:#7a90a8;border:1px solid rgba(122,144,168,.3)}
-  .chip-open{background:rgba(255,68,68,.1);color:#ff6666;border:1px solid rgba(255,68,68,.2)}
-  .chip-inprogress{background:rgba(255,153,0,.1);color:#ffaa33;border:1px solid rgba(255,153,0,.2)}
-  .chip-deploy{background:rgba(0,210,210,.12);color:#00d2d2;border:1px solid rgba(0,210,210,.25)}
-  .chip-runtime{background:rgba(255,153,0,.12);color:#ff9900;border:1px solid rgba(255,153,0,.25)}
-  .chip-system{background:rgba(255,68,68,.12);color:#ff4444;border:1px solid rgba(255,68,68,.25)}
-  .chip-prod{background:rgba(255,68,68,.1);color:#ff6666;border:1px solid rgba(255,68,68,.2)}
-  .chip-staging{background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2)}
-  .chip-gold{background:rgba(255,209,102,.12);color:#ffd166;border:1px solid rgba(255,209,102,.3)}
-
-  /* ─── Buttons ─── */
-  .btn{
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-    padding:8px 14px;
-    border-radius:8px;
-    font-family:'Sora',sans-serif;
-    font-size:12px;
-    font-weight:700;
-    cursor:pointer;
-    border:none;
-    transition:all .15s;
-  }
-  .btn-danger{background:#ff4444;color:#fff}
-  .btn-outline{background:transparent;color:#e8edf5;border:1px solid #2a3548}
-  .btn-gold{background:#ffd166;color:#0d1117}
-  .btn-ghost{background:transparent;color:#7a90a8;padding:6px 10px;font-size:11px}
-
-  /* ── KEYFRAMES ── */
-  @keyframes border-pulse{
-    0%,100%{border-color:#ff4444;box-shadow:0 0 0 0 rgba(255,68,68,.3)}
-    50%{border-color:#ff6666;box-shadow:0 0 0 4px rgba(255,68,68,.1)}
-  }
-
-  /* ═══════════════════════════════
-     TAB 1 — INCIDENT DASHBOARD
-  ═══════════════════════════════ */
-
-  .incident-bar{
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:8px;
-    padding:11px 16px;
-    font-size:13px;
-    font-weight:800;
-    text-align:center;
-  }
-  .incident-bar.p0-active{
-    background:rgba(255,68,68,.15);
-    color:#ff4444;
-    border-bottom:1px solid rgba(255,68,68,.3);
-    animation:banner-pulse 2s ease-in-out infinite;
-  }
-  .incident-bar.all-clear{
-    background:rgba(80,232,144,.1);
-    color:#50e890;
-    border-bottom:1px solid rgba(80,232,144,.2);
-  }
-  @keyframes banner-pulse{
-    0%,100%{background:rgba(255,68,68,.15)}
-    50%{background:rgba(255,68,68,.25)}
-  }
-
-  .system-health-row{
-    display:flex;
-    gap:6px;
-    padding:12px 14px 0;
-  }
-  .health-dot-card{
-    flex:1;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:10px;
-    padding:8px 6px;
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-    gap:5px;
-  }
-  .hdot{width:8px;height:8px;border-radius:50%}
-  .hdot.green{background:#50e890;box-shadow:0 0 6px rgba(80,232,144,.5)}
-  .hdot.amber{background:#ff9900;box-shadow:0 0 6px rgba(255,153,0,.5)}
-  .hdot.red{background:#ff4444;box-shadow:0 0 6px rgba(255,68,68,.5)}
-  .hdot-label{font-size:9px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.5px}
-
-  .kpi-row{
-    display:flex;
-    gap:6px;
-    padding:10px 14px 0;
-  }
-  .kpi-chip{
-    flex:1;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:8px;
-    padding:7px 6px;
-    text-align:center;
-  }
-  .kpi-val{font-size:12px;font-weight:800;color:#ffd166}
-  .kpi-lbl{font-size:9px;color:#7a90a8;margin-top:2px}
-
-  .incident-list-preview{padding:12px 14px 0}
-  .incident-preview-row{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:9px 10px;
-    background:#161d2a;
-    border-radius:8px;
-    margin-bottom:5px;
-    border-left:3px solid #2a3548;
-    position:relative;
-  }
-  .incident-preview-row.p0{border-left-color:#ff4444}
-  .incident-preview-row.p1{border-left-color:#ff9900}
-  .incident-preview-row.p2{border-left-color:#f0c030}
-  .incident-preview-row.resolved{border-left-color:#7a90a8;opacity:.7}
-  .ipr-title{flex:1;font-size:11px;font-weight:600;color:#e8edf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ipr-age{font-size:10px;color:#7a90a8;flex-shrink:0}
-
-  .view-all-link{
-    display:block;
-    text-align:right;
-    font-size:11px;
-    font-weight:700;
-    color:#ffd166;
-    padding:6px 14px 0;
-    cursor:pointer;
-  }
-
-  .alert-feed-preview{padding:10px 14px 0}
-  .afp-row{
-    display:flex;
-    align-items:flex-start;
-    gap:8px;
-    padding:8px 0;
-    border-bottom:1px solid #1a2230;
-  }
-  .afp-row:last-child{border-bottom:none}
-  .afp-ts{font-size:9px;color:#7a90a8;flex-shrink:0;padding-top:1px}
-  .afp-msg{flex:1;font-size:11px;color:#c8d4e0;line-height:1.4}
-
-  .quick-triage-ctas{
-    display:flex;
-    gap:8px;
-    padding:14px;
-  }
-  .qtc-btn{
-    flex:1;
-    padding:10px;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:10px;
-    font-family:'Sora',sans-serif;
-    font-size:11px;
-    font-weight:700;
-    color:#ffd166;
-    cursor:pointer;
-    text-align:center;
-    transition:background .15s;
-  }
-  .qtc-btn:hover{background:#1e2940}
-
-  /* ═══════════════════════════════
-     TAB 2 — ROUTE INCIDENTS
-  ═══════════════════════════════ */
-
-  .filter-row{
-    display:flex;
-    gap:6px;
-    padding:12px 14px 0;
-    overflow-x:auto;
-    scrollbar-width:none;
-  }
-  .filter-row::-webkit-scrollbar{display:none}
-  .filter-chip{
-    flex-shrink:0;
-    padding:5px 12px;
-    border-radius:20px;
-    font-size:11px;
-    font-weight:700;
-    cursor:pointer;
-    border:1px solid #2a3548;
-    background:transparent;
-    color:#7a90a8;
-    font-family:'Sora',sans-serif;
-    transition:all .15s;
-  }
-  .filter-chip.active-filter{background:#ffd166;color:#0d1117;border-color:#ffd166}
-
-  .incident-list{padding:10px 14px 0}
-  .incident-card{
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:12px;
-    margin-bottom:8px;
-    overflow:hidden;
-    transition:border-color .15s;
-    cursor:pointer;
-  }
-  .incident-card.p0{
-    border-color:#ff4444;
-    animation:border-pulse 2.5s ease-in-out infinite;
-  }
-  .incident-card.resolved{opacity:.65}
-  .ic-top{
-    display:flex;
-    align-items:center;
-    gap:8px;
-    padding:11px 12px;
-  }
-  .ic-body{flex:1;min-width:0}
-  .ic-title{font-size:12px;font-weight:700;color:#e8edf5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .ic-route{font-size:10px;color:#7a90a8;margin-top:2px}
-  .ic-meta{
-    display:flex;
-    align-items:center;
-    gap:6px;
-    padding:0 12px 9px;
-    flex-wrap:wrap;
-  }
-  .ic-meta-text{font-size:10px;color:#7a90a8}
-
-  .ic-expanded{
-    padding:12px;
-    border-top:1px solid #2a3548;
-    background:#0d1117;
-    display:none;
-  }
-  .ic-expanded.open{display:block}
-  .ic-desc{font-size:11px;color:#c8d4e0;line-height:1.6;margin-bottom:10px}
-  .ic-affected-row{display:flex;align-items:center;gap:6px;margin-bottom:10px}
-  .ic-affected-label{font-size:10px;color:#7a90a8}
-
-  .timeline{margin:10px 0}
-  .tl-title{font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.7px;margin-bottom:8px}
-  .tl-items{display:flex;flex-direction:column;gap:0}
-  .tl-item{
-    display:flex;
-    align-items:flex-start;
-    gap:8px;
-    position:relative;
-  }
-  .tl-item::before{
-    content:'';
-    position:absolute;
-    left:5px;
-    top:14px;
-    width:1px;
-    height:calc(100% + 4px);
-    background:#2a3548;
-  }
-  .tl-item:last-child::before{display:none}
-  .tl-dot{
-    width:11px;height:11px;
-    border-radius:50%;
-    flex-shrink:0;
-    margin-top:3px;
-    border:2px solid #0d1117;
-    z-index:1;
-  }
-  .tl-dot.past{background:#7a90a8}
-  .tl-dot.current{background:#ffd166}
-  .tl-content{padding-bottom:10px}
-  .tl-state{font-size:11px;font-weight:700;color:#e8edf5}
-  .tl-ts{font-size:10px;color:#7a90a8}
-
-  .ic-actions{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
-
-  .create-fab{
-    position:sticky;
-    bottom:90px;
-    right:14px;
-    float:right;
-    margin-right:14px;
-    width:44px;height:44px;
-    border-radius:50%;
-    background:#ffd166;
-    color:#0d1117;
-    font-size:22px;
-    font-weight:700;
-    border:none;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow:0 4px 16px rgba(255,209,102,.4);
-    z-index:50;
-  }
-
-  /* ═══════════════════════════════
-     TAB 3 — DEPLOY & RUNTIME
-  ═══════════════════════════════ */
-
-  .alerts-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:12px 14px 0;
-  }
-  .ah-left .ah-title{font-size:14px;font-weight:800;color:#e8edf5}
-  .ah-left .ah-sub{font-size:10px;color:#7a90a8;margin-top:2px}
-  .refresh-btn{
-    width:32px;height:32px;
-    border-radius:8px;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    color:#7a90a8;
-    font-size:14px;
-    cursor:pointer;
-    display:flex;align-items:center;justify-content:center;
-  }
-
-  .alert-type-filter{
-    display:flex;
-    gap:6px;
-    padding:10px 14px 0;
-    overflow-x:auto;
-    scrollbar-width:none;
-  }
-  .alert-type-filter::-webkit-scrollbar{display:none}
-
-  .alert-feed-list{padding:10px 14px 0}
-  .alert-item{
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-left:3px solid #2a3548;
-    border-radius:10px;
-    padding:11px 12px;
-    margin-bottom:7px;
-  }
-  .alert-item.critical{border-left-color:#ff4444}
-  .alert-item.info{border-left-color:#50e890}
-  .alert-item.warning{border-left-color:#ff9900}
-  .ai-top{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
-  .ai-ts{font-size:9px;color:#7a90a8;white-space:nowrap;padding-top:2px}
-  .ai-content{flex:1;min-width:0}
-  .ai-title-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px}
-  .ai-title{font-size:12px;font-weight:700;color:#e8edf5}
-  .action-needed{
-    background:#ff4444;
-    color:#fff;
-    font-size:9px;
-    font-weight:800;
-    padding:1px 6px;
-    border-radius:4px;
-    text-transform:uppercase;
-    letter-spacing:.5px;
-  }
-  .ai-desc{font-size:11px;color:#7a90a8;line-height:1.4}
-  .ai-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:6px}
-  .ai-hash{font-family:monospace;font-size:10px;color:#ffd166;background:rgba(255,209,102,.08);padding:2px 6px;border-radius:4px}
-
-  .alert-summary-bar{
-    margin:10px 14px 0;
-    padding:10px 12px;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:10px;
-    font-size:11px;
-    color:#7a90a8;
-    display:flex;
-    align-items:center;
-    gap:6px;
-  }
-  .asb-dot{width:6px;height:6px;border-radius:50%;background:#7a90a8;flex-shrink:0}
-  .silence-btn{
-    display:block;
-    text-align:center;
-    padding:10px 14px;
-    font-size:11px;
-    color:#7a90a8;
-    cursor:pointer;
-    background:none;
-    border:none;
-    font-family:'Sora',sans-serif;
-    font-weight:600;
-    text-decoration:underline;
-    width:100%;
-  }
-
-  /* ═══════════════════════════════
-     TAB 4 — QUICK TRIAGE
-  ═══════════════════════════════ */
-
-  .triage-header{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    padding:14px 14px 0;
-  }
-  .th-title{font-size:15px;font-weight:800;color:#e8edf5}
-  .th-badge{
-    background:#ff4444;
-    color:#fff;
-    font-size:10px;
-    font-weight:800;
-    padding:2px 8px;
-    border-radius:20px;
-  }
-
-  .p0-action-card{
-    margin:12px 14px 0;
-    background:rgba(255,68,68,.08);
-    border:2px solid #ff4444;
-    border-radius:14px;
-    padding:14px;
-    animation:border-pulse 2.5s ease-in-out infinite;
-  }
-  .p0ac-label{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:#ff4444;margin-bottom:6px}
-  .p0ac-title{font-size:13px;font-weight:800;color:#e8edf5;margin-bottom:2px}
-  .p0ac-route{font-size:11px;color:#7a90a8;margin-bottom:2px}
-  .p0ac-age{font-size:11px;color:#ff9900;margin-bottom:10px}
-  .p0ac-priority{font-size:11px;color:#ff4444;font-weight:700;margin-bottom:12px}
-  .p0ac-actions{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
-  .resolution-row{margin-bottom:10px}
-  .resolution-label{font-size:10px;color:#7a90a8;margin-bottom:5px;font-weight:600}
-  .resolution-input{
-    width:100%;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:8px;
-    padding:8px 10px;
-    color:#e8edf5;
-    font-family:'Sora',sans-serif;
-    font-size:12px;
-  }
-  .toggle-row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-  }
-  .toggle-label{font-size:11px;color:#c8d4e0;font-weight:600}
-  .toggle{
-    width:36px;height:20px;
-    background:#ffd166;
-    border-radius:10px;
-    position:relative;
-    cursor:pointer;
-  }
-  .toggle::after{
-    content:'';
-    position:absolute;
-    right:3px;top:3px;
-    width:14px;height:14px;
-    background:#0d1117;
-    border-radius:50%;
-  }
-
-  .triage-actions{padding:12px 14px 0}
-  .triage-action-card{
-    background:#161d2a;
-    border:1px solid #2a3548;
-    border-radius:12px;
-    margin-bottom:8px;
-    overflow:hidden;
-  }
-  .tac-header{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    padding:12px 14px;
-    cursor:pointer;
-  }
-  .tac-title{font-size:12px;font-weight:700;color:#e8edf5}
-  .tac-chevron{font-size:12px;color:#7a90a8;transition:transform .2s}
-  .tac-chevron.open{transform:rotate(180deg)}
-  .tac-body{
-    padding:0 14px 12px;
-    display:none;
-    border-top:1px solid #2a3548;
-    padding-top:12px;
-  }
-  .tac-body.open{display:block}
-
-  .form-group{margin-bottom:10px}
-  .form-label{font-size:10px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;display:block}
-  .form-input,.form-select,.form-textarea{
-    width:100%;
-    background:#0d1117;
-    border:1px solid #2a3548;
-    border-radius:8px;
-    padding:8px 10px;
-    color:#e8edf5;
-    font-family:'Sora',sans-serif;
-    font-size:12px;
-  }
-  .form-textarea{resize:none;height:64px;line-height:1.5}
-  .form-select option{background:#0d1117}
-
-  .severity-picker{display:flex;gap:6px;margin-bottom:10px}
-  .sev-opt{
-    flex:1;
-    padding:6px 4px;
-    border-radius:8px;
-    font-family:'Sora',sans-serif;
-    font-size:11px;
-    font-weight:700;
-    cursor:pointer;
-    border:1px solid #2a3548;
-    background:transparent;
-    color:#7a90a8;
-    text-align:center;
-    transition:all .15s;
-  }
-  .sev-opt.sel-p0{background:rgba(255,68,68,.2);color:#ff4444;border-color:#ff4444}
-  .sev-opt.sel-p1{background:rgba(255,153,0,.2);color:#ff9900;border-color:#ff9900}
-  .sev-opt.sel-p2{background:rgba(240,192,48,.2);color:#f0c030;border-color:#f0c030}
-
-  .recipient-chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
-  .rc{
-    padding:4px 10px;
-    border-radius:20px;
-    font-size:10px;
-    font-weight:700;
-    cursor:pointer;
-    background:#161d2a;
-    border:1px solid #2a3548;
-    color:#7a90a8;
-    transition:all .15s;
-  }
-  .rc.selected{background:#ffd166;color:#0d1117;border-color:#ffd166}
-
-  /* ═══════════════════════════════
-     TAB 5 — SPEC
-  ═══════════════════════════════ */
-
-  .spec-section{padding:14px 14px 0}
-  .spec-block{margin-bottom:14px}
-  .spec-title{font-size:11px;font-weight:800;color:#ffd166;text-transform:uppercase;letter-spacing:.8px;margin-bottom:7px}
-  .spec-item{
-    display:flex;
-    gap:8px;
-    padding:5px 0;
-    border-bottom:1px solid #1e2836;
-    font-size:11px;
-  }
-  .spec-key{color:#7a90a8;flex-shrink:0;min-width:90px;font-weight:600}
-  .spec-val{color:#c8d4e0;line-height:1.5}
-  .spec-mono{font-family:monospace;font-size:10px;color:#50e890;background:rgba(80,232,144,.06);padding:1px 5px;border-radius:4px;display:inline-block;margin-bottom:2px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;font-family:'Sora',sans-serif;display:flex;flex-direction:column;align-items:center;padding:24px 16px;min-height:100vh}
+.hint-box{background:#2a1f00;border:1px solid #ffd166;border-radius:8px;padding:12px 16px;max-width:440px;width:100%;margin-bottom:16px;font-size:12px;color:#ffd166;line-height:1.5}
+.hint-box strong{display:block;margin-bottom:4px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;max-width:440px;width:100%;margin-bottom:16px}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #333;background:#1a1a2e;color:#888;font-family:'Sora',sans-serif;transition:all .2s}
+.tab.active{background:#ffd166;border-color:#ffd166;color:#100b2e}
+.screen{display:none;max-width:390px;width:100%}
+.screen.active{display:block}
+.phone{background:#0d1117;border-radius:32px;border:3px solid #1e2a3a;overflow:hidden;min-height:720px;display:flex;flex-direction:column}
+.nav{background:#0d1117;border-bottom:1px solid #1e2a3a;padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-title{font-size:15px;font-weight:700;color:#ffd166}
+.nav-sub{font-size:11px;color:#6a8aaa}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#ff4040;display:inline-block;animation:blink .8s ease-in-out infinite;margin-right:6px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.body{padding:16px;flex:1;overflow-y:auto}
+/* KPI strip */
+.kpi-strip{display:flex;gap:6px;margin-bottom:14px}
+.kpi{flex:1;background:#131c28;border-radius:10px;border:1px solid #1e2a3a;padding:10px 6px;text-align:center}
+.kpi-val{font-size:18px;font-weight:700}
+.kpi-label{font-size:9px;color:#6a8aaa;margin-top:2px;text-transform:uppercase}
+.kpi.p0 .kpi-val{color:#ff4040}
+.kpi.p1 .kpi-val{color:#ffb040}
+.kpi.warn .kpi-val{color:#ffd166}
+.kpi.ok .kpi-val{color:#58e8c1}
+/* Filter chips */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.fchip{padding:4px 10px;border-radius:12px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #2a3a4a;color:#90a8c0;background:transparent}
+.fchip.active{background:#ffd166;color:#100b2e;border-color:#ffd166}
+/* Incident cards */
+.incident-card{background:#131c28;border-radius:12px;border:1px solid #1e2a3a;padding:14px;margin-bottom:8px;border-left:4px solid #888}
+.incident-card.p0{border-left-color:#ff4040}
+.incident-card.p1{border-left-color:#ffb040}
+.incident-card.p2{border-left-color:#ffd166}
+.incident-card.resolved{border-left-color:#58e8c1;opacity:.6}
+.ic-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.ic-title{font-size:13px;font-weight:700;color:#e0e8f0}
+.ic-badge{display:inline-block;padding:2px 8px;border-radius:8px;font-size:10px;font-weight:700;flex-shrink:0}
+.badge-p0{background:#3a0808;color:#ff6060}
+.badge-p1{background:#3a2000;color:#ffb060}
+.badge-p2{background:#2a2000;color:#ffd166}
+.badge-res{background:#0e2a1e;color:#58e8c1}
+.ic-meta{font-size:11px;color:#6a8aaa;margin-bottom:8px}
+.ic-desc{font-size:12px;color:#90a8c0;margin-bottom:8px;line-height:1.4}
+.ic-actions{display:flex;gap:6px}
+.ic-btn{flex:1;background:#1e2a3a;border:1px solid #2a3a4a;border-radius:8px;padding:7px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;color:#90c0e0;cursor:pointer;text-align:center}
+.ic-btn.resolve{background:#0e2a1e;color:#58e8c1;border-color:#58e8c1}
+.ic-btn.escalate{background:#3a0808;color:#ff6060;border-color:#ff4040}
+/* Alert cards */
+.alert-card{background:#131c28;border-radius:12px;border:1px solid #1e2a3a;padding:14px;margin-bottom:8px}
+.alert-header{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.alert-icon{font-size:20px}
+.alert-type{font-size:12px;font-weight:700;color:#ffd166}
+.alert-time{font-size:10px;color:#6a8aaa}
+.alert-msg{font-size:12px;color:#90a8c0;line-height:1.4;margin-bottom:8px}
+.alert-env{background:#1e2a3a;border-radius:6px;padding:4px 8px;font-size:10px;color:#58e8c1;display:inline-block;margin-bottom:8px;font-family:monospace}
+/* Triage panel */
+.triage-card{background:#131c28;border-radius:12px;border:1px solid #1e2a3a;padding:16px;margin-bottom:10px}
+.tc-title{font-size:13px;font-weight:700;color:#ffd166;margin-bottom:10px}
+.triage-step{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid #1e2a3a}
+.triage-step:last-child{border-bottom:none}
+.ts-num{width:22px;height:22px;border-radius:50%;background:#ffd166;color:#100b2e;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.ts-content{flex:1}
+.ts-label{font-size:12px;font-weight:700;color:#e0e8f0}
+.ts-detail{font-size:11px;color:#6a8aaa;margin-top:2px;line-height:1.4}
+.ts-btn{display:inline-block;background:#1e2a3a;border:1px solid #2a3a4a;border-radius:6px;padding:4px 10px;font-size:11px;color:#90c0e0;cursor:pointer;margin-top:4px;font-family:'Sora',sans-serif;font-weight:700}
+/* Spec */
+.spec{padding:20px;color:#90a8c0}
+.spec h3{font-size:14px;color:#ffd166;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px;font-weight:700}
+.spec h3:first-child{margin-top:0}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
+th{background:#131c28;color:#ffd166;text-align:left;padding:6px 8px;font-size:11px}
+td{border-top:1px solid #1e2a3a;padding:6px 8px;color:#90a8c0;vertical-align:top}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.pill-r{background:#3a0808;color:#ff6060}
+.pill-y{background:#2a2000;color:#ffd166}
+.pill-g{background:#0e2a1e;color:#58e8c1}
 </style>
 </head>
 <body>
+<div class="hint-box">
+  <strong>Engineering Hint -- owner-live-incident-center-v2</strong>
+  Route: GET /owner/incidents?state=open returns active incidents sorted P0 first.
+  Filters: state=[open|mitigated|resolved], sev=[p0|p1|p2].
+  Resolve: POST /owner/incident/{id}/resolve. Escalate: POST /owner/incident/{id}/escalate.
+  Alert feed: GET /owner/alerts/live (deploy + runtime + route anomalies). Polled every 60s in beta.
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="show('incident-list')">Incident List</button>
+  <button class="tab" onclick="show('incident-detail')">Detail</button>
+  <button class="tab" onclick="show('alerts')">Deploy/Runtime</button>
+  <button class="tab" onclick="show('triage')">Quick Triage</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
 
-<div class="canvas-label">WonderQuest — Owner Live Incident Center v2 — 390px</div>
-
-<div class="phone">
-  <!-- Status Bar -->
-  <div class="status-bar">
-    <span class="status-time">9:41</span>
-    <span class="status-icons">▲▲ WiFi 🔋</span>
+<!-- INCIDENT LIST -->
+<div id="incident-list" class="screen active">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title"><span class="live-dot"></span>Live Incident Center</div>
+        <div class="nav-sub">Beta &nbsp;&#183;&nbsp; Last sync 23s ago</div>
+      </div>
+      <div style="font-size:20px;color:#ffd166;cursor:pointer">&#8635;</div>
+    </div>
+    <div class="body">
+      <div class="kpi-strip">
+        <div class="kpi p0"><div class="kpi-val">2</div><div class="kpi-label">P0</div></div>
+        <div class="kpi p1"><div class="kpi-val">4</div><div class="kpi-label">P1</div></div>
+        <div class="kpi warn"><div class="kpi-val">3</div><div class="kpi-label">Warn</div></div>
+        <div class="kpi ok"><div class="kpi-val">11</div><div class="kpi-label">OK</div></div>
+      </div>
+      <div class="filter-row">
+        <div class="fchip active">All</div>
+        <div class="fchip">Open</div>
+        <div class="fchip">P0</div>
+        <div class="fchip">P1</div>
+        <div class="fchip">Mitigated</div>
+        <div class="fchip">Resolved</div>
+      </div>
+      <div class="incident-card p0">
+        <div class="ic-header">
+          <div class="ic-title">Play route 500 errors</div>
+          <span class="ic-badge badge-p0">P0</span>
+        </div>
+        <div class="ic-meta">INC-041 &nbsp;&#183;&nbsp; Opened 14 min ago &nbsp;&#183;&nbsp; <span style="color:#ff4040">Open</span></div>
+        <div class="ic-desc">POST /play/answer/submit returning 500 for ~18% of requests. Affects child play sessions in prod.</div>
+        <div class="ic-actions">
+          <button class="ic-btn">+ Note</button>
+          <button class="ic-btn">Assign</button>
+          <button class="ic-btn resolve">Resolve</button>
+          <button class="ic-btn escalate">Escalate</button>
+        </div>
+      </div>
+      <div class="incident-card p0">
+        <div class="ic-header">
+          <div class="ic-title">Auth service latency spike</div>
+          <span class="ic-badge badge-p0">P0</span>
+        </div>
+        <div class="ic-meta">INC-040 &nbsp;&#183;&nbsp; Opened 28 min ago &nbsp;&#183;&nbsp; <span style="color:#ffb040">Mitigated</span></div>
+        <div class="ic-desc">Token refresh latency 4.2s p99 (normal: 400ms). Rollback deployed, monitoring.</div>
+        <div class="ic-actions">
+          <button class="ic-btn">+ Note</button>
+          <button class="ic-btn resolve">Resolve</button>
+        </div>
+      </div>
+      <div class="incident-card p1">
+        <div class="ic-header">
+          <div class="ic-title">Parent report load slow</div>
+          <span class="ic-badge badge-p1">P1</span>
+        </div>
+        <div class="ic-meta">INC-039 &nbsp;&#183;&nbsp; Opened 2h ago &nbsp;&#183;&nbsp; <span style="color:#ffb040">Open</span></div>
+        <div class="ic-desc">GET /parent/weekly-report/{child_id} p95 latency 6.8s. Threshold is 2s. No errors yet.</div>
+        <div class="ic-actions">
+          <button class="ic-btn">+ Note</button>
+          <button class="ic-btn">Assign</button>
+          <button class="ic-btn resolve">Resolve</button>
+        </div>
+      </div>
+      <div class="incident-card resolved">
+        <div class="ic-header">
+          <div class="ic-title">Badge unlock event missed</div>
+          <span class="ic-badge badge-res">Resolved</span>
+        </div>
+        <div class="ic-meta">INC-038 &nbsp;&#183;&nbsp; Resolved 1h ago</div>
+        <div class="ic-desc">Badge event queue consumer lag resolved. PR #412 deployed.</div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- App Header -->
-  <div class="app-header">
-    <div>
-      <div class="app-title">Live Incident Center</div>
-      <div class="app-subtitle">WonderQuest Ops · Beta</div>
+<!-- INCIDENT DETAIL -->
+<div id="incident-detail" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">INC-041</div>
+        <div class="nav-sub">P0 &nbsp;&#183;&nbsp; Open &nbsp;&#183;&nbsp; 14 min</div>
+      </div>
+      <div style="font-size:13px;color:#ffd166;cursor:pointer">Back</div>
     </div>
-    <div class="header-badge">1 P0 ACTIVE</div>
+    <div class="body">
+      <div class="triage-card" style="border-left:4px solid #ff4040">
+        <div class="tc-title">Play route 500 errors</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <span class="pill pill-r">P0</span>
+          <span style="background:#1e2a3a;color:#ffd166;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700">Open</span>
+          <span style="background:#1e2a3a;color:#90a8c0;border-radius:8px;padding:2px 8px;font-size:11px">14 min ago</span>
+        </div>
+        <div style="font-size:12px;color:#90a8c0;line-height:1.5;margin-bottom:10px">
+          POST /play/answer/submit returning 500 for ~18% of requests in production. 
+          Affects child play sessions. Error rate climbing since 20:14 UTC.
+        </div>
+        <div style="background:#0d1117;border-radius:8px;padding:10px;font-family:monospace;font-size:11px;color:#58e8c1;margin-bottom:10px">
+          500 / play/answer/submit &nbsp; 18.2%<br>
+          Onset: 20:14 UTC &nbsp; Current: 20:28 UTC<br>
+          Affected users: ~340 active sessions
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:10px">
+          <button style="flex:1;background:#0e2a1e;border:1px solid #58e8c1;border-radius:10px;padding:10px;color:#58e8c1;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Mark Resolved</button>
+          <button style="flex:1;background:#3a0808;border:1px solid #ff4040;border-radius:10px;padding:10px;color:#ff6060;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer">Escalate</button>
+        </div>
+        <div style="font-size:12px;color:#ffd166;font-weight:700;margin-bottom:6px">Activity log</div>
+        <div style="font-size:11px;color:#6a8aaa;padding:6px 0;border-bottom:1px solid #1e2a3a">20:14 &nbsp;&#183;&nbsp; Auto-detected: error rate threshold crossed</div>
+        <div style="font-size:11px;color:#6a8aaa;padding:6px 0;border-bottom:1px solid #1e2a3a">20:16 &nbsp;&#183;&nbsp; Incident created by monitoring</div>
+        <div style="font-size:11px;color:#90a8c0;padding:6px 0">20:20 &nbsp;&#183;&nbsp; Owner: Assigned to eng team</div>
+      </div>
+    </div>
   </div>
+</div>
 
-  <!-- ══════════════════════════════
-       TAB 1 — INCIDENT DASHBOARD
-  ══════════════════════════════ -->
-  <div id="tab1" class="panel active">
-
-    <!-- Incident Banner -->
-    <div class="incident-bar p0-active">
-      🚨 1 Active Incident — P0 in progress
-    </div>
-
-    <!-- Engineering Hint -->
-    <div class="eng-hint">
-      <strong>Engineering · Tab 1 — Incident Dashboard</strong>
-      Live ops at-a-glance. Route health polls <code>GET /owner/routes/health</code> every 2 min. Alert feed streams via WebSocket. KPI chips derive from rolling 24h window. Incident list preview queries <code>GET /owner/incidents?limit=3&sort=severity</code>. Banner becomes "✅ All Clear" when 0 open incidents.
-    </div>
-
-    <!-- System Health Row -->
-    <div class="section">
-      <div class="section-label">System Health</div>
-      <div class="system-health-row" style="padding:0">
-        <div class="health-dot-card">
-          <div class="hdot red"></div>
-          <div class="hdot-label">API</div>
-        </div>
-        <div class="health-dot-card">
-          <div class="hdot green"></div>
-          <div class="hdot-label">CDN</div>
-        </div>
-        <div class="health-dot-card">
-          <div class="hdot green"></div>
-          <div class="hdot-label">Auth</div>
-        </div>
-        <div class="health-dot-card">
-          <div class="hdot amber"></div>
-          <div class="hdot-label">Sessions</div>
-        </div>
+<!-- DEPLOY/RUNTIME ALERTS -->
+<div id="alerts" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Deploy &amp; Runtime</div>
+        <div class="nav-sub">Last 24h</div>
       </div>
     </div>
-
-    <!-- KPI Row -->
-    <div class="kpi-row">
-      <div class="kpi-chip">
-        <div class="kpi-val">99.7%</div>
-        <div class="kpi-lbl">Uptime</div>
+    <div class="body">
+      <div class="alert-card">
+        <div class="alert-header">
+          <span class="alert-icon">&#128308;</span>
+          <div>
+            <div class="alert-type">Deploy Failed</div>
+            <div class="alert-time">20:10 UTC &nbsp;&#183;&nbsp; 18 min ago</div>
+          </div>
+        </div>
+        <div class="alert-env">prod / play-service / v2.4.1-rc3</div>
+        <div class="alert-msg">Health check failed after deploy. Auto-rollback to v2.4.0 triggered. Error rate dropped.</div>
+        <div class="ic-actions">
+          <button class="ic-btn">View Logs</button>
+          <button class="ic-btn">View PR</button>
+        </div>
       </div>
-      <div class="kpi-chip">
-        <div class="kpi-val">8/8</div>
-        <div class="kpi-lbl">Active Routes</div>
+      <div class="alert-card">
+        <div class="alert-header">
+          <span class="alert-icon">&#128993;</span>
+          <div>
+            <div class="alert-type">Latency Warning</div>
+            <div class="alert-time">19:42 UTC &nbsp;&#183;&nbsp; 46 min ago</div>
+          </div>
+        </div>
+        <div class="alert-env">prod / parent-service / report endpoint</div>
+        <div class="alert-msg">p95 latency 6.8s (threshold 2s). Linked to INC-039. No errors, monitoring.</div>
+        <div class="ic-actions">
+          <button class="ic-btn">View INC-039</button>
+          <button class="ic-btn">Metrics</button>
+        </div>
       </div>
-      <div class="kpi-chip">
-        <div class="kpi-val" style="color:#ff9900">0.3%</div>
-        <div class="kpi-lbl">Error Rate</div>
+      <div class="alert-card">
+        <div class="alert-header">
+          <span class="alert-icon">&#128994;</span>
+          <div>
+            <div class="alert-type">Deploy Success</div>
+            <div class="alert-time">18:55 UTC &nbsp;&#183;&nbsp; 1h 33m ago</div>
+          </div>
+        </div>
+        <div class="alert-env">prod / teacher-service / v1.9.2</div>
+        <div class="alert-msg">Healthy. All checks passed. No incidents opened.</div>
+      </div>
+      <div class="alert-card">
+        <div class="alert-header">
+          <span class="alert-icon">&#128994;</span>
+          <div>
+            <div class="alert-type">Deploy Success</div>
+            <div class="alert-time">16:30 UTC &nbsp;&#183;&nbsp; 3h 58m ago</div>
+          </div>
+        </div>
+        <div class="alert-env">prod / content-service / v1.2.4</div>
+        <div class="alert-msg">Healthy. Coverage map query optimization deployed.</div>
       </div>
     </div>
-
-    <!-- Incident List Preview -->
-    <div class="incident-list-preview">
-      <div class="section-label" style="margin-top:12px">Recent Incidents</div>
-
-      <div class="incident-preview-row p0">
-        <span class="chip chip-p0">P0</span>
-        <span class="ipr-title">API gateway 500s on /play/session</span>
-        <span class="ipr-age">14m</span>
-        <span class="chip chip-open">Open</span>
-      </div>
-
-      <div class="incident-preview-row p1">
-        <span class="chip chip-p1">P1</span>
-        <span class="ipr-title">Session state loss under high load</span>
-        <span class="ipr-age">2h</span>
-        <span class="chip chip-inprogress">In Progress</span>
-      </div>
-
-      <div class="incident-preview-row resolved">
-        <span class="chip chip-resolved">P2</span>
-        <span class="ipr-title">CDN cache stale for /assets/worlds</span>
-        <span class="ipr-age">6h</span>
-        <span class="chip chip-resolved">Resolved</span>
-      </div>
-    </div>
-    <div class="view-all-link" onclick="show('tab2')">View all incidents →</div>
-
-    <!-- Alert Feed Preview -->
-    <div class="section" style="margin-top:4px">
-      <div class="section-label">Recent Alerts</div>
-      <div class="card">
-        <div class="alert-feed-preview">
-          <div class="afp-row">
-            <span class="afp-ts">09:27</span>
-            <span class="chip chip-system" style="flex-shrink:0">System</span>
-            <span class="afp-msg">API gateway error rate crossed 0.3% threshold on prod</span>
-          </div>
-          <div class="afp-row">
-            <span class="afp-ts">08:54</span>
-            <span class="chip chip-deploy" style="flex-shrink:0">Deploy</span>
-            <span class="afp-msg">v0.14.3 deployed to prod — 3 services restarted</span>
-          </div>
-          <div class="afp-row">
-            <span class="afp-ts">07:12</span>
-            <span class="chip chip-runtime" style="flex-shrink:0">Runtime</span>
-            <span class="afp-msg">Session service p95 latency spiked to 1.4s</span>
-          </div>
-        </div>
-      </div>
-    </div>
-    <div class="view-all-link" onclick="show('tab3')">View full alert feed →</div>
-
-    <!-- Quick Triage CTAs -->
-    <div class="quick-triage-ctas">
-      <button class="qtc-btn" onclick="show('tab2')">View Incidents →</button>
-      <button class="qtc-btn" onclick="show('tab3')">Check Routes →</button>
-    </div>
-
-  </div><!-- /tab1 -->
-
-  <!-- ══════════════════════════════
-       TAB 2 — ROUTE INCIDENTS
-  ══════════════════════════════ -->
-  <div id="tab2" class="panel">
-
-    <!-- Engineering Hint -->
-    <div class="eng-hint">
-      <strong>Engineering · Tab 2 — Route Incidents</strong>
-      Full incident list from <code>GET /owner/incidents</code>. Filters client-side on severity (P0/P1/P2) and state (Open/In Progress/Resolved). Each card expands on tap. Quick actions call <code>PUT /owner/incidents/:id</code> with updated status/escalation fields. P0 cards animate border-pulse. "+" FAB opens create flow.
-    </div>
-
-    <!-- Severity Filters -->
-    <div class="section-label" style="padding:12px 14px 0">Filter by Severity</div>
-    <div class="filter-row">
-      <button class="filter-chip active-filter" onclick="setFilter(this,'sev','all')">All</button>
-      <button class="filter-chip" onclick="setFilter(this,'sev','p0')">P0</button>
-      <button class="filter-chip" onclick="setFilter(this,'sev','p1')">P1</button>
-      <button class="filter-chip" onclick="setFilter(this,'sev','p2')">P2</button>
-    </div>
-
-    <!-- State Filters -->
-    <div class="section-label" style="padding:8px 14px 0">Filter by State</div>
-    <div class="filter-row">
-      <button class="filter-chip active-filter" onclick="setFilter(this,'state','all')">All</button>
-      <button class="filter-chip" onclick="setFilter(this,'state','open')">Open</button>
-      <button class="filter-chip" onclick="setFilter(this,'state','inprogress')">In Progress</button>
-      <button class="filter-chip" onclick="setFilter(this,'state','resolved')">Resolved</button>
-    </div>
-
-    <!-- Incident List -->
-    <div class="incident-list">
-
-      <!-- INC-001: P0 Open -->
-      <div class="incident-card p0" onclick="toggleCard(this)">
-        <div class="ic-top">
-          <span class="chip chip-p0">P0</span>
-          <div class="ic-body">
-            <div class="ic-title">API gateway 500s on /play/session</div>
-            <div class="ic-route">Route: POST /play/session/start</div>
-          </div>
-          <span class="chip chip-open">Open</span>
-        </div>
-        <div class="ic-meta">
-          <span class="ic-meta-text">Opened 09:27</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Age: 14m</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Team: Platform</span>
-          <span class="chip chip-p0" style="margin-left:auto;font-size:9px">SLA: 1h 46m left</span>
-        </div>
-        <div class="ic-expanded">
-          <div class="ic-desc">API gateway returning HTTP 500 on all POST /play/session/start requests. Affecting ~40% of active users. Root cause under investigation — likely session state serialization regression in v0.14.3.</div>
-          <div class="ic-affected-row">
-            <span class="ic-affected-label">Affected:</span>
-            <span class="chip chip-p0" style="font-size:10px">POST</span>
-            <span style="font-size:11px;color:#e8edf5;font-family:monospace">/play/session/start</span>
-            <span class="chip chip-prod" style="margin-left:auto">prod</span>
-          </div>
-          <div class="timeline">
-            <div class="tl-title">Timeline</div>
-            <div class="tl-items">
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Opened</div>
-                  <div class="tl-ts">09:27 · 14m ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Assigned</div>
-                  <div class="tl-ts">09:29 · 12m ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot current"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Investigating</div>
-                  <div class="tl-ts">09:31 · 10m ago</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="ic-actions">
-            <button class="btn btn-danger" style="font-size:11px;padding:7px 11px">Escalate 🚨</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:7px 11px">Update Status →</button>
-            <button class="btn btn-gold" style="font-size:11px;padding:7px 11px">Resolve ✅</button>
-            <button class="btn btn-ghost">Add Note</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- INC-002: P1 In Progress -->
-      <div class="incident-card" onclick="toggleCard(this)">
-        <div class="ic-top">
-          <span class="chip chip-p1">P1</span>
-          <div class="ic-body">
-            <div class="ic-title">Session state loss under high load</div>
-            <div class="ic-route">Route: GET /play/session/:id</div>
-          </div>
-          <span class="chip chip-inprogress">In Progress</span>
-        </div>
-        <div class="ic-meta">
-          <span class="ic-meta-text">Opened 07:43</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Age: 2h</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Team: Sessions</span>
-          <span class="chip chip-p1" style="margin-left:auto;font-size:9px">SLA: 22h left</span>
-        </div>
-        <div class="ic-expanded">
-          <div class="ic-desc">Users report session state being reset mid-play under high concurrent load. Occurring at >200 concurrent sessions. Workaround in place — throttling enabled. Fix in progress.</div>
-          <div class="ic-affected-row">
-            <span class="ic-affected-label">Affected:</span>
-            <span class="chip chip-gold" style="font-size:10px">GET</span>
-            <span style="font-size:11px;color:#e8edf5;font-family:monospace">/play/session/:id</span>
-            <span class="chip chip-prod" style="margin-left:auto">prod</span>
-          </div>
-          <div class="timeline">
-            <div class="tl-title">Timeline</div>
-            <div class="tl-items">
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Opened</div>
-                  <div class="tl-ts">07:43 · 2h ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Assigned → Sessions</div>
-                  <div class="tl-ts">07:50 · 1h 53m ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot current"></div>
-                <div class="tl-content">
-                  <div class="tl-state">In Progress</div>
-                  <div class="tl-ts">08:15 · 1h 26m ago</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="ic-actions">
-            <button class="btn btn-danger" style="font-size:11px;padding:7px 11px">Escalate 🚨</button>
-            <button class="btn btn-outline" style="font-size:11px;padding:7px 11px">Update Status →</button>
-            <button class="btn btn-gold" style="font-size:11px;padding:7px 11px">Resolve ✅</button>
-            <button class="btn btn-ghost">Add Note</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- INC-003: P2 Resolved -->
-      <div class="incident-card resolved" onclick="toggleCard(this)">
-        <div class="ic-top">
-          <span class="chip chip-resolved">P2</span>
-          <div class="ic-body">
-            <div class="ic-title">CDN cache stale for /assets/worlds</div>
-            <div class="ic-route">Route: GET /assets/worlds/*</div>
-          </div>
-          <span class="chip chip-resolved">Resolved</span>
-        </div>
-        <div class="ic-meta">
-          <span class="ic-meta-text">Opened 03:10</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Age: 6h</span>
-          <span style="color:#2a3548">·</span>
-          <span class="ic-meta-text">Team: Infra</span>
-          <span class="chip chip-resolved" style="margin-left:auto;font-size:9px">Resolved</span>
-        </div>
-        <div class="ic-expanded">
-          <div class="ic-desc">CDN edge nodes were serving stale world asset bundles after v0.14.2 deploy. Cache purge executed manually. All nodes reporting fresh content. Post-mortem scheduled.</div>
-          <div class="ic-affected-row">
-            <span class="ic-affected-label">Affected:</span>
-            <span class="chip chip-gold" style="font-size:10px">GET</span>
-            <span style="font-size:11px;color:#e8edf5;font-family:monospace">/assets/worlds/*</span>
-            <span class="chip chip-prod" style="margin-left:auto">prod</span>
-          </div>
-          <div class="timeline">
-            <div class="tl-title">Timeline</div>
-            <div class="tl-items">
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Opened</div>
-                  <div class="tl-ts">03:10 · 6h ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Investigating</div>
-                  <div class="tl-ts">03:22 · 5h 49m ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot past"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Resolved</div>
-                  <div class="tl-ts">04:05 · 5h 6m ago</div>
-                </div>
-              </div>
-              <div class="tl-item">
-                <div class="tl-dot current"></div>
-                <div class="tl-content">
-                  <div class="tl-state">Post-Mortem scheduled</div>
-                  <div class="tl-ts">09:00 · 41m ago</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="ic-actions">
-            <button class="btn btn-outline" style="font-size:11px;padding:7px 11px">View Thread →</button>
-            <button class="btn btn-ghost">Add Note</button>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /incident-list -->
-
-    <!-- FAB -->
-    <button class="create-fab" title="Create Incident">+</button>
-
-  </div><!-- /tab2 -->
-
-  <!-- ══════════════════════════════
-       TAB 3 — DEPLOY & RUNTIME ALERTS
-  ══════════════════════════════ -->
-  <div id="tab3" class="panel">
-
-    <!-- Engineering Hint -->
-    <div class="eng-hint">
-      <strong>Engineering · Tab 3 — Deploy &amp; Runtime Alerts</strong>
-      Feed from <code>GET /owner/alerts/feed</code> (REST fallback) + real-time WebSocket stream. Deploy alerts include short commit hash + environment. Runtime alerts show error type, service name, occurrence count. "Critical" runtime alerts require owner acknowledgement before silencing.
-    </div>
-
-    <!-- Header -->
-    <div class="alerts-header">
-      <div class="ah-left">
-        <div class="ah-title">Deploy &amp; Runtime Feed</div>
-        <div class="ah-sub">Last updated: just now</div>
-      </div>
-      <button class="refresh-btn">↻</button>
-    </div>
-
-    <!-- Type Filter -->
-    <div class="alert-type-filter">
-      <button class="filter-chip active-filter">All</button>
-      <button class="filter-chip">Deploy</button>
-      <button class="filter-chip">Runtime</button>
-      <button class="filter-chip">System</button>
-    </div>
-
-    <!-- Alert Feed -->
-    <div class="alert-feed-list">
-
-      <!-- Critical runtime -->
-      <div class="alert-item critical">
-        <div class="ai-top">
-          <div class="ai-ts">09:27<br>2m ago</div>
-          <div class="ai-content">
-            <div class="ai-title-row">
-              <span class="chip chip-system">System</span>
-              <span class="ai-title">API error rate threshold breached</span>
-              <span class="action-needed">Action Needed</span>
-            </div>
-            <div class="ai-desc">Error rate on API gateway exceeded 0.3% SLA threshold. Triggered by POST /play/session/start — 500 errors from session serialization.</div>
-            <div class="ai-meta">
-              <span class="chip chip-prod">prod</span>
-              <span style="font-size:10px;color:#7a90a8">Service: api-gateway</span>
-              <span style="font-size:10px;color:#ff4444">×47 occurrences</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Runtime warning -->
-      <div class="alert-item warning">
-        <div class="ai-top">
-          <div class="ai-ts">09:14<br>17m ago</div>
-          <div class="ai-content">
-            <div class="ai-title-row">
-              <span class="chip chip-runtime">Runtime</span>
-              <span class="ai-title">Session p95 latency spike</span>
-            </div>
-            <div class="ai-desc">p95 latency on session service rose to 1,420ms — above 800ms warning threshold. Auto-throttle enabled at 200 concurrent sessions.</div>
-            <div class="ai-meta">
-              <span class="chip chip-prod">prod</span>
-              <span style="font-size:10px;color:#7a90a8">Service: session-svc</span>
-              <span style="font-size:10px;color:#ff9900">×12 occurrences</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Successful deploy -->
-      <div class="alert-item info">
-        <div class="ai-top">
-          <div class="ai-ts">08:54<br>47m ago</div>
-          <div class="ai-content">
-            <div class="ai-title-row">
-              <span class="chip chip-deploy">Deploy</span>
-              <span class="ai-title">v0.14.3 deployed to prod</span>
-            </div>
-            <div class="ai-desc">3 services restarted. All health checks passed within 45s. Rollback window: 24h.</div>
-            <div class="ai-meta">
-              <span class="ai-hash">a3f82c1</span>
-              <span class="chip chip-prod">prod</span>
-              <span style="font-size:10px;color:#7a90a8">By: ci-deploy-bot</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Staging deploy -->
-      <div class="alert-item info">
-        <div class="ai-top">
-          <div class="ai-ts">08:31<br>1h ago</div>
-          <div class="ai-content">
-            <div class="ai-title-row">
-              <span class="chip chip-deploy">Deploy</span>
-              <span class="ai-title">v0.14.4-rc1 deployed to staging</span>
-            </div>
-            <div class="ai-desc">Session state serialization fix candidate. Running smoke tests. Promoting to prod pending QA sign-off.</div>
-            <div class="ai-meta">
-              <span class="ai-hash">d9b1e43</span>
-              <span class="chip chip-staging">staging</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Runtime info -->
-      <div class="alert-item">
-        <div class="ai-top">
-          <div class="ai-ts">07:12<br>2h ago</div>
-          <div class="ai-content">
-            <div class="ai-title-row">
-              <span class="chip chip-runtime">Runtime</span>
-              <span class="ai-title">CDN cache invalidation completed</span>
-            </div>
-            <div class="ai-desc">Manual cache purge for /assets/worlds/* completed. All 14 edge nodes confirmed fresh content delivery.</div>
-            <div class="ai-meta">
-              <span class="chip chip-prod">prod</span>
-              <span style="font-size:10px;color:#50e890">Resolved</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-    </div><!-- /alert-feed-list -->
-
-    <!-- Summary Bar -->
-    <div class="alert-summary-bar">
-      <div class="asb-dot" style="background:#00d2d2"></div>
-      <span>Today: <strong style="color:#e8edf5">3 deploys</strong></span>
-      <span style="color:#2a3548">·</span>
-      <span><strong style="color:#ff9900">2 runtime alerts</strong></span>
-      <span style="color:#2a3548">·</span>
-      <span><strong style="color:#ff4444">1 system event</strong></span>
-    </div>
-
-    <button class="silence-btn">Silence low-priority alerts for 1h</button>
-
-  </div><!-- /tab3 -->
-
-  <!-- ══════════════════════════════
-       TAB 4 — QUICK TRIAGE
-  ══════════════════════════════ -->
-  <div id="tab4" class="panel">
-
-    <!-- Engineering Hint -->
-    <div class="eng-hint">
-      <strong>Engineering · Tab 4 — Quick Triage Actions</strong>
-      P0 action card surfaces only when <code>GET /owner/incidents?severity=P0&state=open</code> returns results. "Escalate" triggers <code>PUT /owner/incidents/:id</code> with <code>escalated:true</code> + pings on-call via PagerDuty webhook. "Broadcast" sends to selected recipients via <code>POST /owner/status-update</code>. Notify-stakeholders toggle stores preference per incident.
-    </div>
-
-    <!-- Triage Header -->
-    <div class="triage-header">
-      <div class="th-title">Quick Triage</div>
-      <div class="th-badge">1 Active P0</div>
-    </div>
-
-    <!-- P0 Action Card -->
-    <div class="p0-action-card">
-      <div class="p0ac-label">🚨 P0 — Highest Priority</div>
-      <div class="p0ac-title">API gateway 500s on /play/session</div>
-      <div class="p0ac-route">POST /play/session/start · Platform Team</div>
-      <div class="p0ac-age">Open for 14 minutes</div>
-      <div class="p0ac-priority">This is your highest priority 🚨</div>
-      <div class="p0ac-actions">
-        <button class="btn btn-danger">Escalate to Engineering →</button>
-        <button class="btn btn-outline">Update Status</button>
-        <button class="btn btn-ghost">View Thread →</button>
-      </div>
-      <div class="resolution-row">
-        <div class="resolution-label">Estimated resolution time:</div>
-        <input class="resolution-input" type="text" placeholder="e.g. 30 min, 2 hours…">
-      </div>
-      <div class="toggle-row">
-        <span class="toggle-label">Notify stakeholders</span>
-        <div class="toggle"></div>
-      </div>
-    </div>
-
-    <!-- Standard Triage Actions -->
-    <div class="triage-actions">
-
-      <!-- Create New Incident -->
-      <div class="triage-action-card">
-        <div class="tac-header" onclick="toggleTac(this)">
-          <span class="tac-title">+ Create New Incident</span>
-          <span class="tac-chevron">▾</span>
-        </div>
-        <div class="tac-body">
-          <div class="form-label">Severity</div>
-          <div class="severity-picker">
-            <button class="sev-opt" onclick="selSev(this,'p0')">P0</button>
-            <button class="sev-opt sel-p1" onclick="selSev(this,'p1')">P1</button>
-            <button class="sev-opt" onclick="selSev(this,'p2')">P2</button>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Title</label>
-            <input class="form-input" placeholder="Brief incident title…">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Route Affected</label>
-            <input class="form-input" placeholder="e.g. POST /play/session/start">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Description</label>
-            <textarea class="form-textarea" placeholder="What's happening? What's the impact?"></textarea>
-          </div>
-          <button class="btn btn-gold" style="width:100%;justify-content:center">Create Incident</button>
-        </div>
-      </div>
-
-      <!-- Update Route Status -->
-      <div class="triage-action-card">
-        <div class="tac-header" onclick="toggleTac(this)">
-          <span class="tac-title">↻ Update Route Status</span>
-          <span class="tac-chevron">▾</span>
-        </div>
-        <div class="tac-body">
-          <div class="form-group">
-            <label class="form-label">Route</label>
-            <select class="form-select">
-              <option>POST /play/session/start</option>
-              <option>GET /play/session/:id</option>
-              <option>GET /owner/incidents</option>
-              <option>GET /assets/worlds/*</option>
-              <option>GET /owner/routes/health</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">New Status</label>
-            <select class="form-select">
-              <option>Investigating</option>
-              <option>In Progress</option>
-              <option>Resolved</option>
-              <option>Degraded</option>
-              <option>Operational</option>
-            </select>
-          </div>
-          <button class="btn btn-gold" style="width:100%;justify-content:center">Save Status</button>
-        </div>
-      </div>
-
-      <!-- Trigger Deploy Check -->
-      <div class="triage-action-card">
-        <div class="tac-header" onclick="toggleTac(this)">
-          <span class="tac-title">🔍 Trigger Deploy Check</span>
-          <span class="tac-chevron">▾</span>
-        </div>
-        <div class="tac-body">
-          <div class="form-group">
-            <label class="form-label">Environment</label>
-            <select class="form-select">
-              <option>Production</option>
-              <option>Staging</option>
-              <option>All Environments</option>
-            </select>
-          </div>
-          <button class="btn btn-gold" style="width:100%;justify-content:center">Run Check</button>
-        </div>
-      </div>
-
-      <!-- Send Status Update -->
-      <div class="triage-action-card">
-        <div class="tac-header" onclick="toggleTac(this)">
-          <span class="tac-title">📣 Send Status Update</span>
-          <span class="tac-chevron">▾</span>
-        </div>
-        <div class="tac-body">
-          <div class="form-label" style="margin-bottom:6px">Recipients</div>
-          <div class="recipient-chips">
-            <div class="rc selected" onclick="toggleRc(this)">Engineering</div>
-            <div class="rc selected" onclick="toggleRc(this)">Product</div>
-            <div class="rc" onclick="toggleRc(this)">Design</div>
-            <div class="rc" onclick="toggleRc(this)">Leadership</div>
-            <div class="rc" onclick="toggleRc(this)">On-Call</div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Message</label>
-            <textarea class="form-textarea" placeholder="Status update message for stakeholders…"></textarea>
-          </div>
-          <button class="btn btn-gold" style="width:100%;justify-content:center">📣 Broadcast</button>
-        </div>
-      </div>
-
-    </div><!-- /triage-actions -->
-
-  </div><!-- /tab4 -->
-
-  <!-- ══════════════════════════════
-       TAB 5 — SPEC
-  ══════════════════════════════ -->
-  <div id="tab5" class="panel">
-
-    <div class="eng-hint">
-      <strong>Engineering · Tab 5 — Spec Reference</strong>
-      Full API contract, severity SLAs, incident state machine, alert taxonomy, auto-escalation rules, and design tokens for this surface. Use this as the source of truth during implementation and review.
-    </div>
-
-    <div class="spec-section">
-
-      <div class="spec-block">
-        <div class="spec-title">API Routes</div>
-        <div class="spec-item">
-          <span class="spec-key">Incidents</span>
-          <span class="spec-val">
-            <span class="spec-mono">GET /owner/incidents</span>
-            <span class="spec-mono">POST /owner/incidents</span>
-            <span class="spec-mono">PUT /owner/incidents/:id</span>
-          </span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Alert Feed</span>
-          <span class="spec-val">
-            <span class="spec-mono">GET /owner/alerts/feed</span>
-          </span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Route Health</span>
-          <span class="spec-val">
-            <span class="spec-mono">GET /owner/routes/health</span>
-          </span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Incident Severity SLAs</div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#ff4444">P0</span>
-          <span class="spec-val">Immediate response required. SLA: 2h to resolution. Auto-escalate if no update in 1h.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#ff9900">P1</span>
-          <span class="spec-val">Urgent. SLA: 24h to resolution. Escalate if 50% SLA elapsed with no progress.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#f0c030">P2</span>
-          <span class="spec-val">Non-critical. SLA: 72h to resolution. Monitor for escalation if no owner activity.</span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Incident State Machine</div>
-        <div class="spec-item">
-          <span class="spec-key">Flow</span>
-          <span class="spec-val">Open → Investigating → In Progress → Resolved → Post-Mortem</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Transitions</span>
-          <span class="spec-val">Any state can move to Resolved. Post-Mortem required for P0 after resolution.</span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Alert Types</div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#00d2d2">Deploy</span>
-          <span class="spec-val">New code pushed to an environment. Includes commit hash + service restart events.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#ff9900">Runtime</span>
-          <span class="spec-val">Error rate spike / latency threshold breach / memory pressure. Real-time via WebSocket.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key" style="color:#ff4444">System</span>
-          <span class="spec-val">Infrastructure events: node failure, CDN outage, DB failover. Requires owner ack.</span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Auto-Escalation Rules</div>
-        <div class="spec-item">
-          <span class="spec-key">P0 No-Update</span>
-          <span class="spec-val">P0 incident not updated in 1h → auto-ping on-call + escalate severity flag.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">SLA 50%</span>
-          <span class="spec-val">SLA countdown at 50% elapsed → notify assigned team + add to triage queue.</span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Data Refresh</div>
-        <div class="spec-item">
-          <span class="spec-key">Route Health</span>
-          <span class="spec-val">Poll every 2 minutes via <code style="font-size:10px;color:#50e890">GET /owner/routes/health</code>.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Alert Feed</span>
-          <span class="spec-val">Real-time via WebSocket. REST fallback: poll every 30s if WS disconnected.</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Dashboard KPIs</span>
-          <span class="spec-val">Rolling 24h window. Recalculated server-side every 5 min.</span>
-        </div>
-      </div>
-
-      <div class="spec-block">
-        <div class="spec-title">Design Tokens</div>
-        <div class="spec-item">
-          <span class="spec-key">Background</span>
-          <span class="spec-val"><code style="font-size:10px;color:#50e890">#0d1117</code></span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Card</span>
-          <span class="spec-val"><code style="font-size:10px;color:#50e890">#161d2a</code></span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Border</span>
-          <span class="spec-val"><code style="font-size:10px;color:#50e890">#2a3548</code></span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Gold Accent</span>
-          <span class="spec-val"><code style="font-size:10px;color:#ffd166">#ffd166</code></span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Font</span>
-          <span class="spec-val">Sora (Google Fonts) — 400/500/600/700/800</span>
-        </div>
-        <div class="spec-item">
-          <span class="spec-key">Frame</span>
-          <span class="spec-val">390px wide, 844px min-height, border-radius 40px</span>
-        </div>
-      </div>
-
-    </div><!-- /spec-section -->
-  </div><!-- /tab5 -->
-
-  <!-- ══════════════════════════════
-       TAB BAR
-  ══════════════════════════════ -->
-  <div class="tab-bar">
-    <button class="tab-btn active" onclick="show('tab1')">
-      <span class="tab-icon">📊</span>
-      Dashboard
-      <div class="tab-dot visible"></div>
-    </button>
-    <button class="tab-btn" onclick="show('tab2')">
-      <span class="tab-icon">🚨</span>
-      Incidents
-    </button>
-    <button class="tab-btn" onclick="show('tab3')">
-      <span class="tab-icon">⚡</span>
-      Alerts
-    </button>
-    <button class="tab-btn" onclick="show('tab4')">
-      <span class="tab-icon">🎯</span>
-      Triage
-    </button>
-    <button class="tab-btn" onclick="show('tab5')">
-      <span class="tab-icon">📋</span>
-      Spec
-    </button>
   </div>
+</div>
 
-</div><!-- /phone -->
+<!-- QUICK TRIAGE -->
+<div id="triage" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Quick Triage</div>
+        <div class="nav-sub">Beta ops playbook</div>
+      </div>
+    </div>
+    <div class="body">
+      <div class="triage-card">
+        <div class="tc-title">P0 Response Steps</div>
+        <div class="triage-step">
+          <div class="ts-num">1</div>
+          <div class="ts-content">
+            <div class="ts-label">Identify affected route</div>
+            <div class="ts-detail">Check error rate, which endpoints, how many users</div>
+            <div class="ts-btn">Open Metrics</div>
+          </div>
+        </div>
+        <div class="triage-step">
+          <div class="ts-num">2</div>
+          <div class="ts-content">
+            <div class="ts-label">Check recent deploys</div>
+            <div class="ts-detail">Was anything deployed in last 2h? Auto-rollback eligible?</div>
+            <div class="ts-btn">Deploy Log</div>
+          </div>
+        </div>
+        <div class="triage-step">
+          <div class="ts-num">3</div>
+          <div class="ts-content">
+            <div class="ts-label">Assign or rollback</div>
+            <div class="ts-detail">Assign to on-call eng. If deploy-caused, initiate rollback.</div>
+            <div class="ts-btn">Assign Incident</div>
+          </div>
+        </div>
+        <div class="triage-step">
+          <div class="ts-num">4</div>
+          <div class="ts-content">
+            <div class="ts-label">Log and monitor</div>
+            <div class="ts-detail">Add note. Monitor 10 min. Mark resolved when error rate drops.</div>
+            <div class="ts-btn">Add Note</div>
+          </div>
+        </div>
+      </div>
+      <div class="triage-card">
+        <div class="tc-title">Fast Actions</div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <button style="background:#1e2a3a;border:1px solid #2a3a4a;border-radius:10px;padding:12px;color:#ffd166;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:left">&#128204; Create new P0 incident</button>
+          <button style="background:#1e2a3a;border:1px solid #2a3a4a;border-radius:10px;padding:12px;color:#90c0e0;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:left">&#128203; View all open incidents</button>
+          <button style="background:#1e2a3a;border:1px solid #2a3a4a;border-radius:10px;padding:12px;color:#58e8c1;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:left">&#128200; Route health dashboard</button>
+          <button style="background:#0e2a1e;border:1px solid #58e8c1;border-radius:10px;padding:12px;color:#58e8c1;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;text-align:left">&#10003; Mark INC-040 resolved</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="screen">
+  <div class="phone">
+    <div class="spec">
+      <h3>Routes</h3>
+      <table><tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+      <tr><td>GET</td><td>/owner/incidents</td><td>All incidents, filter: state/sev</td></tr>
+      <tr><td>GET</td><td>/owner/incidents/{id}</td><td>Detail + activity log</td></tr>
+      <tr><td>POST</td><td>/owner/incident/create</td><td>Create manual incident</td></tr>
+      <tr><td>POST</td><td>/owner/incident/{id}/resolve</td><td>Mark resolved</td></tr>
+      <tr><td>POST</td><td>/owner/incident/{id}/escalate</td><td>Escalate to P0</td></tr>
+      <tr><td>GET</td><td>/owner/alerts/live</td><td>Deploy + runtime + anomalies</td></tr></table>
+      <h3>Severity Levels</h3>
+      <table><tr><th>Sev</th><th>Left Border</th><th>Response SLA</th><th>Examples</th></tr>
+      <tr><td>P0</td><td>#ff4040</td><td>Immediate</td><td>Play route 500s, auth down</td></tr>
+      <tr><td>P1</td><td>#ffb040</td><td>30 min</td><td>Latency spike, data lag</td></tr>
+      <tr><td>P2</td><td>#ffd166</td><td>2h</td><td>Minor degradation, slow queries</td></tr>
+      <tr><td>Resolved</td><td>#58e8c1</td><td>--</td><td>Closed incidents</td></tr></table>
+      <h3>Design Tokens</h3>
+      <table><tr><th>Token</th><th>Value</th></tr>
+      <tr><td>Owner bg</td><td>#0d1117</td></tr>
+      <tr><td>Gold accent</td><td>#ffd166</td></tr>
+      <tr><td>P0 color</td><td>#ff4040</td></tr>
+      <tr><td>P1 color</td><td>#ffb040</td></tr>
+      <tr><td>Resolved color</td><td>#58e8c1</td></tr>
+      <tr><td>Font</td><td>Sora / 390px mobile</td></tr></table>
+    </div>
+  </div>
+</div>
 
 <script>
-  // ─── Tab Switcher ───
-  function show(tabId) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    const idx = ['tab1','tab2','tab3','tab4','tab5'].indexOf(tabId);
-    document.querySelectorAll('.tab-btn')[idx].classList.add('active');
-  }
-
-  // ─── Incident Card Toggle ───
-  function toggleCard(card) {
-    const expanded = card.querySelector('.ic-expanded');
-    if (!expanded) return;
-    const isOpen = expanded.classList.contains('open');
-    // Close all others
-    document.querySelectorAll('.ic-expanded.open').forEach(e => e.classList.remove('open'));
-    if (!isOpen) expanded.classList.add('open');
-  }
-
-  // ─── Triage Action Card Toggle ───
-  function toggleTac(header) {
-    const card = header.closest('.triage-action-card');
-    const body = card.querySelector('.tac-body');
-    const chevron = header.querySelector('.tac-chevron');
-    const isOpen = body.classList.contains('open');
-    body.classList.toggle('open', !isOpen);
-    chevron.classList.toggle('open', !isOpen);
-  }
-
-  // ─── Filter Chips ───
-  function setFilter(chip, group, value) {
-    const row = chip.closest('.filter-row');
-    row.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active-filter'));
-    chip.classList.add('active-filter');
-    // TODO: filter .incident-card elements by data attributes
-  }
-
-  // ─── Alert Type Filter ───
-  document.querySelectorAll('.alert-type-filter .filter-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      chip.closest('.alert-type-filter').querySelectorAll('.filter-chip')
-        .forEach(c => c.classList.remove('active-filter'));
-      chip.classList.add('active-filter');
-    });
-  });
-
-  // ─── Severity Picker ───
-  function selSev(btn, sev) {
-    const picker = btn.closest('.severity-picker');
-    picker.querySelectorAll('.sev-opt').forEach(b => {
-      b.className = 'sev-opt';
-    });
-    btn.classList.add('sel-' + sev);
-  }
-
-  // ─── Recipient Chips ───
-  function toggleRc(chip) {
-    chip.classList.toggle('selected');
-  }
-
-  // ─── Refresh Button ───
-  document.querySelector('.refresh-btn').addEventListener('click', function() {
-    this.style.transform = 'rotate(360deg)';
-    this.style.transition = 'transform .5s';
-    setTimeout(() => {
-      this.style.transform = '';
-      this.style.transition = '';
-    }, 500);
-  });
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
 </script>
 </body>
 </html>

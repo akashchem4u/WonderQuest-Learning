@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Teacher Student Intervention — Desktop v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #f0f4f8; font-family: 'Sora', sans-serif; min-height: 100vh; padding: 20px; }
+
+/* Hint box */
+.hint-box { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 14px 18px; max-width: 1200px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+
+/* Tab switcher */
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 1200px; margin-left: auto; margin-right: auto; }
+.tab-btn { background: #e0eaf4; color: #2a5080; border: 1.5px solid #b0c8e0; border-radius: 20px; padding: 7px 18px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Desktop frame */
+.desktop-frame { max-width: 1200px; margin: 0 auto; background: #f0f4f8; border-radius: 16px; border: 2px solid #c0d4e8; overflow: hidden; box-shadow: 0 8px 32px rgba(42,80,128,.15); min-height: 720px; }
+
+/* Top nav */
+.top-nav { background: #2a5080; padding: 0 24px; display: flex; align-items: center; height: 52px; }
+.nav-brand { color: #fff; font-size: 16px; font-weight: 700; margin-right: 32px; display: flex; align-items: center; gap: 8px; }
+.nav-brand .brand-dot { width: 10px; height: 10px; background: #ffd166; border-radius: 50%; }
+.nav-item { color: rgba(255,255,255,.7); font-size: 13px; padding: 0 16px; height: 52px; display: flex; align-items: center; cursor: pointer; border-bottom: 3px solid transparent; transition: all .2s; }
+.nav-item:hover, .nav-item.active { color: #fff; border-bottom-color: #ffd166; }
+.nav-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.nav-class-chip { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); border-radius: 16px; padding: 5px 14px; font-size: 12px; color: #fff; }
+.breadcrumb { font-size: 12px; color: rgba(255,255,255,.75); display: flex; align-items: center; gap: 6px; margin-right: 24px; }
+.breadcrumb .sep { opacity: .4; }
+.breadcrumb .crumb-active { color: #fff; font-weight: 600; }
+
+/* Subnav */
+.subnav { background: #fff; border-bottom: 1px solid #d0e0ef; padding: 0 24px; display: flex; align-items: center; height: 44px; gap: 4px; }
+.subnav-back { display: flex; align-items: center; gap: 6px; color: #2a5080; font-size: 13px; font-weight: 600; cursor: pointer; padding: 0 12px 0 0; border-right: 1px solid #d0e0ef; margin-right: 12px; }
+.subnav-back:hover { color: #1a3060; }
+.student-title { font-size: 14px; font-weight: 700; color: #1a2a40; }
+.student-tier-chip { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; margin-left: 8px; }
+.chip-flag { background: #9a2a2a; color: #ff9090; }
+.chip-watch { background: #2a1800; color: #f0a030; }
+.chip-strong { background: #0a2a15; color: #50e890; }
+.subnav-right { margin-left: auto; display: flex; gap: 8px; }
+.subnav-btn { background: #f0f4f8; border: 1.5px solid #b0c8e0; border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #2a5080; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.subnav-btn:hover { background: #e0eaf4; }
+.subnav-btn.primary { background: #2a5080; color: #fff; border-color: #2a5080; }
+.subnav-btn.primary:hover { background: #1a3060; }
+
+/* 3-col layout */
+.detail-grid { display: grid; grid-template-columns: 260px 1fr 300px; min-height: calc(720px - 96px); }
+
+/* ===================== LEFT PANEL ===================== */
+.left-panel { background: #e8f0f8; border-right: 1px solid #c0d4e8; padding: 18px 14px; overflow-y: auto; }
+
+.student-profile-card { background: #fff; border-radius: 14px; border: 1px solid #c0d4e8; padding: 18px 14px; margin-bottom: 14px; text-align: center; }
+.student-avatar-lg { width: 60px; height: 60px; border-radius: 50%; background: #2a5080; display: flex; align-items: center; justify-content: center; font-size: 24px; color: #fff; font-weight: 700; margin: 0 auto 10px; border: 3px solid #9a2a2a; }
+.student-name-lg { font-size: 15px; font-weight: 700; color: #1a2a40; }
+.grade-chip { display: inline-block; background: #e8f0f8; color: #2a5080; border: 1px solid #b0c8e0; border-radius: 10px; font-size: 11px; font-weight: 600; padding: 2px 10px; margin-top: 4px; }
+.sns-tier-badge { display: inline-block; margin-top: 8px; padding: 4px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; }
+.sns-flag { background: #9a2a2a; color: #ff9090; }
+.sns-watch { background: #2a1800; color: #f0a030; }
+.sns-strong { background: #0a2a15; color: #50e890; }
+
+.student-stats { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 12px 14px; margin-bottom: 14px; }
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f4f8; font-size: 12px; }
+.stat-row:last-child { border-bottom: none; }
+.stat-row .lbl { color: #5a7090; }
+.stat-row .val { font-weight: 700; color: #1a2a40; }
+
+.student-worlds-mini { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 12px 14px; margin-bottom: 14px; }
+.world-chip { display: inline-block; background: #e8f0f8; border: 1px solid #b0c8e0; border-radius: 10px; padding: 3px 10px; font-size: 11px; font-weight: 600; color: #2a5080; margin-bottom: 8px; }
+.node-progress-bar-wrap { height: 8px; background: #d0e0ef; border-radius: 4px; overflow: hidden; }
+.node-progress-bar-fill { height: 100%; background: #4a90d9; border-radius: 4px; }
+.progress-label { font-size: 10px; color: #5a7090; margin-top: 4px; }
+
+.risk-flag-card { background: #9a2a2a; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.risk-flag-title { font-size: 12px; font-weight: 700; color: #ff9090; margin-bottom: 4px; }
+.risk-flag-text { font-size: 11px; color: #ffb0b0; line-height: 1.5; }
+
+.section-label { font-size: 10px; font-weight: 700; color: #5a7090; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+
+/* ===================== CENTER PANEL ===================== */
+.center-panel { background: #f0f4f8; padding: 20px 22px; overflow-y: auto; }
+.center-section { margin-bottom: 24px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-title { font-size: 15px; font-weight: 700; color: #1a2a40; }
+.section-action-btn { background: #2a5080; color: #fff; border: none; border-radius: 16px; padding: 6px 14px; font-size: 11px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: background .2s; }
+.section-action-btn:hover { background: #1a3060; }
+.section-action-link { font-size: 12px; color: #4a90d9; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+/* Week selector chips */
+.week-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
+.week-chip { background: #e8f0f8; border: 1px solid #b0c8e0; border-radius: 12px; padding: 3px 10px; font-size: 11px; color: #2a5080; font-weight: 600; cursor: pointer; transition: all .2s; }
+.week-chip.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+
+/* SNS History chart */
+.sns-history-chart { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 16px; margin-bottom: 20px; }
+.chart-legend { display: flex; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #5a7090; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.chart-columns { display: flex; align-items: flex-end; gap: 6px; height: 100px; }
+.chart-col { display: flex; flex-direction: column; align-items: center; gap: 0; flex: 1; }
+.chart-bar-stack { display: flex; flex-direction: column-reverse; width: 100%; gap: 1px; height: 90px; justify-content: flex-start; }
+.bar-seg { width: 100%; border-radius: 2px; min-height: 2px; }
+.bar-flag { background: #9a2a2a; }
+.bar-watch { background: #c07800; }
+.bar-strong { background: #1a8050; }
+.chart-week-lbl { font-size: 9px; color: #8a9ab0; margin-top: 6px; text-align: center; }
+
+/* Skill snapshot table */
+.skill-snapshot-wrap { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; overflow: hidden; }
+.skill-table { width: 100%; border-collapse: collapse; }
+.skill-table th { background: #e8f0f8; font-size: 11px; font-weight: 700; color: #5a7090; padding: 9px 12px; text-align: left; border-bottom: 1px solid #c0d4e8; }
+.skill-table td { padding: 10px 12px; font-size: 12px; color: #2a3a50; border-bottom: 1px solid #f0f4f8; vertical-align: middle; }
+.skill-table tr:last-child td { border-bottom: none; }
+.tier-badge { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 8px; white-space: nowrap; }
+.trend-dots { display: flex; gap: 3px; align-items: center; }
+.trend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-flag { background: #9a2a2a; }
+.dot-watch { background: #c07800; }
+.dot-strong { background: #1a8050; }
+.dot-neutral { background: #b0c8e0; }
+.rec-chip { background: #e8f0f8; border-radius: 8px; padding: 3px 8px; font-size: 10px; color: #2a5080; font-weight: 600; }
+
+/* Notes timeline */
+.timeline-list { margin-top: 4px; }
+.tl-item { display: flex; gap: 0; margin-bottom: 0; position: relative; }
+.tl-left { display: flex; flex-direction: column; align-items: center; width: 28px; flex-shrink: 0; }
+.tl-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; z-index: 1; margin-top: 2px; }
+.tl-dot-note { background: #2a5080; }
+.tl-dot-activity { background: #4a90d9; }
+.tl-dot-tierchange { background: #c07800; }
+.tl-dot-parentmsg { background: #7a4aad; }
+.tl-dot-concern { background: #9a2a2a; }
+.tl-dot-checkin { background: #1a8050; }
+.tl-connector { width: 2px; background: #d0e0ef; flex: 1; margin-top: 2px; }
+.tl-body { flex: 1; background: #fff; border-radius: 10px; border: 1px solid #e0eaf4; padding: 10px 12px; margin-left: 8px; margin-bottom: 10px; }
+.tl-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 4px; }
+.tl-date { font-size: 10px; color: #8a9ab0; background: #f0f4f8; border-radius: 8px; padding: 2px 7px; }
+.tl-type-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.type-note { background: #dce8f8; color: #2a5080; }
+.type-activity { background: #dce8f8; color: #2a5898; }
+.type-tierchange { background: #fff3d5; color: #c07800; }
+.type-parentmsg { background: #ede0f8; color: #7a4aad; }
+.type-concern { background: #f5d5d5; color: #9a2a2a; }
+.type-checkin { background: #d5f0e0; color: #1a8050; }
+.tl-text { font-size: 12px; color: #2a3a50; line-height: 1.5; }
+.tl-creator { font-size: 10px; color: #8a9ab0; margin-top: 4px; }
+
+.load-more-link { font-size: 12px; color: #4a90d9; font-weight: 600; cursor: pointer; text-align: center; padding: 8px; display: block; }
+.load-more-link:hover { text-decoration: underline; }
+
+/* Add note form */
+.add-note-form { background: #fff; border-radius: 12px; border: 1.5px solid #4a90d9; padding: 16px; margin-top: 16px; }
+.add-note-title { font-size: 13px; font-weight: 700; color: #2a5080; margin-bottom: 10px; }
+.note-type-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.note-type-chip { background: #e8f0f8; border: 1.5px solid #b0c8e0; border-radius: 12px; padding: 4px 12px; font-size: 11px; font-weight: 600; color: #2a5080; cursor: pointer; transition: all .2s; }
+.note-type-chip.active { background: #2a5080; color: #fff; border-color: #2a5080; }
+.note-textarea { width: 100%; border: 1.5px solid #c0d4e8; border-radius: 10px; padding: 10px 12px; font-family: 'Sora', sans-serif; font-size: 12px; color: #1a2a40; resize: vertical; min-height: 80px; background: #f8fbfe; outline: none; }
+.note-textarea:focus { border-color: #4a90d9; }
+.append-warning { font-size: 11px; color: #8a6000; background: #fffbea; border: 1px solid #f0c040; border-radius: 8px; padding: 5px 10px; margin-top: 8px; }
+.save-note-btn { background: #2a5080; color: #fff; border: none; border-radius: 16px; padding: 8px 20px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; transition: background .2s; }
+.save-note-btn:hover { background: #1a3060; }
+
+/* Intervention plan */
+.plan-status-card { background: #2a1800; border-radius: 12px; border: 1px solid #f0a030; padding: 12px 16px; margin-bottom: 18px; display: flex; align-items: center; gap: 12px; }
+.plan-status-icon { font-size: 20px; }
+.plan-status-text { font-size: 13px; font-weight: 700; color: #f0a030; }
+.plan-status-sub { font-size: 11px; color: #c07820; margin-top: 2px; }
+
+.plan-section { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 16px; margin-bottom: 16px; }
+.plan-section-title { font-size: 12px; font-weight: 700; color: #5a7090; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 12px; }
+.goal-textarea { width: 100%; border: 1.5px solid #c0d4e8; border-radius: 10px; padding: 10px 12px; font-family: 'Sora', sans-serif; font-size: 13px; color: #1a2a40; resize: vertical; min-height: 64px; background: #f8fbfe; outline: none; }
+.goal-textarea:focus { border-color: #4a90d9; }
+
+.focus-skill-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
+.focus-skill-row:last-child { border-bottom: none; }
+.focus-skill-name { font-size: 12px; font-weight: 600; color: #1a2a40; flex: 1; }
+.focus-skill-activity { font-size: 11px; color: #5a7090; flex: 1.5; }
+.update-link { font-size: 11px; color: #4a90d9; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+.strategy-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
+.strategy-item:last-child { border-bottom: none; }
+.strategy-type-chip { font-size: 10px; font-weight: 700; padding: 2px 9px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; margin-top: 2px; }
+.strat-individual { background: #dce8f8; color: #2a5080; }
+.strat-group { background: #d5f0e0; color: #1a8050; }
+.strat-parent { background: #ede0f8; color: #7a4aad; }
+.strategy-text { font-size: 12px; color: #2a3a50; line-height: 1.5; flex: 1; }
+.assigned-chip { font-size: 10px; background: #f0f4f8; color: #5a7090; border-radius: 8px; padding: 2px 8px; flex-shrink: 0; margin-top: 2px; }
+
+.checkin-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #f0f4f8; font-size: 12px; }
+.checkin-row:last-child { border-bottom: none; }
+.checkin-date { color: #5a7090; width: 80px; flex-shrink: 0; }
+.checkin-type { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; flex-shrink: 0; }
+.ci-class { background: #dce8f8; color: #2a5080; }
+.ci-parent { background: #ede0f8; color: #7a4aad; }
+.ci-support { background: #d5f0e0; color: #1a8050; }
+.checkin-outcome { font-size: 11px; color: #2a3a50; flex: 1; }
+.outcome-upcoming { font-size: 11px; color: #8a9ab0; font-style: italic; flex: 1; }
+
+.plan-save-bar { background: #fff; border-top: 1px solid #d0e0ef; padding: 12px 16px; display: flex; align-items: center; gap: 14px; margin-top: 8px; }
+.save-btn { background: #2a5080; color: #fff; border: none; border-radius: 16px; padding: 9px 24px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: background .2s; }
+.save-btn:hover { background: #1a3060; }
+.export-link { font-size: 12px; color: #4a90d9; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+/* Assignments */
+.assignments-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.assignment-list-desktop { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; overflow: hidden; margin-bottom: 20px; }
+.assign-row { display: grid; grid-template-columns: 1fr 60px 80px 90px 110px 130px; align-items: center; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #f0f4f8; font-size: 12px; }
+.assign-row:last-child { border-bottom: none; }
+.assign-header { background: #e8f0f8; font-size: 11px; font-weight: 700; color: #5a7090; border-bottom: 1px solid #c0d4e8 !important; }
+.assign-header div { padding: 2px 0; }
+.skill-name-cell { font-weight: 600; color: #1a2a40; }
+.band-chip-sm { font-size: 10px; font-weight: 700; background: #e8f0f8; color: #2a5080; border-radius: 8px; padding: 2px 7px; }
+.difficulty-cell { font-size: 11px; color: #5a7090; }
+.due-date-cell { font-size: 11px; color: #5a7090; }
+.status-chip { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 8px; text-align: center; white-space: nowrap; }
+.status-complete { background: #0a2a15; color: #50e890; }
+.status-inprogress { background: #2a1800; color: #f0a030; }
+.status-notstarted { background: #e8f0f8; color: #5a7090; }
+.status-overdue { background: #9a2a2a; color: #ff9090; }
+.assign-actions { display: flex; gap: 6px; }
+.assign-action-btn { font-size: 10px; color: #4a90d9; font-weight: 600; cursor: pointer; background: #f0f8ff; border: 1px solid #b0d4f0; border-radius: 8px; padding: 3px 8px; white-space: nowrap; }
+
+.separator { border: none; border-top: 2px solid #d0e0ef; margin: 20px 0; }
+
+.changes-list { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; overflow: hidden; }
+.change-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px; border-bottom: 1px solid #f0f4f8; border-left: 4px solid transparent; }
+.change-item:last-child { border-bottom: none; }
+.change-date { font-size: 11px; color: #8a9ab0; width: 68px; flex-shrink: 0; margin-top: 1px; }
+.change-type-chip { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; flex-shrink: 0; margin-top: 1px; white-space: nowrap; }
+.change-assignment { background: #dce8f8; color: #2a5080; }
+.change-session { background: #d5f0e0; color: #1a8050; }
+.change-note { background: #e8f0f8; color: #5a7090; }
+.change-tier { background: #fff3d5; color: #c07800; }
+.change-border-assignment { border-left-color: #4a90d9; }
+.change-border-session { border-left-color: #1a8050; }
+.change-border-note { border-left-color: #8a9ab0; }
+.change-border-tier { border-left-color: #c07800; }
+.change-text { font-size: 12px; color: #2a3a50; line-height: 1.5; }
+
+/* ===================== RIGHT PANEL ===================== */
+.right-panel { background: #e8f0f8; border-left: 1px solid #c0d4e8; padding: 18px 14px; overflow-y: auto; }
+
+.quick-action-stack { margin-bottom: 16px; }
+.qa-btn { display: block; width: 100%; background: #2a5080; color: #fff; border: none; border-radius: 10px; padding: 10px 14px; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; text-align: left; margin-bottom: 8px; transition: background .2s; display: flex; align-items: center; gap: 10px; }
+.qa-btn:hover { background: #1a3060; }
+.qa-btn .qa-icon { font-size: 16px; }
+.qa-btn.outline-btn { background: transparent; color: #2a5080; border: 1.5px solid #2a5080; }
+.qa-btn.outline-btn:hover { background: #dce8f8; }
+
+.right-card { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 14px; margin-bottom: 14px; }
+.right-card-title { font-size: 12px; font-weight: 700; color: #2a5080; margin-bottom: 10px; }
+
+.recent-session-mini { }
+.sess-world { font-size: 11px; font-weight: 600; color: #4a90d9; margin-bottom: 4px; }
+.sess-date { font-size: 10px; color: #8a9ab0; }
+.sess-stars { font-size: 13px; margin-top: 4px; color: #f0a030; }
+
+.note-stats-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.note-stats-table td { padding: 5px 8px; border-bottom: 1px solid #f0f4f8; }
+.note-stats-table tr:last-child td { border-bottom: none; }
+.note-count-val { font-weight: 700; color: #2a5080; text-align: right; }
+.concern-chip { display: inline-block; background: #f5d5d5; color: #9a2a2a; border-radius: 8px; font-size: 11px; font-weight: 600; padding: 3px 10px; margin-top: 8px; }
+
+.parent-contact-entry { display: flex; align-items: center; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f0f4f8; font-size: 11px; }
+.parent-contact-entry:last-child { border-bottom: none; }
+.pc-date { color: #8a9ab0; width: 56px; }
+.pc-type { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; }
+.pct-call { background: #d5f0e0; color: #1a8050; }
+.pct-email { background: #dce8f8; color: #2a5080; }
+.pct-note { background: #ede0f8; color: #7a4aad; }
+.pc-method { color: #5a7090; }
+
+.plan-progress-card .progress-bar-wrap { height: 10px; background: #d0e0ef; border-radius: 5px; overflow: hidden; margin: 8px 0 4px; }
+.plan-progress-card .progress-bar-fill { height: 100%; background: #4a90d9; border-radius: 5px; }
+.plan-progress-label { font-size: 11px; color: #5a7090; margin-bottom: 8px; }
+.tier-change-text { font-size: 11px; color: #5a7090; padding: 8px 10px; background: #f0f4f8; border-radius: 8px; margin-bottom: 10px; line-height: 1.5; }
+.review-link { font-size: 12px; color: #4a90d9; font-weight: 600; cursor: pointer; }
+
+.completion-framing { font-size: 12px; color: #2a3a50; line-height: 1.6; padding: 6px 0; }
+.class-compare { font-size: 11px; color: #5a7090; margin-top: 6px; background: #f0f4f8; border-radius: 8px; padding: 6px 10px; }
+.overdue-alert { background: #2a1800; border: 1px solid #f0a030; border-radius: 10px; padding: 10px 12px; margin-top: 12px; }
+.overdue-alert-title { font-size: 12px; font-weight: 700; color: #f0a030; margin-bottom: 4px; }
+.overdue-alert-text { font-size: 11px; color: #c07820; }
+
+/* ===================== SPEC TAB ===================== */
+.spec-wrap { padding: 20px 24px; max-width: 1200px; margin: 0 auto; }
+.spec-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 16px 20px; margin-bottom: 24px; font-family: monospace; font-size: 12px; color: #5a4000; line-height: 1.8; }
+.spec-hint strong { color: #b06000; }
+.spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.spec-section { background: #fff; border-radius: 12px; border: 1px solid #c0d4e8; padding: 16px; }
+.spec-section-title { font-size: 12px; font-weight: 700; color: #2a5080; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 12px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.spec-table th { background: #e8f0f8; color: #2a5080; padding: 7px 10px; text-align: left; border-bottom: 1px solid #c0d4e8; font-weight: 700; font-size: 11px; }
+.spec-table td { color: #2a3a50; padding: 7px 10px; border-bottom: 1px solid #f0f4f8; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { background: #f0f4f8; border-left: 3px solid #2a5080; border-radius: 0 8px 8px 0; padding: 7px 12px; margin-bottom: 6px; font-size: 12px; color: #2a3a50; }
+.spec-rule strong { color: #2a5080; }
+.token-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: middle; margin-right: 5px; border: 1px solid rgba(0,0,0,.1); }
+
+@media (max-width: 1024px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .left-panel, .right-panel { border: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- Global hint -->
+<div class="hint-box">
+  <strong>teacher-student-intervention-desktop-v2.html</strong> — Deeper teacher action surface for a single student. Student history, support notes, intervention plan, assignment link, recent changes. Min-width 1024px.<br>
+  <strong>Tabs:</strong> 1 Student Overview &amp; History &nbsp;|&nbsp; 2 Support Notes &amp; Timeline &nbsp;|&nbsp; 3 Intervention Plan &nbsp;|&nbsp; 4 Assignments &amp; Recent Changes &nbsp;|&nbsp; 5 Spec<br>
+  <strong>Design:</strong> bg <code>#f0f4f8</code> &middot; nav <code>#2a5080</code> &middot; Sora &middot; 3-col (260px / 1fr / 300px) &middot; SNS Flag=<code>#9a2a2a</code>bg/<code>#ff9090</code>text, Watch=<code>#2a1800</code>bg/<code>#f0a030</code>text, Strong=<code>#0a2a15</code>bg/<code>#50e890</code>text
+</div>
+
+<!-- Tab buttons -->
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('t1')">1 · Overview &amp; History</button>
+  <button class="tab-btn" onclick="show('t2')">2 · Support Notes</button>
+  <button class="tab-btn" onclick="show('t3')">3 · Intervention Plan</button>
+  <button class="tab-btn" onclick="show('t4')">4 · Assignments</button>
+  <button class="tab-btn" onclick="show('t5')">5 · Spec</button>
+</div>
+
+<!-- ============================================================ TAB 1 ============================================================ -->
+<div id="t1" class="tab active">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="brand-dot"></div>WonderQuest</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item active">Class</div>
+      <div class="nav-item">Reports</div>
+      <div class="nav-right">
+        <div class="breadcrumb">
+          <span>Mrs. Rivera's Class</span><span class="sep">&rsaquo;</span><span class="crumb-active">Emma Chen</span>
+        </div>
+        <div class="nav-class-chip">P1 &middot; Room 4B</div>
+        <div style="color:rgba(255,255,255,.6);font-size:12px;">Mar 22, 2026</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">&larr; Class Summary</div>
+      <div class="student-title">Emma Chen</div>
+      <span class="student-tier-chip chip-flag">Flag Tier</span>
+      <div class="subnav-right">
+        <button class="subnav-btn">Add Note</button>
+        <button class="subnav-btn">Assign Practice</button>
+        <button class="subnav-btn primary">Message Parent</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT -->
+      <div class="left-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 1 left:</strong> student profile card + stats + world progress + flag alert
+        </div>
+        <div class="student-profile-card">
+          <div class="student-avatar-lg">EC</div>
+          <div class="student-name-lg">Emma Chen</div>
+          <div><span class="grade-chip">P1</span></div>
+          <div><span class="sns-tier-badge sns-flag">Flag Tier</span></div>
+        </div>
+
+        <div class="section-label">Support Stats</div>
+        <div class="student-stats">
+          <div class="stat-row"><span class="lbl">Weeks in support tier</span><span class="val">3 wks</span></div>
+          <div class="stat-row"><span class="lbl">Sessions this week</span><span class="val">2 of 4</span></div>
+          <div class="stat-row"><span class="lbl">Current streak</span><span class="val">1 day</span></div>
+          <div class="stat-row"><span class="lbl">Last active</span><span class="val">Today</span></div>
+        </div>
+
+        <div class="section-label">Current World</div>
+        <div class="student-worlds-mini">
+          <div class="world-chip">Phonics Forest</div>
+          <div class="node-progress-bar-wrap">
+            <div class="node-progress-bar-fill" style="width:38%"></div>
+          </div>
+          <div class="progress-label">Node 4 of 12 &mdash; 38% complete</div>
+        </div>
+
+        <div class="risk-flag-card">
+          <div class="risk-flag-title">Flag Status: 3 Weeks</div>
+          <div class="risk-flag-text">Emma has been in the Flag support tier for 3 consecutive weeks. Intervention is recommended.</div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div class="hint-box" style="margin-bottom:16px;font-size:11px;">
+          <strong>Tab 1 center:</strong> 8-week SNS history chart (color = dominant tier that week) + skill snapshot table (flag-tier skills first, 4-dot trend)
+        </div>
+
+        <div class="center-section">
+          <div class="section-header">
+            <div class="section-title">Student History</div>
+            <div style="font-size:11px;color:#5a7090;">Last 8 weeks</div>
+          </div>
+          <div class="week-chips">
+            <div class="week-chip active">All 8 wks</div>
+            <div class="week-chip">4 wks</div>
+            <div class="week-chip">2 wks</div>
+            <div class="week-chip">This week</div>
+          </div>
+
+          <div class="sns-history-chart">
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#9a2a2a"></div> Flag</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c07800"></div> Watch</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#1a8050"></div> Strong</div>
+            </div>
+            <div class="chart-columns">
+              <!-- Week 1 (Strong) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:70px"></div>
+                  <div class="bar-seg bar-watch" style="height:12px"></div>
+                  <div class="bar-seg bar-flag" style="height:8px"></div>
+                </div>
+                <div class="chart-week-lbl">W1<br>Jan 19</div>
+              </div>
+              <!-- Week 2 (Strong) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:60px"></div>
+                  <div class="bar-seg bar-watch" style="height:18px"></div>
+                  <div class="bar-seg bar-flag" style="height:12px"></div>
+                </div>
+                <div class="chart-week-lbl">W2<br>Jan 26</div>
+              </div>
+              <!-- Week 3 (Watch) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:30px"></div>
+                  <div class="bar-seg bar-watch" style="height:44px"></div>
+                  <div class="bar-seg bar-flag" style="height:16px"></div>
+                </div>
+                <div class="chart-week-lbl">W3<br>Feb 2</div>
+              </div>
+              <!-- Week 4 (Watch) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:22px"></div>
+                  <div class="bar-seg bar-watch" style="height:50px"></div>
+                  <div class="bar-seg bar-flag" style="height:18px"></div>
+                </div>
+                <div class="chart-week-lbl">W4<br>Feb 9</div>
+              </div>
+              <!-- Week 5 (Flag) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:12px"></div>
+                  <div class="bar-seg bar-watch" style="height:28px"></div>
+                  <div class="bar-seg bar-flag" style="height:50px"></div>
+                </div>
+                <div class="chart-week-lbl">W5<br>Feb 16</div>
+              </div>
+              <!-- Week 6 (Flag) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:8px"></div>
+                  <div class="bar-seg bar-watch" style="height:20px"></div>
+                  <div class="bar-seg bar-flag" style="height:62px"></div>
+                </div>
+                <div class="chart-week-lbl">W6<br>Feb 23</div>
+              </div>
+              <!-- Week 7 (Flag) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:6px"></div>
+                  <div class="bar-seg bar-watch" style="height:16px"></div>
+                  <div class="bar-seg bar-flag" style="height:68px"></div>
+                </div>
+                <div class="chart-week-lbl">W7<br>Mar 2</div>
+              </div>
+              <!-- Week 8 (Flag — current) -->
+              <div class="chart-col">
+                <div class="chart-bar-stack">
+                  <div class="bar-seg bar-strong" style="height:4px"></div>
+                  <div class="bar-seg bar-watch" style="height:14px"></div>
+                  <div class="bar-seg bar-flag" style="height:72px"></div>
+                </div>
+                <div class="chart-week-lbl">W8<br>Mar 16</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="center-section">
+          <div class="section-header">
+            <div class="section-title">Skill Snapshot</div>
+            <div style="font-size:11px;color:#5a7090;">Sorted by tier &mdash; Flag first</div>
+          </div>
+          <div class="skill-snapshot-wrap">
+            <table class="skill-table">
+              <thead>
+                <tr>
+                  <th>Skill</th>
+                  <th>Tier</th>
+                  <th>4-Week Trend</th>
+                  <th>Last Activity</th>
+                  <th>Recommended Next</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="font-weight:600">Sight Words</td>
+                  <td><span class="tier-badge sns-flag">Flag</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-watch"></div><div class="trend-dot dot-flag"></div><div class="trend-dot dot-flag"></div><div class="trend-dot dot-flag"></div></div></td>
+                  <td>Mar 20</td>
+                  <td><span class="rec-chip">Flashcard drill</span></td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600">Letter Blends</td>
+                  <td><span class="tier-badge sns-flag">Flag</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-strong"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-flag"></div><div class="trend-dot dot-flag"></div></div></td>
+                  <td>Mar 18</td>
+                  <td><span class="rec-chip">Blend builder</span></td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600">Vowel Sounds</td>
+                  <td><span class="tier-badge sns-flag">Flag</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-watch"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-flag"></div></div></td>
+                  <td>Mar 19</td>
+                  <td><span class="rec-chip">Vowel sort</span></td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600">Rhyming</td>
+                  <td><span class="tier-badge sns-watch" style="background:#2a1800;color:#f0a030;">Watch</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-strong"></div><div class="trend-dot dot-strong"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-watch"></div></div></td>
+                  <td>Mar 17</td>
+                  <td><span class="rec-chip">Rhyme pairs</span></td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600">Sentence Recall</td>
+                  <td><span class="tier-badge sns-watch" style="background:#2a1800;color:#f0a030;">Watch</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-strong"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-watch"></div><div class="trend-dot dot-watch"></div></div></td>
+                  <td>Mar 16</td>
+                  <td><span class="rec-chip">Story retell</span></td>
+                </tr>
+                <tr>
+                  <td style="font-weight:600">Print Concepts</td>
+                  <td><span class="tier-badge sns-strong" style="background:#0a2a15;color:#50e890;">Strong</span></td>
+                  <td><div class="trend-dots"><div class="trend-dot dot-strong"></div><div class="trend-dot dot-strong"></div><div class="trend-dot dot-strong"></div><div class="trend-dot dot-strong"></div></div></td>
+                  <td>Mar 15</td>
+                  <td><span class="rec-chip">Advance level</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 1 right:</strong> quick action stack + recent session mini card
+        </div>
+        <div class="section-label">Quick Actions</div>
+        <div class="quick-action-stack">
+          <button class="qa-btn"><span class="qa-icon">+</span> Add Note</button>
+          <button class="qa-btn"><span class="qa-icon">✉</span> Message Parent</button>
+          <button class="qa-btn"><span class="qa-icon">📚</span> Assign Practice</button>
+          <button class="qa-btn outline-btn"><span class="qa-icon">📋</span> Create Intervention Plan</button>
+        </div>
+
+        <div class="section-label">Last Session</div>
+        <div class="right-card recent-session-mini">
+          <div class="sess-world">Phonics Forest</div>
+          <div class="sess-date">Thursday, Mar 20</div>
+          <div class="sess-stars">★ ★ ☆ &nbsp;<span style="font-size:11px;color:#8a9ab0;">2 of 3 stars</span></div>
+          <div style="font-size:11px;color:#5a7090;margin-top:6px;">Skills: Sight Words, Letter Blends</div>
+          <div style="font-size:11px;color:#5a7090;">Duration: 14 min &middot; 22 questions</div>
+        </div>
+
+        <div class="section-label">Support Context</div>
+        <div class="right-card">
+          <div class="right-card-title">Flag Tier — Since Feb 14</div>
+          <div style="font-size:11px;color:#5a7090;line-height:1.6;">Emma entered the Flag tier 3 weeks ago following two consecutive Watch-tier weeks. A teacher note and parent contact are on file.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 2 ============================================================ -->
+<div id="t2" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="brand-dot"></div>WonderQuest</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item active">Class</div>
+      <div class="nav-item">Reports</div>
+      <div class="nav-right">
+        <div class="breadcrumb">
+          <span>Mrs. Rivera's Class</span><span class="sep">&rsaquo;</span><span class="crumb-active">Emma Chen</span>
+        </div>
+        <div class="nav-class-chip">P1 &middot; Room 4B</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">&larr; Class Summary</div>
+      <div class="student-title">Emma Chen &mdash; Support Notes</div>
+      <span class="student-tier-chip chip-flag">Flag Tier</span>
+      <div class="subnav-right">
+        <button class="subnav-btn primary">+ Add Note</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT -->
+      <div class="left-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 2 left:</strong> compact student card
+        </div>
+        <div class="student-profile-card">
+          <div class="student-avatar-lg">EC</div>
+          <div class="student-name-lg">Emma Chen</div>
+          <div><span class="grade-chip">P1</span></div>
+          <div><span class="sns-tier-badge sns-flag">Flag Tier</span></div>
+        </div>
+        <div class="student-stats">
+          <div class="stat-row"><span class="lbl">In support tier</span><span class="val">3 wks</span></div>
+          <div class="stat-row"><span class="lbl">Last active</span><span class="val">Today</span></div>
+          <div class="stat-row"><span class="lbl">Total notes</span><span class="val">7</span></div>
+        </div>
+        <div class="risk-flag-card">
+          <div class="risk-flag-title">Flag &mdash; 3 Weeks</div>
+          <div class="risk-flag-text">Intervention recommended. See notes timeline for full history.</div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div class="hint-box" style="margin-bottom:16px;font-size:11px;">
+          <strong>Tab 2 center:</strong> append-only intervention timeline (colored dots, type chips) + inline add-note form with note type chips + append-only warning
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Support Notes</div>
+          <button class="section-action-btn">Add Note +</button>
+        </div>
+
+        <div class="timeline-list">
+          <!-- Entry 1 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-concern"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Mar 20</span>
+                <span class="tl-type-chip type-concern">Concern</span>
+              </div>
+              <div class="tl-text">Emma became visibly frustrated during Sight Words activity and asked to stop. She said "I keep getting them wrong." Monitor for confidence impact on other skills.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 10:14 am</div>
+            </div>
+          </div>
+          <!-- Entry 2 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-parentmsg"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Mar 18</span>
+                <span class="tl-type-chip type-parentmsg">Parent Message</span>
+              </div>
+              <div class="tl-text">Called Emma's parent (Ms. Chen) to discuss ongoing Flag tier status. Parent reported Emma does not read at home regularly. Agreed to start a 10-minute reading routine each evening.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 3:40 pm</div>
+            </div>
+          </div>
+          <!-- Entry 3 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-checkin"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Mar 15</span>
+                <span class="tl-type-chip type-checkin">Check-in</span>
+              </div>
+              <div class="tl-text">Weekly check-in: Emma completed intervention plan goals for Letter Blends (2 of 3 sessions). Progress slower than target. Adjust plan to reduce session length and increase frequency.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 9:00 am</div>
+            </div>
+          </div>
+          <!-- Entry 4 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-tierchange"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Mar 9</span>
+                <span class="tl-type-chip type-tierchange">Tier Change</span>
+              </div>
+              <div class="tl-text">Emma moved from Watch &rarr; Flag tier based on 2-week aggregated SNS data. Intervention plan created (see Plan tab).</div>
+              <div class="tl-creator">System (auto) &middot; end of week</div>
+            </div>
+          </div>
+          <!-- Entry 5 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-note"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Mar 4</span>
+                <span class="tl-type-chip type-note">Note</span>
+              </div>
+              <div class="tl-text">Observed Emma skipping unknown words during reading circle rather than attempting. Will work on decoding strategies next week.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 2:15 pm</div>
+            </div>
+          </div>
+          <!-- Entry 6 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-activity"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Feb 28</span>
+                <span class="tl-type-chip type-activity">Activity</span>
+              </div>
+              <div class="tl-text">Assigned targeted Vowel Sounds practice (10 questions, easy difficulty). Emma completed 7/10 correctly — improvement from previous 4/10. Positive momentum.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 11:30 am</div>
+            </div>
+          </div>
+          <!-- Entry 7 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-note"></div>
+              <div class="tl-connector"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Feb 22</span>
+                <span class="tl-type-chip type-note">Note</span>
+              </div>
+              <div class="tl-text">Emma moved to Watch tier this week. Watch-listed on Sight Words and Letter Blends. Monitoring closely — will escalate if no improvement in 2 weeks.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 4:00 pm</div>
+            </div>
+          </div>
+          <!-- Entry 8 -->
+          <div class="tl-item">
+            <div class="tl-left">
+              <div class="tl-dot tl-dot-checkin"></div>
+            </div>
+            <div class="tl-body">
+              <div class="tl-meta">
+                <span class="tl-date">Feb 14</span>
+                <span class="tl-type-chip type-checkin">Check-in</span>
+              </div>
+              <div class="tl-text">Initial support check-in. Emma struggling with phonics blend activities. Recommended slower pacing and audio support enabled.</div>
+              <div class="tl-creator">Mrs. Rivera &middot; 9:15 am</div>
+            </div>
+          </div>
+
+          <a class="load-more-link">Load earlier notes &darr;</a>
+        </div>
+
+        <!-- Add note form -->
+        <div class="add-note-form">
+          <div class="add-note-title">New Note</div>
+          <div class="note-type-chips">
+            <div class="note-type-chip active">Note</div>
+            <div class="note-type-chip">Concern</div>
+            <div class="note-type-chip">Check-in</div>
+            <div class="note-type-chip">Activity</div>
+            <div class="note-type-chip">Parent Message</div>
+            <div class="note-type-chip">Tier Change</div>
+          </div>
+          <textarea class="note-textarea" placeholder="Write your note here..."></textarea>
+          <div class="append-warning">Notes cannot be edited after saving. Teacher-visible only — not shared with parents.</div>
+          <button class="save-note-btn">Save Note</button>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 2 right:</strong> note count by type + most recent concern chip + parent contact log
+        </div>
+        <div class="section-label">Note Summary</div>
+        <div class="right-card">
+          <div class="right-card-title">Notes by Type</div>
+          <table class="note-stats-table">
+            <tr><td>Note</td><td class="note-count-val">3</td></tr>
+            <tr><td>Concern</td><td class="note-count-val">1</td></tr>
+            <tr><td>Check-in</td><td class="note-count-val">2</td></tr>
+            <tr><td>Activity</td><td class="note-count-val">1</td></tr>
+            <tr><td>Parent Message</td><td class="note-count-val">1</td></tr>
+            <tr><td>Tier Change</td><td class="note-count-val">1</td></tr>
+          </table>
+          <div class="concern-chip">Most recent concern: 2 days ago</div>
+        </div>
+
+        <div class="section-label">Parent Contact Log</div>
+        <div class="right-card">
+          <div class="right-card-title">Recent Parent Contact</div>
+          <div class="parent-contact-entry">
+            <span class="pc-date">Mar 18</span>
+            <span class="pc-type pct-call">Call</span>
+            <span class="pc-method">Phone &mdash; 8 min</span>
+          </div>
+          <div class="parent-contact-entry">
+            <span class="pc-date">Mar 9</span>
+            <span class="pc-type pct-email">Email</span>
+            <span class="pc-method">Tier change notice</span>
+          </div>
+          <div class="parent-contact-entry">
+            <span class="pc-date">Feb 22</span>
+            <span class="pc-type pct-note">Note</span>
+            <span class="pc-method">Reading journal</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 3 ============================================================ -->
+<div id="t3" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="brand-dot"></div>WonderQuest</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item active">Class</div>
+      <div class="nav-item">Reports</div>
+      <div class="nav-right">
+        <div class="breadcrumb">
+          <span>Mrs. Rivera's Class</span><span class="sep">&rsaquo;</span><span class="crumb-active">Emma Chen</span>
+        </div>
+        <div class="nav-class-chip">P1 &middot; Room 4B</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">&larr; Class Summary</div>
+      <div class="student-title">Emma Chen &mdash; Intervention Plan</div>
+      <span class="student-tier-chip chip-flag">Flag Tier</span>
+      <div class="subnav-right">
+        <button class="subnav-btn">Print / Export</button>
+        <button class="subnav-btn primary">Save Changes</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT -->
+      <div class="left-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 3 left:</strong> student card (compact)
+        </div>
+        <div class="student-profile-card">
+          <div class="student-avatar-lg">EC</div>
+          <div class="student-name-lg">Emma Chen</div>
+          <div><span class="grade-chip">P1</span></div>
+          <div><span class="sns-tier-badge sns-flag">Flag Tier</span></div>
+        </div>
+        <div class="student-stats">
+          <div class="stat-row"><span class="lbl">Weeks in plan</span><span class="val">3 of 6</span></div>
+          <div class="stat-row"><span class="lbl">Started</span><span class="val">Mar 9</span></div>
+          <div class="stat-row"><span class="lbl">Review date</span><span class="val">Apr 6</span></div>
+          <div class="stat-row"><span class="lbl">Last updated</span><span class="val">2 days ago</span></div>
+        </div>
+        <div class="risk-flag-card">
+          <div class="risk-flag-title">Active Intervention</div>
+          <div class="risk-flag-text">Plan created on tier-change trigger (Watch &rarr; Flag). Review on schedule.</div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div class="hint-box" style="margin-bottom:16px;font-size:11px;">
+          <strong>Tab 3 center:</strong> plan header + active status card (amber) + goal textarea + focus skills checklist + support strategies + check-in schedule + sticky save bar
+        </div>
+
+        <div class="section-header">
+          <div class="section-title">Intervention Plan for Emma</div>
+          <span style="font-size:11px;background:#fff3d5;color:#c07800;border-radius:8px;padding:3px 10px;font-weight:700;">Last updated: 2 days ago</span>
+        </div>
+
+        <div class="plan-status-card">
+          <div class="plan-status-icon">📋</div>
+          <div>
+            <div class="plan-status-text">Active Intervention</div>
+            <div class="plan-status-sub">Week 3 of planned support &mdash; Review scheduled for Apr 6</div>
+          </div>
+        </div>
+
+        <!-- Goal -->
+        <div class="plan-section">
+          <div class="plan-section-title">Learning Goal</div>
+          <label style="font-size:12px;color:#5a7090;display:block;margin-bottom:6px;">Emma's learning goal this period:</label>
+          <textarea class="goal-textarea">Emma will be able to correctly identify 80% of P1 sight words and decode simple consonant blends with support, by the end of 6-week intervention (Apr 6).</textarea>
+        </div>
+
+        <!-- Focus skills -->
+        <div class="plan-section">
+          <div class="plan-section-title">Focus Skills</div>
+          <div class="focus-skill-row">
+            <span class="focus-skill-name">Sight Words</span>
+            <span class="tier-badge sns-flag">Flag</span>
+            <span class="focus-skill-activity">Flashcard drill &mdash; 3x per week</span>
+            <span class="update-link">Update &rarr;</span>
+          </div>
+          <div class="focus-skill-row">
+            <span class="focus-skill-name">Letter Blends</span>
+            <span class="tier-badge sns-flag">Flag</span>
+            <span class="focus-skill-activity">Blend Builder activity &mdash; 2x per week</span>
+            <span class="update-link">Update &rarr;</span>
+          </div>
+          <div class="focus-skill-row">
+            <span class="focus-skill-name">Vowel Sounds</span>
+            <span class="tier-badge sns-flag">Flag</span>
+            <span class="focus-skill-activity">Vowel Sort game &mdash; 2x per week</span>
+            <span class="update-link">Update &rarr;</span>
+          </div>
+        </div>
+
+        <!-- Strategies -->
+        <div class="plan-section">
+          <div class="plan-section-title">Support Strategies</div>
+          <div class="strategy-item">
+            <span class="strategy-type-chip strat-individual">1:1</span>
+            <span class="strategy-text">Provide explicit phonics decoding instruction during small group time each Tuesday and Thursday. Use decodable readers at P1 level.</span>
+            <span class="assigned-chip">Mrs. Rivera</span>
+          </div>
+          <div class="strategy-item">
+            <span class="strategy-type-chip strat-group">Group</span>
+            <span class="strategy-text">Pair Emma with a buddy reader (strong-tier peer) for 10 minutes of paired reading three times per week.</span>
+            <span class="assigned-chip">Mrs. Rivera</span>
+          </div>
+          <div class="strategy-item">
+            <span class="strategy-type-chip strat-parent">Home</span>
+            <span class="strategy-text">10-minute nightly reading routine with parent. Reading log sent home. WonderQuest home practice app enabled for Sight Words.</span>
+            <span class="assigned-chip">Parent (Ms. Chen)</span>
+          </div>
+        </div>
+
+        <!-- Check-ins -->
+        <div class="plan-section">
+          <div class="plan-section-title">Check-in Schedule</div>
+          <div class="checkin-row">
+            <span class="checkin-date">Mar 15</span>
+            <span class="checkin-type ci-class">In-class</span>
+            <span class="checkin-outcome">Completed. Letter Blends improving. Sight Words still Flag. Adjusted session length down.</span>
+          </div>
+          <div class="checkin-row">
+            <span class="checkin-date">Mar 22</span>
+            <span class="checkin-type ci-support">Support</span>
+            <span class="outcome-upcoming">Upcoming &mdash; today</span>
+          </div>
+          <div class="checkin-row">
+            <span class="checkin-date">Mar 29</span>
+            <span class="checkin-type ci-parent">Parent</span>
+            <span class="outcome-upcoming">Upcoming &mdash; call scheduled</span>
+          </div>
+        </div>
+
+        <div class="plan-save-bar">
+          <button class="save-btn">Save Changes</button>
+          <a class="export-link">Print / Export PDF</a>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 3 right:</strong> plan progress (weeks bar) + tier change summary + review link
+        </div>
+        <div class="section-label">Plan Progress</div>
+        <div class="right-card plan-progress-card">
+          <div class="right-card-title">Weeks in Plan</div>
+          <div class="plan-progress-bar-wrap">
+            <div class="plan-progress-bar-fill" style="width:50%"></div>
+          </div>
+          <div class="plan-progress-label">Week 3 of 6 &mdash; halfway</div>
+          <div class="tier-change-text">Started as <strong>Flag</strong> &rarr; current: <strong>Flag</strong> (unchanged). Three weeks is a realistic timeframe for phonics gains — keep consistent with the plan.</div>
+          <a class="review-link">Review plan effectiveness &rarr;</a>
+        </div>
+
+        <div class="section-label">SNS Snapshot</div>
+        <div class="right-card">
+          <div class="right-card-title">Skill Tier Summary</div>
+          <div style="font-size:12px;color:#2a3a50;line-height:1.8;">
+            <div>Sight Words &mdash; <span class="tier-badge sns-flag" style="font-size:10px;">Flag</span></div>
+            <div style="margin-top:6px">Letter Blends &mdash; <span class="tier-badge sns-flag" style="font-size:10px;">Flag</span></div>
+            <div style="margin-top:6px">Vowel Sounds &mdash; <span class="tier-badge sns-flag" style="font-size:10px;">Flag</span></div>
+            <div style="margin-top:6px">Rhyming &mdash; <span class="tier-badge sns-watch" style="background:#2a1800;color:#f0a030;font-size:10px;">Watch</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 4 ============================================================ -->
+<div id="t4" class="tab">
+  <div class="desktop-frame">
+    <div class="top-nav">
+      <div class="nav-brand"><div class="brand-dot"></div>WonderQuest</div>
+      <div class="nav-item">Dashboard</div>
+      <div class="nav-item active">Class</div>
+      <div class="nav-item">Reports</div>
+      <div class="nav-right">
+        <div class="breadcrumb">
+          <span>Mrs. Rivera's Class</span><span class="sep">&rsaquo;</span><span class="crumb-active">Emma Chen</span>
+        </div>
+        <div class="nav-class-chip">P1 &middot; Room 4B</div>
+      </div>
+    </div>
+    <div class="subnav">
+      <div class="subnav-back">&larr; Class Summary</div>
+      <div class="student-title">Emma Chen &mdash; Assignments &amp; Activity</div>
+      <span class="student-tier-chip chip-flag">Flag Tier</span>
+      <div class="subnav-right">
+        <button class="subnav-btn primary">Create New +</button>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <!-- LEFT -->
+      <div class="left-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 4 left:</strong> student card (compact)
+        </div>
+        <div class="student-profile-card">
+          <div class="student-avatar-lg">EC</div>
+          <div class="student-name-lg">Emma Chen</div>
+          <div><span class="grade-chip">P1</span></div>
+          <div><span class="sns-tier-badge sns-flag">Flag Tier</span></div>
+        </div>
+        <div class="student-stats">
+          <div class="stat-row"><span class="lbl">Total assigned</span><span class="val">8</span></div>
+          <div class="stat-row"><span class="lbl">Completed</span><span class="val">5</span></div>
+          <div class="stat-row"><span class="lbl">Overdue</span><span class="val" style="color:#9a2a2a;">1</span></div>
+          <div class="stat-row"><span class="lbl">In progress</span><span class="val">2</span></div>
+        </div>
+        <div class="risk-flag-card">
+          <div class="risk-flag-title">1 Overdue</div>
+          <div class="risk-flag-text">Sight Words Practice is 3 days overdue. Consider reassigning or adjusting due date.</div>
+        </div>
+      </div>
+
+      <!-- CENTER -->
+      <div class="center-panel">
+        <div class="hint-box" style="margin-bottom:16px;font-size:11px;">
+          <strong>Tab 4 center:</strong> assignments table (all assigned to Emma, sortable by status) + separator + recent activity (last 7 days, type-colored border)
+        </div>
+
+        <div class="assignments-header">
+          <div class="section-title">Assigned to Emma</div>
+          <button class="section-action-btn">Create New +</button>
+        </div>
+
+        <div class="assignment-list-desktop">
+          <div class="assign-row assign-header">
+            <div>Skill</div><div>Band</div><div>Difficulty</div><div>Due Date</div><div>Status</div><div>Actions</div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Sight Words Practice</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Mar 19</div>
+            <div><span class="status-chip status-overdue">Overdue</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">Reassign &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Blend Builder</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Mar 24</div>
+            <div><span class="status-chip status-inprogress">In Progress</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Vowel Sort</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Mar 25</div>
+            <div><span class="status-chip status-notstarted">Not Started</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">Reassign &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Rhyme Pairs</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Medium</div>
+            <div class="due-date-cell">Mar 16</div>
+            <div><span class="status-chip status-complete">Complete</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Print Concepts Quiz</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Medium</div>
+            <div class="due-date-cell">Mar 12</div>
+            <div><span class="status-chip status-complete">Complete</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Sentence Recall</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Mar 8</div>
+            <div><span class="status-chip status-complete">Complete</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Flashcard Drill 2</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Mar 3</div>
+            <div><span class="status-chip status-complete">Complete</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+          <div class="assign-row">
+            <div class="skill-name-cell">Vowel Sounds Intro</div>
+            <div><span class="band-chip-sm">P1</span></div>
+            <div class="difficulty-cell">Easy</div>
+            <div class="due-date-cell">Feb 27</div>
+            <div><span class="status-chip status-complete">Complete</span></div>
+            <div class="assign-actions"><span class="assign-action-btn">View Results &rarr;</span></div>
+          </div>
+        </div>
+
+        <hr class="separator">
+
+        <div class="section-header" style="margin-bottom:12px;">
+          <div class="section-title">Recent Activity</div>
+          <div style="font-size:11px;color:#5a7090;">Last 7 days</div>
+        </div>
+
+        <div class="changes-list">
+          <div class="change-item change-border-note">
+            <span class="change-date">Mar 20</span>
+            <span class="change-type-chip change-note">Note</span>
+            <span class="change-text">Concern note added: Emma frustrated during Sight Words activity. Monitoring confidence.</span>
+          </div>
+          <div class="change-item change-border-session">
+            <span class="change-date">Mar 20</span>
+            <span class="change-type-chip change-session">Session</span>
+            <span class="change-text">Phonics Forest session — 14 min, 22 questions, 2/3 stars earned. Sight Words + Letter Blends.</span>
+          </div>
+          <div class="change-item change-border-assignment">
+            <span class="change-date">Mar 19</span>
+            <span class="change-type-chip change-assignment">Assignment</span>
+            <span class="change-text">Sight Words Practice — due date passed without completion. Now overdue.</span>
+          </div>
+          <div class="change-item change-border-session">
+            <span class="change-date">Mar 18</span>
+            <span class="change-type-chip change-session">Session</span>
+            <span class="change-text">Phonics Forest session — 11 min, 18 questions, 1/3 stars. Vowel Sounds struggled.</span>
+          </div>
+          <div class="change-item change-border-assignment">
+            <span class="change-date">Mar 17</span>
+            <span class="change-type-chip change-assignment">Assignment</span>
+            <span class="change-text">Blend Builder assigned (due Mar 24). In-progress — 6 of 12 questions answered.</span>
+          </div>
+          <div class="change-item change-border-tier">
+            <span class="change-date">Mar 16</span>
+            <span class="change-type-chip change-tier">Tier</span>
+            <span class="change-text">Weekly SNS aggregation: Flag tier confirmed for 3rd consecutive week.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="right-panel">
+        <div class="hint-box" style="margin-bottom:14px;font-size:11px;">
+          <strong>Tab 4 right:</strong> assignment completion framing (qualitative, not %) + class comparison + overdue alert (amber)
+        </div>
+        <div class="section-label">Completion Overview</div>
+        <div class="right-card">
+          <div class="right-card-title">Emma's Assignments</div>
+          <div class="completion-framing">Emma completes most of her assignments when given extra time and low-difficulty settings. She finishes 5 of the last 8 tasks assigned — consistent effort even during a challenging support period.</div>
+          <div class="class-compare">Class context: Most students in Room 4B complete 6–7 of their assigned tasks. Emma is completing a similar number — her challenge is skill difficulty, not engagement.</div>
+        </div>
+
+        <div class="overdue-alert">
+          <div class="overdue-alert-title">1 Assignment Overdue</div>
+          <div class="overdue-alert-text">Sight Words Practice — 3 days past due (Mar 19). Consider reassigning with a new due date or adjusting the difficulty.</div>
+        </div>
+
+        <div class="right-card" style="margin-top:14px;">
+          <div class="right-card-title">Completion by Status</div>
+          <div style="font-size:12px;color:#2a3a50;line-height:2;">
+            <div>Complete <span style="float:right;font-weight:700;color:#1a8050;">5</span></div>
+            <div>In Progress <span style="float:right;font-weight:700;color:#c07800;">1</span></div>
+            <div>Not Started <span style="float:right;font-weight:700;color:#5a7090;">1</span></div>
+            <div>Overdue <span style="float:right;font-weight:700;color:#9a2a2a;">1</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ TAB 5 — SPEC ============================================================ -->
+<div id="t5" class="tab">
+  <div class="spec-wrap">
+    <div class="spec-hint">
+      <strong>teacher-student-intervention-desktop-v2.html — Engineering Spec</strong><br><br>
+      <strong>Purpose:</strong> Deeper teacher action surface for a single student at intervention level. Used when a teacher needs to seriously address a student's needs.<br>
+      <strong>Persona:</strong> Teacher &middot; Sora font &middot; <code>#f0f4f8</code> bg &middot; <code>#2a5080</code> nav &middot; desktop min 1024px<br>
+      <strong>Layout:</strong> 3-col CSS grid: <code>260px 1fr 300px</code><br>
+      <strong>SNS tokens:</strong> Flag = <code>#9a2a2a</code> bg / <code>#ff9090</code> text &nbsp;|&nbsp; Watch = <code>#2a1800</code> bg / <code>#f0a030</code> text &nbsp;|&nbsp; Strong = <code>#0a2a15</code> bg / <code>#50e890</code> text
+    </div>
+
+    <div class="spec-grid">
+      <!-- Routes -->
+      <div class="spec-section">
+        <div class="spec-section-title">API Routes</div>
+        <table class="spec-table">
+          <thead><tr><th>Method</th><th>Route</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>GET</td><td><code>/teacher/student/:id/full</code></td><td>Full student profile, stats, SNS history, skill snapshot</td></tr>
+            <tr><td>GET</td><td><code>/teacher/student/:id/notes</code></td><td>Append-only notes timeline (all types, teacher-visible only)</td></tr>
+            <tr><td>POST</td><td><code>/teacher/student/:id/notes</code></td><td>Append new note (type + text + creator)</td></tr>
+            <tr><td>GET</td><td><code>/teacher/student/:id/intervention-plan</code></td><td>Full intervention plan (goal, skills, strategies, check-ins)</td></tr>
+            <tr><td>PUT</td><td><code>/teacher/intervention-plan/:id</code></td><td>Save plan changes (goal text, skill/strategy edits)</td></tr>
+            <tr><td>GET</td><td><code>/teacher/student/:id/assignments</code></td><td>All assignments ever assigned to this student, sortable</td></tr>
+            <tr><td>POST</td><td><code>/teacher/student/:id/assignments</code></td><td>Create new assignment for student</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Layout -->
+      <div class="spec-section">
+        <div class="spec-section-title">Desktop Layout</div>
+        <div class="spec-rule"><strong>Grid:</strong> <code>260px 1fr 300px</code></div>
+        <div class="spec-rule"><strong>Left sidebar:</strong> student profile card, stats, world progress, risk flag alert</div>
+        <div class="spec-rule"><strong>Center main:</strong> primary content per tab (chart / timeline / plan / assignments)</div>
+        <div class="spec-rule"><strong>Right panel:</strong> contextual actions + summary cards per tab</div>
+        <div class="spec-rule"><strong>Top nav:</strong> <code>#2a5080</code> with breadcrumb: "Mrs. Rivera's Class &rsaquo; Emma Chen"</div>
+        <div class="spec-rule"><strong>Subnav:</strong> white bar, student title + tier chip + quick action buttons</div>
+        <div class="spec-rule"><strong>Min width:</strong> 1024px; columns collapse to 1-col below breakpoint</div>
+      </div>
+
+      <!-- SNS Chart -->
+      <div class="spec-section">
+        <div class="spec-section-title">SNS History Chart</div>
+        <div class="spec-rule"><strong>Data:</strong> 8-week weekly aggregation of skill SNS tiers</div>
+        <div class="spec-rule"><strong>Color rule:</strong> bar color = dominant tier that week (most skills in that tier)</div>
+        <div class="spec-rule"><strong>Stacked bars:</strong> each bar shows flag / watch / strong segments proportionally</div>
+        <div class="spec-rule"><strong>Week selector:</strong> all 8 wks / 4 wks / 2 wks / this week chips</div>
+        <div class="spec-rule"><strong>No decimals:</strong> counts only; no percentage labels on bars</div>
+      </div>
+
+      <!-- Intervention Plan -->
+      <div class="spec-section">
+        <div class="spec-section-title">Intervention Plan</div>
+        <div class="spec-rule"><strong>Created:</strong> per-student; triggered by SNS Flag tier event (Watch &rarr; Flag)</div>
+        <div class="spec-rule"><strong>Contains:</strong> goal text + focus skills (up to 3) + support strategies (up to 3) + check-in schedule</div>
+        <div class="spec-rule"><strong>Duration:</strong> default 6 weeks; teacher can adjust</div>
+        <div class="spec-rule"><strong>Editable:</strong> goal textarea + skill/strategy inline update links</div>
+        <div class="spec-rule"><strong>Save:</strong> PUT on save-bar button; save bar is sticky bottom of center panel</div>
+        <div class="spec-rule"><strong>Print/Export:</strong> link triggers PDF export (server-side rendered)</div>
+      </div>
+
+      <!-- Notes -->
+      <div class="spec-section">
+        <div class="spec-section-title">Notes System</div>
+        <div class="spec-rule"><strong>Append-only:</strong> notes cannot be edited or deleted after saving</div>
+        <div class="spec-rule"><strong>6 types:</strong> Note / Concern / Check-in / Activity / Parent Message / Tier Change</div>
+        <div class="spec-rule"><strong>Visibility:</strong> teacher-only; not surfaced to parent app</div>
+        <div class="spec-rule"><strong>Timeline:</strong> ordered newest-first; "Load more" pagination (10 per page)</div>
+        <div class="spec-rule"><strong>Dot colors:</strong> note=navy, activity=teal, tier-change=amber, parent-msg=violet, concern=red, check-in=green</div>
+      </div>
+
+      <!-- Assignments -->
+      <div class="spec-section">
+        <div class="spec-section-title">Assignment List</div>
+        <div class="spec-rule"><strong>Scope:</strong> all assignments ever assigned to this student</div>
+        <div class="spec-rule"><strong>Sort:</strong> default by status (overdue first, then in-progress, not started, complete); sortable</div>
+        <div class="spec-rule"><strong>Status chips:</strong> Complete=<code>#0a2a15</code>/<code>#50e890</code> | In Progress=<code>#2a1800</code>/<code>#f0a030</code> | Not Started=neutral | Overdue=<code>#9a2a2a</code>/<code>#ff9090</code></div>
+        <div class="spec-rule"><strong>Actions:</strong> "View Results" (completed/in-progress) | "Reassign" (not started/overdue)</div>
+      </div>
+
+      <!-- Design tokens -->
+      <div class="spec-section" style="grid-column:1/-1;">
+        <div class="spec-section-title">Design Tokens</div>
+        <table class="spec-table">
+          <thead><tr><th>Token</th><th>Value</th><th>Usage</th></tr></thead>
+          <tbody>
+            <tr><td>bg</td><td><span class="token-swatch" style="background:#f0f4f8"></span><code>#f0f4f8</code></td><td>Page background, center panel</td></tr>
+            <tr><td>nav</td><td><span class="token-swatch" style="background:#2a5080"></span><code>#2a5080</code></td><td>Top nav, primary buttons, left/right panel section titles</td></tr>
+            <tr><td>accent</td><td><span class="token-swatch" style="background:#4a90d9"></span><code>#4a90d9</code></td><td>Links, progress bars, active state indicators</td></tr>
+            <tr><td>SNS Flag bg</td><td><span class="token-swatch" style="background:#9a2a2a"></span><code>#9a2a2a</code></td><td>Flag tier chip/card background</td></tr>
+            <tr><td>SNS Flag text</td><td><span class="token-swatch" style="background:#ff9090;border:1px solid #ccc"></span><code>#ff9090</code></td><td>Flag tier text, icon on dark bg</td></tr>
+            <tr><td>SNS Watch bg</td><td><span class="token-swatch" style="background:#2a1800"></span><code>#2a1800</code></td><td>Watch tier chip/card background</td></tr>
+            <tr><td>SNS Watch text</td><td><span class="token-swatch" style="background:#f0a030;border:1px solid #ccc"></span><code>#f0a030</code></td><td>Watch tier text on dark bg</td></tr>
+            <tr><td>SNS Strong bg</td><td><span class="token-swatch" style="background:#0a2a15"></span><code>#0a2a15</code></td><td>Strong tier chip/card background</td></tr>
+            <tr><td>SNS Strong text</td><td><span class="token-swatch" style="background:#50e890;border:1px solid #ccc"></span><code>#50e890</code></td><td>Strong tier text on dark bg</td></tr>
+            <tr><td>font</td><td>Sora</td><td>All text — Google Fonts import</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx = ['t1','t2','t3','t4','t5'].indexOf(id);
+  document.querySelectorAll('.tab-btn')[idx].classList.add('active');
+}
+
+// Note type chip toggle
+document.querySelectorAll('.note-type-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    this.closest('.note-type-chips').querySelectorAll('.note-type-chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+
+// Week chip toggle
+document.querySelectorAll('.week-chip').forEach(chip => {
+  chip.addEventListener('click', function() {
+    this.closest('.week-chips').querySelectorAll('.week-chip').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

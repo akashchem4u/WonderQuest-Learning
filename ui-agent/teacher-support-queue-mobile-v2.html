@@ -1,1545 +1,350 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>WonderQuest — Teacher Support Queue Mobile v2</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    body {
-      font-family: 'Sora', sans-serif;
-      background: #ffffff;
-      min-height: 100vh;
-    }
-
-    /* ── Canvas tab bar (outer) ── */
-    .canvas-tabs {
-      display: flex; gap: 0; background: #1c2432;
-      overflow-x: auto; scrollbar-width: none;
-      position: sticky; top: 0; z-index: 200;
-    }
-    .canvas-tabs::-webkit-scrollbar { display: none; }
-    .canvas-tab {
-      flex-shrink: 0; padding: 13px 18px;
-      font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600;
-      color: #8899aa; background: transparent; border: none;
-      border-bottom: 3px solid transparent; cursor: pointer;
-      transition: all .18s; white-space: nowrap;
-    }
-    .canvas-tab.active { color: #ffffff; border-bottom-color: #4a9ff5; }
-
-    /* ── Panels ── */
-    .panel { display: none; }
-    .panel.active { display: block; }
-
-    /* ── Engineering hint ── */
-    .hint {
-      background: #fffbea; border: 2px solid #f0c040;
-      border-radius: 10px; padding: 13px 16px; margin: 24px auto;
-      max-width: 880px; font-size: 12px; color: #7a5500; line-height: 1.75;
-    }
-    .hint strong { display: block; margin-bottom: 4px; font-size: 13px; font-weight: 700; color: #5a3e00; }
-    .hint code { background: rgba(240,192,64,.2); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
-
-    /* ── Phone canvas wrapper ── */
-    .phone-canvas {
-      display: flex; justify-content: center;
-      padding: 32px 24px 60px; background: #ffffff;
-    }
-    .phone-frame {
-      width: 390px; min-height: 844px;
-      border-radius: 40px; overflow: hidden;
-      box-shadow: 0 24px 72px rgba(0,0,0,.18), 0 0 0 1px #d0dae8;
-      position: relative; background: #f0f4f8;
-      display: flex; flex-direction: column;
-    }
-
-    /* Status bar simulation */
-    .phone-status {
-      background: #2a5080; height: 44px;
-      display: flex; align-items: flex-end; justify-content: space-between;
-      padding: 0 24px 8px; flex-shrink: 0;
-    }
-    .phone-status .time { font-size: 13px; font-weight: 700; color: #fff; }
-    .phone-status .icons { font-size: 11px; color: rgba(255,255,255,.85); letter-spacing: 2px; }
-
-    /* Phone nav bar */
-    .phone-nav {
-      background: #2a5080; padding: 10px 16px 14px;
-      display: flex; align-items: center; gap: 12px; flex-shrink: 0;
-    }
-    .nav-title { font-size: 17px; font-weight: 800; color: #fff; flex: 1; }
-    .nav-icon { font-size: 20px; cursor: pointer; }
-    .nav-back { font-size: 14px; color: #a8d0f8; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-    /* Scrollable body inside phone */
-    .phone-body {
-      flex: 1; overflow-y: auto; background: #f0f4f8;
-      padding-bottom: 80px;
-    }
-    .phone-body::-webkit-scrollbar { width: 3px; }
-    .phone-body::-webkit-scrollbar-thumb { background: #c0cdd8; border-radius: 2px; }
-
-    /* ── Bottom tab bar ── */
-    .phone-tabbar {
-      position: absolute; bottom: 0; left: 0; right: 0;
-      background: #fff; border-top: 1px solid #d0dae8;
-      display: flex; height: 72px; align-items: stretch;
-      border-radius: 0 0 40px 40px; overflow: hidden;
-    }
-    .ptab {
-      flex: 1; display: flex; flex-direction: column; align-items: center;
-      justify-content: center; gap: 3px; cursor: pointer;
-      border: none; background: transparent; font-family: 'Sora', sans-serif;
-      color: #8899aa; font-size: 9px; font-weight: 600;
-      transition: all .15s; padding: 0; min-height: 48px;
-    }
-    .ptab.active { color: #2a5080; }
-    .ptab .ptab-icon { font-size: 20px; line-height: 1; }
-    .ptab.active .ptab-icon { transform: scale(1.1); }
-
-    /* ══════════════════════════════════════════
-       TAB 1 — SUPPORT QUEUE
-    ══════════════════════════════════════════ */
-    .queue-header {
-      background: #fff; padding: 14px 16px 10px;
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid #e0e8f0; position: sticky; top: 0; z-index: 10;
-    }
-    .queue-title { font-size: 16px; font-weight: 800; color: #1c2430; flex: 1; }
-    .queue-count-badge {
-      background: #2a5080; color: #fff; font-size: 11px; font-weight: 700;
-      padding: 3px 10px; border-radius: 20px;
-    }
-    .queue-filter-btn { font-size: 20px; cursor: pointer; }
-
-    .urgency-filter-chips {
-      background: #fff; padding: 10px 16px 10px;
-      display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none;
-      border-bottom: 1px solid #e0e8f0;
-    }
-    .urgency-filter-chips::-webkit-scrollbar { display: none; }
-    .filter-chip {
-      flex-shrink: 0; padding: 6px 13px; border-radius: 20px; font-size: 12px;
-      font-weight: 600; border: 1.5px solid #d0dae8; background: #f8fafc;
-      color: #4b5563; cursor: pointer; font-family: 'Sora', sans-serif;
-      transition: all .15s; min-height: 34px;
-    }
-    .filter-chip.active-chip { background: #2a5080; color: #fff; border-color: #2a5080; }
-    .filter-chip.flag-chip.active-chip { background: #9a2a2a; border-color: #9a2a2a; color: #ff9090; }
-    .filter-chip.watch-chip.active-chip { background: #2a1800; border-color: #2a1800; color: #f0a030; }
-
-    /* Queue list */
-    .queue-list { padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
-
-    .queue-item {
-      background: #fff; border-radius: 14px; overflow: hidden;
-      border-left: 4px solid transparent;
-      box-shadow: 0 1px 6px rgba(0,0,0,.07);
-      position: relative; cursor: pointer;
-    }
-    .queue-item.flag-item { border-left-color: #9a2a2a; }
-    .queue-item.watch-item { border-left-color: #2a1800; }
-
-    .qi-main { display: flex; align-items: flex-start; gap: 10px; padding: 12px 12px 10px 12px; }
-    .qi-avatar {
-      width: 36px; height: 36px; border-radius: 50%;
-      background: #2a5080; color: #fff;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 13px; font-weight: 800; flex-shrink: 0;
-    }
-    .qi-body { flex: 1; min-width: 0; }
-    .qi-top { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 3px; }
-    .qi-name { font-size: 14px; font-weight: 700; color: #1c2430; }
-    .sns-badge {
-      font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px;
-      display: inline-flex; align-items: center; gap: 3px;
-    }
-    .sns-flag { background: #9a2a2a; color: #ff9090; }
-    .sns-watch { background: #2a1800; color: #f0a030; }
-    .sns-strong { background: #0a2a15; color: #50e890; }
-    .qi-days { font-size: 11px; color: #607080; }
-    .qi-skill { font-size: 12px; color: #4b5563; margin-bottom: 5px; }
-    .qi-foot { display: flex; align-items: center; justify-content: space-between; }
-    .qi-last-active {
-      font-size: 11px; font-weight: 600; color: #8899aa;
-      background: #f0f4f8; padding: 2px 8px; border-radius: 8px;
-    }
-    .qi-swipe-hint { font-size: 10px; color: #a0b0c0; font-weight: 600; }
-
-    /* Expanded inline actions */
-    .qi-actions {
-      display: none; padding: 0 12px 12px;
-      gap: 8px; flex-wrap: nowrap;
-    }
-    .qi-actions.open { display: flex; }
-    .qi-action-btn {
-      flex: 1; min-height: 48px; padding: 10px 6px;
-      border-radius: 10px; border: 1.5px solid; font-family: 'Sora', sans-serif;
-      font-size: 12px; font-weight: 700; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; gap: 3px;
-      transition: opacity .15s;
-    }
-    .qi-action-btn:active { opacity: .75; }
-    .qi-btn-note { background: #f0f6ff; color: #2a5080; border-color: #bbd4f0; }
-    .qi-btn-parent { background: #fff8e8; color: #7a5000; border-color: #f0d080; }
-    .qi-btn-assign { background: #f0fff6; color: #1a6040; border-color: #90d8b0; }
-    .qi-action-btn .btn-icon { font-size: 16px; }
-    .qi-action-btn .btn-label { font-size: 10px; font-weight: 700; }
-
-    /* Cleared section */
-    .cleared-section { margin: 0 12px 12px; }
-    .cleared-toggle {
-      width: 100%; display: flex; align-items: center; gap: 8px;
-      padding: 11px 14px; background: #fff; border: 1.5px solid #d0dae8;
-      border-radius: 12px; font-family: 'Sora', sans-serif; font-size: 13px;
-      font-weight: 600; color: #4b5563; cursor: pointer; text-align: left;
-    }
-    .cleared-toggle .toggle-arrow { margin-left: auto; transition: transform .2s; }
-    .cleared-toggle.open .toggle-arrow { transform: rotate(180deg); }
-    .cleared-body { display: none; background: #fff; border: 1.5px solid #d0dae8;
-      border-top: none; border-radius: 0 0 12px 12px; padding: 8px 14px 12px; }
-    .cleared-body.open { display: block; }
-    .cleared-item { display: flex; align-items: center; gap: 8px; padding: 7px 0;
-      border-bottom: 1px solid #f0f4f8; font-size: 12px; color: #607080; }
-    .cleared-item:last-child { border-bottom: none; }
-    .cleared-check { color: #22c55e; font-size: 14px; }
-
-    /* ══════════════════════════════════════════
-       TAB 2 — STUDENT QUICK VIEW
-    ══════════════════════════════════════════ */
-    .student-nav-bar {
-      background: #fff; padding: 12px 16px 10px;
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid #e0e8f0; position: sticky; top: 0; z-index: 10;
-    }
-    .back-link { font-size: 13px; color: #2a5080; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 3px; }
-    .snb-name { font-size: 15px; font-weight: 800; color: #1c2430; flex: 1; text-align: center; }
-    .snb-spacer { width: 60px; }
-
-    .student-compact-card {
-      background: #fff; border-bottom: 1px solid #e0e8f0;
-      padding: 14px 16px;
-    }
-    .scc-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .scc-avatar {
-      width: 48px; height: 48px; border-radius: 50%; background: #2a5080;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 800; color: #fff; flex-shrink: 0;
-    }
-    .scc-name-block { flex: 1; }
-    .scc-name { font-size: 18px; font-weight: 800; color: #1c2430; }
-    .scc-grade { font-size: 12px; color: #607080; margin-top: 1px; }
-    .scc-stats { display: flex; gap: 8px; flex-wrap: wrap; }
-    .stat-chip {
-      font-size: 11px; font-weight: 600; padding: 5px 11px;
-      background: #f0f4f8; border-radius: 20px; color: #4b5563;
-      border: 1px solid #d8e4f0;
-    }
-
-    .skill-gap-card {
-      margin: 12px; background: #fff; border-radius: 14px;
-      border: 2px solid #f0a030; padding: 14px 14px;
-      box-shadow: 0 1px 6px rgba(240,160,48,.12);
-    }
-    .sgc-label { font-size: 10px; font-weight: 700; color: #7a5000; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .sgc-skill-name { font-size: 16px; font-weight: 800; color: #1c2430; margin-bottom: 8px; }
-    .sgc-trend { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; }
-    .trend-label { font-size: 11px; color: #607080; margin-right: 4px; }
-    .trend-dot {
-      width: 14px; height: 14px; border-radius: 50%;
-    }
-    .td-amber { background: #f0a030; }
-    .td-red { background: #c0404040; border: 2px solid #c04040; }
-    .td-deep-red { background: #8a2020; }
-    .td-orange { background: #e06820; }
-    .td-dark-amber { background: #c07800; }
-    .sgc-rec {
-      font-size: 12px; color: #4b5563; background: #fffdf0;
-      border-radius: 8px; padding: 8px 10px; border: 1px solid #f0d080;
-    }
-    .sgc-rec strong { color: #1c2430; }
-
-    .recent-sessions-mini { margin: 12px; }
-    .rsm-label { font-size: 11px; font-weight: 700; color: #607080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding: 0 2px; }
-    .rsm-dots { display: flex; gap: 10px; }
-    .rsm-dot-wrap { flex: 1; background: #fff; border-radius: 12px; padding: 10px 8px; text-align: center; border: 1px solid #e0e8f0; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
-    .rsm-date { font-size: 10px; color: #8899aa; margin-bottom: 4px; }
-    .rsm-world { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 8px; background: #e8f0ff; color: #2a5080; }
-
-    .intervention-history-mini { margin: 12px; }
-    .ihm-label { font-size: 11px; font-weight: 700; color: #607080; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; padding: 0 2px; }
-    .ihm-entry { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
-    .ihm-dot { width: 10px; height: 10px; border-radius: 50%; background: #2a5080; flex-shrink: 0; margin-top: 3px; }
-    .ihm-date { font-size: 10px; color: #8899aa; white-space: nowrap; }
-    .ihm-type-chip { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 8px; background: #e8f0ff; color: #2a5080; white-space: nowrap; }
-    .ihm-note { font-size: 12px; color: #4b5563; flex: 1; }
-
-    .quick-actions-row {
-      margin: 12px; display: flex; gap: 8px;
-    }
-    .qa-btn {
-      flex: 1; min-height: 52px; border-radius: 12px;
-      border: 1.5px solid; font-family: 'Sora', sans-serif;
-      font-size: 11px; font-weight: 700; cursor: pointer;
-      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-    }
-    .qa-note { background: #f0f6ff; color: #2a5080; border-color: #bbd4f0; }
-    .qa-parent { background: #fff8e8; color: #7a5000; border-color: #f0d080; }
-    .qa-assign { background: #f0fff6; color: #1a6040; border-color: #90d8b0; }
-    .qa-btn .qa-icon { font-size: 18px; }
-
-    /* ══════════════════════════════════════════
-       TAB 3 — ADD NOTE / INTERVENTION
-    ══════════════════════════════════════════ */
-    .note-screen {
-      display: flex; flex-direction: column; height: 100%;
-      background: #f0f4f8;
-    }
-    .note-header-bar {
-      background: #fff; padding: 12px 16px 10px;
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid #e0e8f0;
-    }
-    .note-header-title { font-size: 15px; font-weight: 800; color: #1c2430; flex: 1; }
-
-    .note-form-body { flex: 1; padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
-
-    .note-type-row { display: flex; gap: 7px; flex-wrap: wrap; }
-    .note-type-chip {
-      padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      border: 1.5px solid #d0dae8; background: #f8fafc; color: #4b5563;
-      cursor: pointer; font-family: 'Sora', sans-serif;
-      transition: all .15s; min-height: 40px;
-    }
-    .note-type-chip.selected { background: #2a5080; color: #fff; border-color: #2a5080; }
-
-    .note-textarea {
-      width: 100%; border-radius: 12px; border: 1.5px solid #d0dae8;
-      padding: 13px 14px; font-family: 'Sora', sans-serif; font-size: 14px;
-      color: #1c2430; resize: none; background: #fff; outline: none;
-      line-height: 1.6;
-    }
-    .note-textarea:focus { border-color: #2a5080; box-shadow: 0 0 0 3px rgba(42,80,128,.1); }
-
-    .quick-phrases-label { font-size: 11px; font-weight: 700; color: #607080; text-transform: uppercase; letter-spacing: 0.5px; }
-    .quick-phrases { display: flex; flex-direction: column; gap: 7px; }
-    .qp-chip {
-      display: flex; align-items: center; gap: 8px; padding: 10px 14px;
-      background: #fff; border: 1.5px solid #d8e8f8; border-radius: 10px;
-      font-size: 13px; color: #2a5080; font-weight: 600; cursor: pointer;
-      font-family: 'Sora', sans-serif; text-align: left;
-      transition: background .12s; min-height: 44px;
-    }
-    .qp-chip:active { background: #e8f0ff; }
-
-    .char-count { font-size: 11px; color: #8899aa; text-align: right; }
-
-    .note-actions {
-      padding: 12px 12px 16px; background: #fff;
-      border-top: 1px solid #e0e8f0;
-      display: flex; flex-direction: column; gap: 8px;
-    }
-    .save-btn {
-      width: 100%; min-height: 52px; background: #2a5080; color: #fff;
-      border: none; border-radius: 14px; font-family: 'Sora', sans-serif;
-      font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.01em;
-    }
-    .cancel-btn {
-      width: 100%; min-height: 44px; background: transparent; color: #607080;
-      border: none; font-family: 'Sora', sans-serif; font-size: 14px;
-      font-weight: 600; cursor: pointer;
-    }
-
-    /* Success toast */
-    .toast {
-      position: absolute; bottom: 90px; left: 50%; transform: translateX(-50%) translateY(20px);
-      background: #0a2a15; color: #50e890; font-size: 13px; font-weight: 700;
-      padding: 10px 20px; border-radius: 20px; white-space: nowrap;
-      opacity: 0; transition: all .3s; pointer-events: none; z-index: 50;
-    }
-    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-
-    /* ══════════════════════════════════════════
-       TAB 4 — QUICK ASSIGN
-    ══════════════════════════════════════════ */
-    .assign-header-bar {
-      background: #fff; padding: 12px 16px 10px;
-      display: flex; align-items: center; gap: 10px;
-      border-bottom: 1px solid #e0e8f0;
-    }
-    .assign-header-title { font-size: 15px; font-weight: 800; color: #1c2430; flex: 1; }
-
-    .assign-body { padding: 14px 12px; display: flex; flex-direction: column; gap: 12px; }
-
-    .student-context-chip {
-      display: inline-flex; align-items: center; gap: 8px;
-      background: #fff; border: 1.5px solid #9a2a2a; border-radius: 20px;
-      padding: 6px 14px; font-size: 13px; font-weight: 700; color: #1c2430;
-      align-self: flex-start;
-    }
-
-    .skill-suggestion-card {
-      background: #fff; border-radius: 14px; padding: 14px 16px;
-      border: 1.5px solid #e0e8f0; box-shadow: 0 1px 6px rgba(0,0,0,.06);
-    }
-    .ssc-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
-    .ssc-skill-name { font-size: 16px; font-weight: 800; color: #1c2430; flex: 1; }
-    .violet-chip { background: #f0eaff; color: #6030b0; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 8px; white-space: nowrap; }
-    .ssc-based { font-size: 12px; color: #607080; margin-bottom: 10px; }
-    .change-skill-link { font-size: 13px; color: #2a5080; font-weight: 600; cursor: pointer; background: none; border: none; font-family: 'Sora', sans-serif; padding: 0; }
-    .change-skill-link:hover { text-decoration: underline; }
-
-    .assign-config-card {
-      background: #fff; border-radius: 14px; padding: 14px 16px;
-      border: 1.5px solid #e0e8f0; box-shadow: 0 1px 6px rgba(0,0,0,.06);
-      display: flex; flex-direction: column; gap: 14px;
-    }
-    .config-row { display: flex; align-items: center; gap: 10px; }
-    .config-label { font-size: 13px; font-weight: 700; color: #1c2430; flex: 1; }
-    .stepper { display: flex; align-items: center; gap: 8px; }
-    .stepper-btn {
-      width: 32px; height: 32px; border-radius: 50%; border: 1.5px solid #d0dae8;
-      background: #f0f4f8; font-size: 18px; font-weight: 700; color: #2a5080;
-      cursor: pointer; display: flex; align-items: center; justify-content: center;
-      font-family: 'Sora', sans-serif;
-    }
-    .stepper-val { font-size: 14px; font-weight: 700; color: #1c2430; min-width: 24px; text-align: center; }
-    .pill-chips { display: flex; gap: 7px; flex-wrap: wrap; }
-    .pill-chip {
-      padding: 7px 14px; border-radius: 20px; font-size: 12px; font-weight: 600;
-      border: 1.5px solid #d0dae8; background: #f8fafc; color: #4b5563;
-      cursor: pointer; font-family: 'Sora', sans-serif; min-height: 38px;
-      transition: all .15s;
-    }
-    .pill-chip.selected { background: #2a5080; color: #fff; border-color: #2a5080; }
-
-    .contact-safe-reminder {
-      background: #f0f6ff; border: 1.5px solid #bbd4f0; border-radius: 12px;
-      padding: 11px 14px; font-size: 12px; color: #2a5080; font-weight: 500;
-      display: flex; align-items: center; gap: 8px;
-    }
-
-    .assign-cta-block { display: flex; flex-direction: column; gap: 8px; }
-    .assign-now-btn {
-      width: 100%; min-height: 54px; background: #2a5080; color: #fff;
-      border: none; border-radius: 14px; font-family: 'Sora', sans-serif;
-      font-size: 15px; font-weight: 800; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-    }
-    .save-draft-btn {
-      width: 100%; min-height: 44px; background: transparent; color: #607080;
-      border: none; font-family: 'Sora', sans-serif; font-size: 14px;
-      font-weight: 600; cursor: pointer;
-    }
-
-    /* Success overlay */
-    .success-overlay {
-      display: none; position: absolute; inset: 0; background: rgba(10,42,21,.92);
-      z-index: 100; align-items: center; justify-content: center;
-      flex-direction: column; gap: 16px; border-radius: 40px;
-    }
-    .success-overlay.show { display: flex; }
-    .success-icon { font-size: 56px; }
-    .success-title { font-size: 20px; font-weight: 800; color: #50e890; text-align: center; }
-    .success-sub { font-size: 14px; color: #a0e8c0; text-align: center; padding: 0 32px; line-height: 1.6; }
-    .success-dismiss {
-      margin-top: 8px; padding: 13px 32px; background: #50e890; color: #0a2a15;
-      border: none; border-radius: 14px; font-family: 'Sora', sans-serif;
-      font-size: 14px; font-weight: 800; cursor: pointer;
-    }
-
-    /* ══════════════════════════════════════════
-       TAB 5 — SPEC
-    ══════════════════════════════════════════ */
-    .spec-outer { padding: 32px 40px 60px; max-width: 900px; margin: 0 auto; background: #ffffff; min-height: 600px; }
-    .spec-h2 { font-size: 18px; font-weight: 800; color: #1c2430; margin-bottom: 4px; }
-    .spec-sub { font-size: 13px; color: #607080; margin-bottom: 24px; }
-    .spec-section { margin-bottom: 24px; }
-    .spec-section h3 { font-size: 11px; font-weight: 700; color: #2a5080; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 10px; }
-    .spec-row {
-      background: #f8fafc; border-radius: 10px; padding: 12px 16px;
-      margin-bottom: 6px; border: 1px solid #e0e8f0;
-    }
-    .spec-row p { font-size: 12px; color: #4b5563; line-height: 1.7; }
-    .spec-row code { background: rgba(42,80,128,.08); padding: 1px 5px; border-radius: 4px; font-size: 11px; color: #2a5080; }
-    .spec-token-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-    .spec-token {
-      padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 700;
-    }
-
-    /* Skill picker modal hint */
-    .modal-backdrop {
-      display: none; position: absolute; inset: 0;
-      background: rgba(0,0,0,.5); z-index: 80;
-      border-radius: 40px; align-items: flex-end;
-    }
-    .modal-backdrop.show { display: flex; }
-    .skill-modal {
-      background: #fff; width: 100%; border-radius: 24px 24px 0 0;
-      padding: 20px 16px 32px;
-    }
-    .modal-handle { width: 40px; height: 4px; background: #d0dae8; border-radius: 2px; margin: 0 auto 16px; }
-    .modal-title { font-size: 16px; font-weight: 800; color: #1c2430; margin-bottom: 14px; }
-    .skill-option {
-      display: flex; align-items: center; gap: 12px; padding: 12px 0;
-      border-bottom: 1px solid #f0f4f8; cursor: pointer;
-    }
-    .skill-option:last-child { border-bottom: none; }
-    .skill-opt-dot { width: 10px; height: 10px; border-radius: 50%; }
-    .skill-opt-name { font-size: 14px; font-weight: 600; color: #1c2430; flex: 1; }
-    .skill-opt-code { font-size: 11px; color: #8899aa; }
-    .modal-close { margin-top: 14px; width: 100%; padding: 12px; border: 1.5px solid #d0dae8; border-radius: 12px; background: transparent; font-family: 'Sora', sans-serif; font-size: 14px; font-weight: 600; color: #607080; cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>teacher-support-queue-mobile-v2 · WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#1a1a2e;font-family:'Sora',sans-serif;display:flex;flex-direction:column;align-items:center;padding:24px 16px;min-height:100vh}
+.hint-box{background:#1a2a1a;border:1px solid #58e8c1;border-radius:8px;padding:12px 16px;max-width:440px;width:100%;margin-bottom:16px;font-size:12px;color:#58e8c1;line-height:1.5}
+.hint-box strong{display:block;margin-bottom:4px;font-size:13px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;max-width:440px;width:100%;margin-bottom:16px}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #333;background:#1a1a2e;color:#888;font-family:'Sora',sans-serif;transition:all .2s}
+.tab.active{background:#2a5080;border-color:#2a5080;color:#fff}
+.screen{display:none;max-width:390px;width:100%}
+.screen.active{display:block}
+.phone{background:#f0f4f8;border-radius:32px;border:3px solid #c8d8e8;overflow:hidden;min-height:720px;display:flex;flex-direction:column}
+.nav{background:#2a5080;padding:16px 20px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.nav-title{font-size:15px;font-weight:700;color:#fff}
+.nav-sub{font-size:11px;color:#90b0d0}
+.body{padding:16px;flex:1}
+/* KPI strip */
+.kpi-strip{display:flex;gap:8px;margin-bottom:14px}
+.kpi{flex:1;background:#fff;border-radius:10px;border:1px solid #d0dcea;padding:10px 8px;text-align:center}
+.kpi-val{font-size:20px;font-weight:700}
+.kpi-label{font-size:10px;color:#6a8aaa;margin-top:2px}
+.kpi.urgent .kpi-val{color:#9a2a2a}
+.kpi.watch .kpi-val{color:#c07800}
+.kpi.done .kpi-val{color:#1a8050}
+/* Queue items */
+.queue-item{background:#fff;border-radius:14px;border:1px solid #d0dcea;padding:14px;margin-bottom:10px;border-left:4px solid #ccc}
+.queue-item.flag{border-left-color:#9a2a2a}
+.queue-item.watch{border-left-color:#c07800}
+.qi-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.qi-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5090d0,#2a5080);display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:700;flex-shrink:0}
+.qi-name{font-size:13px;font-weight:700;color:#1a2a40}
+.qi-since{font-size:10px;color:#6a8aaa}
+.qi-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.badge-flag{background:#fce8e8;color:#9a2a2a}
+.badge-watch{background:#fff3d0;color:#c07800}
+.qi-skills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.skill-chip{background:#edf3fa;border-radius:8px;padding:3px 8px;font-size:11px;color:#2a5080;font-weight:600}
+.qi-actions{display:flex;gap:8px}
+.action-btn{flex:1;border-radius:8px;padding:8px;font-family:'Sora',sans-serif;font-size:11px;font-weight:700;cursor:pointer;border:none;text-align:center}
+.action-note{background:#edf3fa;color:#2a5080}
+.action-msg{background:#e8f5ee;color:#1a5a40}
+.action-view{background:#f0e8fa;color:#5a2a9a}
+/* Learner detail */
+.learner-detail{background:#fff;border-radius:14px;border:1px solid #d0dcea;padding:16px;margin-bottom:12px}
+.ld-header{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.ld-avatar{width:52px;height:52px;border-radius:50%;background:linear-gradient(135deg,#5090d0,#2a5080);display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:700;flex-shrink:0}
+.ld-name{font-size:16px;font-weight:700;color:#1a2a40}
+.ld-meta{font-size:11px;color:#6a8aaa;margin-top:2px}
+.stat-row{display:flex;gap:8px;margin-bottom:14px}
+.stat-card{flex:1;background:#f0f4f8;border-radius:10px;padding:10px 8px;text-align:center}
+.stat-val{font-size:18px;font-weight:700;color:#2a5080}
+.stat-label{font-size:10px;color:#6a8aaa;margin-top:2px}
+.skill-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:12px}
+.skill-table th{background:#edf3fa;color:#2a5080;padding:6px 8px;text-align:left;font-size:11px}
+.skill-table td{border-top:1px solid #e8f0f8;padding:6px 8px;color:#2a3a50}
+.tier-flag{background:#fce8e8;color:#9a2a2a;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700}
+.tier-watch{background:#fff3d0;color:#c07800;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700}
+.tier-strong{background:#e0f5ee;color:#1a5a40;border-radius:6px;padding:2px 6px;font-size:10px;font-weight:700}
+/* Intervention action */
+.intervention-card{background:#fff;border-radius:14px;border:1px solid #d0dcea;padding:16px;margin-bottom:10px}
+.ic-title{font-size:13px;font-weight:700;color:#1a2a40;margin-bottom:8px}
+.action-type-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.at-chip{padding:5px 10px;border-radius:10px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid #d0dcea;background:#f0f4f8;color:#2a5080}
+.at-chip.selected{background:#2a5080;color:#fff;border-color:#2a5080}
+.ic-textarea{width:100%;background:#f0f4f8;border:1px solid #d0dcea;border-radius:8px;padding:10px;font-family:'Sora',sans-serif;font-size:12px;color:#1a2a40;resize:none;min-height:60px;margin-bottom:8px}
+.ic-send{display:block;background:#2a5080;color:#fff;border:none;border-radius:10px;padding:11px;font-family:'Sora',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:100%;text-align:center}
+/* Done queue */
+.done-item{background:#fff;border-radius:14px;border:1px solid #d0dcea;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:12px;opacity:0.7}
+.done-check{width:28px;height:28px;border-radius:50%;background:#e0f5ee;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+.done-info{flex:1}
+.done-name{font-size:12px;font-weight:700;color:#2a3a50}
+.done-action{font-size:11px;color:#6a8aaa}
+/* Spec */
+.spec{padding:20px;color:#2a3a50;background:#f0f4f8}
+.spec h3{font-size:14px;color:#2a5080;text-transform:uppercase;letter-spacing:.5px;margin:16px 0 6px;font-weight:700}
+.spec h3:first-child{margin-top:0}
+table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:8px}
+th{background:#dce8f4;color:#2a5080;text-align:left;padding:6px 8px;font-size:11px}
+td{border-top:1px solid #d0dcea;padding:6px 8px;color:#2a3a50;vertical-align:top}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700}
+.pill-g{background:#e0f5ee;color:#1a5a40}
+</style>
 </head>
 <body>
-
-<!-- ═══════════════════════════════════════
-     OUTER CANVAS TAB BAR
-═══════════════════════════════════════ -->
-<div class="canvas-tabs">
-  <button class="canvas-tab active" onclick="show('t1',this)">Support Queue</button>
-  <button class="canvas-tab" onclick="show('t2',this)">Student Quick View</button>
-  <button class="canvas-tab" onclick="show('t3',this)">Add Note</button>
-  <button class="canvas-tab" onclick="show('t4',this)">Quick Assign</button>
-  <button class="canvas-tab" onclick="show('t5',this)">Spec</button>
+<div class="hint-box">
+  <strong>Engineering Hint -- teacher-support-queue-mobile-v2</strong>
+  Route: GET /teacher/support-queue returns learners sorted by urgency (flag > watch > new).
+  SNS tiers: Flag = 2+ weeks support (#9a2a2a), Watch = 1 week support (#c07800), Strong = strength tier (#1a8050).
+  Intervention log: POST /teacher/intervention/add (append-only). Message parent: POST /teacher/message/send (contact-safe, routes through WonderQuest).
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="show('queue-overview')">Queue Overview</button>
+  <button class="tab" onclick="show('learner-detail')">Learner Detail</button>
+  <button class="tab" onclick="show('intervention-action')">Intervention</button>
+  <button class="tab" onclick="show('done-queue')">Done</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
 </div>
 
-<!-- ═══════════════════════════════════
-     TAB 1 — SUPPORT QUEUE
-═══════════════════════════════════ -->
-<div id="t1" class="panel active">
-  <div class="hint">
-    <strong>Engineering Note — Support Queue (Mobile)</strong>
-    Route: <code>GET /teacher/support-queue</code> — returns students sorted Flag &gt; Watch, within tier by days-inactive desc.<br>
-    Swipe-right gesture reveals Quick Actions (Note / Parent / Assign) — visual hint shown on first load only (localStorage flag).<br>
-    Filter chips are local UI state; "All" resets to server-sorted order. Count badge reflects active (non-cleared) count.<br>
-    Queue items expand on tap; tapping a second time collapses. "Cleared this week" section is collapsible and loaded lazily.
-  </div>
-
-  <div class="phone-canvas">
-    <div class="phone-frame" id="frame1">
-
-      <!-- Status bar -->
-      <div class="phone-status">
-        <span class="time">9:41</span>
-        <span class="icons">● ● ▮▮▮</span>
+<!-- QUEUE OVERVIEW -->
+<div id="queue-overview" class="screen active">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Support Queue</div>
+        <div class="nav-sub">Ms. Rivera &nbsp;&#183;&nbsp; Room 2B</div>
       </div>
-
-      <!-- Nav -->
-      <div class="phone-nav">
-        <span class="nav-title">WonderQuest</span>
-        <span class="nav-icon">🔔</span>
+      <div style="font-size:20px;color:#90b0d0;cursor:pointer">&#9679;</div>
+    </div>
+    <div class="body">
+      <div class="kpi-strip">
+        <div class="kpi urgent"><div class="kpi-val">3</div><div class="kpi-label">Flag</div></div>
+        <div class="kpi watch"><div class="kpi-val">5</div><div class="kpi-label">Watch</div></div>
+        <div class="kpi done"><div class="kpi-val">8</div><div class="kpi-label">Clear</div></div>
       </div>
-
-      <!-- Scrollable body -->
-      <div class="phone-body" id="queueBody">
-
-        <!-- Queue header -->
-        <div class="queue-header">
-          <span class="queue-title">Support Queue</span>
-          <span class="queue-count-badge">11 students</span>
-          <span class="queue-filter-btn">⚙️</span>
-        </div>
-
-        <!-- Filter chips -->
-        <div class="urgency-filter-chips">
-          <button class="filter-chip active-chip" onclick="filterQueue('all', this)">All (11)</button>
-          <button class="filter-chip flag-chip" onclick="filterQueue('flag', this)">🚨 Flag (3)</button>
-          <button class="filter-chip watch-chip" onclick="filterQueue('watch', this)">👀 Watch (8)</button>
-        </div>
-
-        <!-- Queue list -->
-        <div class="queue-list" id="queueList">
-
-          <!-- FLAG ITEMS -->
-          <div class="queue-item flag-item" data-tier="flag" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">EC</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Emma Chen</span>
-                  <span class="sns-badge sns-flag">🚨 Flag</span>
-                </div>
-                <div class="qi-days">3 weeks in support</div>
-                <div class="qi-skill">Struggling with: Letter Sounds 🔤</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">5d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
+      <div style="font-size:11px;color:#6a8aaa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Needs attention first</div>
+      <div class="queue-item flag">
+        <div class="qi-header">
+          <div class="qi-avatar">JL</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="qi-name">James L.</div>
+              <span class="qi-badge badge-flag">Flag</span>
             </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation(); showTab('t3')">
-                <span class="btn-icon">📝</span>
-                <span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span>
-                <span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation(); showTab('t4')">
-                <span class="btn-icon">📋</span>
-                <span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item flag-item" data-tier="flag" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">LM</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Liam Morris</span>
-                  <span class="sns-badge sns-flag">🚨 Flag</span>
-                </div>
-                <div class="qi-days">2 weeks in support</div>
-                <div class="qi-skill">Struggling with: Number Sense 🔢</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">4d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation(); showTab('t3')">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation(); showTab('t4')">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item flag-item" data-tier="flag" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">AP</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Ava Patel</span>
-                  <span class="sns-badge sns-flag">🚨 Flag</span>
-                </div>
-                <div class="qi-days">2 weeks in support</div>
-                <div class="qi-skill">Struggling with: Rhyming 🎵</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">3d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation(); showTab('t3')">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation(); showTab('t4')">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <!-- WATCH ITEMS -->
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">NJ</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Noah James</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Sight Words 👁️</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">6d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation(); showTab('t3')">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation(); showTab('t4')">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">SR</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Sofia Reyes</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Counting On 🔢</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">5d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">EK</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Ethan Kim</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Shape Names 📐</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">4d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">MW</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Maya Wilson</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Letter Names 🔤</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">3d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">CL</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Carlos Lopez</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Blending Sounds 🎤</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">2d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">ZH</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Zara Hughes</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Vowel Sounds 🔊</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">2d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">BT</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Bella Turner</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Pattern Recognition 🔵</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">1d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-          <div class="queue-item watch-item" data-tier="watch" onclick="toggleItem(this)">
-            <div class="qi-main">
-              <div class="qi-avatar">JD</div>
-              <div class="qi-body">
-                <div class="qi-top">
-                  <span class="qi-name">Jack Davis</span>
-                  <span class="sns-badge sns-watch">👀 Watch</span>
-                </div>
-                <div class="qi-days">1 week in support</div>
-                <div class="qi-skill">Struggling with: Word Families 📖</div>
-                <div class="qi-foot">
-                  <span class="qi-last-active">1d ago</span>
-                  <span class="qi-swipe-hint">→ Actions</span>
-                </div>
-              </div>
-            </div>
-            <div class="qi-actions">
-              <button class="qi-action-btn qi-btn-note" onclick="event.stopPropagation()">
-                <span class="btn-icon">📝</span><span class="btn-label">Note</span>
-              </button>
-              <button class="qi-action-btn qi-btn-parent" onclick="event.stopPropagation()">
-                <span class="btn-icon">✉️</span><span class="btn-label">Parent</span>
-              </button>
-              <button class="qi-action-btn qi-btn-assign" onclick="event.stopPropagation()">
-                <span class="btn-icon">📋</span><span class="btn-label">Assign</span>
-              </button>
-            </div>
-          </div>
-
-        </div><!-- /.queue-list -->
-
-        <!-- Cleared section -->
-        <div class="cleared-section">
-          <button class="cleared-toggle" id="clearedToggle" onclick="toggleCleared()">
-            <span>Cleared this week: 2 ✅</span>
-            <span class="toggle-arrow">▾</span>
-          </button>
-          <div class="cleared-body" id="clearedBody">
-            <div class="cleared-item">
-              <span class="cleared-check">✅</span>
-              <span>Marcus Brown — cleared Mon 3/17</span>
-            </div>
-            <div class="cleared-item">
-              <span class="cleared-check">✅</span>
-              <span>Priya Singh — cleared Tue 3/18</span>
-            </div>
+            <div class="qi-since">In support 16 days &nbsp;&#183;&nbsp; G1</div>
           </div>
         </div>
-
-      </div><!-- /.phone-body -->
-
-      <!-- Bottom tab bar -->
-      <div class="phone-tabbar">
-        <button class="ptab active" onclick="showPhoneTab('queue')">
-          <span class="ptab-icon">📋</span>Queue
-        </button>
-        <button class="ptab" onclick="showTab('t2')">
-          <span class="ptab-icon">👤</span>Student
-        </button>
-        <button class="ptab" onclick="showTab('t3')">
-          <span class="ptab-icon">📝</span>Note
-        </button>
-        <button class="ptab" onclick="showTab('t4')">
-          <span class="ptab-icon">⚡</span>Assign
-        </button>
-        <button class="ptab" onclick="showTab('t5')">
-          <span class="ptab-icon">📊</span>Spec
-        </button>
+        <div class="qi-skills">
+          <div class="skill-chip">Letter Sounds</div>
+          <div class="skill-chip">Blending</div>
+        </div>
+        <div class="qi-actions">
+          <button class="action-btn action-note">+ Note</button>
+          <button class="action-btn action-msg">Message Parent</button>
+          <button class="action-btn action-view">View Detail</button>
+        </div>
       </div>
-    </div><!-- /.phone-frame -->
-  </div><!-- /.phone-canvas -->
-</div><!-- /#t1 -->
-
-<!-- ═══════════════════════════════════
-     TAB 2 — STUDENT QUICK VIEW
-═══════════════════════════════════ -->
-<div id="t2" class="panel">
-  <div class="hint">
-    <strong>Engineering Note — Student Quick View</strong>
-    Route: <code>GET /teacher/students/:id/support-summary</code> — returns compact profile, skill gaps, last 3 sessions, last 2 interventions.<br>
-    Trend dots represent weekly accuracy scores (last 4 weeks + current). Color = performance band: amber=below threshold, red=declining.<br>
-    Quick action buttons link to Note (Tab 3) and Assign (Tab 4) screens pre-populated with this student.<br>
-    Min touch target: 48px. No tables. Session dots are horizontally scrollable if &gt;3 entries.
-  </div>
-
-  <div class="phone-canvas">
-    <div class="phone-frame">
-      <div class="phone-status">
-        <span class="time">9:42</span>
-        <span class="icons">● ● ▮▮▮</span>
+      <div class="queue-item flag">
+        <div class="qi-header">
+          <div class="qi-avatar">AP</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="qi-name">Aisha P.</div>
+              <span class="qi-badge badge-flag">Flag</span>
+            </div>
+            <div class="qi-since">In support 14 days &nbsp;&#183;&nbsp; K</div>
+          </div>
+        </div>
+        <div class="qi-skills">
+          <div class="skill-chip">Counting to 5</div>
+          <div class="skill-chip">Number Match</div>
+        </div>
+        <div class="qi-actions">
+          <button class="action-btn action-note">+ Note</button>
+          <button class="action-btn action-msg">Message Parent</button>
+          <button class="action-btn action-view">View Detail</button>
+        </div>
       </div>
-      <div class="phone-nav" style="padding-top:8px; padding-bottom:10px;">
-        <span class="nav-back" onclick="showTab('t1')">‹ Support Queue</span>
-        <span style="flex:1"></span>
-        <span style="font-size:13px; color:rgba(255,255,255,.7); font-weight:500;">1 of 3 Flag</span>
-      </div>
-
-      <div class="phone-body">
-
-        <!-- Student compact card -->
-        <div class="student-compact-card">
-          <div class="scc-top">
-            <div class="scc-avatar">EC</div>
-            <div class="scc-name-block">
-              <div class="scc-name">Emma Chen</div>
-              <div class="scc-grade">Grade K · Room 4B</div>
+      <div style="font-size:11px;color:#6a8aaa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 8px">Watch</div>
+      <div class="queue-item watch">
+        <div class="qi-header">
+          <div class="qi-avatar">EM</div>
+          <div style="flex:1">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div class="qi-name">Ethan M.</div>
+              <span class="qi-badge badge-watch">Watch</span>
             </div>
-            <span class="sns-badge sns-flag" style="align-self:flex-start; margin-top:2px;">🚨 Flag</span>
-          </div>
-          <div class="scc-stats">
-            <span class="stat-chip">Last active: 5d</span>
-            <span class="stat-chip">Sessions: 2/wk</span>
-            <span class="stat-chip">Support: 3 wks</span>
+            <div class="qi-since">In support 7 days &nbsp;&#183;&nbsp; G1</div>
           </div>
         </div>
-
-        <!-- Skill gap card -->
-        <div class="skill-gap-card">
-          <div class="sgc-label">Main Skill Gap</div>
-          <div class="sgc-skill-name">Letter Sounds 🔤</div>
-          <div class="sgc-trend">
-            <span class="trend-label">4-wk trend:</span>
-            <div class="trend-dot td-amber" title="Wk 1: 52%"></div>
-            <div class="trend-dot td-dark-amber" title="Wk 2: 44%"></div>
-            <div class="trend-dot td-orange" title="Wk 3: 40%"></div>
-            <div class="trend-dot td-red" title="Wk 4: 35%"></div>
-            <div class="trend-dot td-deep-red" title="This wk: 30%"></div>
-          </div>
-          <div class="sgc-rec">
-            <strong>Recommended:</strong> Assign letter-sound practice activity at Gentle difficulty. Consider parent check-in.
-          </div>
+        <div class="qi-skills">
+          <div class="skill-chip">Sight Words</div>
         </div>
-
-        <!-- Recent sessions mini -->
-        <div class="recent-sessions-mini">
-          <div class="rsm-label">Recent Sessions</div>
-          <div class="rsm-dots">
-            <div class="rsm-dot-wrap">
-              <div class="rsm-date">Mar 17</div>
-              <div class="rsm-world">🌊 Ocean</div>
-            </div>
-            <div class="rsm-dot-wrap">
-              <div class="rsm-date">Mar 14</div>
-              <div class="rsm-world">🌲 Forest</div>
-            </div>
-            <div class="rsm-dot-wrap">
-              <div class="rsm-date">Mar 12</div>
-              <div class="rsm-world">🌊 Ocean</div>
-            </div>
-          </div>
+        <div class="qi-actions">
+          <button class="action-btn action-note">+ Note</button>
+          <button class="action-btn action-view">View Detail</button>
         </div>
-
-        <!-- Intervention history mini -->
-        <div class="intervention-history-mini">
-          <div class="ihm-label">Recent Interventions</div>
-          <div class="ihm-entry">
-            <div class="ihm-dot"></div>
-            <div>
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
-                <span class="ihm-date">Mar 15</span>
-                <span class="ihm-type-chip">📝 Note</span>
-              </div>
-              <div class="ihm-note">Checked in during reading circle — still struggling with /s/ and /sh/ distinction.</div>
-            </div>
-          </div>
-          <div class="ihm-entry">
-            <div class="ihm-dot" style="background:#f0a030;"></div>
-            <div>
-              <div style="display:flex; align-items:center; gap:8px; margin-bottom:3px;">
-                <span class="ihm-date">Mar 10</span>
-                <span class="ihm-type-chip" style="background:#fff8e8; color:#7a5000;">📞 Parent</span>
-              </div>
-              <div class="ihm-note">Called home — parent will practice letter sounds with flashcards this week.</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quick actions row -->
-        <div class="quick-actions-row">
-          <button class="qa-btn qa-note" onclick="showTab('t3')">
-            <span class="qa-icon">📝</span>
-            Add Note
-          </button>
-          <button class="qa-btn qa-parent">
-            <span class="qa-icon">✉️</span>
-            Message Parent
-          </button>
-          <button class="qa-btn qa-assign" onclick="showTab('t4')">
-            <span class="qa-icon">📋</span>
-            Assign Practice
-          </button>
-        </div>
-
-      </div><!-- /.phone-body -->
-
-      <div class="phone-tabbar">
-        <button class="ptab" onclick="showTab('t1')">
-          <span class="ptab-icon">📋</span>Queue
-        </button>
-        <button class="ptab active">
-          <span class="ptab-icon">👤</span>Student
-        </button>
-        <button class="ptab" onclick="showTab('t3')">
-          <span class="ptab-icon">📝</span>Note
-        </button>
-        <button class="ptab" onclick="showTab('t4')">
-          <span class="ptab-icon">⚡</span>Assign
-        </button>
-        <button class="ptab" onclick="showTab('t5')">
-          <span class="ptab-icon">📊</span>Spec
-        </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════
-     TAB 3 — ADD NOTE / INTERVENTION
-═══════════════════════════════════ -->
-<div id="t3" class="panel">
-  <div class="hint">
-    <strong>Engineering Note — Add Note / Intervention</strong>
-    Route: <code>POST /teacher/interventions</code> — payload: <code>{ student_id, type, note, timestamp }</code><br>
-    Notes are append-only once saved — never editable. 6 supported types: Note, Activity, Concern, Parent Contact, Observation, Referral.<br>
-    Quick phrase chips insert text at cursor position (or append). Character limit: 280. Auto-focus textarea on tab activation.<br>
-    After save: show toast for 2.5s, then navigate back to queue. Draft not persisted — confirm on back navigation if text &gt;0 chars.
-  </div>
-
-  <div class="phone-canvas">
-    <div class="phone-frame" style="position:relative;" id="frame3">
-
-      <div class="phone-status">
-        <span class="time">9:43</span>
-        <span class="icons">● ● ▮▮▮</span>
+<!-- LEARNER DETAIL -->
+<div id="learner-detail" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">James L.</div>
+        <div class="nav-sub">Grade 1 &nbsp;&#183;&nbsp; Flag tier</div>
       </div>
-      <div class="phone-nav" style="padding-top:8px; padding-bottom:10px;">
-        <span class="nav-back" onclick="showTab('t2')">‹ Emma Chen</span>
-      </div>
-
-      <div class="phone-body">
-        <div class="note-form-body">
-
+      <div style="font-size:13px;color:#90b0d0;cursor:pointer">Back</div>
+    </div>
+    <div class="body">
+      <div class="learner-detail">
+        <div class="ld-header">
+          <div class="ld-avatar">JL</div>
           <div>
-            <div style="font-size:16px; font-weight:800; color:#1c2430; margin-bottom:2px;">Note for Emma Chen</div>
-            <div style="font-size:12px; color:#607080;">Notes are permanent once saved</div>
+            <div class="ld-name">James L.</div>
+            <div class="ld-meta">Grade 1 &nbsp;&#183;&nbsp; Room 2B &nbsp;&#183;&nbsp; In support 16 days</div>
+            <span class="tier-flag" style="margin-top:4px;display:inline-block">Flag</span>
           </div>
-
-          <!-- Note type row -->
-          <div>
-            <div style="font-size:11px; font-weight:700; color:#607080; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Note Type</div>
-            <div class="note-type-row">
-              <button class="note-type-chip selected" onclick="selectNoteType(this)">📝 Note</button>
-              <button class="note-type-chip" onclick="selectNoteType(this)">📋 Activity</button>
-              <button class="note-type-chip" onclick="selectNoteType(this)">⚠️ Concern</button>
-              <button class="note-type-chip" onclick="selectNoteType(this)">📞 Parent Contact</button>
-            </div>
-          </div>
-
-          <!-- Textarea -->
-          <textarea
-            id="noteTextarea"
-            class="note-textarea"
-            rows="4"
-            placeholder="What did you observe? What action did you take?"
-            oninput="updateCharCount()"
-            maxlength="280"
-          ></textarea>
-          <div class="char-count" id="charCount">0 / 280</div>
-
-          <!-- Quick phrases -->
-          <div>
-            <div class="quick-phrases-label" style="margin-bottom:8px;">Quick Phrases</div>
-            <div class="quick-phrases">
-              <button class="qp-chip" onclick="insertPhrase('Checked in with student 👋')">Checked in with student 👋</button>
-              <button class="qp-chip" onclick="insertPhrase('Assigned extra practice 📋')">Assigned extra practice 📋</button>
-              <button class="qp-chip" onclick="insertPhrase('Parent notified ✉️')">Parent notified ✉️</button>
-              <button class="qp-chip" onclick="insertPhrase('Showing improvement ✅')">Showing improvement ✅</button>
-            </div>
-          </div>
-
         </div>
-      </div><!-- /.phone-body -->
-
-      <!-- Note actions -->
-      <div class="note-actions">
-        <button class="save-btn" onclick="saveNote()">Save Note</button>
-        <button class="cancel-btn" onclick="showTab('t2')">Cancel</button>
+        <div class="stat-row">
+          <div class="stat-card"><div class="stat-val">3</div><div class="stat-label">Sessions this week</div></div>
+          <div class="stat-card"><div class="stat-val">12</div><div class="stat-label">Stars earned</div></div>
+          <div class="stat-card"><div class="stat-val">2</div><div class="stat-label">Interventions</div></div>
+        </div>
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:6px">Skill Snapshot</div>
+        <table class="skill-table">
+          <tr><th>Skill</th><th>Tier</th><th>Trend</th></tr>
+          <tr><td>Letter Sounds</td><td><span class="tier-flag">Flag</span></td><td>&#8594; Flat</td></tr>
+          <tr><td>Blending</td><td><span class="tier-watch">Watch</span></td><td>&#8593; Improving</td></tr>
+          <tr><td>Counting to 10</td><td><span class="tier-strong">Strong</span></td><td>&#8593; Strong</td></tr>
+        </table>
       </div>
-
-      <!-- Toast -->
-      <div class="toast" id="noteToast">Note saved ✅</div>
-
-      <div class="phone-tabbar">
-        <button class="ptab" onclick="showTab('t1')">
-          <span class="ptab-icon">📋</span>Queue
-        </button>
-        <button class="ptab" onclick="showTab('t2')">
-          <span class="ptab-icon">👤</span>Student
-        </button>
-        <button class="ptab active">
-          <span class="ptab-icon">📝</span>Note
-        </button>
-        <button class="ptab" onclick="showTab('t4')">
-          <span class="ptab-icon">⚡</span>Assign
-        </button>
-        <button class="ptab" onclick="showTab('t5')">
-          <span class="ptab-icon">📊</span>Spec
-        </button>
+      <div style="background:#fff;border-radius:14px;border:1px solid #d0dcea;padding:14px">
+        <div style="font-size:12px;font-weight:700;color:#2a5080;margin-bottom:8px">Recent Interventions</div>
+        <div style="font-size:12px;color:#2a3a50;padding:8px 0;border-bottom:1px solid #e8f0f8">
+          <div style="color:#6a8aaa;font-size:10px;margin-bottom:2px">Mar 20 &nbsp;&#183;&nbsp; Ms. Rivera</div>
+          Added extra practice activity for letter sounds. Parent messaged.
+        </div>
+        <div style="font-size:12px;color:#2a3a50;padding:8px 0">
+          <div style="color:#6a8aaa;font-size:10px;margin-bottom:2px">Mar 15 &nbsp;&#183;&nbsp; Ms. Rivera</div>
+          Flagged for support tier. Assigned blending reinforcement.
+        </div>
+        <button style="display:block;background:#2a5080;color:#fff;border:none;border-radius:10px;padding:10px;font-family:'Sora',sans-serif;font-weight:700;font-size:12px;cursor:pointer;width:100%;text-align:center;margin-top:10px">+ Add Intervention Note</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════
-     TAB 4 — QUICK ASSIGN
-═══════════════════════════════════ -->
-<div id="t4" class="panel">
-  <div class="hint">
-    <strong>Engineering Note — Quick Assign</strong>
-    Route: <code>POST /assignments/create</code> — payload: <code>{ student_id, skill_id, question_count, difficulty, due_date }</code><br>
-    Skill auto-populated from student's primary support area. "Change skill →" opens a bottom-sheet modal with skill picker.<br>
-    Due-date options: Tomorrow = now+1d, This Week = next Sunday 23:59, Custom = date picker (ISO 8601). No full calendar UI on mobile.<br>
-    Assignment is private to student — not visible to parents until teacher publishes. "Gentle" pre-selected for Flag/Watch tier students.
-  </div>
-
-  <div class="phone-canvas">
-    <div class="phone-frame" style="position:relative;" id="frame4">
-
-      <div class="phone-status">
-        <span class="time">9:44</span>
-        <span class="icons">● ● ▮▮▮</span>
+<!-- INTERVENTION ACTION -->
+<div id="intervention-action" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Add Intervention</div>
+        <div class="nav-sub">James L. &nbsp;&#183;&nbsp; Flag</div>
       </div>
-      <div class="phone-nav" style="padding-top:8px; padding-bottom:10px;">
-        <span class="nav-back" onclick="showTab('t2')">‹ Emma Chen</span>
-        <span style="flex:1; font-size:16px; font-weight:800; color:#fff; text-align:center; margin-right:60px;">Assign Practice</span>
-      </div>
-
-      <div class="phone-body">
-        <div class="assign-body">
-
-          <!-- Student context chip -->
-          <div>
-            <div class="student-context-chip">
-              <div style="width:28px; height:28px; border-radius:50%; background:#2a5080; color:#fff; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; flex-shrink:0;">EC</div>
-              Emma Chen
-              <span class="sns-badge sns-flag">🚨 Flag</span>
-            </div>
-          </div>
-
-          <!-- Skill suggestion -->
-          <div class="skill-suggestion-card">
-            <div style="font-size:11px; font-weight:700; color:#607080; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Suggested Skill</div>
-            <div class="ssc-top">
-              <div class="ssc-skill-name">Letter Sounds</div>
-              <span class="violet-chip">P1 · Phonics</span>
-            </div>
-            <div class="ssc-based">Based on Emma's support area this week — declining trend for 4 weeks.</div>
-            <button class="change-skill-link" onclick="openSkillModal()">Change skill →</button>
-          </div>
-
-          <!-- Assign config -->
-          <div class="assign-config-card">
-            <div class="config-row">
-              <span class="config-label">Questions</span>
-              <div class="stepper">
-                <button class="stepper-btn" onclick="adjustQ(-1)">−</button>
-                <span class="stepper-val" id="qCount">5</span>
-                <button class="stepper-btn" onclick="adjustQ(1)">+</button>
-              </div>
-            </div>
-
-            <div>
-              <div style="font-size:13px; font-weight:700; color:#1c2430; margin-bottom:8px;">Difficulty</div>
-              <div class="pill-chips">
-                <button class="pill-chip selected" onclick="selectPill(this, 'diff')">Gentle</button>
-                <button class="pill-chip" onclick="selectPill(this, 'diff')">Standard</button>
-                <button class="pill-chip" onclick="selectPill(this, 'diff')">Challenge</button>
-              </div>
-            </div>
-
-            <div>
-              <div style="font-size:13px; font-weight:700; color:#1c2430; margin-bottom:8px;">Due</div>
-              <div class="pill-chips">
-                <button class="pill-chip selected" onclick="selectPill(this, 'due')">Tomorrow</button>
-                <button class="pill-chip" onclick="selectPill(this, 'due')">This Week</button>
-                <button class="pill-chip" onclick="selectPill(this, 'due')">Custom</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Privacy reminder -->
-          <div class="contact-safe-reminder">
-            🔒 Assigned privately — Emma sees it in her WonderQuest
-          </div>
-
-          <!-- CTAs -->
-          <div class="assign-cta-block">
-            <button class="assign-now-btn" onclick="showAssignSuccess()">Assign Now →</button>
-            <button class="save-draft-btn">Save as Draft</button>
-          </div>
-
+    </div>
+    <div class="body">
+      <div class="intervention-card">
+        <div class="ic-title">Action Type</div>
+        <div class="action-type-row">
+          <div class="at-chip selected">Note</div>
+          <div class="at-chip">Assign Activity</div>
+          <div class="at-chip">Message Parent</div>
+          <div class="at-chip">Schedule Check-in</div>
         </div>
-      </div><!-- /.phone-body -->
-
-      <!-- Success overlay -->
-      <div class="success-overlay" id="assignSuccess">
-        <div class="success-icon">✅</div>
-        <div class="success-title">Assigned!</div>
-        <div class="success-sub">Emma will see this next time she opens WonderQuest</div>
-        <button class="success-dismiss" onclick="hideAssignSuccess()">Back to Queue</button>
+        <textarea class="ic-textarea" placeholder="What did you observe? What action are you taking?..."></textarea>
+        <button class="ic-send">Save Intervention Note</button>
       </div>
-
-      <!-- Skill picker modal -->
-      <div class="modal-backdrop" id="skillModal" onclick="closeSkillModalBg(event)">
-        <div class="skill-modal">
-          <div class="modal-handle"></div>
-          <div class="modal-title">Choose a Skill</div>
-          <div class="skill-option" onclick="selectSkill('Letter Sounds', 'P1')">
-            <div class="skill-opt-dot" style="background:#9b72ff;"></div>
-            <span class="skill-opt-name">Letter Sounds</span>
-            <span class="skill-opt-code">P1</span>
+      <div class="intervention-card">
+        <div class="ic-title">Assign Practice Activity</div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+          <div style="background:#f0f4f8;border-radius:10px;padding:10px;font-size:12px;color:#2a3a50;border:1px solid #d0dcea;display:flex;justify-content:space-between;align-items:center">
+            <span>Letter Sounds Booster &nbsp;&#183;&nbsp; P1</span>
+            <span style="background:#2a5080;color:#fff;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">Assign</span>
           </div>
-          <div class="skill-option" onclick="selectSkill('Rhyming', 'P2')">
-            <div class="skill-opt-dot" style="background:#4a9ff5;"></div>
-            <span class="skill-opt-name">Rhyming</span>
-            <span class="skill-opt-code">P2</span>
+          <div style="background:#f0f4f8;border-radius:10px;padding:10px;font-size:12px;color:#2a3a50;border:1px solid #d0dcea;display:flex;justify-content:space-between;align-items:center">
+            <span>Blending Practice &nbsp;&#183;&nbsp; P1</span>
+            <span style="background:#2a5080;color:#fff;border-radius:8px;padding:3px 10px;font-size:11px;font-weight:700;cursor:pointer">Assign</span>
           </div>
-          <div class="skill-option" onclick="selectSkill('Blending Sounds', 'P3')">
-            <div class="skill-opt-dot" style="background:#22c55e;"></div>
-            <span class="skill-opt-name">Blending Sounds</span>
-            <span class="skill-opt-code">P3</span>
-          </div>
-          <div class="skill-option" onclick="selectSkill('Sight Words', 'P4')">
-            <div class="skill-opt-dot" style="background:#f0a030;"></div>
-            <span class="skill-opt-name">Sight Words</span>
-            <span class="skill-opt-code">P4</span>
-          </div>
-          <div class="skill-option" onclick="selectSkill('Number Sense', 'M1')">
-            <div class="skill-opt-dot" style="background:#f87171;"></div>
-            <span class="skill-opt-name">Number Sense</span>
-            <span class="skill-opt-code">M1</span>
-          </div>
-          <button class="modal-close" onclick="closeSkillModal()">Cancel</button>
         </div>
-      </div>
-
-      <div class="phone-tabbar">
-        <button class="ptab" onclick="showTab('t1')">
-          <span class="ptab-icon">📋</span>Queue
-        </button>
-        <button class="ptab" onclick="showTab('t2')">
-          <span class="ptab-icon">👤</span>Student
-        </button>
-        <button class="ptab" onclick="showTab('t3')">
-          <span class="ptab-icon">📝</span>Note
-        </button>
-        <button class="ptab active">
-          <span class="ptab-icon">⚡</span>Assign
-        </button>
-        <button class="ptab" onclick="showTab('t5')">
-          <span class="ptab-icon">📊</span>Spec
-        </button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════
-     TAB 5 — SPEC
-═══════════════════════════════════ -->
-<div id="t5" class="panel">
-  <div class="hint">
-    <strong>Engineering Note — Spec Panel</strong>
-    This tab documents API contracts, queue logic, mobile UX rules, and design tokens for the Support Queue mobile flow.<br>
-    All routes require teacher-scoped auth token. Queue data refreshes on tab focus (not polling). Swipe gesture is a CSS transform hint, not a native gesture library.
+<!-- DONE QUEUE -->
+<div id="done-queue" class="screen">
+  <div class="phone">
+    <div class="nav">
+      <div>
+        <div class="nav-title">Resolved</div>
+        <div class="nav-sub">8 learners cleared this week</div>
+      </div>
+    </div>
+    <div class="body">
+      <div style="font-size:11px;color:#6a8aaa;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Intervention completed</div>
+      <div class="done-item">
+        <div class="done-check">&#10003;</div>
+        <div class="done-info"><div class="done-name">Sofia R.</div><div class="done-action">Note added &nbsp;&#183;&nbsp; Mar 21</div></div>
+        <span style="font-size:11px;color:#1a8050;font-weight:700">Clear</span>
+      </div>
+      <div class="done-item">
+        <div class="done-check">&#10003;</div>
+        <div class="done-info"><div class="done-name">Marcus T.</div><div class="done-action">Activity assigned &nbsp;&#183;&nbsp; Mar 20</div></div>
+        <span style="font-size:11px;color:#1a8050;font-weight:700">Clear</span>
+      </div>
+      <div class="done-item">
+        <div class="done-check">&#10003;</div>
+        <div class="done-info"><div class="done-name">Lily C.</div><div class="done-action">Parent messaged &nbsp;&#183;&nbsp; Mar 19</div></div>
+        <span style="font-size:11px;color:#1a8050;font-weight:700">Clear</span>
+      </div>
+      <div class="done-item">
+        <div class="done-check">&#10003;</div>
+        <div class="done-info"><div class="done-name">Omar J.</div><div class="done-action">Tier upgrade to Watch &nbsp;&#183;&nbsp; Mar 18</div></div>
+        <span style="font-size:11px;color:#c07800;font-weight:700">Watch</span>
+      </div>
+    </div>
   </div>
+</div>
 
-  <div class="spec-outer">
-    <div class="spec-h2">Teacher Support Queue — Mobile Spec v2</div>
-    <div class="spec-sub">Fast intervention tool for between-class use. Target: act in under 60 seconds.</div>
-
-    <div class="spec-section">
-      <h3>API Routes</h3>
-      <div class="spec-row">
-        <p><code>GET /teacher/support-queue</code> — Returns all support students for the authenticated teacher, sorted by tier (Flag first) then by days-inactive descending within tier. Includes student id, name, tier, skill gap, last active date, days in support.</p>
-      </div>
-      <div class="spec-row">
-        <p><code>POST /teacher/interventions</code> — Create an intervention note. Body: <code>{ student_id, type, note_text, timestamp }</code>. Types: Note / Activity / Concern / Parent Contact / Observation / Referral. Notes are append-only (immutable after save). Returns <code>intervention_id</code>.</p>
-      </div>
-      <div class="spec-row">
-        <p><code>POST /assignments/create</code> — Create a practice assignment for one student. Body: <code>{ student_id, skill_id, question_count, difficulty, due_date }</code>. Difficulty: gentle / standard / challenge. Due date: ISO 8601 timestamp. Assignment is private to student until teacher publishes. Returns <code>assignment_id</code>.</p>
-      </div>
-    </div>
-
-    <div class="spec-section">
-      <h3>Queue Sort Logic</h3>
-      <div class="spec-row">
-        <p><strong>Tier 1 — Flag:</strong> Students with ≥ 2 weeks in support tier. Sorted within tier by days-inactive descending (most inactive first).</p>
-      </div>
-      <div class="spec-row">
-        <p><strong>Tier 2 — Watch:</strong> Students with exactly 1 week in support tier. Same secondary sort by days-inactive.</p>
-      </div>
-      <div class="spec-row">
-        <p><strong>Cleared:</strong> Students moved out of support this week — shown in collapsible section at bottom. Loaded lazily (separate endpoint). Not counted in main badge.</p>
-      </div>
-    </div>
-
-    <div class="spec-section">
-      <h3>Mobile-Specific Rules</h3>
-      <div class="spec-row">
-        <p>Min touch target: <strong>48px</strong> on all interactive elements. No table layouts. No multi-column layouts on &lt;440px viewport. All secondary content is collapsible. Horizontal scrolling allowed for chip rows only.</p>
-      </div>
-      <div class="spec-row">
-        <p><strong>Swipe-right gesture:</strong> Reveals Quick Actions row (Note / Parent / Assign). Visual "→ Actions" hint shown on first load via <code>localStorage</code> flag <code>wq_swipe_hint_seen</code>. After first swipe, hint disappears. Implemented as CSS translateX transform, not a native gesture library.</p>
-      </div>
-      <div class="spec-row">
-        <p><strong>Quick Assign due dates:</strong> Simplified to Tomorrow / This Week / Custom only. No full calendar picker on mobile. "Custom" opens native <code>&lt;input type="date"&gt;</code>. "Tomorrow" = server-side now+1d at 23:59 local time. "This Week" = upcoming Sunday 23:59 local time.</p>
-      </div>
-      <div class="spec-row">
-        <p><strong>Intervention notes:</strong> Append-only after save — no edit or delete. 6 supported types. Auto-focus textarea on screen load. Draft not persisted server-side; warn user on back navigation if text &gt;0 chars.</p>
-      </div>
-    </div>
-
-    <div class="spec-section">
+<!-- SPEC -->
+<div id="spec" class="screen">
+  <div class="phone">
+    <div class="spec">
+      <h3>Routes</h3>
+      <table><tr><th>Method</th><th>Route</th><th>Purpose</th></tr>
+      <tr><td>GET</td><td>/teacher/support-queue</td><td>Sorted by urgency: flag > watch > new</td></tr>
+      <tr><td>GET</td><td>/teacher/student/{id}/detail</td><td>Skills, sessions, intervention log</td></tr>
+      <tr><td>POST</td><td>/teacher/intervention/add</td><td>Append-only intervention note</td></tr>
+      <tr><td>POST</td><td>/teacher/assignment/create</td><td>Assign practice activity</td></tr>
+      <tr><td>POST</td><td>/teacher/message/send</td><td>Contact-safe parent message</td></tr></table>
+      <h3>SNS Tier Colors</h3>
+      <table><tr><th>Tier</th><th>Left Border</th><th>Badge bg</th><th>Trigger</th></tr>
+      <tr><td>Flag</td><td>#9a2a2a</td><td>#fce8e8 / #9a2a2a</td><td>2+ weeks support</td></tr>
+      <tr><td>Watch</td><td>#c07800</td><td>#fff3d0 / #c07800</td><td>1 week support</td></tr>
+      <tr><td>Strong</td><td>#1a8050</td><td>#e0f5ee / #1a5a40</td><td>Strength tier</td></tr></table>
+      <h3>Queue Sort Rules</h3>
+      <table><tr><th>Priority</th><th>Sort Key</th></tr>
+      <tr><td>1st</td><td>Flag tier, longest in support</td></tr>
+      <tr><td>2nd</td><td>Watch tier, no intervention this week</td></tr>
+      <tr><td>3rd</td><td>Watch tier, intervention done</td></tr>
+      <tr><td>4th</td><td>Clear / Strong</td></tr></table>
       <h3>Design Tokens</h3>
-      <div class="spec-token-grid">
-        <div class="spec-token" style="background:#f0f4f8; color:#1c2430; border:1px solid #d0dae8;">bg: #f0f4f8</div>
-        <div class="spec-token" style="background:#2a5080; color:#fff;">nav: #2a5080</div>
-        <div class="spec-token" style="background:#9a2a2a; color:#ff9090;">Flag bg: #9a2a2a · text: #ff9090</div>
-        <div class="spec-token" style="background:#2a1800; color:#f0a030;">Watch bg: #2a1800 · text: #f0a030</div>
-        <div class="spec-token" style="background:#0a2a15; color:#50e890;">Strong bg: #0a2a15 · text: #50e890</div>
-        <div class="spec-token" style="background:#fffbea; color:#7a5500; border:2px solid #f0c040;">Hint bg: #fffbea · border: #f0c040</div>
-        <div class="spec-token" style="background:#fff; color:#1c2430; border:1px solid #d0dae8;">Font: Sora · Google Fonts</div>
-        <div class="spec-token" style="background:#1c2430; color:#fff;">Canvas: #1c2430 (outer tab bar)</div>
-      </div>
+      <table><tr><th>Token</th><th>Value</th></tr>
+      <tr><td>Teacher bg</td><td>#f0f4f8</td></tr>
+      <tr><td>Nav</td><td>#2a5080</td></tr>
+      <tr><td>Font</td><td>Sora / 390px mobile</td></tr></table>
     </div>
-
-    <div class="spec-section">
-      <h3>Phone Frame Spec</h3>
-      <div class="spec-row">
-        <p>Width: <strong>390px</strong>. Min-height: <strong>844px</strong>. Border-radius: <strong>40px</strong>. Box-shadow: <code>0 24px 72px rgba(0,0,0,.18)</code>. Overflow: hidden. Bottom tab bar: 72px, absolute positioned, border-radius 0 0 40px 40px.</p>
-      </div>
-    </div>
-
   </div>
 </div>
 
 <script>
-  // ── Canvas tab switcher ──
-  function show(tabId, btnEl) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.canvas-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    if (btnEl) btnEl.classList.add('active');
-  }
-
-  // Helper called from phone tab buttons (no btnEl reference needed)
-  function showTab(tabId) {
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelectorAll('.canvas-tab').forEach(b => b.classList.remove('active'));
-    document.getElementById(tabId).classList.add('active');
-    // Sync outer canvas tab button
-    const idx = ['t1','t2','t3','t4','t5'].indexOf(tabId);
-    const btns = document.querySelectorAll('.canvas-tab');
-    if (idx >= 0 && btns[idx]) btns[idx].classList.add('active');
-  }
-
-  function showPhoneTab(name) { /* queue-specific no-op, already on t1 */ }
-
-  // ── Queue item expand/collapse ──
-  function toggleItem(el) {
-    const actions = el.querySelector('.qi-actions');
-    if (!actions) return;
-    const isOpen = actions.classList.contains('open');
-    // close all others
-    document.querySelectorAll('.qi-actions.open').forEach(a => a.classList.remove('open'));
-    if (!isOpen) actions.classList.add('open');
-  }
-
-  // ── Filter chips ──
-  function filterQueue(tier, btn) {
-    document.querySelectorAll('.filter-chip').forEach(c => {
-      c.classList.remove('active-chip');
-    });
-    btn.classList.add('active-chip');
-
-    const items = document.querySelectorAll('.queue-item');
-    items.forEach(item => {
-      if (tier === 'all') {
-        item.style.display = '';
-      } else {
-        item.style.display = item.dataset.tier === tier ? '' : 'none';
-      }
-    });
-  }
-
-  // ── Cleared section toggle ──
-  function toggleCleared() {
-    const toggle = document.getElementById('clearedToggle');
-    const body = document.getElementById('clearedBody');
-    toggle.classList.toggle('open');
-    body.classList.toggle('open');
-  }
-
-  // ── Note type selection ──
-  function selectNoteType(el) {
-    el.closest('.note-type-row').querySelectorAll('.note-type-chip').forEach(c => c.classList.remove('selected'));
-    el.classList.add('selected');
-  }
-
-  // ── Char counter ──
-  function updateCharCount() {
-    const ta = document.getElementById('noteTextarea');
-    const cc = document.getElementById('charCount');
-    if (ta && cc) cc.textContent = ta.value.length + ' / 280';
-  }
-
-  // ── Quick phrase insert ──
-  function insertPhrase(text) {
-    const ta = document.getElementById('noteTextarea');
-    if (!ta) return;
-    const val = ta.value;
-    const sep = val && !val.endsWith(' ') && !val.endsWith('\n') ? ' ' : '';
-    ta.value = val + sep + text + ' ';
-    ta.focus();
-    updateCharCount();
-  }
-
-  // ── Save note ──
-  function saveNote() {
-    const ta = document.getElementById('noteTextarea');
-    const toast = document.getElementById('noteToast');
-    if (!toast) return;
-    toast.classList.add('show');
-    setTimeout(() => {
-      toast.classList.remove('show');
-      if (ta) ta.value = '';
-      updateCharCount();
-      showTab('t1');
-    }, 2500);
-  }
-
-  // ── Stepper ──
-  function adjustQ(delta) {
-    const el = document.getElementById('qCount');
-    if (!el) return;
-    let val = parseInt(el.textContent) + delta;
-    if (val < 1) val = 1;
-    if (val > 20) val = 20;
-    el.textContent = val;
-  }
-
-  // ── Pill chip selection ──
-  function selectPill(el, group) {
-    el.closest('.pill-chips').querySelectorAll('.pill-chip').forEach(p => p.classList.remove('selected'));
-    el.classList.add('selected');
-  }
-
-  // ── Assign success overlay ──
-  function showAssignSuccess() {
-    const ov = document.getElementById('assignSuccess');
-    if (ov) ov.classList.add('show');
-  }
-  function hideAssignSuccess() {
-    const ov = document.getElementById('assignSuccess');
-    if (ov) ov.classList.remove('show');
-    showTab('t1');
-  }
-
-  // ── Skill modal ──
-  function openSkillModal() {
-    const m = document.getElementById('skillModal');
-    if (m) m.classList.add('show');
-  }
-  function closeSkillModal() {
-    const m = document.getElementById('skillModal');
-    if (m) m.classList.remove('show');
-  }
-  function closeSkillModalBg(e) {
-    if (e.target === document.getElementById('skillModal')) closeSkillModal();
-  }
-  function selectSkill(name, code) {
-    // Update skill name display
-    const nameEl = document.querySelector('#frame4 .ssc-skill-name');
-    const codeEl = document.querySelector('#frame4 .violet-chip');
-    if (nameEl) nameEl.textContent = name;
-    if (codeEl) codeEl.textContent = code + ' · Phonics';
-    closeSkillModal();
-  }
+function show(id){
+  document.querySelectorAll('.screen').forEach(function(s){s.classList.remove('active')});
+  document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
 </script>
 </body>
 </html>
