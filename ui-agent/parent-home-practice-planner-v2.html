@@ -1,0 +1,1621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Parent Home Practice Planner v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Sora', sans-serif;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 24px 16px 40px;
+}
+
+/* ── Outer tab switcher (engineering view) ───────────────────────────── */
+.outer-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 18px;
+  max-width: 800px;
+  width: 100%;
+}
+.outer-tab-btn {
+  background: #f0ece4;
+  color: #4a6860;
+  border: 1.5px solid #c8c0b0;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-family: 'Sora', sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  white-space: nowrap;
+}
+.outer-tab-btn.active {
+  background: #2c7a6e;
+  color: #fff;
+  border-color: #2c7a6e;
+}
+
+/* ── Engineering hint box ────────────────────────────────────────────── */
+.hint-box {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  padding: 14px 18px;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto 20px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #5a4000;
+  line-height: 1.7;
+}
+.hint-box strong { color: #b06000; display: block; margin-bottom: 4px; }
+.hint-box code { background: #fef3c7; border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+
+/* ── Panel visibility ────────────────────────────────────────────────── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── Phone frame ─────────────────────────────────────────────────────── */
+.phone {
+  width: 375px;
+  min-height: 812px;
+  background: #f5f0e8;
+  border-radius: 40px;
+  border: 3px solid #c8b898;
+  box-shadow: 0 24px 64px rgba(80,60,20,.18), 0 4px 16px rgba(0,0,0,.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  margin: 0 auto;
+  position: relative;
+}
+
+/* Status bar */
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 24px 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9a8878;
+  background: #f5f0e8;
+  flex-shrink: 0;
+}
+
+/* Top nav */
+.top-nav {
+  background: #2c7a6e;
+  padding: 14px 16px 12px;
+  flex-shrink: 0;
+}
+.top-nav-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+.top-nav-sub {
+  font-size: 11px;
+  color: rgba(255,255,255,.75);
+  margin-top: 2px;
+}
+
+/* Scrollable body */
+.phone-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 72px;
+  -webkit-overflow-scrolling: touch;
+}
+.phone-scroll::-webkit-scrollbar { display: none; }
+
+/* Bottom tab bar */
+.bottom-tabs {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  background: #fff;
+  border-top: 1px solid #e0d8c8;
+  display: flex;
+  border-radius: 0 0 37px 37px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.b-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px 14px;
+  cursor: pointer;
+  transition: background .15s;
+  border: none;
+  background: transparent;
+  font-family: 'Sora', sans-serif;
+}
+.b-tab:hover { background: #f5f0e8; }
+.b-tab .b-icon { font-size: 18px; line-height: 1; }
+.b-tab .b-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: #aaa09a;
+  margin-top: 3px;
+  text-align: center;
+  line-height: 1.2;
+}
+.b-tab.active .b-label { color: #2c7a6e; }
+.b-tab.active .b-icon-wrap { position: relative; }
+
+/* ── Common UI elements ──────────────────────────────────────────────── */
+.section-pad { padding: 14px 16px 0; }
+
+.card {
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 10px;
+}
+.chip-teal { background: #d0f0e8; color: #1a6040; }
+.chip-amber { background: #fff3d0; color: #8a5a00; }
+.chip-green { background: #d8f5d0; color: #1a5a18; }
+.chip-outline-teal {
+  background: transparent;
+  border: 1.5px solid #2c7a6e;
+  color: #2c7a6e;
+  padding: 5px 14px;
+  font-size: 11px;
+  cursor: pointer;
+}
+.chip-time { background: #ede8de; color: #7a6854; }
+
+/* ── TAB 1 — This Week's Plan ────────────────────────────────────────── */
+.plan-header {
+  padding: 16px 16px 0;
+}
+.plan-title {
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c2418;
+  line-height: 1.2;
+}
+.plan-week-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #e0d8c8;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a6854;
+  margin-top: 6px;
+}
+
+.plan-intro-card {
+  margin: 12px 16px 0;
+  background: #d8f0ec;
+  border: 1px solid #a8d8d0;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  color: #1a4a44;
+  line-height: 1.6;
+  font-weight: 600;
+}
+
+/* Activity card */
+.activity-card {
+  margin: 12px 16px 0;
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.activity-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 14px 10px;
+  border-bottom: 1px solid #f0ece4;
+}
+.activity-emoji { font-size: 24px; line-height: 1; flex-shrink: 0; }
+.activity-title-wrap { flex: 1; }
+.activity-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #2c2418;
+  line-height: 1.2;
+}
+.activity-tier-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  margin-top: 4px;
+}
+.tier-support { background: #fff3d0; color: #8a5a00; }
+.tier-growing { background: #d0f0e8; color: #1a6040; }
+.tier-strength { background: #d8f5d0; color: #1a5a18; }
+
+.activity-steps {
+  padding: 12px 14px;
+  list-style: none;
+}
+.activity-steps li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 10px;
+  font-size: 13px;
+  color: #3a2e20;
+  line-height: 1.5;
+}
+.activity-steps li:last-child { margin-bottom: 0; }
+.step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.step-num-amber { background: #fff3d0; color: #8a5a00; }
+.step-num-teal  { background: #d0f0e8; color: #1a6040; }
+.step-num-green { background: #d8f5d0; color: #1a5a18; }
+
+.activity-why {
+  margin: 0 14px 14px;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+  font-weight: 600;
+}
+.why-amber { background: #fff8e8; color: #7a5000; border: 1px solid #ffe0a0; }
+.why-teal  { background: #e8f8f4; color: #1a4a44; border: 1px solid #a8d8d0; }
+.why-green { background: #edf8e8; color: #1a4a18; border: 1px solid #a8d8a0; }
+
+.activity-footer {
+  border-top: 1px solid #f0ece4;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── TAB 2 — Practice Reminders ──────────────────────────────────────── */
+.reminder-header {
+  padding: 16px 16px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c2418;
+}
+
+.reminder-toggle-card {
+  margin: 14px 16px 0;
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.reminder-toggle-label {
+  font-size: 15px;
+  font-weight: 700;
+  color: #2c2418;
+}
+.reminder-toggle-sub {
+  font-size: 12px;
+  color: #9a8878;
+  margin-top: 2px;
+}
+
+/* CSS toggle */
+.toggle-wrap { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+.toggle-wrap input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #c8c0b0;
+  border-radius: 13px;
+  cursor: pointer;
+  transition: background .25s;
+}
+.toggle-track::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.2);
+  transition: transform .25s;
+}
+.toggle-wrap input:checked + .toggle-track { background: #2c7a6e; }
+.toggle-wrap input:checked + .toggle-track::after { transform: translateX(22px); }
+
+/* Reminder settings */
+.reminder-settings {
+  margin: 0 16px;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height .35s ease;
+}
+.reminder-settings.open { max-height: 800px; }
+
+.reminder-section {
+  margin-top: 12px;
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 14px;
+  padding: 14px;
+}
+.reminder-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9a8878;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-bottom: 10px;
+}
+
+.time-input {
+  background: #f5f0e8;
+  border: 1.5px solid #c8c0b0;
+  border-radius: 10px;
+  padding: 9px 14px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2c2418;
+  width: 100%;
+  outline: none;
+  cursor: pointer;
+}
+.time-input:focus { border-color: #2c7a6e; }
+
+.day-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.day-chip {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.5px solid #c8c0b0;
+  background: #f5f0e8;
+  font-size: 11px;
+  font-weight: 700;
+  color: #7a6854;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  font-family: 'Sora', sans-serif;
+}
+.day-chip.on {
+  background: #2c7a6e;
+  border-color: #2c7a6e;
+  color: #fff;
+}
+
+.activity-chips { display: flex; flex-direction: column; gap: 8px; }
+.activity-chip-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #f5f0e8;
+  border: 1.5px solid #e0d8c8;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.activity-chip-row.on { border-color: #2c7a6e; background: #e8f8f4; }
+.activity-chip-emoji { font-size: 16px; }
+.activity-chip-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 700;
+  color: #3a2e20;
+}
+.activity-chip-check {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  border: 2px solid #c8c0b0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: transparent;
+  transition: all .15s;
+}
+.activity-chip-row.on .activity-chip-check {
+  background: #2c7a6e;
+  border-color: #2c7a6e;
+  color: #fff;
+}
+
+.reminder-preview {
+  margin: 12px 16px 0;
+  background: #e8f8f4;
+  border: 1.5px solid #a8d8d0;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a4a44;
+  line-height: 1.6;
+}
+.reminder-preview .preview-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  color: #2c7a6e;
+  margin-bottom: 4px;
+}
+
+.btn-save {
+  display: block;
+  width: calc(100% - 32px);
+  margin: 14px 16px 0;
+  background: #2c7a6e;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  font-family: 'Sora', sans-serif;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  text-align: center;
+  transition: background .15s;
+}
+.btn-save:hover { background: #245f56; }
+
+.quiet-note {
+  margin: 10px 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #9a8878;
+  font-weight: 600;
+}
+
+.upcoming-card {
+  margin: 14px 16px 0;
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.upcoming-icon { font-size: 24px; }
+.upcoming-label { font-size: 11px; font-weight: 700; color: #9a8878; text-transform: uppercase; letter-spacing: .06em; }
+.upcoming-time { font-size: 14px; font-weight: 700; color: #2c2418; margin-top: 2px; }
+
+/* ── TAB 3 — Child-Specific Suggestions ─────────────────────────────── */
+.suggestions-header {
+  padding: 16px 16px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c2418;
+}
+
+.child-context-card {
+  margin: 12px 16px 0;
+  background: #d8f0ec;
+  border: 1px solid #a8d8d0;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a4a44;
+  line-height: 1.6;
+}
+
+.suggestion-list { padding: 0 16px; }
+.suggestion-item {
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-top: 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.sug-emoji { font-size: 22px; flex-shrink: 0; line-height: 1.2; }
+.sug-body { flex: 1; }
+.sug-title { font-size: 13px; font-weight: 700; color: #2c2418; line-height: 1.3; }
+.sug-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.sug-cta {
+  align-self: flex-end;
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid #2c7a6e;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #2c7a6e;
+  background: transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  font-family: 'Sora', sans-serif;
+}
+
+.teacher-suggestions-card {
+  margin: 14px 16px 0;
+  background: #fffdf8;
+  border: 1.5px solid #a8d8d0;
+  border-radius: 16px;
+  overflow: hidden;
+}
+.teacher-card-header {
+  background: #e8f8f4;
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.teacher-card-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1a4a44;
+}
+.teacher-card-body { padding: 12px 14px; }
+.teacher-suggestion-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #f0ece4;
+}
+.teacher-suggestion-row:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+.teacher-sug-emoji { font-size: 18px; }
+.teacher-sug-text { flex: 1; font-size: 12px; color: #3a2e20; line-height: 1.5; font-weight: 600; }
+.teacher-attribution {
+  font-size: 10px;
+  color: #9a8878;
+  margin-top: 3px;
+  font-weight: 600;
+}
+
+.refresh-note {
+  margin: 14px 16px 0;
+  text-align: center;
+  font-size: 12px;
+  color: #9a8878;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+/* ── TAB 4 — Practice History ────────────────────────────────────────── */
+.history-header {
+  padding: 16px 16px 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: #2c2418;
+}
+
+.history-stats-row {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.history-stats-row::-webkit-scrollbar { display: none; }
+.stat-chip {
+  flex-shrink: 0;
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 14px;
+  padding: 10px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 110px;
+}
+.stat-chip-icon { font-size: 18px; }
+.stat-chip-val { font-size: 12px; font-weight: 700; color: #2c2418; line-height: 1.3; margin-top: 4px; }
+
+.history-list { padding: 0 16px; }
+.history-item {
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 14px;
+  padding: 14px;
+  margin-top: 10px;
+}
+.history-item-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-date { font-size: 10px; font-weight: 700; color: #9a8878; text-transform: uppercase; letter-spacing: .06em; }
+.history-activity-name { font-size: 14px; font-weight: 700; color: #2c2418; margin-top: 2px; }
+.history-status-chip {
+  flex-shrink: 0;
+  border-radius: 20px;
+  padding: 3px 10px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.status-saved { background: #e8f0ff; color: #2a50a0; }
+.status-done  { background: #d8f5d0; color: #1a5a18; }
+
+.history-reaction {
+  margin-top: 12px;
+  background: #f5f0e8;
+  border-radius: 10px;
+  padding: 10px;
+}
+.reaction-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9a8878;
+  margin-bottom: 8px;
+}
+.emoji-rating { display: flex; gap: 10px; margin-bottom: 10px; }
+.emoji-btn {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  border: 2px solid #e0d8c8;
+  background: #fffdf8;
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all .15s;
+  font-family: 'Sora', sans-serif;
+}
+.emoji-btn.selected { border-color: #2c7a6e; background: #e8f8f4; transform: scale(1.15); }
+
+.child-said {
+  font-size: 11px;
+  font-weight: 700;
+  color: #9a8878;
+  margin-bottom: 6px;
+}
+.child-said-input {
+  width: 100%;
+  border: 1.5px solid #e0d8c8;
+  border-radius: 8px;
+  background: #fff;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  color: #2c2418;
+  padding: 8px 10px;
+  outline: none;
+  resize: none;
+}
+.child-said-input:focus { border-color: #2c7a6e; }
+.child-said-input::placeholder { color: #b0a898; }
+
+.streak-note {
+  margin: 14px 16px 0;
+  background: #fff3d0;
+  border: 1px solid #f0c040;
+  border-radius: 14px;
+  padding: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #7a5000;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ── TAB 5 — Spec ────────────────────────────────────────────────────── */
+.spec-scroll {
+  padding: 12px 16px 20px;
+}
+.spec-section {
+  margin-bottom: 14px;
+}
+.spec-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #9a8878;
+  margin-bottom: 6px;
+}
+.spec-row {
+  background: #fffdf8;
+  border: 1px solid #e0d8c8;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: #3a2e20;
+  line-height: 1.6;
+}
+.spec-row code {
+  background: #f0ece4;
+  border-radius: 4px;
+  padding: 1px 5px;
+  font-size: 11px;
+  color: #4a6860;
+}
+.spec-row strong { color: #2c7a6e; }
+</style>
+</head>
+<body>
+
+<!-- ── Outer tab switcher ─────────────────────────────────────────────── -->
+<div class="outer-tabs">
+  <button class="outer-tab-btn active" onclick="show('plan')">1 · This Week's Plan</button>
+  <button class="outer-tab-btn" onclick="show('reminders')">2 · Reminders</button>
+  <button class="outer-tab-btn" onclick="show('suggestions')">3 · Suggestions</button>
+  <button class="outer-tab-btn" onclick="show('history')">4 · History</button>
+  <button class="outer-tab-btn" onclick="show('spec')">5 · Spec</button>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 1 — This Week's Plan                                            -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="panel-plan" class="panel active">
+
+  <div class="hint-box">
+    <strong>Engineering hint — Tab 1: This Week's Plan</strong>
+    Route: <code>GET /parent/practice-plan?childId=:id&week=2026-W12</code><br>
+    Response includes 3 activities auto-selected from child's SNS tier data: 1 support, 1 growing, 1 strength.<br>
+    Language rules enforced server-side and client-side: no accuracy %, no raw scores, no "weak/failing/behind".<br>
+    Tier labels: "support area" / "growing strength" / "strength". Activities feel like play, not schoolwork.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="top-nav">
+      <div class="top-nav-title">Home Practice 🏠</div>
+      <div class="top-nav-sub">Personalized for your family</div>
+    </div>
+
+    <div class="phone-scroll">
+
+      <!-- Plan header -->
+      <div class="plan-header">
+        <div class="plan-title">This Week for Emma 🏠</div>
+        <div class="plan-week-chip">📅 Mar 18–22</div>
+      </div>
+
+      <!-- Intro card -->
+      <div class="plan-intro-card">
+        Based on Emma's recent sessions, here are 3 easy ideas for this week 💡 Each one takes just a few minutes and fits right into your day!
+      </div>
+
+      <!-- Activity 1 — Support area (amber) -->
+      <div class="activity-card">
+        <div class="activity-card-header">
+          <div class="activity-emoji">🔤</div>
+          <div class="activity-title-wrap">
+            <div class="activity-title">Letter Sounds Game</div>
+            <div class="activity-tier-chip tier-support">Support area: Letter Sounds — building confidence here!</div>
+          </div>
+          <div class="chip chip-time">~10 min</div>
+        </div>
+        <ul class="activity-steps">
+          <li>
+            <div class="step-num step-num-amber">1</div>
+            Pick 3 objects around the house 🏠
+          </li>
+          <li>
+            <div class="step-num step-num-amber">2</div>
+            Say the first sound of each word together
+          </li>
+          <li>
+            <div class="step-num step-num-amber">3</div>
+            Make it silly — the sillier the better! 😄
+          </li>
+        </ul>
+        <div class="activity-why why-amber">
+          💜 <strong>Why this helps:</strong> Emma is building confidence with beginning sounds — a little practice in everyday life makes a huge difference!
+        </div>
+        <div class="activity-footer">
+          <button class="chip chip-outline-teal">Save for later 💾</button>
+        </div>
+      </div>
+
+      <!-- Activity 2 — Growing strength (teal) -->
+      <div class="activity-card">
+        <div class="activity-card-header">
+          <div class="activity-emoji">📖</div>
+          <div class="activity-title-wrap">
+            <div class="activity-title">Bedtime Story Chat</div>
+            <div class="activity-tier-chip tier-growing">Growing strength: Reading Comprehension</div>
+          </div>
+          <div class="chip chip-time">~15 min</div>
+        </div>
+        <ul class="activity-steps">
+          <li>
+            <div class="step-num step-num-teal">1</div>
+            Read a favourite book together at bedtime 🌙
+          </li>
+          <li>
+            <div class="step-num step-num-teal">2</div>
+            After each page, ask "what do you think happens next?" 🤔
+          </li>
+          <li>
+            <div class="step-num step-num-teal">3</div>
+            Let Emma's imagination run wild — all answers are great! ✨
+          </li>
+        </ul>
+        <div class="activity-why why-teal">
+          📚 <strong>Why this helps:</strong> Emma is already showing real progress with comprehension. Talking through stories together takes that growing strength even further!
+        </div>
+        <div class="activity-footer">
+          <button class="chip chip-outline-teal">Save for later 💾</button>
+        </div>
+      </div>
+
+      <!-- Activity 3 — Strength (green) -->
+      <div class="activity-card" style="margin-bottom: 14px;">
+        <div class="activity-card-header">
+          <div class="activity-emoji">🔢</div>
+          <div class="activity-title-wrap">
+            <div class="activity-title">Counting Everyday Things</div>
+            <div class="activity-tier-chip tier-strength">Strength: Number Recognition 🌟</div>
+          </div>
+          <div class="chip chip-time">~5 min</div>
+        </div>
+        <ul class="activity-steps">
+          <li>
+            <div class="step-num step-num-green">1</div>
+            Count the steps from the kitchen to the front door 🚪
+          </li>
+          <li>
+            <div class="step-num step-num-green">2</div>
+            Count fruit at the grocery store together 🍎🍌🍊
+          </li>
+          <li>
+            <div class="step-num step-num-green">3</div>
+            Make up a silly counting song — she'll love it! 🎵
+          </li>
+        </ul>
+        <div class="activity-why why-green">
+          🌟 <strong>Emma has really got this one!</strong> This activity keeps number recognition fresh and fun — plus it's a great chance to celebrate what she's already amazing at!
+        </div>
+        <div class="activity-footer">
+          <button class="chip chip-outline-teal">Save for later 💾</button>
+        </div>
+      </div>
+
+    </div><!-- /phone-scroll -->
+
+    <div class="bottom-tabs">
+      <button class="b-tab active" onclick="switchInnerTab('plan', 0, this)">
+        <div class="b-icon">🗓️</div>
+        <div class="b-label">This Week</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('plan', 1, this)">
+        <div class="b-icon">🔔</div>
+        <div class="b-label">Remind</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('plan', 2, this)">
+        <div class="b-icon">🌊</div>
+        <div class="b-label">Ideas</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('plan', 3, this)">
+        <div class="b-icon">📅</div>
+        <div class="b-label">History</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('plan', 4, this)">
+        <div class="b-icon">⚙️</div>
+        <div class="b-label">Settings</div>
+      </button>
+    </div>
+  </div><!-- /phone -->
+
+</div><!-- /panel-plan -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 2 — Practice Reminders                                          -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="panel-reminders" class="panel">
+
+  <div class="hint-box">
+    <strong>Engineering hint — Tab 2: Practice Reminders</strong>
+    Route: <code>POST /parent/reminders</code> — body: <code>{ childId, time, days[], activityIds[], enabled }</code><br>
+    Reminder channel: push notification (primary); email optional. Respects quiet hours from parent settings.<br>
+    Day chips are M/T/W/Th/F/Sa/Su multi-select. Activity chips map to plan activityId. Preview is computed client-side.<br>
+    Quiet hours stored in <code>parent.settings.quietHours</code>; server validates delivery window before dispatch.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="top-nav">
+      <div class="top-nav-title">Practice Reminders 🔔</div>
+      <div class="top-nav-sub">Never miss a practice moment</div>
+    </div>
+
+    <div class="phone-scroll">
+
+      <div class="reminder-header">Remind me to practice 🔔</div>
+
+      <!-- Main toggle -->
+      <div class="reminder-toggle-card">
+        <div>
+          <div class="reminder-toggle-label">Turn on reminders</div>
+          <div class="reminder-toggle-sub">We'll send a gentle nudge on your chosen days</div>
+        </div>
+        <label class="toggle-wrap">
+          <input type="checkbox" id="main-toggle" checked onchange="toggleReminders(this.checked)">
+          <div class="toggle-track"></div>
+        </label>
+      </div>
+
+      <!-- Expandable settings -->
+      <div class="reminder-settings open" id="reminder-settings">
+
+        <!-- Time picker -->
+        <div class="reminder-section">
+          <div class="reminder-section-label">Best time for us</div>
+          <input type="time" class="time-input" id="reminder-time" value="19:00" onchange="updatePreview()">
+        </div>
+
+        <!-- Day chips -->
+        <div class="reminder-section">
+          <div class="reminder-section-label">Which days?</div>
+          <div class="day-chips">
+            <button class="day-chip on" onclick="toggleDay(this)">M</button>
+            <button class="day-chip" onclick="toggleDay(this)">T</button>
+            <button class="day-chip on" onclick="toggleDay(this)">W</button>
+            <button class="day-chip" onclick="toggleDay(this)">Th</button>
+            <button class="day-chip on" onclick="toggleDay(this)">F</button>
+            <button class="day-chip" onclick="toggleDay(this)">Sa</button>
+            <button class="day-chip" onclick="toggleDay(this)">Su</button>
+          </div>
+        </div>
+
+        <!-- Activity chips -->
+        <div class="reminder-section">
+          <div class="reminder-section-label">Remind about</div>
+          <div class="activity-chips">
+            <div class="activity-chip-row on" onclick="toggleActivityChip(this)">
+              <div class="activity-chip-emoji">🔤</div>
+              <div class="activity-chip-name">Letter Sounds Game</div>
+              <div class="activity-chip-check">✓</div>
+            </div>
+            <div class="activity-chip-row on" onclick="toggleActivityChip(this)">
+              <div class="activity-chip-emoji">📖</div>
+              <div class="activity-chip-name">Bedtime Story Chat</div>
+              <div class="activity-chip-check">✓</div>
+            </div>
+            <div class="activity-chip-row on" onclick="toggleActivityChip(this)">
+              <div class="activity-chip-emoji">🔢</div>
+              <div class="activity-chip-name">Counting Everyday Things</div>
+              <div class="activity-chip-check">✓</div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /reminder-settings -->
+
+      <!-- Preview -->
+      <div class="reminder-preview" id="reminder-preview">
+        <div class="preview-label">Your reminder preview 📱</div>
+        You'll get a reminder: <strong>Mon, Wed, Fri at 7:00 PM</strong> for Emma's practice 📱
+      </div>
+
+      <!-- Save button -->
+      <button class="btn-save" onclick="saveReminders()">Save reminders ✓</button>
+
+      <div class="quiet-note">Reminders respect your quiet hours setting 🌙</div>
+
+      <!-- Upcoming -->
+      <div class="upcoming-card" style="margin-bottom: 14px;">
+        <div class="upcoming-icon">⏰</div>
+        <div>
+          <div class="upcoming-label">Next reminder</div>
+          <div class="upcoming-time">Tomorrow at 7:00 PM</div>
+        </div>
+      </div>
+
+    </div><!-- /phone-scroll -->
+
+    <div class="bottom-tabs">
+      <button class="b-tab" onclick="switchInnerTab('reminders', 0, this)">
+        <div class="b-icon">🗓️</div>
+        <div class="b-label">This Week</div>
+      </button>
+      <button class="b-tab active" onclick="switchInnerTab('reminders', 1, this)">
+        <div class="b-icon">🔔</div>
+        <div class="b-label">Remind</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('reminders', 2, this)">
+        <div class="b-icon">🌊</div>
+        <div class="b-label">Ideas</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('reminders', 3, this)">
+        <div class="b-icon">📅</div>
+        <div class="b-label">History</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('reminders', 4, this)">
+        <div class="b-icon">⚙️</div>
+        <div class="b-label">Settings</div>
+      </button>
+    </div>
+  </div><!-- /phone -->
+
+</div><!-- /panel-reminders -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 3 — Child-Specific Suggestions                                  -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="panel-suggestions" class="panel">
+
+  <div class="hint-box">
+    <strong>Engineering hint — Tab 3: Child-Specific Suggestions</strong>
+    Route: <code>GET /parent/practice-suggestions?childId=:id&week=2026-W12</code><br>
+    Suggestions are world-themed: tied to child's current WonderQuest world (Ocean World here) for engagement.<br>
+    Teacher suggestions sourced from <code>teacher.classSuggestions[]</code> — optional, shown only when present.<br>
+    All suggestions refresh weekly. Skill chips map to SNS skill taxonomy. "Try this!" saves to the weekly plan.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="top-nav">
+      <div class="top-nav-title">Tailored for Emma 🌊</div>
+      <div class="top-nav-sub">Ideas based on what she's exploring</div>
+    </div>
+
+    <div class="phone-scroll">
+
+      <div class="suggestions-header">Tailored for Emma 🌊</div>
+
+      <div class="child-context-card">
+        Emma is exploring <strong>Ocean World</strong> 🌊 right now. These ideas match what she's learning in WonderQuest this week!
+      </div>
+
+      <div class="suggestion-list">
+
+        <div class="suggestion-item">
+          <div class="sug-emoji">🐙</div>
+          <div class="sug-body">
+            <div class="sug-title">Name ocean animals and sound out their first letter together</div>
+            <div class="sug-chips">
+              <div class="chip chip-amber">Letter Sounds</div>
+              <div class="chip chip-time">~5 min</div>
+            </div>
+          </div>
+          <button class="sug-cta">Try this!</button>
+        </div>
+
+        <div class="suggestion-item">
+          <div class="sug-emoji">🐠</div>
+          <div class="sug-body">
+            <div class="sug-title">Count how many fish are in a picture book together</div>
+            <div class="sug-chips">
+              <div class="chip chip-green">Number Recognition</div>
+              <div class="chip chip-time">~5 min</div>
+            </div>
+          </div>
+          <button class="sug-cta">Try this!</button>
+        </div>
+
+        <div class="suggestion-item">
+          <div class="sug-emoji">🦈</div>
+          <div class="sug-body">
+            <div class="sug-title">Make up a silly story about a friendly shark — what happened next?</div>
+            <div class="sug-chips">
+              <div class="chip chip-teal">Reading Comprehension</div>
+              <div class="chip chip-time">~10 min</div>
+            </div>
+          </div>
+          <button class="sug-cta">Try this!</button>
+        </div>
+
+        <div class="suggestion-item">
+          <div class="sug-emoji">🌊</div>
+          <div class="sug-body">
+            <div class="sug-title">Look at ocean pictures and spell short words like "sea" and "fin"</div>
+            <div class="sug-chips">
+              <div class="chip chip-amber">Letter Sounds</div>
+              <div class="chip chip-teal">Word Building</div>
+              <div class="chip chip-time">~8 min</div>
+            </div>
+          </div>
+          <button class="sug-cta">Try this!</button>
+        </div>
+
+        <div class="suggestion-item">
+          <div class="sug-emoji">🐚</div>
+          <div class="sug-body">
+            <div class="sug-title">Sort shells (or toys!) by size from smallest to biggest</div>
+            <div class="sug-chips">
+              <div class="chip chip-green">Ordering & Patterns</div>
+              <div class="chip chip-time">~5 min</div>
+            </div>
+          </div>
+          <button class="sug-cta">Try this!</button>
+        </div>
+
+      </div><!-- /suggestion-list -->
+
+      <!-- Teacher suggestions -->
+      <div class="teacher-suggestions-card">
+        <div class="teacher-card-header">
+          <span style="font-size:20px;">📝</span>
+          <div class="teacher-card-title">From Ms. Rivera's class this week</div>
+        </div>
+        <div class="teacher-card-body">
+          <div class="teacher-suggestion-row">
+            <div class="teacher-sug-emoji">📚</div>
+            <div>
+              <div class="teacher-sug-text">Read any ocean-themed book and ask Emma to tell you her favourite part</div>
+              <div class="teacher-attribution">Suggested by Emma's teacher</div>
+            </div>
+          </div>
+          <div class="teacher-suggestion-row">
+            <div class="teacher-sug-emoji">✏️</div>
+            <div>
+              <div class="teacher-sug-text">Practise writing the letters in "OCEAN" — lowercase is great too!</div>
+              <div class="teacher-attribution">Suggested by Emma's teacher</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="refresh-note" style="padding-bottom: 14px;">
+        ✨ Suggestions refresh each week based on Emma's sessions
+      </div>
+
+    </div><!-- /phone-scroll -->
+
+    <div class="bottom-tabs">
+      <button class="b-tab" onclick="switchInnerTab('suggestions', 0, this)">
+        <div class="b-icon">🗓️</div>
+        <div class="b-label">This Week</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('suggestions', 1, this)">
+        <div class="b-icon">🔔</div>
+        <div class="b-label">Remind</div>
+      </button>
+      <button class="b-tab active" onclick="switchInnerTab('suggestions', 2, this)">
+        <div class="b-icon">🌊</div>
+        <div class="b-label">Ideas</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('suggestions', 3, this)">
+        <div class="b-icon">📅</div>
+        <div class="b-label">History</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('suggestions', 4, this)">
+        <div class="b-icon">⚙️</div>
+        <div class="b-label">Settings</div>
+      </button>
+    </div>
+  </div><!-- /phone -->
+
+</div><!-- /panel-suggestions -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 4 — Practice History                                            -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="panel-history" class="panel">
+
+  <div class="hint-box">
+    <strong>Engineering hint — Tab 4: Practice History</strong>
+    Route: <code>GET /parent/practice-history?childId=:id&limit=10</code><br>
+    History is parent self-reported — NOT linked to in-app session data. Parents log what they did at home.<br>
+    Emoji feedback (😊/😐/🤔) stored as sentiment enum: <code>great | okay | tricky</code>. No numeric scores.<br>
+    "Emma said..." field is freeform text, stored as <code>childNote</code>. Stat chips: activities done, fav moment, streak.<br>
+    Streak calculated server-side from weeks with at least 1 completed practice history entry.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="top-nav">
+      <div class="top-nav-title">Practice History 📅</div>
+      <div class="top-nav-sub">What you've done together</div>
+    </div>
+
+    <div class="phone-scroll">
+
+      <div class="history-header">Practice history 📅</div>
+
+      <!-- Stats row -->
+      <div class="history-stats-row">
+        <div class="stat-chip">
+          <div class="stat-chip-icon">🗓️</div>
+          <div class="stat-chip-val">3 activities this week</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip-icon">⭐</div>
+          <div class="stat-chip-val">Emma loved the counting game!</div>
+        </div>
+        <div class="stat-chip">
+          <div class="stat-chip-icon">🔥</div>
+          <div class="stat-chip-val">2nd week in a row</div>
+        </div>
+      </div>
+
+      <!-- History items -->
+      <div class="history-list">
+
+        <div class="history-item">
+          <div class="history-item-top">
+            <div>
+              <div class="history-date">Wed, Mar 20</div>
+              <div class="history-activity-name">🔢 Counting Everyday Things</div>
+            </div>
+            <div class="history-status-chip status-done">Completed ✓</div>
+          </div>
+          <div class="history-reaction">
+            <div class="reaction-label">How did it go?</div>
+            <div class="emoji-rating">
+              <button class="emoji-btn selected" onclick="selectEmoji(this)">😊</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">😐</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">🤔</button>
+            </div>
+            <div class="child-said">Emma said...</div>
+            <textarea class="child-said-input" rows="2" placeholder="What did Emma say or do? (optional)">She counted all the apples at the store and was SO proud!</textarea>
+          </div>
+        </div>
+
+        <div class="history-item">
+          <div class="history-item-top">
+            <div>
+              <div class="history-date">Mon, Mar 18</div>
+              <div class="history-activity-name">📖 Bedtime Story Chat</div>
+            </div>
+            <div class="history-status-chip status-done">Completed ✓</div>
+          </div>
+          <div class="history-reaction">
+            <div class="reaction-label">How did it go?</div>
+            <div class="emoji-rating">
+              <button class="emoji-btn selected" onclick="selectEmoji(this)">😊</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">😐</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">🤔</button>
+            </div>
+            <div class="child-said">Emma said...</div>
+            <textarea class="child-said-input" rows="2" placeholder="What did Emma say or do? (optional)">She guessed the ending perfectly! Very creative.</textarea>
+          </div>
+        </div>
+
+        <div class="history-item">
+          <div class="history-item-top">
+            <div>
+              <div class="history-date">Fri, Mar 14</div>
+              <div class="history-activity-name">🔤 Letter Sounds Game</div>
+            </div>
+            <div class="history-status-chip status-saved">Saved 💾</div>
+          </div>
+          <div class="history-reaction">
+            <div class="reaction-label">How did it go?</div>
+            <div class="emoji-rating">
+              <button class="emoji-btn" onclick="selectEmoji(this)">😊</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">😐</button>
+              <button class="emoji-btn selected" onclick="selectEmoji(this)">🤔</button>
+            </div>
+            <div class="child-said">Emma said...</div>
+            <textarea class="child-said-input" rows="2" placeholder="What did Emma say or do? (optional)">She got a bit stuck on some sounds but stayed cheerful!</textarea>
+          </div>
+        </div>
+
+        <div class="history-item" style="margin-bottom: 14px;">
+          <div class="history-item-top">
+            <div>
+              <div class="history-date">Wed, Mar 12</div>
+              <div class="history-activity-name">🌊 Ocean Animal Sounds</div>
+            </div>
+            <div class="history-status-chip status-done">Completed ✓</div>
+          </div>
+          <div class="history-reaction">
+            <div class="reaction-label">How did it go?</div>
+            <div class="emoji-rating">
+              <button class="emoji-btn selected" onclick="selectEmoji(this)">😊</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">😐</button>
+              <button class="emoji-btn" onclick="selectEmoji(this)">🤔</button>
+            </div>
+            <div class="child-said">Emma said...</div>
+            <textarea class="child-said-input" rows="2" placeholder="What did Emma say or do? (optional)"></textarea>
+          </div>
+        </div>
+
+      </div><!-- /history-list -->
+
+      <div class="streak-note" style="margin-bottom: 14px;">
+        💜 You've practiced at home 2 weeks in a row! That makes a huge difference for Emma.
+      </div>
+
+    </div><!-- /phone-scroll -->
+
+    <div class="bottom-tabs">
+      <button class="b-tab" onclick="switchInnerTab('history', 0, this)">
+        <div class="b-icon">🗓️</div>
+        <div class="b-label">This Week</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('history', 1, this)">
+        <div class="b-icon">🔔</div>
+        <div class="b-label">Remind</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('history', 2, this)">
+        <div class="b-icon">🌊</div>
+        <div class="b-label">Ideas</div>
+      </button>
+      <button class="b-tab active" onclick="switchInnerTab('history', 3, this)">
+        <div class="b-icon">📅</div>
+        <div class="b-label">History</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('history', 4, this)">
+        <div class="b-icon">⚙️</div>
+        <div class="b-label">Settings</div>
+      </button>
+    </div>
+  </div><!-- /phone -->
+
+</div><!-- /panel-history -->
+
+
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<!-- TAB 5 — Spec                                                         -->
+<!-- ════════════════════════════════════════════════════════════════════ -->
+<div id="panel-spec" class="panel">
+
+  <div class="hint-box">
+    <strong>Engineering hint — Tab 5: Full Specification</strong>
+    This tab contains the complete backend and design spec for the Parent Home Practice Planner. Reference before building any route or component.
+  </div>
+
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>●●●</span></div>
+
+    <div class="top-nav">
+      <div class="top-nav-title">Spec 🛠️</div>
+      <div class="top-nav-sub">Parent Home Practice Planner v2</div>
+    </div>
+
+    <div class="phone-scroll">
+      <div class="spec-scroll">
+
+        <!-- Routes -->
+        <div class="spec-section">
+          <div class="spec-title">API Routes</div>
+          <div class="spec-row"><code>GET /parent/practice-plan?childId=:id&week=YYYY-WNN</code><br>Returns the weekly practice plan with 3 activities (1 support, 1 growing, 1 strength). Auto-generated from SNS tier data.</div>
+          <div class="spec-row"><code>GET /parent/practice-suggestions?childId=:id&week=YYYY-WNN</code><br>Returns world-themed suggestions + optional teacher suggestions. Refreshes weekly.</div>
+          <div class="spec-row"><code>POST /parent/reminders</code><br>Body: <code>{ childId, time, days[], activityIds[], enabled }</code>. Creates or updates reminder schedule.</div>
+          <div class="spec-row"><code>GET /parent/practice-history?childId=:id&limit=N</code><br>Returns parent self-reported practice history. Includes emoji sentiment and childNote fields.</div>
+        </div>
+
+        <!-- Plan generation -->
+        <div class="spec-section">
+          <div class="spec-title">Plan Generation Logic</div>
+          <div class="spec-row">Auto-generated from child's SNS tier data each week. Always 3 activities: <strong>1 support area</strong> + <strong>1 growing strength</strong> + <strong>1 strength</strong>. Tier-to-activity mapping: support tier → activity targeting that skill; strength → celebratory or extension activity. Ties broken by recency of skill update.</div>
+        </div>
+
+        <!-- Tier labels -->
+        <div class="spec-section">
+          <div class="spec-title">Tier Labels (Parent Language)</div>
+          <div class="spec-row">
+            <strong>Support area</strong> — amber accent. Forward-looking: "building confidence here!"<br>
+            <strong>Growing strength</strong> — teal accent. Celebratory of progress.<br>
+            <strong>Strength</strong> — green accent + 🌟. Celebratory, extension focus.<br>
+            <strong>NEVER use:</strong> "weak", "failing", "behind", accuracy %, raw scores, missed-day framing.
+          </div>
+        </div>
+
+        <!-- Reminder channels -->
+        <div class="spec-section">
+          <div class="spec-title">Reminder Channels</div>
+          <div class="spec-row">Primary: push notification. Email optional. Respects <code>parent.settings.quietHours</code> — server validates delivery window before dispatch. Days stored as ISO weekday array (1=Mon…7=Sun). Time stored as HH:MM UTC-offset aware.</div>
+        </div>
+
+        <!-- Practice history -->
+        <div class="spec-section">
+          <div class="spec-title">Practice History</div>
+          <div class="spec-row">Parent self-reported only — NOT linked to in-app session data. Fields: <code>activityId</code>, <code>date</code>, <code>status</code> (saved|completed), <code>sentiment</code> (great|okay|tricky), <code>childNote</code> (freeform). Streak calculated server-side: weeks with ≥1 completed entry.</div>
+        </div>
+
+        <!-- World-themed suggestions -->
+        <div class="spec-section">
+          <div class="spec-title">World-Themed Suggestions</div>
+          <div class="spec-row">Activity ideas tied to child's current WonderQuest world for engagement. World pulled from <code>child.currentWorld</code>. Suggestion bank tagged by world + skill. Teacher suggestions sourced from <code>teacher.classSuggestions[]</code> — optional, shown only when array is non-empty.</div>
+        </div>
+
+        <!-- Parent language rules -->
+        <div class="spec-section">
+          <div class="spec-title">Parent Language Rules (STRICT)</div>
+          <div class="spec-row">
+            <strong>NEVER:</strong> Show accuracy %, raw scores, missed-day framing, "weak", "failing", "behind".<br>
+            <strong>ALWAYS:</strong> Forward-looking, growth-focused language. Activities should feel like play, not schoolwork. Warm, encouraging, family-safe tone throughout.
+          </div>
+        </div>
+
+        <!-- Design tokens -->
+        <div class="spec-section">
+          <div class="spec-title">Design Tokens</div>
+          <div class="spec-row">
+            Background: <code>#f5f0e8</code> (warm parchment)<br>
+            Nav: <code>#2c7a6e</code> (teal)<br>
+            Font: <code>Sora</code> (Google Fonts)<br>
+            Support tier: amber (<code>#fff3d0</code> / <code>#8a5a00</code>)<br>
+            Growing tier: teal (<code>#d0f0e8</code> / <code>#1a6040</code>)<br>
+            Strength tier: green (<code>#d8f5d0</code> / <code>#1a5a18</code>)<br>
+            Phone frame: 375px, <code>border-radius:40px</code>, warm parchment bg<br>
+            Hint box: <code>background:#fffbea; border:2px solid #f0c040</code>
+          </div>
+        </div>
+
+        <!-- Emoji sentiment -->
+        <div class="spec-section">
+          <div class="spec-title">Emoji Sentiment Map</div>
+          <div class="spec-row">
+            😊 → <code>great</code><br>
+            😐 → <code>okay</code><br>
+            🤔 → <code>tricky</code><br>
+            No numeric 1–5 scores anywhere in the parent-facing UI.
+          </div>
+        </div>
+
+      </div><!-- /spec-scroll -->
+    </div><!-- /phone-scroll -->
+
+    <div class="bottom-tabs">
+      <button class="b-tab" onclick="switchInnerTab('spec', 0, this)">
+        <div class="b-icon">🗓️</div>
+        <div class="b-label">This Week</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('spec', 1, this)">
+        <div class="b-icon">🔔</div>
+        <div class="b-label">Remind</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('spec', 2, this)">
+        <div class="b-icon">🌊</div>
+        <div class="b-label">Ideas</div>
+      </button>
+      <button class="b-tab" onclick="switchInnerTab('spec', 3, this)">
+        <div class="b-icon">📅</div>
+        <div class="b-label">History</div>
+      </button>
+      <button class="b-tab active" onclick="switchInnerTab('spec', 4, this)">
+        <div class="b-icon">⚙️</div>
+        <div class="b-label">Settings</div>
+      </button>
+    </div>
+  </div><!-- /phone -->
+
+</div><!-- /panel-spec -->
+
+
+<script>
+// ── Outer tab switcher ──────────────────────────────────────────────────
+const panelMap = {
+  plan: 'panel-plan',
+  reminders: 'panel-reminders',
+  suggestions: 'panel-suggestions',
+  history: 'panel-history',
+  spec: 'panel-spec'
+};
+
+function show(tab) {
+  // Hide all panels
+  Object.values(panelMap).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('active');
+  });
+  // Show target
+  const target = document.getElementById(panelMap[tab]);
+  if (target) target.classList.add('active');
+  // Update outer tab buttons
+  document.querySelectorAll('.outer-tab-btn').forEach((btn, i) => {
+    const keys = Object.keys(panelMap);
+    btn.classList.toggle('active', keys[i] === tab);
+  });
+}
+
+// ── Inner tab bar (decorative — just updates active state) ──────────────
+function switchInnerTab(panelKey, tabIndex, el) {
+  const panel = document.getElementById(panelMap[panelKey]);
+  if (!panel) return;
+  panel.querySelectorAll('.b-tab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── Reminder toggle ─────────────────────────────────────────────────────
+function toggleReminders(on) {
+  const settings = document.getElementById('reminder-settings');
+  const preview = document.getElementById('reminder-preview');
+  if (settings) settings.classList.toggle('open', on);
+  if (preview) preview.style.display = on ? 'block' : 'none';
+}
+
+// ── Day chip toggle ─────────────────────────────────────────────────────
+function toggleDay(btn) {
+  btn.classList.toggle('on');
+  updatePreview();
+}
+
+// ── Activity chip toggle ────────────────────────────────────────────────
+function toggleActivityChip(row) {
+  row.classList.toggle('on');
+}
+
+// ── Reminder preview update ─────────────────────────────────────────────
+function updatePreview() {
+  const timeEl = document.getElementById('reminder-time');
+  const preview = document.getElementById('reminder-preview');
+  if (!timeEl || !preview) return;
+
+  const dayMap = { 'M': 'Mon', 'T': 'Tue', 'W': 'Wed', 'Th': 'Thu', 'F': 'Fri', 'Sa': 'Sat', 'Su': 'Sun' };
+  const onDays = Array.from(document.querySelectorAll('#panel-reminders .day-chip.on'))
+    .map(d => dayMap[d.textContent.trim()] || d.textContent.trim());
+
+  const rawTime = timeEl.value || '19:00';
+  const [h, m] = rawTime.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = ((h % 12) || 12);
+  const timeStr = `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+
+  const daysStr = onDays.length ? onDays.join(', ') : 'no days selected';
+  preview.innerHTML = `<div class="preview-label">Your reminder preview 📱</div>
+    You'll get a reminder: <strong>${daysStr} at ${timeStr}</strong> for Emma's practice 📱`;
+}
+
+// ── Save reminders (demo feedback) ─────────────────────────────────────
+function saveReminders() {
+  const btn = document.querySelector('#panel-reminders .btn-save');
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = 'Saved! ✓';
+  btn.style.background = '#1a5a50';
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.background = '';
+  }, 2000);
+}
+
+// ── Emoji rating ────────────────────────────────────────────────────────
+function selectEmoji(btn) {
+  const row = btn.closest('.emoji-rating');
+  if (!row) return;
+  row.querySelectorAll('.emoji-btn').forEach(b => b.classList.remove('selected'));
+  btn.classList.add('selected');
+}
+</script>
+</body>
+</html>

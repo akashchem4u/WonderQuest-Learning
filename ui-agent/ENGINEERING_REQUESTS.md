@@ -2147,3 +2147,89 @@ Important:
     - hard-block issues
     - publish checklist
     - visible pass/fail threshold treatment
+
+---
+## UI DELIVERY — BATCH 8
+**Delivered by:** UI Agent
+**Date:** 2026-03-22
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-session-resume-overlay-v2.html` | Child | 375px mobile | Mid-Session Return / Fresh Start / Session Complete / Long-Absence Return / Spec | ✅ Done |
+| `play-gentle-recovery-mobile-v2.html` | Child | 375px mobile | First Wrong Pick / Second Wrong Pick / Correct After Recovery / Replay-Skip / Spec | ✅ Done |
+| `parent-home-practice-planner-v2.html` | Parent | 375px mobile | This Week's Plan / Practice Reminders / Child-Specific Suggestions / Practice History / Spec | ✅ Done |
+| `teacher-support-queue-mobile-v2.html` | Teacher | 390px mobile | Support Queue / Student Quick View / Add Note / Quick Assign / Spec | ✅ Done |
+| `owner-live-incident-center-v2.html` | Owner | 390px mobile | Incident Dashboard / Route Incidents / Deploy+Runtime Alerts / Quick Triage / Spec | ✅ Done |
+| `content-publish-readiness-detail-v2.html` | Content-Admin | Desktop 1200px | Publish Gate Overview / Question Count / Hard Block Issues / Publish Checklist / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg — resume overlay with blurred bg, no-guilt language, gentle recovery with zero red
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` teal — practice planner tier-mapped activities, emoji self-report history
+- Teacher: Sora, `#f0f4f8` bg, `#2a5080` nav — 60-second mobile queue, swipe actions, contact-safe assign
+- Owner: Sora, `#0d1117` bg, `#ffd166` gold — pulsing P0 banner, route incidents with SLA, triage actions
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` cyan — publish gate 71/100, hard-block detail, checklist with BLOCKING badges
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 9.
+---
+
+### 2026-03-22 22:28 CDT
+- completed:
+  - verified and preserved Batch 8 delivery:
+    - `child-session-resume-overlay-v2.html`
+    - `play-gentle-recovery-mobile-v2.html`
+    - `parent-home-practice-planner-v2.html`
+    - `teacher-support-queue-mobile-v2.html`
+    - `owner-live-incident-center-v2.html`
+    - `content-publish-readiness-detail-v2.html`
+- current focus:
+  - start Batch 9 immediately
+- next batch:
+  - `parent-dashboard-mobile-canonical-v2.html`
+  - `play-reward-pulse-overlay-v2.html`
+  - `teacher-class-overview-tablet-v2.html`
+  - `teacher-student-intervention-desktop-v2.html`
+  - `owner-feedback-triage-desktop-v2.html`
+  - `content-explainer-qa-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `parent-dashboard-mobile-canonical-v2.html` should be the strongest compact mobile parent route:
+    - weekly summary hero
+    - child switcher
+    - next practice
+    - progress snapshot
+    - school/teacher message strip
+    - no setup form dominance
+  - `play-reward-pulse-overlay-v2.html` should focus on the in-session reward moments:
+    - badge earned
+    - streak saved
+    - level up
+    - world node unlocked
+    - session complete celebration
+    - all as fast overlays that do not feel noisy
+  - `teacher-class-overview-tablet-v2.html` should bridge between the desktop command center and compact mobile views:
+    - class summary
+    - support queue
+    - assignment status
+    - at-risk learner highlights
+    - quick drilldown actions
+  - `teacher-student-intervention-desktop-v2.html` should be the deeper teacher action surface:
+    - student history
+    - support notes
+    - intervention plan
+    - assignment link
+    - recent changes
+  - `owner-feedback-triage-desktop-v2.html` should be the higher-density owner triage surface for beta:
+    - queue table
+    - severity/state filters
+    - route links
+    - assignee / SLA
+    - fast resolution actions
+  - `content-explainer-qa-v2.html` should be the content-admin QA surface for explainers:
+    - script review
+    - media hint review
+    - QA blockers
+    - pass/fail decision
+    - publish readiness tie-in
