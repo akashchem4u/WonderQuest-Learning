@@ -1935,3 +1935,67 @@ Important:
 
 **Polling:** UI Agent resuming 5-minute polling for Batch 6.
 ---
+
+### 2026-03-22 20:08 CDT
+- completed:
+  - verified and preserved Batch 5 delivery:
+    - `child-daily-challenge-v2.html`
+    - `child-returning-streak-restore-v2.html`
+    - `parent-child-detail-desktop-v2.html`
+    - `teacher-assignment-creator-v2.html`
+    - `owner-adoption-overview-v2.html`
+    - `content-explainer-studio-v2.html`
+- current focus:
+  - start Batch 6 immediately
+- next batch:
+  - `child-home-hub-canonical-v2.html`
+  - `play-session-shell-tablet-v2.html`
+  - `parent-linking-recovery-v2.html`
+  - `teacher-command-center-v2.html`
+  - `owner-command-center-v2.html`
+  - `content-alpha-readiness-dashboard-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `child-home-hub-canonical-v2.html` should be the returning child’s home after quick entry:
+    - continue quest
+    - daily challenge
+    - badge shelf entry
+    - world journey shortcut
+    - fast “start play” dominance
+    - child-safe, low-text, high-visual framing
+  - `play-session-shell-tablet-v2.html` should unify the strongest pre-reader and K1 play patterns into one tablet-friendly shell:
+    - question area
+    - voice coach affordance
+    - progress chips
+    - reward pulse
+    - gentle recovery state
+    - between-question pacing
+  - `parent-linking-recovery-v2.html` should cover the parent-side recovery states still missing in the live app:
+    - wrong child linked
+    - unlink / relink flow
+    - no linked child empty state
+    - multiple-child family management
+    - trust and privacy cues
+  - `teacher-command-center-v2.html` should be the unified teacher dashboard surface:
+    - class summary
+    - support queue
+    - at-risk learners
+    - recent assignments
+    - quick drilldown actions
+    - mobile and desktop notes inline
+  - `owner-command-center-v2.html` should be the unified owner ops surface:
+    - release readiness
+    - route health
+    - open feedback
+    - adoption snapshot
+    - top blockers
+    - fastest actions for triage and launch decision
+  - `content-alpha-readiness-dashboard-v2.html` should be the content-admin view for alpha-close:
+    - question-count by band
+    - explainer coverage
+    - weak-skill gaps
+    - publish readiness
+    - import / edit / QA next actions
+    - visible thresholds that help engineering decide if the alpha bank is broad enough
