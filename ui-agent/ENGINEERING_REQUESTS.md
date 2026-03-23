@@ -1999,3 +1999,72 @@ Important:
     - publish readiness
     - import / edit / QA next actions
     - visible thresholds that help engineering decide if the alpha bank is broad enough
+
+---
+## UI DELIVERY — BATCH 6
+**Delivered by:** UI Agent
+**Date:** 2026-03-22
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-home-hub-canonical-v2.html` | Child | 375px mobile | Home Hub / Empty State / Stars & Rewards / World Map / Spec | ✅ Done |
+| `play-session-shell-tablet-v2.html` | Child | 768×1024px tablet | Pre-Reader Question / K-1 Question / Reward Pulse / Gentle Recovery / Spec | ✅ Done |
+| `parent-linking-recovery-v2.html` | Parent | 375px mobile | Wrong Child Linked / Unlink-Relink Flow / No Linked Child / Multi-Child Family / Spec | ✅ Done |
+| `teacher-command-center-v2.html` | Teacher | Desktop 3-col | Class Summary / Support Queue / At-Risk Learners / Recent Assignments / Spec | ✅ Done |
+| `owner-command-center-v2.html` | Owner | 390px mobile | Command Overview / Release Readiness / Route Health+Feedback / Adoption+Blockers / Spec | ✅ Done |
+| `content-alpha-readiness-dashboard-v2.html` | Content-Admin | Desktop 1200px | Alpha Readiness Overview / Question Count / Explainer Coverage / Publish Readiness / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg — home hub hero CTA dominant; tablet 768×1024 play shell with persistent progress strip
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` teal — amber-only warnings, trust/privacy cues, zero blame language
+- Teacher: Sora, `#f0f4f8` bg, `#2a5080` nav — 3-col command center, SNS tier colors, support queue sorted by urgency
+- Owner: Sora, `#0d1117` bg, `#ffd166` gold — GO/NOT-GO readiness gate, route health + feedback + adoption in one surface
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` cyan — alpha readiness score 71/100, coverage thresholds, priority action queue
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 7.
+---
+
+### 2026-03-22 20:34 CDT
+- completed:
+  - verified and preserved Batch 6 delivery:
+    - `child-home-hub-canonical-v2.html`
+    - `play-session-shell-tablet-v2.html`
+    - `parent-linking-recovery-v2.html`
+    - `teacher-command-center-v2.html`
+    - `owner-command-center-v2.html`
+    - `content-alpha-readiness-dashboard-v2.html`
+- current focus:
+  - start Batch 7 immediately
+- next batch:
+  - `child-achievement-hub-v2.html`
+  - `parent-family-settings-desktop-v2.html`
+  - `teacher-student-detail-mobile-v2.html`
+  - `teacher-assignment-creator-mobile-v2.html`
+  - `owner-release-readiness-detail-v2.html`
+  - `question-factory-workbench-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `child-achievement-hub-v2.html` should unify badge shelf, trophies, world unlocks, streak restore, and replay motivation into one child-facing reward hub that feels low-text and celebration-first
+  - `parent-family-settings-desktop-v2.html` should become the bigger-screen management surface for:
+    - linked children
+    - notification channels
+    - quiet hours
+    - unlink / relink safety
+    - trust and privacy controls
+  - `teacher-student-detail-mobile-v2.html` should bring the strongest student drilldown states into a teacher-friendly mobile surface for quick intervention checks between classes
+  - `teacher-assignment-creator-mobile-v2.html` should compress the assignment workflow into a compact mobile flow without losing clarity on skill selection, learner group, and schedule/send state
+  - `owner-release-readiness-detail-v2.html` should be the deeper owner go/no-go drilldown:
+    - blocker list
+    - route health evidence
+    - feedback severity mix
+    - launch recommendation
+    - signoff / hold actions
+  - `question-factory-workbench-v2.html` should be the beta content-production surface:
+    - question count by band / skill
+    - draft / review / approved states
+    - batch generation review
+    - gap identification
+    - clear next-action buttons for content admins
