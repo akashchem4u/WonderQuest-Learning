@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Parent Household Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #2c7a6e; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 130px; padding: 13px 8px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #fff; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 375px; min-height: 780px; margin: 20px auto; background: #f5f0e8; border-radius: 40px; overflow: hidden; border: 2px solid #d5ccba; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+.screen { min-height: 780px; display: flex; flex-direction: column; }
+.top-nav { background: #2c7a6e; padding: 50px 20px 20px; color: #fff; }
+.nav-title { font-size: 20px; font-weight: 700; }
+.nav-sub { font-size: 13px; color: rgba(255,255,255,0.7); margin-top: 4px; }
+.content { padding: 20px; flex: 1; display: flex; flex-direction: column; gap: 0; overflow-y: auto; }
+
+/* Section */
+.section-header { font-size: 12px; font-weight: 700; color: #2c7a6e; text-transform: uppercase; letter-spacing: 1px; margin: 16px 0 8px; }
+
+/* Child card */
+.child-card { background: #fff; border: 1px solid #e8dfd0; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
+.child-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.child-avatar { width: 48px; height: 48px; border-radius: 50%; background: #2c7a6e; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+.child-avatar-2 { background: #7c3aed; }
+.child-name { font-size: 16px; font-weight: 700; color: #1a2e3b; }
+.child-meta { font-size: 12px; color: #6b7280; }
+.child-actions { display: flex; gap: 8px; margin-top: 4px; }
+.action-btn { font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; border: 1px solid; cursor: pointer; }
+.edit-btn { color: #2c7a6e; border-color: #2c7a6e; background: #e8f4f2; }
+.unlink-btn { color: #dc2626; border-color: #dc2626; background: #fef2f2; }
+
+/* Notification row */
+.notif-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0e8d8; }
+.notif-row:last-child { border-bottom: none; }
+.notif-label { font-size: 13px; color: #374151; }
+.notif-val { font-size: 12px; color: #6b7280; }
+.toggle { width: 44px; height: 24px; border-radius: 12px; background: #2c7a6e; position: relative; cursor: pointer; flex-shrink: 0; }
+.toggle::after { content:''; position:absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:3px; right:3px; transition:right 0.2s; }
+.toggle.off { background: #d5ccba; }
+.toggle.off::after { right:auto; left:3px; }
+
+/* Add child button */
+.add-child-btn { background: #fff; border: 2px dashed #2c7a6e; border-radius: 16px; padding: 20px; display: flex; align-items: center; gap: 14px; cursor: pointer; margin-bottom: 10px; transition: background 0.2s; }
+.add-child-btn:hover { background: #e8f4f2; }
+.add-child-icon { width: 48px; height: 48px; border-radius: 50%; background: #e8f4f2; display: flex; align-items: center; justify-content: center; font-size: 22px; color: #2c7a6e; }
+.add-child-label { font-size: 15px; font-weight: 700; color: #2c7a6e; }
+.add-child-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+/* Account section */
+.account-row { display: flex; align-items: center; justify-content: space-between; background: #fff; border: 1px solid #e8dfd0; border-radius: 14px; padding: 14px 16px; margin-bottom: 8px; cursor: pointer; }
+.account-row-left { display: flex; align-items: center; gap: 12px; }
+.account-row-icon { font-size: 20px; }
+.account-row-label { font-size: 14px; font-weight: 600; color: #1a2e3b; }
+.account-row-sub { font-size: 12px; color: #6b7280; margin-top: 1px; }
+.chevron { font-size: 16px; color: #9ca3af; }
+
+/* Privacy toggles */
+.privacy-card { background: #fff; border: 1px solid #e8dfd0; border-radius: 16px; padding: 16px; margin-bottom: 10px; }
+.privacy-title { font-size: 14px; font-weight: 700; color: #1a2e3b; margin-bottom: 12px; }
+
+/* Add child form */
+.form-label { font-size: 13px; font-weight: 600; color: #374151; margin: 10px 0 4px; }
+.form-input { background: #fff; border: 2px solid #d5ccba; border-radius: 12px; padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 14px; width: 100%; outline: none; color: #1a2e3b; transition: border-color 0.2s; }
+.form-input:focus { border-color: #2c7a6e; }
+.btn-primary { background: #2c7a6e; color: #fff; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; border: none; border-radius: 50px; padding: 14px 32px; cursor: pointer; width: 100%; margin-top: 12px; }
+.btn-ghost { background: none; border: 2px solid #d5ccba; border-radius: 50px; padding: 12px 32px; color: #6b7280; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 8px; width: 100%; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; border: 1px solid #e8dfd0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #2c7a6e; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('overview')">Household Overview</button>
+  <button onclick="show('child-mgmt')">Child Management</button>
+  <button onclick="show('add-child')">Add Child</button>
+  <button onclick="show('account')">Account & Privacy</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- HOUSEHOLD OVERVIEW -->
+<div id="overview" class="tab-content active">
+  <div class="hint">Household overview — list of linked children, add another child button, quick notification settings. Parent-friendly layout, no accuracy %.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-title">My Household</div>
+        <div class="nav-sub">2 children linked</div>
+      </div>
+      <div class="content">
+        <div class="section-header">Linked Children</div>
+
+        <div class="child-card">
+          <div class="child-card-header">
+            <div class="child-avatar">👦</div>
+            <div>
+              <div class="child-name">Alex R.</div>
+              <div class="child-meta">Grade 2 · Maplewood Elementary</div>
+              <div class="child-meta" style="color:#2c7a6e;font-weight:600;margin-top:2px">🌟 Active this week</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:10px">📅 Weekly summary · Milestones on</div>
+          <div class="child-actions">
+            <button class="action-btn edit-btn">Edit settings</button>
+            <button class="action-btn unlink-btn">Unlink</button>
+          </div>
+        </div>
+
+        <div class="child-card">
+          <div class="child-card-header">
+            <div class="child-avatar child-avatar-2">👧</div>
+            <div>
+              <div class="child-name">Maya R.</div>
+              <div class="child-meta">Grade K · Maplewood Elementary</div>
+              <div class="child-meta" style="color:#6b7280;margin-top:2px">🌱 Just getting started</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6b7280;margin-bottom:10px">🔕 Notifications off</div>
+          <div class="child-actions">
+            <button class="action-btn edit-btn">Edit settings</button>
+            <button class="action-btn unlink-btn">Unlink</button>
+          </div>
+        </div>
+
+        <div class="add-child-btn" onclick="show('add-child')">
+          <div class="add-child-icon">➕</div>
+          <div>
+            <div class="add-child-label">Add another child</div>
+            <div class="add-child-sub">Link a sibling or additional child</div>
+          </div>
+        </div>
+
+        <div class="section-header">Quick Settings</div>
+        <div class="privacy-card">
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Weekly family summary</div>
+              <div class="notif-val">All children · Every Sunday</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Milestone alerts</div>
+              <div class="notif-val">New achievements & badges</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CHILD MANAGEMENT -->
+<div id="child-mgmt" class="tab-content">
+  <div class="hint">Expanded per-child notification preferences. Each child has individual toggle controls. No accuracy % or missed-day language anywhere.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px">← Household</div>
+        <div class="nav-title">Alex R. — Settings</div>
+      </div>
+      <div class="content">
+        <div class="section-header">Child Details</div>
+        <div style="background:#fff;border:1px solid #e8dfd0;border-radius:16px;padding:16px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+            <div class="child-avatar">👦</div>
+            <div>
+              <div class="child-name">Alex R.</div>
+              <div class="child-meta">Grade 2 · Age 7</div>
+              <div class="child-meta" style="color:#2c7a6e;font-weight:600">🏫 Maplewood Elementary</div>
+            </div>
+          </div>
+          <div style="font-size:12px;color:#6b7280;border-top:1px solid #f0e8d8;padding-top:10px;line-height:1.8">
+            School code: ALEX24B<br>
+            Linked since: September 2025<br>
+            Last active: Today
+          </div>
+        </div>
+
+        <div class="section-header">Notifications for Alex</div>
+        <div class="privacy-card">
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Weekly summary</div>
+              <div class="notif-val">Sunday highlights</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Milestone badges</div>
+              <div class="notif-val">New achievements earned</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Teacher messages</div>
+              <div class="notif-val">From Alex's teacher</div>
+            </div>
+            <div class="toggle off"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Encouragement nudges</div>
+              <div class="notif-val">When Alex needs a boost</div>
+            </div>
+            <div class="toggle off"></div>
+          </div>
+        </div>
+
+        <div style="background:#fffbeb;border:1px solid #f59e0b;border-radius:12px;padding:12px;font-size:12px;color:#92400e;line-height:1.5;margin:8px 0">
+          ⚠️ Notifications never include accuracy percentages or specific wrong answers. Only positive progress and milestones.
+        </div>
+
+        <div style="flex:1;min-height:16px"></div>
+        <button class="btn-primary">Save Settings</button>
+        <button class="btn-ghost" style="color:#dc2626;border-color:#dc2626">Unlink Alex</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHILD -->
+<div id="add-child" class="tab-content">
+  <div class="hint">Add another child — enter school code, confirm child details. Same 3-step wizard as first-link but condensed in one view for returning parents.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('overview')" style="font-size:13px;color:rgba(255,255,255,0.7);margin-bottom:8px;cursor:pointer">← Household</div>
+        <div class="nav-title">Add Another Child</div>
+      </div>
+      <div class="content">
+        <div style="font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px">Enter your other child's school code to link them to your account.</div>
+
+        <div class="form-label">School Code</div>
+        <input class="form-input" type="text" placeholder="e.g. MAYA24A" maxlength="10" style="text-transform:uppercase;letter-spacing:3px;text-align:center;font-size:20px;font-weight:700">
+        <div style="font-size:11px;color:#9ca3af;margin:6px 0 20px">Each child has a unique code — get it from their teacher</div>
+
+        <div class="form-label">Notification preference for this child</div>
+        <div style="display:flex;flex-direction:column;gap:8px;margin:6px 0">
+          <label style="display:flex;align-items:center;gap:10px;background:#fff;border:2px solid #2c7a6e;border-radius:12px;padding:12px;cursor:pointer">
+            <input type="radio" name="notif" checked style="accent-color:#2c7a6e">
+            <div>
+              <div style="font-size:13px;font-weight:600">📅 Weekly summary</div>
+              <div style="font-size:11px;color:#6b7280">One update every Sunday</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8dfd0;border-radius:12px;padding:12px;cursor:pointer">
+            <input type="radio" name="notif" style="accent-color:#2c7a6e">
+            <div>
+              <div style="font-size:13px;font-weight:600">🔔 Milestones only</div>
+              <div style="font-size:11px;color:#6b7280">Only big moments</div>
+            </div>
+          </label>
+          <label style="display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #e8dfd0;border-radius:12px;padding:12px;cursor:pointer">
+            <input type="radio" name="notif" style="accent-color:#2c7a6e">
+            <div>
+              <div style="font-size:13px;font-weight:600">🔕 No notifications</div>
+              <div style="font-size:11px;color:#6b7280">I'll check when I want</div>
+            </div>
+          </label>
+        </div>
+
+        <div style="background:#e8f4f2;border:1px solid #2c7a6e;border-radius:12px;padding:12px;font-size:12px;color:#2c7a6e;line-height:1.5;margin-top:8px">
+          🔒 Privacy: Only your child's first name and progress milestones are shared with you. No test scores or detailed assessments.
+        </div>
+
+        <div style="flex:1;min-height:12px"></div>
+        <button class="btn-primary">Link This Child 🎉</button>
+        <button class="btn-ghost" onclick="show('overview')">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ACCOUNT & PRIVACY -->
+<div id="account" class="tab-content">
+  <div class="hint">Account section — email, password, data/privacy controls, delete account option. Privacy-first language throughout.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-title">Account & Privacy</div>
+      </div>
+      <div class="content">
+        <div class="section-header">Account</div>
+        <div class="account-row">
+          <div class="account-row-left">
+            <span class="account-row-icon">📧</span>
+            <div>
+              <div class="account-row-label">Email address</div>
+              <div class="account-row-sub">sarah.r@email.com</div>
+            </div>
+          </div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="account-row">
+          <div class="account-row-left">
+            <span class="account-row-icon">🔑</span>
+            <div>
+              <div class="account-row-label">Change password</div>
+              <div class="account-row-sub">Last changed 3 months ago</div>
+            </div>
+          </div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="account-row">
+          <div class="account-row-left">
+            <span class="account-row-icon">📱</span>
+            <div>
+              <div class="account-row-label">Phone number</div>
+              <div class="account-row-sub">+1 (555) 012-3456</div>
+            </div>
+          </div>
+          <span class="chevron">›</span>
+        </div>
+
+        <div class="section-header">Privacy Controls</div>
+        <div class="privacy-card">
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Allow anonymized research</div>
+              <div class="notif-val">Help improve WonderQuest</div>
+            </div>
+            <div class="toggle"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Share usage analytics</div>
+              <div class="notif-val">App performance data only</div>
+            </div>
+            <div class="toggle off"></div>
+          </div>
+          <div class="notif-row">
+            <div>
+              <div class="notif-label">Marketing emails</div>
+              <div class="notif-val">Product updates & tips</div>
+            </div>
+            <div class="toggle off"></div>
+          </div>
+        </div>
+
+        <div class="section-header">Data</div>
+        <div class="account-row">
+          <div class="account-row-left">
+            <span class="account-row-icon">📥</span>
+            <div>
+              <div class="account-row-label">Download my data</div>
+              <div class="account-row-sub">Export account and child activity</div>
+            </div>
+          </div>
+          <span class="chevron">›</span>
+        </div>
+        <div class="account-row" style="border-color:#fee2e2">
+          <div class="account-row-left">
+            <span class="account-row-icon">🗑️</span>
+            <div>
+              <div class="account-row-label" style="color:#dc2626">Delete account</div>
+              <div class="account-row-sub">Permanently remove all data</div>
+            </div>
+          </div>
+          <span class="chevron" style="color:#dc2626">›</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for parent-household-manager-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#f5f0e8</span></div>
+    <div class="spec-row"><span class="spec-key">Nav</span><span class="spec-val">#2c7a6e</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">375px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Tabs</div>
+    <div class="spec-row"><span class="spec-key">Household Overview</span><span class="spec-val">All children + add CTA</span></div>
+    <div class="spec-row"><span class="spec-key">Child Management</span><span class="spec-val">Per-child notification config</span></div>
+    <div class="spec-row"><span class="spec-key">Add Child</span><span class="spec-val">Condensed school code + prefs</span></div>
+    <div class="spec-row"><span class="spec-key">Account & Privacy</span><span class="spec-val">Email, password, toggles</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Parent Safety Rules</div>
+    <div class="spec-note">✅ No accuracy % anywhere<br>✅ No missed-day or absence language<br>✅ Notifications never include scores<br>✅ Data download available<br>✅ Delete account option present<br>✅ Privacy toggles default to minimal sharing</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Parent Relink Recovery</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f5f0e8; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #2c7a6e; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 120px; padding: 13px 8px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #fff; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 375px; min-height: 780px; margin: 20px auto; background: #f5f0e8; border-radius: 40px; overflow: hidden; border: 2px solid #d5ccba; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+.screen { min-height: 780px; display: flex; flex-direction: column; }
+.top-nav { background: #2c7a6e; padding: 50px 20px 20px; color: #fff; }
+.nav-back { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 8px; cursor: pointer; }
+.nav-title { font-size: 18px; font-weight: 700; }
+.content { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+.section-title { font-size: 20px; font-weight: 700; color: #1a2e3b; margin-bottom: 8px; line-height: 1.2; }
+.section-desc { font-size: 14px; color: #6b7280; line-height: 1.6; margin-bottom: 20px; }
+
+/* Alert box */
+.alert-box { border-radius: 16px; padding: 18px; margin: 12px 0; display: flex; gap: 14px; align-items: flex-start; }
+.alert-amber { background: #fffbeb; border: 1.5px solid #f59e0b; }
+.alert-red { background: #fef2f2; border: 1.5px solid #ef4444; }
+.alert-green { background: #f0fdf4; border: 1.5px solid #22c55e; }
+.alert-icon { font-size: 24px; flex-shrink: 0; }
+.alert-text { font-size: 13px; line-height: 1.6; }
+.alert-amber .alert-text { color: #92400e; }
+.alert-red .alert-text { color: #991b1b; }
+.alert-green .alert-text { color: #15803d; }
+.alert-title { font-weight: 700; margin-bottom: 4px; }
+
+/* Child card */
+.child-card { background: #fff; border: 2px solid #e8dfd0; border-radius: 16px; padding: 16px; margin: 12px 0; display: flex; align-items: center; gap: 14px; }
+.child-avatar { width: 52px; height: 52px; border-radius: 50%; background: #2c7a6e; display: flex; align-items: center; justify-content: center; font-size: 24px; }
+.child-avatar.wrong { background: #fee2e2; }
+.child-name { font-size: 16px; font-weight: 700; color: #1a2e3b; }
+.child-meta { font-size: 12px; color: #6b7280; }
+.child-tag { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-top: 4px; }
+.tag-wrong { background: #fee2e2; color: #991b1b; }
+.tag-linked { background: #d1fae5; color: #065f46; }
+
+/* Buttons */
+.btn-primary { background: #2c7a6e; color: #fff; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; border: none; border-radius: 50px; padding: 14px 32px; cursor: pointer; width: 100%; transition: background 0.2s; margin-top: 8px; }
+.btn-primary:hover { background: #1e6055; }
+.btn-danger { background: #fff; color: #dc2626; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; border: 2px solid #dc2626; border-radius: 50px; padding: 13px 32px; cursor: pointer; width: 100%; margin-top: 10px; }
+.btn-ghost { background: none; border: 2px solid #d5ccba; border-radius: 50px; padding: 13px 32px; color: #6b7280; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+
+/* Confirm modal-style area */
+.confirm-box { background: #fff; border: 2px solid #e8dfd0; border-radius: 20px; padding: 24px; margin: 16px 0; text-align: center; }
+.confirm-icon { font-size: 48px; margin-bottom: 12px; }
+.confirm-title { font-size: 18px; font-weight: 700; color: #1a2e3b; margin-bottom: 8px; }
+.confirm-desc { font-size: 13px; color: #6b7280; line-height: 1.6; }
+
+/* Success */
+.success-wrap { padding: 40px 24px; display: flex; flex-direction: column; align-items: center; text-align: center; background: #f5f0e8; min-height: 680px; }
+.success-circle { width: 90px; height: 90px; border-radius: 50%; background: #2c7a6e; display: flex; align-items: center; justify-content: center; font-size: 44px; margin: 0 auto 20px; }
+
+/* Support form */
+.form-label { font-size: 13px; font-weight: 600; color: #374151; margin: 10px 0 4px; }
+.form-input { background: #fff; border: 2px solid #d5ccba; border-radius: 12px; padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 14px; width: 100%; outline: none; color: #1a2e3b; transition: border-color 0.2s; }
+.form-input:focus { border-color: #2c7a6e; }
+textarea.form-input { resize: none; min-height: 100px; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; border: 1px solid #e8dfd0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #2c7a6e; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('prompt')">Relink Prompt</button>
+  <button onclick="show('unlink')">Unlink Confirm</button>
+  <button onclick="show('relink')">Re-link Flow</button>
+  <button onclick="show('success')">Recovery Success</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- RELINK PROMPT -->
+<div id="prompt" class="tab-content active">
+  <div class="hint">Something doesn't look right — parent notices wrong child linked. Gentle prompt with details of the linked child and options to act.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back">← Settings</div>
+        <div class="nav-title">Linked Children</div>
+      </div>
+      <div class="content">
+        <div class="alert-box alert-amber">
+          <span class="alert-icon">⚠️</span>
+          <div class="alert-text">
+            <div class="alert-title">Something doesn't look right?</div>
+            You're currently linked to a child that may not be yours. Please review the details below.
+          </div>
+        </div>
+
+        <div class="section-title" style="margin-top:8px">Currently Linked Child</div>
+        <div class="child-card">
+          <div class="child-avatar wrong">👧</div>
+          <div>
+            <div class="child-name">Jamie T.</div>
+            <div class="child-meta">Grade 3 · Maplewood Elementary</div>
+            <span class="child-tag tag-wrong">⚠️ May not be your child</span>
+          </div>
+        </div>
+
+        <div class="section-desc" style="margin-top:4px">If this is not your child, you can unlink immediately. Your child's data is not affected by accidental links.</div>
+
+        <div style="background:#fff;border:1px solid #e8dfd0;border-radius:12px;padding:14px;font-size:13px;color:#6b7280;line-height:1.5">
+          <strong style="color:#1a2e3b">What happens when I unlink?</strong><br>
+          • Your access to Jamie's activity ends immediately<br>
+          • No data is deleted from either account<br>
+          • You can re-link to the correct child right away
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-danger" onclick="show('unlink')">Unlink This Child</button>
+        <button class="btn-ghost">No, Jamie is my child — Keep Linked</button>
+        <button class="btn-ghost" style="font-size:12px;padding:10px">Contact Support</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- UNLINK CONFIRM -->
+<div id="unlink" class="tab-content">
+  <div class="hint">Unlink confirmation step — double-confirms the action with a clear summary of what will and won't happen. Prevents accidental unlinks.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('prompt')">← Back</div>
+        <div class="nav-title">Unlink Child</div>
+      </div>
+      <div class="content">
+        <div class="confirm-box">
+          <div class="confirm-icon">🔗</div>
+          <div class="confirm-title">Unlink Jamie T.?</div>
+          <div class="confirm-desc">You will lose access to Jamie's learning activity. This does not affect Jamie's account or data in any way.</div>
+        </div>
+
+        <div class="alert-box alert-amber">
+          <span class="alert-icon">ℹ️</span>
+          <div class="alert-text">
+            <div class="alert-title">Before you unlink</div>
+            Make sure you have your child's correct school code ready so you can re-link to the right account immediately.
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #e8dfd0;border-radius:12px;padding:14px;margin:12px 0">
+          <div style="font-size:13px;color:#374151;font-weight:700;margin-bottom:8px">What changes after unlinking:</div>
+          <div style="font-size:12px;color:#6b7280;line-height:1.8">
+            ✅ Your link to Jamie's account ends<br>
+            ✅ No notifications from Jamie's account<br>
+            ❌ Jamie's data is not deleted<br>
+            ❌ Your account is not affected
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-danger" onclick="show('relink')">Yes, Unlink Jamie</button>
+        <button class="btn-ghost" onclick="show('prompt')">Cancel — Keep Linked</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RE-LINK FLOW -->
+<div id="relink" class="tab-content">
+  <div class="hint">After unlinking — prompt to immediately re-link to the correct child. Streamlined: just enter correct school code, confirm.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back">← Back</div>
+        <div class="nav-title">Link Your Child</div>
+      </div>
+      <div class="content">
+        <div class="alert-box alert-green" style="margin-bottom:16px">
+          <span class="alert-icon">✅</span>
+          <div class="alert-text">
+            <div class="alert-title">Unlinked successfully</div>
+            You're no longer connected to Jamie's account. Let's link you to the right child now.
+          </div>
+        </div>
+
+        <div class="section-title">Link to your child</div>
+        <div class="section-desc">Enter your child's school code. This is provided by their teacher or school.</div>
+
+        <div class="form-label">School Code</div>
+        <input class="form-input" type="text" placeholder="e.g. ALEX24B" maxlength="10" style="text-transform:uppercase;letter-spacing:3px;text-align:center;font-size:20px;font-weight:700">
+        <div style="font-size:11px;color:#9ca3af;margin:6px 0 16px">Check your welcome letter or ask your child's teacher</div>
+
+        <div style="background:#e8f4f2;border:1px solid #2c7a6e;border-radius:12px;padding:12px 14px;font-size:12px;color:#2c7a6e;line-height:1.5">
+          🔒 Each school code is unique to one child. Entering the right code ensures you're connected to your own child's data only.
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-primary" onclick="show('success')">Find My Child →</button>
+        <button class="btn-ghost">I need help finding the code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECOVERY SUCCESS -->
+<div id="success" class="tab-content">
+  <div class="hint">Recovery success — confirms correct child is now linked. Clean summary. Support contact mentioned for further issues.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav" style="padding-bottom:16px">
+        <div class="nav-title">All Done!</div>
+      </div>
+      <div class="success-wrap">
+        <div style="height:20px"></div>
+        <div class="success-circle">✅</div>
+        <div style="font-size:24px;font-weight:700;color:#1a2e3b;margin-bottom:8px">Linked to the right child!</div>
+        <div style="font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:24px">You're now connected to Alex's WonderQuest account. Everything looks good!</div>
+
+        <div class="child-card" style="width:100%">
+          <div class="child-avatar">👦</div>
+          <div>
+            <div class="child-name">Alex R.</div>
+            <div class="child-meta">Grade 2 · Maplewood Elementary</div>
+            <span class="child-tag tag-linked">✅ Correctly linked</span>
+          </div>
+        </div>
+
+        <div style="background:#e8f4f2;border:1px solid #2c7a6e;border-radius:12px;padding:14px;width:100%;margin-top:12px;text-align:left;font-size:13px;color:#2c7a6e;line-height:1.5">
+          If you continue to have issues or think there's a data problem, you can <strong>contact WonderQuest support</strong> through Settings → Help & Support.
+        </div>
+
+        <div style="flex:1;min-height:24px"></div>
+        <button class="btn-primary">Go to My Dashboard →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for parent-relink-recovery-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#f5f0e8</span></div>
+    <div class="spec-row"><span class="spec-key">Nav</span><span class="spec-val">#2c7a6e</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">375px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Flow Steps</div>
+    <div class="spec-row"><span class="spec-key">1 — Prompt</span><span class="spec-val">Wrong child detected notice</span></div>
+    <div class="spec-row"><span class="spec-key">2 — Unlink</span><span class="spec-val">Double-confirm with what changes</span></div>
+    <div class="spec-row"><span class="spec-key">3 — Re-link</span><span class="spec-val">Enter correct school code</span></div>
+    <div class="spec-row"><span class="spec-key">4 — Success</span><span class="spec-val">Correct child confirmed</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Alert Colors</div>
+    <div class="spec-row"><span class="spec-key">Amber</span><span class="spec-val">⚠️ Something looks wrong</span></div>
+    <div class="spec-row"><span class="spec-key">Red action</span><span class="spec-val">Unlink button (destructive)</span></div>
+    <div class="spec-row"><span class="spec-key">Green</span><span class="spec-val">✅ Unlinked / success</span></div>
+    <div class="spec-row"><span class="spec-key">Teal info</span><span class="spec-val">Privacy & data notes</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Parent Safety Rules</div>
+    <div class="spec-note">✅ No accuracy % shown<br>✅ No missed-day language<br>✅ Double-confirm before destructive actions<br>✅ Clear what-changes list before unlink<br>✅ Support contact always available<br>✅ Child data never deleted on unlink</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

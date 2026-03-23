@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Class Comparison Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f0f4f8; color: #1a2333; min-height: 100vh; }
+  nav { background: #2a5080; color: #fff; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-size: 20px; font-weight: 700; }
+  nav .sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  nav .right { font-size: 13px; opacity: 0.85; }
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #dde4ed; padding: 0 28px; }
+  .tab { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #778899; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s; }
+  .tab.active { color: #2a5080; border-bottom-color: #2a5080; }
+  .panel { display: none; padding: 24px 28px; max-width: 1100px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 12.5px; color: #ffd166; line-height: 1.5; }
+  h2 { font-size: 20px; font-weight: 700; color: #0f2040; margin-bottom: 6px; }
+  h3 { font-size: 15px; font-weight: 600; color: #2a5080; margin-bottom: 10px; }
+  p { font-size: 13.5px; line-height: 1.6; color: #445566; margin-bottom: 14px; }
+  .period-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 24px; }
+  .period-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); border-top: 4px solid #2a5080; }
+  .period-card.this { border-top-color: #2a5080; }
+  .period-card.last { border-top-color: #8aabcc; }
+  .period-label { font-size: 11px; font-weight: 700; color: #2a5080; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 14px; }
+  .period-label.dim { color: #8aabcc; }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #f0f4f8; }
+  .stat-row:last-child { border-bottom: none; padding-bottom: 0; }
+  .stat-lbl { font-size: 12.5px; color: #556677; }
+  .stat-val { font-size: 14px; font-weight: 700; color: #0f2040; }
+  .stat-val.up { color: #1d7a50; }
+  .stat-val.down { color: #c0392b; }
+  .delta { font-size: 11px; padding: 2px 7px; border-radius: 20px; font-weight: 700; margin-left: 6px; }
+  .delta.pos { background: #d4edda; color: #155724; }
+  .delta.neg { background: #f8d7da; color: #721c24; }
+  .delta.neu { background: #e2e8f0; color: #445566; }
+  .tier-dist { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 18px; }
+  .tier-dist h3 { margin-bottom: 14px; }
+  .dist-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .dist-period { font-size: 11px; font-weight: 600; color: #778899; width: 80px; flex-shrink: 0; }
+  .dist-bars { flex: 1; height: 22px; border-radius: 6px; overflow: hidden; display: flex; }
+  .bar-seg { height: 22px; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #fff; }
+  .bar-seg.opp { background: #e6b800; }
+  .bar-seg.grow { background: #3db89f; }
+  .bar-seg.str { background: #2a5080; }
+  .dist-legend { display: flex; gap: 14px; margin-top: 10px; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: #778899; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+  .delta-table { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 18px; }
+  .delta-table table { width: 100%; border-collapse: collapse; }
+  .delta-table th { background: #f0f4f8; padding: 11px 14px; font-size: 11.5px; font-weight: 700; color: #2a5080; text-align: left; border-bottom: 1px solid #dde4ed; }
+  .delta-table td { padding: 10px 14px; font-size: 12.5px; color: #334455; border-bottom: 1px solid #f0f4f8; }
+  .delta-table tr:last-child td { border-bottom: none; }
+  .skill-chip { display: inline-block; background: #eef2f8; border-radius: 6px; padding: 3px 8px; font-size: 11px; }
+  .wins-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+  .win-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); border-left: 4px solid #2a5080; }
+  .win-card .win-icon { font-size: 22px; margin-bottom: 6px; }
+  .win-card h4 { font-size: 13px; font-weight: 700; color: #0f2040; margin-bottom: 4px; }
+  .win-card p { font-size: 11.5px; color: #778899; margin: 0; line-height: 1.5; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid #dde4ed; vertical-align: top; }
+  .spec-table td:first-child { font-weight: 600; color: #2a5080; width: 35%; }
+  .section-label { font-size: 11px; font-weight: 700; color: #aabbcc; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 12px; }
+  .filter-row { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+  select { padding: 8px 12px; border: 1px solid #dde4ed; border-radius: 8px; font-family: 'Sora', sans-serif; font-size: 12.5px; color: #334455; background: #fff; cursor: pointer; }
+</style>
+</head>
+<body>
+<nav>
+  <div>
+    <div class="logo">WonderQuest</div>
+    <div class="sub">Class Comparison Board</div>
+  </div>
+  <div class="right">Ms. Torres · Grade 2A · Spring 2026</div>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="show('period')">Period Comparison</div>
+  <div class="tab" onclick="show('tiers')">Tier Distribution</div>
+  <div class="tab" onclick="show('deltas')">Skill Deltas</div>
+  <div class="tab" onclick="show('wins')">Class Wins</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<div id="period" class="panel active">
+  <div class="hint">This view shows your class as a whole — no individual student data is displayed here. All framing is positive: where has the class improved?</div>
+  <h2>This Month vs Last Month</h2>
+  <p>Comparing March 2026 (current) to February 2026 for Grade 2A — 24 students.</p>
+
+  <div class="filter-row">
+    <select><option>All skill areas</option><option>Reading</option><option>Math</option></select>
+    <select><option>All students</option><option>Support lane</option><option>On-track</option></select>
+  </div>
+
+  <div class="period-grid">
+    <div class="period-card this">
+      <div class="period-label">March 2026</div>
+      <div class="stat-row"><span class="stat-lbl">Avg sessions/child</span><span class="stat-val up">9.2 <span class="delta pos">+1.4</span></span></div>
+      <div class="stat-row"><span class="stat-lbl">Strength skills</span><span class="stat-val up">38% <span class="delta pos">+6%</span></span></div>
+      <div class="stat-row"><span class="stat-lbl">Growing skills</span><span class="stat-val">44%</span></div>
+      <div class="stat-row"><span class="stat-lbl">Opportunity skills</span><span class="stat-val">18% <span class="delta pos">−4%</span></span></div>
+      <div class="stat-row"><span class="stat-lbl">Badges earned</span><span class="stat-val up">186 <span class="delta pos">+32</span></span></div>
+    </div>
+    <div class="period-card last">
+      <div class="period-label dim">February 2026</div>
+      <div class="stat-row"><span class="stat-lbl">Avg sessions/child</span><span class="stat-val">7.8</span></div>
+      <div class="stat-row"><span class="stat-lbl">Strength skills</span><span class="stat-val">32%</span></div>
+      <div class="stat-row"><span class="stat-lbl">Growing skills</span><span class="stat-val">46%</span></div>
+      <div class="stat-row"><span class="stat-lbl">Opportunity skills</span><span class="stat-val">22%</span></div>
+      <div class="stat-row"><span class="stat-lbl">Badges earned</span><span class="stat-val">154</span></div>
+    </div>
+  </div>
+
+  <div class="tier-dist">
+    <h3>Overall tier movement (class-wide)</h3>
+    <div class="dist-row">
+      <div class="dist-period">March</div>
+      <div class="dist-bars">
+        <div class="bar-seg opp" style="width:18%">18%</div>
+        <div class="bar-seg grow" style="width:44%">44%</div>
+        <div class="bar-seg str" style="width:38%">38%</div>
+      </div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-period">February</div>
+      <div class="dist-bars">
+        <div class="bar-seg opp" style="width:22%">22%</div>
+        <div class="bar-seg grow" style="width:46%">46%</div>
+        <div class="bar-seg str" style="width:32%">32%</div>
+      </div>
+    </div>
+    <div class="dist-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#e6b800"></div>Opportunity</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3db89f"></div>Growing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a5080"></div>Strength</div>
+    </div>
+  </div>
+</div>
+
+<div id="tiers" class="panel">
+  <div class="hint">Tier distribution shows the spread of your class across skill levels — not individual student rankings. Focus on the positive shifts.</div>
+  <h2>Tier Distribution by Skill</h2>
+
+  <div style="margin-bottom:18px;">
+    <div class="filter-row">
+      <select><option>March 2026</option><option>February 2026</option></select>
+      <select><option>All skills</option><option>Reading</option><option>Math</option></select>
+    </div>
+
+    <div class="tier-dist">
+      <h3>Reading — Phonics</h3>
+      <div class="dist-row">
+        <div class="dist-period">March</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:8%">8%</div>
+          <div class="bar-seg grow" style="width:37%">37%</div>
+          <div class="bar-seg str" style="width:55%">55%</div>
+        </div>
+      </div>
+      <div class="dist-row">
+        <div class="dist-period">February</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:14%">14%</div>
+          <div class="bar-seg grow" style="width:45%">45%</div>
+          <div class="bar-seg str" style="width:41%">41%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-dist">
+      <h3>Reading — Comprehension</h3>
+      <div class="dist-row">
+        <div class="dist-period">March</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:12%">12%</div>
+          <div class="bar-seg grow" style="width:50%">50%</div>
+          <div class="bar-seg str" style="width:38%">38%</div>
+        </div>
+      </div>
+      <div class="dist-row">
+        <div class="dist-period">February</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:20%">20%</div>
+          <div class="bar-seg grow" style="width:52%">52%</div>
+          <div class="bar-seg str" style="width:28%">28%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tier-dist">
+      <h3>Math — Number Sense</h3>
+      <div class="dist-row">
+        <div class="dist-period">March</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:25%">25%</div>
+          <div class="bar-seg grow" style="width:48%">48%</div>
+          <div class="bar-seg str" style="width:27%">27%</div>
+        </div>
+      </div>
+      <div class="dist-row">
+        <div class="dist-period">February</div>
+        <div class="dist-bars">
+          <div class="bar-seg opp" style="width:35%">35%</div>
+          <div class="bar-seg grow" style="width:44%">44%</div>
+          <div class="bar-seg str" style="width:21%">21%</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dist-legend" style="margin-top:0;">
+      <div class="legend-item"><div class="legend-dot" style="background:#e6b800"></div>Opportunity</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3db89f"></div>Growing</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a5080"></div>Strength</div>
+    </div>
+  </div>
+</div>
+
+<div id="deltas" class="panel">
+  <div class="hint">Skill deltas show movement between tiers from last month to this month, across all students in the class.</div>
+  <h2>Skill-by-Skill Deltas</h2>
+  <p>How did each skill area shift for Grade 2A between February and March 2026?</p>
+
+  <div class="delta-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Skill</th>
+          <th>Opportunity →</th>
+          <th>Growing →</th>
+          <th>Strength →</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><span class="skill-chip">Phonics</span></td>
+          <td><span class="delta pos">−6 students</span></td>
+          <td><span class="delta neu">−2 students</span></td>
+          <td><span class="delta pos">+8 students</span></td>
+        </tr>
+        <tr>
+          <td><span class="skill-chip">Comprehension</span></td>
+          <td><span class="delta pos">−4 students</span></td>
+          <td><span class="delta pos">+1 student</span></td>
+          <td><span class="delta pos">+3 students</span></td>
+        </tr>
+        <tr>
+          <td><span class="skill-chip">Vocabulary</span></td>
+          <td><span class="delta neu">0</span></td>
+          <td><span class="delta pos">+3 students</span></td>
+          <td><span class="delta pos">+1 student</span></td>
+        </tr>
+        <tr>
+          <td><span class="skill-chip">Number Sense</span></td>
+          <td><span class="delta pos">−5 students</span></td>
+          <td><span class="delta pos">+3 students</span></td>
+          <td><span class="delta pos">+2 students</span></td>
+        </tr>
+        <tr>
+          <td><span class="skill-chip">Addition</span></td>
+          <td><span class="delta neu">0</span></td>
+          <td><span class="delta pos">+4 students</span></td>
+          <td><span class="delta pos">+2 students</span></td>
+        </tr>
+        <tr>
+          <td><span class="skill-chip">Word Problems</span></td>
+          <td><span class="delta neg">+2 students</span></td>
+          <td><span class="delta neg">−3 students</span></td>
+          <td><span class="delta neg">−1 student</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:12px;color:#778899;">Note: Word Problems shows a temporary dip — likely due to introduction of new question types this month. Monitor next 2 weeks.</p>
+</div>
+
+<div id="wins" class="panel">
+  <div class="hint">Class wins highlight positive momentum — every win listed here is real progress worth celebrating with your students.</div>
+  <h2>Class Wins This Month</h2>
+  <p>Grade 2A had a strong March. Here's what's working.</p>
+
+  <div class="wins-grid">
+    <div class="win-card">
+      <div class="win-icon">📈</div>
+      <h4>Most improved skill</h4>
+      <p>Phonics — 8 more students reached Strength this month vs last</p>
+    </div>
+    <div class="win-card">
+      <div class="win-icon">🔥</div>
+      <h4>Streak record</h4>
+      <p>Class average play streak hit 9 days — a new record for 2A</p>
+    </div>
+    <div class="win-card">
+      <div class="win-icon">🏆</div>
+      <h4>Badge milestone</h4>
+      <p>186 badges earned — the class has now earned 500+ badges total!</p>
+    </div>
+    <div class="win-card">
+      <div class="win-icon">⭐</div>
+      <h4>Strength growth</h4>
+      <p>38% of skills are now Strengths — up from 32% last month</p>
+    </div>
+    <div class="win-card">
+      <div class="win-icon">🎯</div>
+      <h4>Engagement up</h4>
+      <p>Avg sessions per child rose from 7.8 to 9.2 — great participation</p>
+    </div>
+    <div class="win-card">
+      <div class="win-icon">🧮</div>
+      <h4>Math momentum</h4>
+      <p>5 students moved out of Opportunity in Number Sense this month</p>
+    </div>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <h2>Spec Reference</h2>
+  <table class="spec-table">
+    <tr><td>File</td><td>teacher-class-comparison-board-v2.html</td></tr>
+    <tr><td>Audience</td><td>Teacher</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f0f4f8</td></tr>
+    <tr><td>Nav color</td><td>#2a5080</td></tr>
+    <tr><td>Tabs</td><td>Period Comparison / Tier Distribution / Skill Deltas / Class Wins / Spec</td></tr>
+    <tr><td>Key features</td><td>Side-by-side period comparison, stacked tier bars, skill delta table, wins grid</td></tr>
+    <tr><td>Tiers</td><td>Opportunity / Growing / Strength</td></tr>
+    <tr><td>Framing</td><td>Wins-only, class-level (no individual student identification)</td></tr>
+    <tr><td>Version</td><td>v2 — 2026-03-23</td></tr>
+  </table>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['period','tiers','deltas','wins','spec'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

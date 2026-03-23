@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mic Response State v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* Screen */
+  .mic-screen { background: #1e1540; border-radius: 20px; max-width: 375px; margin: 0 auto; min-height: 520px; display: flex; flex-direction: column; align-items: center; padding: 24px 20px; gap: 20px; }
+  .question-banner { background: #2d2060; border-radius: 16px; padding: 18px 20px; text-align: center; width: 100%; }
+  .question-banner .emoji { font-size: 40px; margin-bottom: 8px; }
+  .question-banner p { font-size: 16px; font-weight: 700; color: #e0d4ff; line-height: 1.4; }
+
+  /* Mic Prompt */
+  .mic-prompt { font-size: 16px; font-weight: 900; color: #9b72ff; text-align: center; }
+  .mic-prompt.active { color: #ff7b6b; }
+  .mic-prompt.processing { color: #ffd166; }
+  .mic-prompt.received { color: #58e8c1; }
+
+  /* Mic Button */
+  .mic-btn-wrap { position: relative; display: flex; align-items: center; justify-content: center; width: 140px; height: 140px; }
+  .mic-btn { width: 96px; height: 96px; border-radius: 50%; border: none; cursor: pointer; font-size: 44px; display: flex; align-items: center; justify-content: center; position: relative; z-index: 2; transition: transform 0.18s; }
+  .mic-btn:active { transform: scale(0.93); }
+
+  /* Idle */
+  .mic-idle { background: #2d1f5e; }
+  .mic-idle:hover { background: #3a2d6e; }
+
+  /* Listening rings */
+  .mic-listening { background: #ff7b6b; box-shadow: 0 0 30px rgba(255,123,107,0.4); }
+  .listen-ring { position: absolute; border-radius: 50%; border: 4px solid #ff7b6b; animation: listen-expand 1.4s ease-out infinite; }
+  .listen-ring-1 { width: 96px; height: 96px; animation-delay: 0s; }
+  .listen-ring-2 { width: 96px; height: 96px; animation-delay: 0.45s; }
+  .listen-ring-3 { width: 96px; height: 96px; animation-delay: 0.9s; }
+  @keyframes listen-expand {
+    0% { transform: scale(1); opacity: 0.9; }
+    100% { transform: scale(1.9); opacity: 0; }
+  }
+
+  /* Processing spinner */
+  .mic-processing { background: #ffd166; cursor: not-allowed; }
+  .processing-ring { position: absolute; width: 116px; height: 116px; border-radius: 50%; border: 4px solid transparent; border-top-color: #ffd166; animation: spin 0.9s linear infinite; z-index: 1; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Response received */
+  .mic-received { background: #58e8c1; }
+
+  /* Transcript bubble */
+  .transcript { background: #2d2060; border-radius: 14px; padding: 14px 18px; width: 100%; font-size: 15px; font-weight: 700; color: #e0d4ff; line-height: 1.5; border-left: 4px solid #58e8c1; }
+  .transcript-label { font-size: 11px; font-weight: 900; color: #58e8c1; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .transcript-text { font-size: 17px; color: #fff; }
+
+  /* Retry / confirm */
+  .action-row { display: flex; gap: 10px; width: 100%; }
+  .action-btn { flex: 1; padding: 14px; border-radius: 14px; border: none; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .btn-confirm { background: #9b72ff; color: #fff; }
+  .btn-confirm:hover { background: #b998ff; }
+  .btn-retry { background: #2d1f5e; color: #9b72ff; border: 2px solid #9b72ff; }
+  .btn-retry:hover { background: #3a2d6e; }
+
+  /* Spec */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; max-width: 375px; margin-left: auto; margin-right: auto; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Mic Response State</strong><br>
+  GET /api/mic/status → {state: "idle"|"listening"|"processing"|"received"}<br>
+  POST /api/mic/start → begins recording session, returns {sessionId}<br>
+  POST /api/mic/stop → {sessionId} — ends recording<br>
+  GET /api/mic/transcript/{sessionId} → {text, confidence, accepted: bool}
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('idle')">Idle</button>
+  <button class="tab" onclick="show('listening')">Listening</button>
+  <button class="tab" onclick="show('processing')">Processing</button>
+  <button class="tab" onclick="show('received')">Response Received</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- IDLE -->
+<div id="idle" class="panel active">
+  <div class="mic-screen">
+    <div class="question-banner">
+      <div class="emoji">🌈</div>
+      <p>What color is the sky on a sunny day?</p>
+    </div>
+    <div class="mic-prompt">Say your answer!</div>
+    <div class="mic-btn-wrap">
+      <button class="mic-btn mic-idle" aria-label="Tap to start speaking">🎤</button>
+    </div>
+    <p style="font-size:13px;color:#6b5a9e;font-weight:700;text-align:center;">Tap the mic and speak your answer</p>
+  </div>
+  <p style="text-align:center;color:#6b5a9e;font-size:12px;font-weight:700;margin-top:12px;">Idle — dark mic button, inviting prompt</p>
+</div>
+
+<!-- LISTENING -->
+<div id="listening" class="panel">
+  <div class="mic-screen">
+    <div class="question-banner">
+      <div class="emoji">🌈</div>
+      <p>What color is the sky on a sunny day?</p>
+    </div>
+    <div class="mic-prompt active">I'm listening! 👂</div>
+    <div class="mic-btn-wrap">
+      <div class="listen-ring listen-ring-1"></div>
+      <div class="listen-ring listen-ring-2"></div>
+      <div class="listen-ring listen-ring-3"></div>
+      <button class="mic-btn mic-listening" aria-label="Listening — tap to stop">🎤</button>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;background:#2d1f5e;border-radius:12px;padding:10px 18px;">
+      <div style="display:flex;align-items:center;gap:3px;height:20px;">
+        <div style="width:4px;background:#ff7b6b;border-radius:2px;height:8px;animation:wave2 0.8s ease-in-out infinite;animation-delay:0s;"></div>
+        <div style="width:4px;background:#ff7b6b;border-radius:2px;height:14px;animation:wave2 0.8s ease-in-out infinite;animation-delay:0.1s;"></div>
+        <div style="width:4px;background:#ff7b6b;border-radius:2px;height:20px;animation:wave2 0.8s ease-in-out infinite;animation-delay:0.2s;"></div>
+        <div style="width:4px;background:#ff7b6b;border-radius:2px;height:14px;animation:wave2 0.8s ease-in-out infinite;animation-delay:0.1s;"></div>
+        <div style="width:4px;background:#ff7b6b;border-radius:2px;height:8px;animation:wave2 0.8s ease-in-out infinite;animation-delay:0s;"></div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:#ff7b6b;">Recording…</span>
+    </div>
+    <style>@keyframes wave2 { 0%,100%{transform:scaleY(0.5)} 50%{transform:scaleY(1)} }</style>
+    <p style="font-size:12px;color:#9b72ff;font-weight:700;text-align:center;">Tap mic again to stop</p>
+  </div>
+  <p style="text-align:center;color:#ff7b6b;font-size:12px;font-weight:700;margin-top:12px;">Listening — coral rings expand, waveform shows voice input</p>
+</div>
+
+<!-- PROCESSING -->
+<div id="processing" class="panel">
+  <div class="mic-screen">
+    <div class="question-banner">
+      <div class="emoji">🌈</div>
+      <p>What color is the sky on a sunny day?</p>
+    </div>
+    <div class="mic-prompt processing">Thinking… 🤔</div>
+    <div class="mic-btn-wrap">
+      <div class="processing-ring"></div>
+      <button class="mic-btn mic-processing" aria-label="Processing your answer" style="cursor:not-allowed;">⏳</button>
+    </div>
+    <p style="font-size:13px;color:#ffd166;font-weight:700;text-align:center;">Hold on, I heard you!</p>
+  </div>
+  <p style="text-align:center;color:#ffd166;font-size:12px;font-weight:700;margin-top:12px;">Processing — gold spinner, non-interactive</p>
+</div>
+
+<!-- RESPONSE RECEIVED -->
+<div id="received" class="panel">
+  <div class="mic-screen">
+    <div class="question-banner">
+      <div class="emoji">🌈</div>
+      <p>What color is the sky on a sunny day?</p>
+    </div>
+    <div class="mic-prompt received">Got it! ✨</div>
+    <div class="mic-btn-wrap">
+      <button class="mic-btn mic-received" aria-label="Answer received" style="cursor:default;">✓</button>
+    </div>
+    <div class="transcript">
+      <div class="transcript-label">You said:</div>
+      <div class="transcript-text">"Blue!"</div>
+    </div>
+    <div class="action-row">
+      <button class="action-btn btn-retry">Try again 🎤</button>
+      <button class="action-btn btn-confirm">That's my answer! ✨</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:#58e8c1;font-size:12px;font-weight:700;margin-top:12px;">Received — transcript shown, confirm or retry</p>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>Mic Button</h3>
+    <div class="spec-row"><span class="spec-label">Size</span><span class="spec-value">96×96px circular</span></div>
+    <div class="spec-row"><span class="spec-label">idle color</span><span class="spec-value">#2d1f5e — neutral dark</span></div>
+    <div class="spec-row"><span class="spec-label">listening color</span><span class="spec-value">#ff7b6b coral, glow shadow</span></div>
+    <div class="spec-row"><span class="spec-label">processing color</span><span class="spec-value">#ffd166 gold, spinner overlay</span></div>
+    <div class="spec-row"><span class="spec-label">received color</span><span class="spec-value">#58e8c1 mint, checkmark</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Ring Animation (Listening)</h3>
+    <div class="spec-row"><span class="spec-label">Rings</span><span class="spec-value">3 rings, 0.45s stagger</span></div>
+    <div class="spec-row"><span class="spec-label">Duration</span><span class="spec-value">1.4s ease-out infinite</span></div>
+    <div class="spec-row"><span class="spec-label">Scale</span><span class="spec-value">1x → 1.9x, opacity 0.9 → 0</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Transcript Display</h3>
+    <div class="spec-row"><span class="spec-label">Border</span><span class="spec-value">4px left border #58e8c1</span></div>
+    <div class="spec-row"><span class="spec-label">Confidence</span><span class="spec-value">Low confidence → orange tint</span></div>
+    <div class="spec-row"><span class="spec-label">Retry</span><span class="spec-value">Always available, no shame</span></div>
+    <div class="spec-row"><span class="spec-label">Max retries</span><span class="spec-value">Unlimited — no penalty</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>API Notes</h3>
+    <div class="spec-row"><span class="spec-label">ASR</span><span class="spec-value">Whisper API or Web Speech API</span></div>
+    <div class="spec-row"><span class="spec-label">Timeout</span><span class="spec-value">10s silence → auto-stop</span></div>
+    <div class="spec-row"><span class="spec-label">Min length</span><span class="spec-value">0.5s to register</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

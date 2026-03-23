@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Voice Disabled Fallback v2 — WonderQuest</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+  .hint-box { background: #2a1f00; border: 2px solid #ffd166; border-radius: 12px; padding: 14px 18px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.6; }
+  .hint-box strong { font-weight: 900; font-size: 14px; }
+  .tabs { display: flex; gap: 6px; padding: 0 16px 12px; flex-wrap: wrap; }
+  .tab { background: #1e1540; border: 2px solid #3a2d6e; border-radius: 20px; color: #9b72ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 13px; padding: 8px 16px; cursor: pointer; transition: all 0.2s; }
+  .tab.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+  .tab:hover:not(.active) { border-color: #9b72ff; }
+  .panel { display: none; padding: 16px; }
+  .panel.active { display: block; }
+
+  /* Screen */
+  .screen { background: #1e1540; border-radius: 20px; max-width: 375px; margin: 0 auto; min-height: 520px; padding: 24px 20px; display: flex; flex-direction: column; gap: 18px; align-items: center; }
+
+  /* Notice banner */
+  .notice-banner { background: #2d1f00; border: 2px solid #ff7b6b; border-radius: 16px; padding: 18px 20px; width: 100%; display: flex; align-items: flex-start; gap: 14px; }
+  .notice-icon { font-size: 36px; flex-shrink: 0; }
+  .notice-text h3 { font-size: 16px; font-weight: 900; color: #ff7b6b; margin-bottom: 6px; }
+  .notice-text p { font-size: 13px; font-weight: 700; color: #e0d4ff; line-height: 1.5; }
+
+  /* Coach text-only */
+  .coach-text-row { display: flex; align-items: center; gap: 12px; width: 100%; background: #2d2060; border-radius: 14px; padding: 14px 16px; }
+  .coach-emoji-sm { font-size: 36px; flex-shrink: 0; }
+  .coach-bubble { flex: 1; background: #1e1540; border-radius: 12px; padding: 10px 14px; font-size: 15px; font-weight: 700; color: #e0d4ff; line-height: 1.5; }
+  .text-only-badge { display: inline-block; background: #2d1f5e; border: 2px solid #9b72ff; border-radius: 10px; font-size: 11px; font-weight: 900; color: #9b72ff; padding: 4px 10px; margin-top: 8px; }
+
+  /* Text-only play area */
+  .text-question { background: #2d2060; border-radius: 18px; padding: 20px; width: 100%; text-align: center; }
+  .text-question .q-label { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .text-question .q-text { font-size: 18px; font-weight: 900; color: #fff; line-height: 1.4; }
+  .text-question .q-sub { font-size: 13px; font-weight: 700; color: #9b72ff; margin-top: 8px; }
+
+  /* Text-only answers */
+  .text-answers { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .text-answer { background: #2d2060; border: 2px solid #3a2d6e; border-radius: 14px; padding: 16px; text-align: center; cursor: pointer; transition: all 0.2s; }
+  .text-answer:hover { border-color: #9b72ff; }
+  .text-answer .ta-emoji { font-size: 32px; margin-bottom: 8px; }
+  .text-answer .ta-label { font-size: 15px; font-weight: 900; color: #e0d4ff; }
+
+  /* Enable audio steps */
+  .step-card { background: #2d2060; border-radius: 14px; padding: 16px 18px; width: 100%; display: flex; align-items: center; gap: 14px; }
+  .step-num { width: 36px; height: 36px; border-radius: 50%; background: #9b72ff; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 900; color: #fff; flex-shrink: 0; }
+  .step-text h4 { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+  .step-text p { font-size: 12px; font-weight: 700; color: #9b72ff; line-height: 1.4; }
+
+  /* All good */
+  .all-good-circle { width: 110px; height: 110px; border-radius: 50%; background: #58e8c1; display: flex; align-items: center; justify-content: center; font-size: 56px; animation: pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes pop-in { 0%{transform:scale(0)} 100%{transform:scale(1)} }
+
+  /* CTA buttons */
+  .cta-btn { width: 100%; background: #9b72ff; border: none; border-radius: 14px; color: #fff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; padding: 16px; cursor: pointer; transition: all 0.2s; }
+  .cta-btn:hover { background: #b998ff; transform: translateY(-1px); }
+  .cta-btn-secondary { background: transparent; border: 2px solid #3a2d6e; color: #9b72ff; }
+  .cta-btn-secondary:hover { border-color: #9b72ff; background: #2d1f5e; }
+
+  /* Spec */
+  .spec-section { background: #1e1540; border-radius: 16px; padding: 20px; margin-bottom: 16px; max-width: 375px; margin-left: auto; margin-right: auto; }
+  .spec-section h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin-bottom: 12px; }
+  .spec-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #2d1f5e; font-size: 13px; }
+  .spec-row:last-child { border-bottom: none; }
+  .spec-label { color: #9b72ff; font-weight: 700; }
+  .spec-value { color: #e0d4ff; text-align: right; max-width: 55%; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>API Routes — Voice Disabled Fallback</strong><br>
+  GET /api/voice/available → {hasAudio: bool, reason: "muted"|"offline"|"perm_denied"}<br>
+  POST /api/session/mode → {mode: "text-only"|"audio"}<br>
+  GET /api/question/{id}/text → {question, options[]} — text-only question<br>
+  POST /api/audio/enable-prompt → logs enable-audio intent for UX analytics
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="show('notice')">Audio Disabled Notice</button>
+  <button class="tab" onclick="show('textonly')">Text-Only Mode</button>
+  <button class="tab" onclick="show('enable')">Enable Audio Flow</button>
+  <button class="tab" onclick="show('allgood')">All Good State</button>
+  <button class="tab" onclick="show('spec')">Spec</button>
+</div>
+
+<!-- AUDIO DISABLED NOTICE -->
+<div id="notice" class="panel active">
+  <div class="screen">
+    <div class="notice-banner">
+      <div class="notice-icon">🔕</div>
+      <div class="notice-text">
+        <h3>Audio is off</h3>
+        <p>Your device volume is turned down — but that's totally okay! You can still read and answer all the questions.</p>
+      </div>
+    </div>
+    <div class="coach-text-row">
+      <div class="coach-emoji-sm">🦉</div>
+      <div>
+        <div class="coach-bubble">Hi! I'm Ollie. I'll show you the questions in text — you don't need sound to play!</div>
+        <span class="text-only-badge">📖 Text mode</span>
+      </div>
+    </div>
+    <div class="text-question">
+      <div class="q-label">Question 3 of 5</div>
+      <div class="q-text">Which animal gives us milk?</div>
+      <div class="q-sub">Tap your answer below</div>
+    </div>
+    <div class="text-answers">
+      <div class="text-answer"><div class="ta-emoji">🐮</div><div class="ta-label">Cow</div></div>
+      <div class="text-answer"><div class="ta-emoji">🐓</div><div class="ta-label">Chicken</div></div>
+      <div class="text-answer"><div class="ta-emoji">🐟</div><div class="ta-label">Fish</div></div>
+      <div class="text-answer"><div class="ta-emoji">🐠</div><div class="ta-label">Clownfish</div></div>
+    </div>
+    <button class="cta-btn" style="font-size:14px;">Turn on audio 🔊</button>
+  </div>
+  <p style="text-align:center;color:#ff7b6b;font-size:12px;font-weight:700;margin-top:12px;">Coral notice banner — friendly, no shame, full text playable</p>
+</div>
+
+<!-- TEXT-ONLY MODE -->
+<div id="textonly" class="panel">
+  <div class="screen">
+    <div class="coach-text-row">
+      <div class="coach-emoji-sm">🦉</div>
+      <div>
+        <div class="coach-bubble">Reading mode is on! I'll show you everything in text.</div>
+        <span class="text-only-badge">📖 Reading mode</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;width:100%;background:#2d2060;border-radius:12px;padding:12px 16px;">
+      <div style="font-size:13px;font-weight:700;color:#e0d4ff;">Text-only mode</div>
+      <div style="background:#9b72ff;border-radius:10px;padding:5px 12px;font-size:12px;font-weight:900;color:#fff;">Active</div>
+    </div>
+    <div class="text-question">
+      <div class="q-label">Question 1 of 5</div>
+      <div class="q-text">What color do you get when you mix red and blue?</div>
+      <div class="q-sub">All answers are shown as text — pick one!</div>
+    </div>
+    <div class="text-answers">
+      <div class="text-answer"><div class="ta-emoji">🟣</div><div class="ta-label">Purple</div></div>
+      <div class="text-answer"><div class="ta-emoji">🟢</div><div class="ta-label">Green</div></div>
+      <div class="text-answer"><div class="ta-emoji">🟠</div><div class="ta-label">Orange</div></div>
+      <div class="text-answer"><div class="ta-emoji">⚫</div><div class="ta-label">Black</div></div>
+    </div>
+    <div style="display:flex;gap:10px;width:100%;">
+      <button class="cta-btn cta-btn-secondary" style="font-size:13px;">Keep text mode</button>
+      <button class="cta-btn" style="font-size:13px;">Enable audio 🔊</button>
+    </div>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:12px;">All interactions work without audio — full text gameplay</p>
+</div>
+
+<!-- ENABLE AUDIO FLOW -->
+<div id="enable" class="panel">
+  <div class="screen">
+    <div style="text-align:center;width:100%;">
+      <div style="font-size:52px;margin-bottom:10px;">🔊</div>
+      <div style="font-size:20px;font-weight:900;color:#fff;margin-bottom:6px;">Turn on audio!</div>
+      <div style="font-size:13px;font-weight:700;color:#9b72ff;">Follow these steps on your device</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;width:100%;">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-text">
+          <h4>Check your volume</h4>
+          <p>Turn the volume up on the side of your device</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-text">
+          <h4>Check the mute switch</h4>
+          <p>On iPad/iPhone, flip the side switch to unmute</p>
+        </div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-text">
+          <h4>Allow audio in browser</h4>
+          <p>Tap the lock icon in the address bar → allow sounds</p>
+        </div>
+      </div>
+    </div>
+    <button class="cta-btn">I turned it on — try again! 🔊</button>
+    <button class="cta-btn cta-btn-secondary" style="font-size:14px;">Continue without audio</button>
+  </div>
+  <p style="text-align:center;color:#9b72ff;font-size:12px;font-weight:700;margin-top:12px;">Friendly step-by-step — no blame, always offers text fallback</p>
+</div>
+
+<!-- ALL GOOD STATE -->
+<div id="allgood" class="panel">
+  <div class="screen" style="justify-content:center;">
+    <div class="all-good-circle">🔊</div>
+    <div style="text-align:center;">
+      <div style="font-size:26px;font-weight:900;color:#58e8c1;margin-bottom:8px;">Audio is on!</div>
+      <div style="font-size:14px;font-weight:700;color:#e0d4ff;max-width:260px;line-height:1.5;">Great — Ollie will read the questions out loud for you now.</div>
+    </div>
+    <div class="coach-text-row" style="border:2px solid #58e8c1;">
+      <div class="coach-emoji-sm">🦉</div>
+      <div class="coach-bubble">Wonderful! Let's keep going — I'll read everything to you!</div>
+    </div>
+    <button class="cta-btn" style="background:#58e8c1;color:#100b2e;">Continue playing! ✨</button>
+  </div>
+  <p style="text-align:center;color:#58e8c1;font-size:12px;font-weight:700;margin-top:12px;">Audio restored — mint celebration, resume play flow</p>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="panel">
+  <div class="spec-section">
+    <h3>Detection Logic</h3>
+    <div class="spec-row"><span class="spec-label">Trigger</span><span class="spec-value">AudioContext.state === "suspended" or volume = 0</span></div>
+    <div class="spec-row"><span class="spec-label">Check freq</span><span class="spec-value">On each question load</span></div>
+    <div class="spec-row"><span class="spec-label">Fallback mode</span><span class="spec-value">Auto-switches to text-only</span></div>
+    <div class="spec-row"><span class="spec-label">Storage</span><span class="spec-value">sessionStorage: audioMode</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Text-Only Guarantees</h3>
+    <div class="spec-row"><span class="spec-label">All questions</span><span class="spec-value">Always have text versions</span></div>
+    <div class="spec-row"><span class="spec-label">Coach</span><span class="spec-value">Emoji only (🦉), no audio</span></div>
+    <div class="spec-row"><span class="spec-label">Hints</span><span class="spec-value">Text bubbles from coach</span></div>
+    <div class="spec-row"><span class="spec-label">No penalties</span><span class="spec-value">XP/streaks unchanged</span></div>
+  </div>
+  <div class="spec-section">
+    <h3>Re-enable Flow</h3>
+    <div class="spec-row"><span class="spec-label">Test method</span><span class="spec-value">Play 200ms silent tone, catch error</span></div>
+    <div class="spec-row"><span class="spec-label">Success signal</span><span class="spec-value">AudioContext.state === "running"</span></div>
+    <div class="spec-row"><span class="spec-label">Recovery</span><span class="spec-value">Show "All Good" state, resume</span></div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

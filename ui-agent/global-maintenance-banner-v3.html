@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Maintenance & Status Banners</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f8f9fa; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #343a40; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 150px; padding: 13px 12px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1a2e3b; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+
+/* === BANNER STYLES === */
+
+/* Scheduled Maintenance — yellow */
+.banner-scheduled {
+  background: #fffbeb;
+  border: 1.5px solid #f59e0b;
+  border-radius: 16px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.banner-scheduled .banner-strip {
+  background: #f59e0b;
+  height: 6px;
+}
+.banner-body { padding: 20px 24px; }
+.banner-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.banner-icon { font-size: 32px; flex-shrink: 0; }
+.banner-title-block {}
+.banner-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+.banner-timestamp { font-size: 12px; opacity: 0.7; }
+.banner-desc { font-size: 14px; line-height: 1.6; margin-bottom: 14px; }
+.services-list { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+.service-chip { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 5px 12px; border-radius: 20px; }
+.chip-affected { background: rgba(0,0,0,0.08); }
+.chip-unaffected { background: rgba(0,0,0,0.04); opacity: 0.5; }
+.banner-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+.eta-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; }
+.banner-cta { font-size: 13px; font-weight: 700; padding: 8px 18px; border-radius: 50px; cursor: pointer; border: none; font-family: 'Sora', sans-serif; transition: opacity 0.2s; }
+.banner-cta:hover { opacity: 0.85; }
+.dismiss-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #6b7280; line-height: 1; padding: 4px; }
+
+/* Active Incident — red */
+.banner-incident { background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
+.banner-incident .banner-strip { background: #ef4444; }
+
+/* Degraded Performance — amber */
+.banner-degraded { background: #fff7ed; border: 1.5px solid #f97316; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
+.banner-degraded .banner-strip { background: #f97316; }
+
+/* All Clear — green */
+.banner-clear { background: #f0fdf4; border: 1.5px solid #22c55e; border-radius: 16px; overflow: hidden; margin-bottom: 24px; }
+.banner-clear .banner-strip { background: #22c55e; }
+
+/* Pulsing indicator for active incident */
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+.pulse-dot { width: 10px; height: 10px; border-radius: 50%; background: #ef4444; animation: pulse 1.2s ease-in-out infinite; display: inline-block; margin-right: 6px; }
+
+/* Context cards */
+.context-panel { background: #fff; border: 1px solid #e8edf0; border-radius: 12px; padding: 16px 18px; margin-top: 12px; }
+.context-title { font-size: 13px; font-weight: 700; color: #374151; margin-bottom: 10px; }
+.context-row { display: flex; justify-content: space-between; align-items: center; padding: 7px 0; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+.context-row:last-child { border-bottom: none; }
+.ctx-key { color: #6b7280; }
+.ctx-val { font-weight: 600; color: #1a2e3b; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+.dot-red { background: #ef4444; }
+.dot-amber { background: #f97316; }
+.dot-yellow { background: #f59e0b; }
+.dot-green { background: #22c55e; }
+
+/* Timeline */
+.timeline { margin-top: 14px; }
+.timeline-item { display: flex; gap: 12px; margin-bottom: 12px; }
+.t-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.t-time { font-size: 11px; color: #9ca3af; min-width: 52px; }
+.t-text { font-size: 13px; color: #374151; line-height: 1.4; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #e8edf0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #343a40; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('scheduled')">Scheduled Maintenance</button>
+  <button onclick="show('incident')">Active Incident</button>
+  <button onclick="show('degraded')">Degraded Performance</button>
+  <button onclick="show('clear')">All Clear</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- SCHEDULED MAINTENANCE -->
+<div id="scheduled" class="tab-content active">
+  <div class="hint">Scheduled maintenance banner — yellow, shown before planned downtime. Includes affected services list, ETA, dismiss option.</div>
+  <div class="page">
+    <div class="page-title">Scheduled Maintenance Banner</div>
+    <div class="page-sub">Shown site-wide 24 hours before planned maintenance. Users can dismiss and get a reminder.</div>
+
+    <div class="banner-scheduled">
+      <div class="banner-strip"></div>
+      <div class="banner-body">
+        <div class="banner-header">
+          <div class="banner-icon">🛠️</div>
+          <div class="banner-title-block">
+            <div class="banner-title" style="color:#92400e">Scheduled Maintenance — Tonight</div>
+            <div class="banner-timestamp" style="color:#b45309">Posted: Today at 9:00 AM · Starts in ~11 hours</div>
+          </div>
+          <button class="dismiss-btn" style="margin-left:auto">✕</button>
+        </div>
+        <div class="banner-desc" style="color:#78350f">
+          WonderQuest will be offline for planned maintenance on <strong>Thursday, March 26 from 11:00 PM – 1:00 AM UTC</strong>. Play sessions, parent dashboards, and teacher tools will be unavailable during this window.
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#92400e;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px">Affected Services</div>
+        <div class="services-list">
+          <span class="service-chip chip-affected" style="background:#fde68a;color:#92400e">🎮 Play Sessions</span>
+          <span class="service-chip chip-affected" style="background:#fde68a;color:#92400e">👩‍🏫 Teacher Dashboard</span>
+          <span class="service-chip chip-affected" style="background:#fde68a;color:#92400e">👪 Parent Hub</span>
+          <span class="service-chip chip-affected" style="background:#fde68a;color:#92400e">🔐 Authentication</span>
+          <span class="service-chip chip-unaffected" style="background:#f5f5f5;color:#6b7280">📊 Owner Console ✓ Up</span>
+          <span class="service-chip chip-unaffected" style="background:#f5f5f5;color:#6b7280">📚 Content API ✓ Up</span>
+        </div>
+
+        <div class="banner-footer">
+          <div class="eta-badge" style="color:#92400e">
+            ⏱️ Estimated downtime: <strong>2 hours</strong>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="banner-cta" style="background:#f59e0b;color:#fff">Remind Me 1hr Before</button>
+            <button class="banner-cta" style="background:#fff;color:#92400e;border:1.5px solid #f59e0b">View Status Page</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="context-panel">
+      <div class="context-title">Audience behavior during maintenance</div>
+      <div class="context-row"><span class="ctx-key">Child surface</span><span class="ctx-val">Shows friendly "We're tidying up!" screen</span></div>
+      <div class="context-row"><span class="ctx-key">Parent surface</span><span class="ctx-key">Shows scheduled maintenance message, ETA</span></div>
+      <div class="context-row"><span class="ctx-key">Teacher surface</span><span class="ctx-val">Shows maintenance notice + read-only fallback if possible</span></div>
+      <div class="context-row"><span class="ctx-key">Owner console</span><span class="ctx-val">Remains accessible during child/parent maintenance</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIVE INCIDENT -->
+<div id="incident" class="tab-content">
+  <div class="hint">Active incident banner — red, high severity. Pulsing indicator shows live status. Includes incident timeline and current status. Cannot be dismissed.</div>
+  <div class="page">
+    <div class="page-title">Active Incident Banner</div>
+    <div class="page-sub">Shown site-wide during a live outage or critical incident. Cannot be dismissed until resolved.</div>
+
+    <div class="banner-incident">
+      <div class="banner-strip"></div>
+      <div class="banner-body">
+        <div class="banner-header">
+          <div class="banner-icon">🚨</div>
+          <div class="banner-title-block">
+            <div class="banner-title" style="color:#991b1b">
+              <span class="pulse-dot"></span>Active Incident — Service Disruption
+            </div>
+            <div class="banner-timestamp" style="color:#b91c1c">Incident started: 10:47 AM UTC · Duration: 23 min · ID: INC-2026-0312</div>
+          </div>
+        </div>
+        <div class="banner-desc" style="color:#7f1d1d">
+          <strong>Play sessions are currently unavailable.</strong> Students may experience errors when starting or resuming play. We are actively investigating and working to restore service.
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px">Affected Services</div>
+        <div class="services-list">
+          <span class="service-chip" style="background:#fee2e2;color:#991b1b">🔴 Play Sessions — DOWN</span>
+          <span class="service-chip" style="background:#fee2e2;color:#991b1b">🔴 Content API — DEGRADED</span>
+          <span class="service-chip" style="background:#fef3c7;color:#92400e">🟡 Auth Service — SLOW</span>
+          <span class="service-chip" style="background:#d1fae5;color:#065f46">🟢 Parent Hub — OPERATIONAL</span>
+          <span class="service-chip" style="background:#d1fae5;color:#065f46">🟢 Teacher Dashboard — OPERATIONAL</span>
+        </div>
+
+        <div class="timeline">
+          <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px">Incident Timeline</div>
+          <div class="timeline-item"><div class="t-dot dot-red"></div><div class="t-time">11:10 AM</div><div class="t-text"><strong>Update:</strong> Engineers identified root cause — database connection pool exhausted. Mitigation in progress.</div></div>
+          <div class="timeline-item"><div class="t-dot dot-red"></div><div class="t-time">10:58 AM</div><div class="t-text"><strong>Update:</strong> Play sessions fully offline. Teams alerted. Investigation underway.</div></div>
+          <div class="timeline-item"><div class="t-dot dot-red"></div><div class="t-time">10:47 AM</div><div class="t-text"><strong>Incident opened:</strong> Spike in 503 errors detected on play session endpoint.</div></div>
+        </div>
+
+        <div class="banner-footer" style="margin-top:14px">
+          <div style="font-size:13px;color:#991b1b;font-weight:700">⏱️ ETA: Investigating — no estimate yet</div>
+          <button class="banner-cta" style="background:#ef4444;color:#fff">View Live Status Page</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEGRADED PERFORMANCE -->
+<div id="degraded" class="tab-content">
+  <div class="hint">Degraded performance banner — amber. Services work but are slow or partially affected. Can be dismissed. Shows affected service list with degradation level.</div>
+  <div class="page">
+    <div class="page-title">Degraded Performance Banner</div>
+    <div class="page-sub">Shown when services are operational but performing below normal. Dismissible after acknowledgment.</div>
+
+    <div class="banner-degraded">
+      <div class="banner-strip"></div>
+      <div class="banner-body">
+        <div class="banner-header">
+          <div class="banner-icon">⚠️</div>
+          <div class="banner-title-block">
+            <div class="banner-title" style="color:#9a3412">Degraded Performance</div>
+            <div class="banner-timestamp" style="color:#c2410c">Since 9:15 AM UTC · Services are slow but operational</div>
+          </div>
+          <button class="dismiss-btn" style="margin-left:auto;color:#9a3412">✕</button>
+        </div>
+        <div class="banner-desc" style="color:#7c2d12">
+          Some WonderQuest services are responding slower than usual. Students can still play, but load times may be longer than normal. We're monitoring and working to restore full speed.
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#9a3412;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px">Service Status</div>
+        <div class="services-list">
+          <span class="service-chip" style="background:#fed7aa;color:#9a3412">🟡 Play Sessions — SLOW</span>
+          <span class="service-chip" style="background:#fed7aa;color:#9a3412">🟡 Content Loading — SLOW</span>
+          <span class="service-chip" style="background:#d1fae5;color:#065f46">🟢 Auth — NORMAL</span>
+          <span class="service-chip" style="background:#d1fae5;color:#065f46">🟢 Parent Hub — NORMAL</span>
+          <span class="service-chip" style="background:#d1fae5;color:#065f46">🟢 Teacher Tools — NORMAL</span>
+        </div>
+
+        <div class="banner-footer">
+          <div style="font-size:13px;color:#9a3412;font-weight:700">⏱️ Estimated resolution: ~30 minutes</div>
+          <div style="display:flex;gap:8px">
+            <button class="banner-cta" style="background:#f97316;color:#fff">Monitor Status</button>
+            <button class="banner-cta" style="background:transparent;color:#9a3412;border:1.5px solid #f97316">Dismiss</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL CLEAR -->
+<div id="clear" class="tab-content">
+  <div class="hint">All Clear banner — green. Shown after an incident resolves. Acknowledges the issue, confirms resolution, auto-dismisses after 60 seconds.</div>
+  <div class="page">
+    <div class="page-title">All Clear Banner</div>
+    <div class="page-sub">Shown after an incident or maintenance window resolves. Auto-dismisses in 60 seconds. Can be dismissed manually.</div>
+
+    <div class="banner-clear">
+      <div class="banner-strip"></div>
+      <div class="banner-body">
+        <div class="banner-header">
+          <div class="banner-icon">✅</div>
+          <div class="banner-title-block">
+            <div class="banner-title" style="color:#15803d">All Systems Operational</div>
+            <div class="banner-timestamp" style="color:#16a34a">Resolved at 11:34 AM UTC · Incident duration: 47 min · ID: INC-2026-0312</div>
+          </div>
+          <button class="dismiss-btn" style="margin-left:auto;color:#15803d">✕</button>
+        </div>
+        <div class="banner-desc" style="color:#14532d">
+          Play sessions and all affected services have been fully restored. Thank you for your patience. A full incident report will be available on the status page within 24 hours.
+        </div>
+
+        <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.8px">All Services Restored</div>
+        <div class="services-list">
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Play Sessions — NORMAL</span>
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Content API — NORMAL</span>
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Auth Service — NORMAL</span>
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Parent Hub — NORMAL</span>
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Teacher Tools — NORMAL</span>
+          <span class="service-chip" style="background:#bbf7d0;color:#15803d">🟢 Owner Console — NORMAL</span>
+        </div>
+
+        <div class="banner-footer">
+          <div style="font-size:13px;color:#15803d;font-weight:700">This notice auto-dismisses in 60 seconds</div>
+          <div style="display:flex;gap:8px">
+            <button class="banner-cta" style="background:#22c55e;color:#fff">View Incident Report</button>
+            <button class="banner-cta" style="background:transparent;color:#15803d;border:1.5px solid #22c55e">Dismiss Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="context-panel">
+      <div class="context-title">Post-incident sequence</div>
+      <div class="context-row"><span class="ctx-key">Immediate</span><span class="ctx-val">All Clear banner appears on all surfaces</span></div>
+      <div class="context-row"><span class="ctx-key">60 seconds</span><span class="ctx-val">Banner auto-dismisses if not manually closed</span></div>
+      <div class="context-row"><span class="ctx-key">Within 1 hour</span><span class="ctx-val">Preliminary incident report posted to status page</span></div>
+      <div class="context-row"><span class="ctx-key">Within 24 hours</span><span class="ctx-val">Full post-mortem published</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for global-maintenance-banner-v3.</div>
+  <div class="page">
+    <div class="spec-section">
+      <div class="spec-title">Design Tokens</div>
+      <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+      <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#f8f9fa</span></div>
+      <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">Desktop 900px+</span></div>
+      <div class="spec-row"><span class="spec-key">Banner max-width</span><span class="spec-val">900px centered</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Banner Variants</div>
+      <div class="spec-row"><span class="spec-key">Scheduled</span><span class="spec-val">🛠️ Yellow · Dismissible · Advance notice</span></div>
+      <div class="spec-row"><span class="spec-key">Active Incident</span><span class="spec-val">🚨 Red · Non-dismissible · Live timeline</span></div>
+      <div class="spec-row"><span class="spec-key">Degraded</span><span class="spec-val">⚠️ Amber · Dismissible · Partial impact</span></div>
+      <div class="spec-row"><span class="spec-key">All Clear</span><span class="spec-val">✅ Green · Auto-dismiss 60s · Resolution</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Required Banner Fields</div>
+      <div class="spec-note">✅ Icon (type indicator)<br>✅ Title with severity label<br>✅ Timestamp / incident ID<br>✅ Human-readable description<br>✅ Affected services list (color-coded)<br>✅ ETA or duration estimate<br>✅ Primary CTA (status page / dismiss)</div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Dismissibility Rules</div>
+      <div class="spec-row"><span class="spec-key">Scheduled</span><span class="spec-val">Dismissible — re-shows 1hr before</span></div>
+      <div class="spec-row"><span class="spec-key">Active Incident</span><span class="spec-val">NOT dismissible during incident</span></div>
+      <div class="spec-row"><span class="spec-key">Degraded</span><span class="spec-val">Dismissible after acknowledgment</span></div>
+      <div class="spec-row"><span class="spec-key">All Clear</span><span class="spec-val">Auto-dismisses in 60s OR manual</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

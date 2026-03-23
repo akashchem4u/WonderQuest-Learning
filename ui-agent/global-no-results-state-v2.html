@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — No Results States</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=Nunito:wght@900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f8f9fa; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #343a40; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 150px; padding: 13px 12px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1a2e3b; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+.card-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+@media (max-width: 700px) { .card-grid { grid-template-columns: 1fr; } }
+
+/* Search context strip */
+.search-ctx { background: #fff; border: 1px solid #e8edf0; border-radius: 14px; padding: 14px 18px; margin-bottom: 20px; display: flex; align-items: center; gap: 12px; }
+.search-input-fake { flex: 1; background: #f3f4f6; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #6b7280; font-family: 'Sora', sans-serif; }
+.clear-search { font-size: 13px; font-weight: 600; color: #2c7a6e; cursor: pointer; white-space: nowrap; }
+
+/* No results card */
+.no-results-card { background: #fff; border: 1px solid #e8edf0; border-radius: 20px; padding: 32px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.nr-illus { font-size: 56px; }
+.nr-label { display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; padding: 3px 10px; border-radius: 20px; }
+.nr-heading { font-size: 17px; font-weight: 700; color: #1a2e3b; }
+.nr-sub { font-size: 13px; color: #6b7280; line-height: 1.6; }
+.nr-query { font-size: 13px; color: #374151; background: #f3f4f6; padding: 4px 10px; border-radius: 6px; font-weight: 600; }
+.nr-suggestions { text-align: left; width: 100%; background: #f8f9fa; border-radius: 12px; padding: 14px; margin-top: 4px; }
+.nr-sugg-title { font-size: 12px; font-weight: 700; color: #374151; margin-bottom: 8px; }
+.nr-sugg-item { font-size: 13px; color: #2c7a6e; cursor: pointer; padding: 4px 0; display: flex; align-items: center; gap: 8px; }
+.nr-sugg-item::before { content: "→"; color: #2c7a6e; }
+.nr-cta { padding: 10px 22px; border-radius: 50px; font-weight: 700; font-size: 13px; cursor: pointer; border: none; font-family: 'Sora', sans-serif; margin-top: 6px; }
+.cta-teal { background: #2c7a6e; color: #fff; }
+.cta-blue { background: #2a5080; color: #fff; }
+.cta-ghost { background: #fff; color: #6b7280; border: 1.5px solid #e8edf0; }
+.cta-gold { background: #ffd166; color: #100b2e; font-family: 'Nunito', sans-serif; font-weight: 900; }
+.cta-owner { background: #ffd166; color: #0d1117; }
+
+/* Child dark cards */
+.no-results-card-child { background: #1a1340; border: 2px solid #2d2060; border-radius: 20px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.nr-heading-child { font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 18px; color: #ffd166; }
+.nr-sub-child { font-size: 13px; color: #b8a8e8; line-height: 1.6; }
+
+/* Owner dark cards */
+.no-results-card-owner { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 28px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.nr-heading-owner { font-size: 16px; font-weight: 700; color: #e6edf3; }
+.nr-sub-owner { font-size: 13px; color: #8b949e; line-height: 1.6; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #e8edf0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #343a40; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('child-no-results')">Child No Results</button>
+  <button onclick="show('parent-no-results')">Parent No Results</button>
+  <button onclick="show('teacher-no-results')">Teacher No Results</button>
+  <button onclick="show('owner-content-no-results')">Owner/Content No Results</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- CHILD NO RESULTS -->
+<div id="child-no-results" class="tab-content active">
+  <div class="hint">Child no-results — friendly, no shame. Offers search suggestions using simple language. All CTAs are warm and inviting. Nunito 900 headings.</div>
+  <div class="page" style="background:#100b2e;border-radius:16px">
+    <div class="page-title" style="color:#ffd166;padding-top:8px">Child No Results States</div>
+    <div class="page-sub" style="color:#9985cc">Child play surface · Dark magic theme · Encouragement language · No jargon</div>
+
+    <!-- Search context -->
+    <div style="background:#1a1340;border:1px solid #2d2060;border-radius:14px;padding:14px 18px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+      <span style="font-size:18px">🔍</span>
+      <span style="flex:1;background:#1e1650;border-radius:10px;padding:10px 14px;font-size:14px;color:#6a5a9e;font-family:'Sora',sans-serif">dragons</span>
+      <span style="font-size:13px;font-weight:700;color:#ffd166;cursor:pointer">Clear</span>
+    </div>
+
+    <div class="card-grid">
+      <!-- No search results -->
+      <div class="no-results-card-child">
+        <span style="background:#2a1f5e;color:#9985cc;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">Search</span>
+        <div class="nr-illus">🔭</div>
+        <div class="nr-heading-child">Nothing Found!</div>
+        <div class="nr-sub-child">We couldn't find anything called <span style="color:#ffd166;font-weight:700">"dragons"</span> in your world. Try a different word!</div>
+        <div style="background:#1a1340;border-radius:12px;padding:12px;width:100%;text-align:left">
+          <div style="font-size:12px;font-weight:700;color:#9985cc;margin-bottom:8px">Try searching for:</div>
+          <div style="font-size:13px;color:#ffd166;padding:4px 0;cursor:pointer">→ Animals</div>
+          <div style="font-size:13px;color:#ffd166;padding:4px 0;cursor:pointer">→ Math puzzles</div>
+          <div style="font-size:13px;color:#ffd166;padding:4px 0;cursor:pointer">→ Space adventures</div>
+        </div>
+        <button class="nr-cta cta-gold">Try Again 🔍</button>
+      </div>
+
+      <!-- Filter too narrow -->
+      <div class="no-results-card-child">
+        <span style="background:#2a1f5e;color:#9985cc;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">Filter</span>
+        <div class="nr-illus">🎛️</div>
+        <div class="nr-heading-child">Too Many Filters!</div>
+        <div class="nr-sub-child">We couldn't find anything with all those settings turned on. Try removing some to see more!</div>
+        <button class="nr-cta cta-gold" style="width:100%">Show Everything 🌟</button>
+      </div>
+
+      <!-- Empty search term -->
+      <div class="no-results-card-child">
+        <span style="background:#2a1f5e;color:#9985cc;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">Empty Search</span>
+        <div class="nr-illus">✏️</div>
+        <div class="nr-heading-child">What are you looking for?</div>
+        <div class="nr-sub-child">Type something in the search box to start finding cool stuff in your world!</div>
+        <button class="nr-cta cta-gold" style="width:100%">Start Searching 🔍</button>
+      </div>
+
+      <!-- No matching content -->
+      <div class="no-results-card-child">
+        <span style="background:#2a1f5e;color:#9985cc;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">No Match</span>
+        <div class="nr-illus">🌊</div>
+        <div class="nr-heading-child">Not in This World Yet!</div>
+        <div class="nr-sub-child">That content hasn't been unlocked in your world yet. Keep exploring and it might appear!</div>
+        <button class="nr-cta cta-gold" style="width:100%">Keep Exploring 🗺️</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PARENT NO RESULTS -->
+<div id="parent-no-results" class="tab-content">
+  <div class="hint">Parent no-results — calm, helpful. Offers filter reset, date range tips, and contact support for persistent no-data situations. No accuracy % language.</div>
+  <div class="page">
+    <div class="page-title">Parent No Results States</div>
+    <div class="page-sub">Parent hub surface · Warm background · Helpful, privacy-respecting language</div>
+
+    <div class="search-ctx">
+      <span style="font-size:16px">🔍</span>
+      <div class="search-input-fake">Search: "math" · Filter: Last 7 days</div>
+      <span class="clear-search">Clear Filters</span>
+    </div>
+
+    <div class="card-grid">
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#d1fae5;color:#065f46">Search</span>
+        <div class="nr-illus">🔍</div>
+        <div class="nr-heading">No Activity Found</div>
+        <div class="nr-query">"math" in last 7 days</div>
+        <div class="nr-sub">Alex hasn't had any math-focused sessions this week. Try extending the date range to see older activity.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="nr-cta cta-teal">Expand to 30 Days</button>
+          <button class="nr-cta cta-ghost">Clear Search</button>
+        </div>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#d1fae5;color:#065f46">Filter</span>
+        <div class="nr-illus">🎯</div>
+        <div class="nr-heading">Filter Too Narrow</div>
+        <div class="nr-sub">No sessions match all your current filters. Try removing a filter to see more results.</div>
+        <div class="nr-suggestions">
+          <div class="nr-sugg-title">Suggestions</div>
+          <div class="nr-sugg-item">Remove "Grade 2 Math" filter</div>
+          <div class="nr-sugg-item">Extend date range to 3 months</div>
+          <div class="nr-sugg-item">Show all skill areas</div>
+        </div>
+        <button class="nr-cta cta-teal">Reset All Filters</button>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#d1fae5;color:#065f46">Empty Search</span>
+        <div class="nr-illus">💡</div>
+        <div class="nr-heading">Search Alex's Activity</div>
+        <div class="nr-sub">You can search for specific skill areas, dates, or types of sessions. Try "reading" or "fractions".</div>
+        <button class="nr-cta cta-teal">Browse All Activity</button>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#d1fae5;color:#065f46">No Matching</span>
+        <div class="nr-illus">📊</div>
+        <div class="nr-heading">No Data for This Period</div>
+        <div class="nr-sub">No sessions were recorded for this child during this time window. Data is kept for 12 months.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="nr-cta cta-teal">Try a Wider Range</button>
+          <button class="nr-cta cta-ghost">Contact Support</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER NO RESULTS -->
+<div id="teacher-no-results" class="tab-content">
+  <div class="hint">Teacher no-results — professional, clear. Offers actionable suggestions for each scenario. No student names in empty states.</div>
+  <div class="page">
+    <div class="page-title">Teacher No Results States</div>
+    <div class="page-sub">Teacher analytics and class management · Professional tone · Action-clear language</div>
+
+    <div class="search-ctx">
+      <span style="font-size:16px">🔍</span>
+      <div class="search-input-fake">Search: "Martinez" · Class: All · Date: Last 30 days</div>
+      <span class="clear-search">Clear Filters</span>
+    </div>
+
+    <div class="card-grid">
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#dbeafe;color:#1e3a8a">Search</span>
+        <div class="nr-illus">🔎</div>
+        <div class="nr-heading">No Students Found</div>
+        <div class="nr-query">"Martinez"</div>
+        <div class="nr-sub">No students match this name in your current class view. Check spelling or try a first name.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="nr-cta cta-blue">Search All Classes</button>
+          <button class="nr-cta cta-ghost">Clear Search</button>
+        </div>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#dbeafe;color:#1e3a8a">Filter</span>
+        <div class="nr-illus">📋</div>
+        <div class="nr-heading">No Students Match These Filters</div>
+        <div class="nr-sub">No students in your class fall into all the selected filter criteria. Try fewer filters.</div>
+        <div class="nr-suggestions">
+          <div class="nr-sugg-title">Try removing:</div>
+          <div class="nr-sugg-item" style="color:#2a5080">Remove "Needs Attention" filter</div>
+          <div class="nr-sugg-item" style="color:#2a5080">Show all skill levels</div>
+          <div class="nr-sugg-item" style="color:#2a5080">Expand date range</div>
+        </div>
+        <button class="nr-cta cta-blue">Reset Filters</button>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#dbeafe;color:#1e3a8a">Empty Search</span>
+        <div class="nr-illus">🧑‍🎓</div>
+        <div class="nr-heading">Search Your Class</div>
+        <div class="nr-sub">Search by student name, skill area, or activity type. Results update as you type.</div>
+        <button class="nr-cta cta-blue">View All Students</button>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#dbeafe;color:#1e3a8a">No Match</span>
+        <div class="nr-illus">📚</div>
+        <div class="nr-heading">No Content in This Category</div>
+        <div class="nr-sub">No questions match this skill and grade level combination. Try a broader skill category or different grade.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="nr-cta cta-blue">Browse All Content</button>
+          <button class="nr-cta cta-ghost">Request Content</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OWNER / CONTENT NO RESULTS -->
+<div id="owner-content-no-results" class="tab-content">
+  <div class="hint">Owner and content tool no-results — technical precision, dark owner theme, query context always visible. Includes data range and system status hints.</div>
+  <div class="page">
+    <div class="page-title">Owner & Content No Results States</div>
+    <div class="page-sub">Owner console (dark) and content management (light) · Technical context always shown</div>
+
+    <!-- Owner dark cards -->
+    <div style="font-size:14px;font-weight:700;color:#ffd166;margin-bottom:12px;background:#0d1117;padding:12px 16px;border-radius:8px">Owner Console — Dark Theme</div>
+    <div class="card-grid" style="background:#0d1117;padding:20px;border-radius:16px;margin-bottom:24px">
+      <div class="no-results-card-owner">
+        <span style="background:#21262d;color:#ffd166;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">Query</span>
+        <div class="nr-illus">📡</div>
+        <div class="nr-heading-owner">Query Returned 0 Results</div>
+        <div style="font-size:12px;color:#58a6ff;font-family:monospace;background:#0d1117;padding:4px 10px;border-radius:6px">school=MaplePrimary date=2025-01-01..2026-03-23</div>
+        <div class="nr-sub-owner">No session data for this school in the selected range. Verify school activation status in School Management.</div>
+        <button class="nr-cta cta-owner">Check School Status</button>
+      </div>
+
+      <div class="no-results-card-owner">
+        <span style="background:#21262d;color:#ffd166;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:0.8px">Filter</span>
+        <div class="nr-illus">🔬</div>
+        <div class="nr-heading-owner">No Matching Schools/Cohorts</div>
+        <div class="nr-sub-owner">Filter combination is too restrictive. Try removing the region or grade-level filter to broaden the cohort.</div>
+        <button class="nr-cta cta-owner">Reset to All Schools</button>
+      </div>
+    </div>
+
+    <!-- Content light cards -->
+    <div style="font-size:14px;font-weight:700;color:#343a40;margin-bottom:12px">Content Management — Light Theme</div>
+    <div class="card-grid">
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#e0f2fe;color:#0369a1">Content Search</span>
+        <div class="nr-illus">📚</div>
+        <div class="nr-heading">No Questions Found</div>
+        <div class="nr-query">"fraction" · Grade 3 · Math</div>
+        <div class="nr-sub">No content matches this skill and grade combination. Browse Grade 2 or Grade 4 for similar content.</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center">
+          <button class="nr-cta" style="background:#0369a1;color:#fff;padding:10px 18px;border-radius:50px;font-weight:700;font-size:13px;border:none;cursor:pointer">Browse Adjacent Grades</button>
+          <button class="nr-cta cta-ghost">Request New Content</button>
+        </div>
+      </div>
+
+      <div class="no-results-card">
+        <span class="nr-label" style="background:#e0f2fe;color:#0369a1">No Matching</span>
+        <div class="nr-illus">🏷️</div>
+        <div class="nr-heading">No Content with These Tags</div>
+        <div class="nr-sub">No questions are tagged with all selected tags simultaneously. Remove one tag to see partial matches.</div>
+        <button class="nr-cta" style="background:#0369a1;color:#fff;padding:10px 18px;border-radius:50px;font-weight:700;font-size:13px;border:none;cursor:pointer">Clear Tags</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for global-no-results-state-v2.</div>
+  <div class="page">
+    <div class="spec-section">
+      <div class="spec-title">4 No-Results Scenarios</div>
+      <div class="spec-row"><span class="spec-key">No search results</span><span class="spec-val">With query display + suggestions</span></div>
+      <div class="spec-row"><span class="spec-key">Filter too narrow</span><span class="spec-val">Reset filter CTA prominent</span></div>
+      <div class="spec-row"><span class="spec-key">Empty search term</span><span class="spec-val">Guide user to start searching</span></div>
+      <div class="spec-row"><span class="spec-key">No matching items</span><span class="spec-val">Broader context hint + support path</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Required Elements</div>
+      <div class="spec-note">✅ Illustration (emoji)<br>✅ Audience-appropriate heading<br>✅ Show the query/filter that returned nothing<br>✅ Suggestions or alternative action<br>✅ Primary CTA (reset / broaden / contact)<br>✅ Optional secondary CTA</div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Language Rules</div>
+      <div class="spec-row"><span class="spec-key">Child</span><span class="spec-val">Nunito 900, friendly, zero jargon</span></div>
+      <div class="spec-row"><span class="spec-key">Parent</span><span class="spec-val">No accuracy %, no "0 sessions"</span></div>
+      <div class="spec-row"><span class="spec-key">Teacher</span><span class="spec-val">No student names in empty state</span></div>
+      <div class="spec-row"><span class="spec-key">Owner</span><span class="spec-val">Show query string, system status hint</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

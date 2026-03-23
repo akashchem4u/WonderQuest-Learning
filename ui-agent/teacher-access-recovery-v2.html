@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Teacher Access Recovery</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f0f4f8; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #2a5080; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 120px; padding: 13px 8px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #fff; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 390px; min-height: 800px; margin: 20px auto; background: #f0f4f8; border-radius: 40px; overflow: hidden; border: 2px solid #d0dbe8; box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+.screen { min-height: 800px; display: flex; flex-direction: column; }
+.top-nav { background: #2a5080; padding: 50px 20px 20px; color: #fff; }
+.nav-back { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 8px; cursor: pointer; }
+.nav-title { font-size: 18px; font-weight: 700; }
+.content { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+
+/* Error card */
+.error-card { background: #fff; border: 2px solid #ef4444; border-radius: 20px; padding: 24px; margin: 16px 0; text-align: center; }
+.error-icon { font-size: 56px; margin-bottom: 12px; }
+.error-title { font-size: 20px; font-weight: 700; color: #dc2626; margin-bottom: 8px; }
+.error-desc { font-size: 14px; color: #6b7280; line-height: 1.6; }
+
+/* Code input */
+.code-row { display: flex; gap: 8px; margin: 16px 0; justify-content: center; }
+.code-box { width: 48px; height: 56px; background: #fff; border: 2px solid #d0dbe8; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 700; color: #1a2e3b; }
+.code-box.has-value { border-color: #2a5080; }
+.code-box.error { border-color: #ef4444; background: #fef2f2; }
+
+.error-msg { font-size: 13px; color: #dc2626; text-align: center; margin: 4px 0 16px; font-weight: 600; }
+
+/* Hint box */
+.code-hint { background: #eef2f7; border: 1px solid #2a5080; border-radius: 12px; padding: 14px 16px; margin: 12px 0; }
+.hint-title { font-size: 13px; font-weight: 700; color: #2a5080; margin-bottom: 6px; }
+.hint-text { font-size: 12px; color: #4a6080; line-height: 1.6; }
+
+/* Info row */
+.info-row { display: flex; align-items: flex-start; gap: 10px; margin: 8px 0; font-size: 13px; color: #6b7280; }
+.info-icon { flex-shrink: 0; }
+
+/* Buttons */
+.btn-primary { background: #2a5080; color: #fff; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; border: none; border-radius: 50px; padding: 14px 32px; cursor: pointer; width: 100%; transition: background 0.2s; margin-top: 8px; }
+.btn-primary:hover { background: #1d3f65; }
+.btn-ghost { background: none; border: 2px solid #d0dbe8; border-radius: 50px; padding: 12px 32px; color: #6b7280; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+.btn-outline { background: none; border: 2px solid #2a5080; border-radius: 50px; padding: 12px 32px; color: #2a5080; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+
+/* Support form */
+.form-label { font-size: 13px; font-weight: 600; color: #374151; margin: 10px 0 4px; }
+.form-input { background: #fff; border: 2px solid #d0dbe8; border-radius: 12px; padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 14px; width: 100%; outline: none; color: #1a2e3b; transition: border-color 0.2s; margin-bottom: 4px; }
+.form-input:focus { border-color: #2a5080; }
+textarea.form-input { resize: none; min-height: 90px; }
+.select-input { background: #fff; border: 2px solid #d0dbe8; border-radius: 12px; padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 14px; width: 100%; outline: none; color: #1a2e3b; appearance: none; }
+.form-note { font-size: 11px; color: #9ca3af; line-height: 1.5; margin-top: 4px; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; border: 1px solid #d0dbe8; }
+.spec-title { font-size: 14px; font-weight: 700; color: #2a5080; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('wrong-code')">Wrong Code Error</button>
+  <button onclick="show('retry')">Retry State</button>
+  <button onclick="show('contact-admin')">Contact Admin</button>
+  <button onclick="show('support-form')">Support Form</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- WRONG CODE ERROR -->
+<div id="wrong-code" class="tab-content active">
+  <div class="hint">Teacher enters wrong class code — friendly error, not technical. Shows attempt count, hints at where to find correct code. No harsh language.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back">← Back to Login</div>
+        <div class="nav-title">Join Your Class</div>
+      </div>
+      <div class="content">
+        <div class="error-card">
+          <div class="error-icon">🔍</div>
+          <div class="error-title">Code not found</div>
+          <div class="error-desc">We couldn't find a class matching <strong>WQ-2024-XY</strong>. Double-check the code and try again.</div>
+        </div>
+
+        <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:8px;text-align:center">Your class code:</div>
+        <div class="code-row">
+          <div class="code-box has-value error">W</div>
+          <div class="code-box has-value error">Q</div>
+          <div class="code-box has-value error" style="font-size:14px">-</div>
+          <div class="code-box has-value error">2</div>
+          <div class="code-box has-value error">0</div>
+          <div class="code-box has-value error">2</div>
+          <div class="code-box has-value error">4</div>
+          <div class="code-box has-value error" style="font-size:14px">-</div>
+          <div class="code-box has-value error">X</div>
+          <div class="code-box has-value error">Y</div>
+        </div>
+        <div class="error-msg">⚠️ Attempt 1 of 5 — please check carefully</div>
+
+        <div class="code-hint">
+          <div class="hint-title">Where to find your class code</div>
+          <div class="hint-text">
+            • Your school admin sends it by email before term starts<br>
+            • Check your WonderQuest welcome letter<br>
+            • Ask your department admin or IT coordinator<br>
+            • Codes look like: WQ-2024-AB (letters + numbers)
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-primary" onclick="show('retry')">Try a Different Code</button>
+        <button class="btn-outline" onclick="show('contact-admin')">Contact My Admin</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RETRY STATE -->
+<div id="retry" class="tab-content">
+  <div class="hint">Retry state — fresh code entry with attempt counter shown. Helpful guidance visible. Admin contact shortcut always visible.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back">← Back</div>
+        <div class="nav-title">Enter Class Code</div>
+      </div>
+      <div class="content">
+        <div style="font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:20px">Enter your school-issued WonderQuest class code. Codes are 10 characters and include letters and numbers.</div>
+
+        <div style="background:#fff;border:2px solid #2a5080;border-radius:16px;padding:20px;margin:8px 0">
+          <div style="font-size:13px;font-weight:600;color:#374151;margin-bottom:12px;text-align:center">Your class code</div>
+          <div class="code-row" style="margin:0">
+            <div class="code-box has-value">W</div>
+            <div class="code-box has-value">Q</div>
+            <div class="code-box" style="font-size:14px;color:#d0dbe8">-</div>
+            <div class="code-box has-value">2</div>
+            <div class="code-box has-value">0</div>
+            <div class="code-box has-value">2</div>
+            <div class="code-box has-value">4</div>
+            <div class="code-box" style="font-size:14px;color:#d0dbe8">-</div>
+            <div class="code-box" style="border-color:#2a5080;box-shadow:0 0 0 3px rgba(42,80,128,0.2)"></div>
+            <div class="code-box"></div>
+          </div>
+          <div style="text-align:center;font-size:12px;color:#9ca3af;margin-top:10px">Attempt 2 of 5</div>
+        </div>
+
+        <div class="code-hint" style="margin-top:12px">
+          <div class="hint-title">💡 Common mistakes</div>
+          <div class="hint-text">
+            • Codes use <strong>capital letters</strong> only — no lowercase<br>
+            • The number 0 (zero) looks different from O (letter O)<br>
+            • Codes always start with <strong>WQ-</strong><br>
+            • Check for extra spaces at the start or end
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-primary">Verify Code</button>
+        <button class="btn-outline" onclick="show('contact-admin')">Contact Admin Instead</button>
+        <button class="btn-ghost" onclick="show('support-form')">Get Help from WonderQuest</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONTACT ADMIN -->
+<div id="contact-admin" class="tab-content">
+  <div class="hint">Contact admin option — shows teacher who to reach out to. WonderQuest does not expose direct email — goes through the platform. Admin contact template shown.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('wrong-code')">← Back</div>
+        <div class="nav-title">Contact Your Admin</div>
+      </div>
+      <div class="content">
+        <div style="text-align:center;margin:24px 0 16px">
+          <div style="font-size:56px;margin-bottom:12px">🏫</div>
+          <div style="font-size:20px;font-weight:700;color:#1a2e3b;margin-bottom:8px">Ask Your School Admin</div>
+          <div style="font-size:14px;color:#6b7280;line-height:1.6">Your IT coordinator or department admin can look up your class code in the WonderQuest school portal.</div>
+        </div>
+
+        <div style="background:#fff;border:1px solid #d0dbe8;border-radius:16px;padding:16px;margin:12px 0">
+          <div style="font-size:13px;font-weight:700;color:#1a2e3b;margin-bottom:12px">What to tell your admin:</div>
+          <div class="info-row"><span class="info-icon">1️⃣</span><span>You need your WonderQuest teacher class code</span></div>
+          <div class="info-row"><span class="info-icon">2️⃣</span><span>Your name and subject/grade level</span></div>
+          <div class="info-row"><span class="info-icon">3️⃣</span><span>They can find it in the WonderQuest Admin Portal → Classes → Your Name</span></div>
+        </div>
+
+        <div class="code-hint">
+          <div class="hint-title">📋 Message template for your admin</div>
+          <div class="hint-text" style="background:#f8fafc;border-radius:8px;padding:10px;margin-top:6px;font-style:italic">
+            "Hi, I'm trying to access WonderQuest for my [Grade X / Subject] class but my class code isn't working. Could you check the Admin Portal and send me the correct code? It should start with WQ-. Thank you!"
+          </div>
+        </div>
+
+        <div style="background:#eef2f7;border:1px solid #2a5080;border-radius:12px;padding:12px;margin:12px 0;font-size:12px;color:#2a5080;line-height:1.5">
+          ℹ️ For security, WonderQuest cannot share class codes directly with teachers. Codes must be issued by your school's WonderQuest administrator.
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-primary" onclick="show('retry')">I Have My Code — Try Again</button>
+        <button class="btn-outline" onclick="show('support-form')">Contact WonderQuest Support</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SUPPORT FORM -->
+<div id="support-form" class="tab-content">
+  <div class="hint">Support form — goes through WonderQuest platform, no direct email shown. Fields: name, school, issue type, description. Confirmation on submit.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('contact-admin')">← Back</div>
+        <div class="nav-title">Contact Support</div>
+      </div>
+      <div class="content">
+        <div style="font-size:14px;color:#6b7280;line-height:1.6;margin-bottom:16px">Our team responds within 1 business day. No direct email needed — we'll reach out to you.</div>
+
+        <div class="form-label">Your name</div>
+        <input class="form-input" type="text" placeholder="e.g. Ms. Johnson" value="Sarah Johnson">
+
+        <div class="form-label">School name</div>
+        <input class="form-input" type="text" placeholder="e.g. Maplewood Elementary" value="Maplewood Elementary">
+
+        <div class="form-label">Issue type</div>
+        <select class="select-input">
+          <option>Class code not working</option>
+          <option>Account access</option>
+          <option>Data or roster issue</option>
+          <option>Technical error</option>
+          <option>Other</option>
+        </select>
+
+        <div class="form-label">Describe your issue</div>
+        <textarea class="form-input" placeholder="Tell us what happened and what you've already tried…">I'm trying to access my Grade 2 class but the code WQ-2024-AB shows "not found" even after multiple attempts. My admin is unavailable until Monday.</textarea>
+        <div class="form-note">Don't include passwords or sensitive data in this form.</div>
+
+        <div style="background:#fff;border:1px solid #d0dbe8;border-radius:12px;padding:12px;margin-top:12px;font-size:12px;color:#6b7280;line-height:1.5">
+          📞 For urgent issues affecting your whole class, call: <strong style="color:#2a5080">1-800-WONDER-Q</strong> (Mon–Fri 8am–6pm)
+        </div>
+
+        <div style="flex:1;min-height:12px"></div>
+        <button class="btn-primary">Submit Request ✉️</button>
+        <button class="btn-ghost" onclick="show('retry')">Cancel — Try Again</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for teacher-access-recovery-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#f0f4f8</span></div>
+    <div class="spec-row"><span class="spec-key">Nav</span><span class="spec-val">#2a5080</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">390px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Error States</div>
+    <div class="spec-row"><span class="spec-key">Wrong code</span><span class="spec-val">Red border + friendly message</span></div>
+    <div class="spec-row"><span class="spec-key">Attempt counter</span><span class="spec-val">X of 5 shown clearly</span></div>
+    <div class="spec-row"><span class="spec-key">Lockout at 5</span><span class="spec-val">Redirects to support form</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Support Path</div>
+    <div class="spec-row"><span class="spec-key">Step 1</span><span class="spec-val">Retry with hints</span></div>
+    <div class="spec-row"><span class="spec-key">Step 2</span><span class="spec-val">Contact admin (with template)</span></div>
+    <div class="spec-row"><span class="spec-key">Step 3</span><span class="spec-val">WQ support form (no direct email)</span></div>
+    <div class="spec-row"><span class="spec-key">Urgent</span><span class="spec-val">Phone number for urgent issues</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Security Rules</div>
+    <div class="spec-note">✅ Codes never emailed directly to teachers — must come from school admin<br>✅ No direct email exposed in UI<br>✅ Support goes through WQ platform<br>✅ Lockout after 5 attempts</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Profile Switcher</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: #100b2e; color: #fff; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #1a1340; overflow-x: auto; border-bottom: 2px solid #2d2060; }
+.tab-nav button { flex: 1; min-width: 120px; padding: 12px 8px; background: none; border: none; color: #9985cc; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 375px; min-height: 780px; margin: 20px auto; background: #100b2e; border-radius: 40px; overflow: hidden; border: 2px solid #2d2060; }
+.screen { padding: 40px 24px 32px; min-height: 780px; display: flex; flex-direction: column; align-items: center; text-align: center; background: linear-gradient(180deg, #100b2e 0%, #1a0a4e 60%, #0d0820 100%); }
+
+@keyframes twinkle { 0%,100%{opacity:0.3} 50%{opacity:1} }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.star { position: absolute; border-radius: 50%; background: #fff; animation: twinkle 2s infinite; }
+
+h2.big-header { font-size: 30px; font-weight: 900; color: #ffd166; margin: 16px 0 8px; }
+.sub { font-size: 15px; color: #b8a8e8; margin-bottom: 28px; }
+
+/* Profile cards */
+.profile-card { background: linear-gradient(135deg, #1e1650, #2a1f5e); border: 3px solid #3d2d8e; border-radius: 24px; padding: 24px 20px; width: 100%; margin: 10px 0; cursor: pointer; transition: border-color 0.2s, transform 0.15s; display: flex; flex-direction: column; align-items: center; gap: 8px; position: relative; }
+.profile-card:hover, .profile-card.active-profile { border-color: #ffd166; transform: scale(1.02); }
+.profile-card.active-profile::after { content: "▶ Playing Now"; position: absolute; top: 10px; right: 14px; font-size: 11px; font-weight: 900; color: #ffd166; background: #2a1f00; border: 1px solid #ffd166; border-radius: 20px; padding: 3px 8px; }
+
+.profile-avatar { font-size: 60px; animation: float 3s ease-in-out infinite; }
+.profile-name { font-size: 22px; font-weight: 900; color: #e8d8ff; }
+.profile-meta { font-size: 13px; color: #9985cc; }
+.profile-badge { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+.badge-chip { background: #2a1f5e; border: 1px solid #3d2d8e; border-radius: 20px; padding: 3px 10px; font-size: 11px; color: #b8a8e8; }
+
+.btn-primary { background: linear-gradient(135deg, #ffd166, #ff9f43); color: #100b2e; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; border: none; border-radius: 50px; padding: 14px 40px; cursor: pointer; box-shadow: 0 4px 20px rgba(255,209,102,0.35); transition: transform 0.2s; margin-top: 6px; width: 100%; }
+.btn-primary:hover { transform: scale(1.03); }
+.btn-ghost { background: none; border: 2px solid #3d2d8e; border-radius: 50px; padding: 13px 32px; color: #9985cc; font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+
+/* Add new card */
+.add-card { background: #1a1340; border: 3px dashed #3d2d8e; border-radius: 24px; padding: 28px 20px; width: 100%; margin: 10px 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 8px; transition: border-color 0.2s; }
+.add-card:hover { border-color: #ffd166; }
+.add-icon { font-size: 40px; color: #6a5a9e; }
+.add-label { font-size: 16px; font-weight: 900; color: #6a5a9e; }
+.add-sub { font-size: 12px; color: #4a3a7e; }
+
+/* Add new profile form */
+.form-label { font-size: 13px; color: #9985cc; text-align: left; width: 100%; margin: 8px 0 4px; }
+.form-input { background: #1e1650; border: 2px solid #3d2d8e; border-radius: 14px; padding: 14px 16px; color: #fff; font-family: 'Nunito', sans-serif; font-size: 15px; font-weight: 700; width: 100%; outline: none; }
+.form-input:focus { border-color: #ffd166; }
+
+.emoji-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; width: 100%; margin: 8px 0; }
+.emoji-opt { width: 52px; height: 52px; border-radius: 50%; border: 3px solid #3d2d8e; display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; transition: border-color 0.2s; }
+.emoji-opt:hover, .emoji-opt.sel { border-color: #ffd166; background: #2a1f5e; }
+
+/* Spec */
+.spec-section { background: #1a1340; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; }
+.spec-title { font-size: 14px; font-weight: 900; color: #ffd166; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #9985cc; }
+.spec-val { color: #e8d8ff; font-weight: 700; }
+.spec-note { font-size: 11px; color: #6a5a9e; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('switcher')">Profile Switcher</button>
+  <button onclick="show('two-profiles')">2 Profiles</button>
+  <button onclick="show('three-profiles')">3 Profiles</button>
+  <button onclick="show('add-profile')">Add New Profile</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- PROFILE SWITCHER BASE -->
+<div id="switcher" class="tab-content active">
+  <div class="hint">Who's playing? — big friendly header, profile cards with avatar emoji + fun name, "That's me!" button, add new child card.</div>
+  <div class="phone">
+    <div class="screen" style="position:relative">
+      <div class="star" style="width:3px;height:3px;top:5%;left:15%;animation-delay:0s"></div>
+      <div class="star" style="width:2px;height:2px;top:9%;left:75%;animation-delay:0.6s"></div>
+
+      <div style="height:20px"></div>
+      <div style="font-size:48px;margin-bottom:4px">🌟</div>
+      <h2 class="big-header">Who's playing?</h2>
+      <p class="sub">Tap your name to start your adventure!</p>
+
+      <div class="profile-card active-profile">
+        <div class="profile-avatar" style="animation-delay:0s">🦊</div>
+        <div class="profile-name">FoxWizard</div>
+        <div class="profile-meta">Grade 2 · Starfall World</div>
+        <div class="profile-badge">
+          <span class="badge-chip">⭐ 142 stars</span>
+          <span class="badge-chip">🔥 5-day streak</span>
+        </div>
+        <button class="btn-primary" style="margin-top:12px">That's me! 🎉</button>
+      </div>
+
+      <div class="add-card" onclick="show('add-profile')">
+        <div class="add-icon">➕</div>
+        <div class="add-label">Add a player</div>
+        <div class="add-sub">For a sibling or new player</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 2 PROFILES -->
+<div id="two-profiles" class="tab-content">
+  <div class="hint">Two sibling profiles shown. Each card has avatar, fun name, world/grade info, and "That's me!" button. Active profile shown first.</div>
+  <div class="phone">
+    <div class="screen">
+      <div style="height:20px"></div>
+      <div style="font-size:48px;margin-bottom:4px">🌟</div>
+      <h2 class="big-header">Who's playing?</h2>
+      <p class="sub">Tap your name to start!</p>
+
+      <div class="profile-card active-profile">
+        <div class="profile-avatar" style="font-size:52px;animation-delay:0s">🦊</div>
+        <div class="profile-name">FoxWizard</div>
+        <div class="profile-meta">Grade 2 · Starfall World</div>
+        <div class="profile-badge">
+          <span class="badge-chip">⭐ 142 stars</span>
+          <span class="badge-chip">🔥 5 days</span>
+        </div>
+        <button class="btn-primary" style="margin-top:10px">That's me! 🎉</button>
+      </div>
+
+      <div class="profile-card" style="margin-bottom:0">
+        <div class="profile-avatar" style="font-size:52px;animation-delay:1s">🐉</div>
+        <div class="profile-name">DragonPal</div>
+        <div class="profile-meta">Grade K · Crystal Caves</div>
+        <div class="profile-badge">
+          <span class="badge-chip">⭐ 38 stars</span>
+          <span class="badge-chip">🌱 Just started</span>
+        </div>
+        <button class="btn-primary" style="margin-top:10px">That's me! 🎉</button>
+      </div>
+
+      <div class="add-card" style="padding:18px" onclick="show('add-profile')">
+        <div class="add-icon" style="font-size:32px">➕</div>
+        <div class="add-label" style="font-size:14px">Add a player</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 3 PROFILES -->
+<div id="three-profiles" class="tab-content">
+  <div class="hint">Three sibling profiles — compact card layout. Cards slightly smaller to fit three comfortably. Add card always at bottom.</div>
+  <div class="phone">
+    <div class="screen">
+      <div style="height:16px"></div>
+      <div style="font-size:40px;margin-bottom:4px">🌟</div>
+      <h2 class="big-header" style="font-size:26px">Who's playing?</h2>
+      <p class="sub" style="margin-bottom:16px">Tap your name to start!</p>
+
+      <div class="profile-card" style="flex-direction:row;text-align:left;gap:16px;padding:16px 18px">
+        <div style="font-size:48px;animation:float 3s ease-in-out infinite">🦊</div>
+        <div style="flex:1">
+          <div class="profile-name" style="font-size:18px">FoxWizard</div>
+          <div class="profile-meta">Grade 2 · ⭐ 142 stars</div>
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px;margin-top:8px">That's me! 🎉</button>
+        </div>
+      </div>
+
+      <div class="profile-card" style="flex-direction:row;text-align:left;gap:16px;padding:16px 18px">
+        <div style="font-size:48px;animation:float 3s ease-in-out infinite;animation-delay:1s">🐉</div>
+        <div style="flex:1">
+          <div class="profile-name" style="font-size:18px">DragonPal</div>
+          <div class="profile-meta">Grade K · ⭐ 38 stars</div>
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px;margin-top:8px">That's me! 🎉</button>
+        </div>
+      </div>
+
+      <div class="profile-card" style="flex-direction:row;text-align:left;gap:16px;padding:16px 18px">
+        <div style="font-size:48px;animation:float 3s ease-in-out infinite;animation-delay:1.5s">🚀</div>
+        <div style="flex:1">
+          <div class="profile-name" style="font-size:18px">SpaceExplorer</div>
+          <div class="profile-meta">Grade 1 · ⭐ 91 stars</div>
+          <button class="btn-primary" style="padding:10px 20px;font-size:13px;margin-top:8px">That's me! 🎉</button>
+        </div>
+      </div>
+
+      <div class="add-card" style="padding:14px" onclick="show('add-profile')">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:28px;color:#6a5a9e">➕</span>
+          <div>
+            <div class="add-label" style="font-size:13px">Add a player</div>
+            <div class="add-sub">For a sibling or new player</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD NEW PROFILE -->
+<div id="add-profile" class="tab-content">
+  <div class="hint">Adding a new child profile. Pick an emoji avatar, choose a fun name (no real name required), pick grade/world. Minimal — child-led.</div>
+  <div class="phone">
+    <div class="screen">
+      <div style="height:20px"></div>
+      <div style="font-size:44px;margin-bottom:8px">✨</div>
+      <h2 class="big-header" style="font-size:26px">New Player!</h2>
+      <p class="sub" style="margin-bottom:16px">Let's set up their magical world 🌟</p>
+
+      <div style="width:100%">
+        <div class="form-label">Pick an avatar emoji</div>
+        <div class="emoji-grid">
+          <div class="emoji-opt sel">🦊</div>
+          <div class="emoji-opt">🐉</div>
+          <div class="emoji-opt">🚀</div>
+          <div class="emoji-opt">🦄</div>
+          <div class="emoji-opt">🐬</div>
+          <div class="emoji-opt">🦁</div>
+          <div class="emoji-opt">🐺</div>
+          <div class="emoji-opt">🦋</div>
+          <div class="emoji-opt">🐸</div>
+          <div class="emoji-opt">🦉</div>
+        </div>
+
+        <div class="form-label">Choose a fun name</div>
+        <input class="form-input" type="text" placeholder="e.g. StarKid, FoxWizard…" maxlength="20">
+
+        <div class="form-label" style="margin-top:12px">Pick a world</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0">
+          <div style="background:#2a1f5e;border:2px solid #ffd166;border-radius:14px;padding:12px;text-align:center;cursor:pointer">
+            <div style="font-size:24px">🌌</div>
+            <div style="font-size:12px;font-weight:900;color:#ffd166">Starfall Island</div>
+          </div>
+          <div style="background:#1e1650;border:2px solid #3d2d8e;border-radius:14px;padding:12px;text-align:center;cursor:pointer">
+            <div style="font-size:24px">💎</div>
+            <div style="font-size:12px;font-weight:900;color:#9985cc">Crystal Caves</div>
+          </div>
+          <div style="background:#1e1650;border:2px solid #3d2d8e;border-radius:14px;padding:12px;text-align:center;cursor:pointer">
+            <div style="font-size:24px">🌊</div>
+            <div style="font-size:12px;font-weight:900;color:#9985cc">Ocean Deep</div>
+          </div>
+          <div style="background:#1e1650;border:2px solid #3d2d8e;border-radius:14px;padding:12px;text-align:center;cursor:pointer">
+            <div style="font-size:24px">🌋</div>
+            <div style="font-size:12px;font-weight:900;color:#9985cc">Volcano Peak</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="flex:1;min-height:12px"></div>
+      <button class="btn-primary">Add This Player! 🎉</button>
+      <button class="btn-ghost" onclick="show('two-profiles')">← Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for child-profile-switcher-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#100b2e</span></div>
+    <div class="spec-row"><span class="spec-key">Card border active</span><span class="spec-val">#ffd166</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">375px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Profile Card States</div>
+    <div class="spec-row"><span class="spec-key">Active/playing</span><span class="spec-val">#ffd166 border + "Playing Now" badge</span></div>
+    <div class="spec-row"><span class="spec-key">Inactive</span><span class="spec-val">#3d2d8e border</span></div>
+    <div class="spec-row"><span class="spec-key">Add new</span><span class="spec-val">Dashed border, grey tone</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Card Variants</div>
+    <div class="spec-row"><span class="spec-key">1–2 profiles</span><span class="spec-val">Full vertical cards</span></div>
+    <div class="spec-row"><span class="spec-key">3 profiles</span><span class="spec-val">Compact horizontal cards</span></div>
+    <div class="spec-row"><span class="spec-key">Max profiles</span><span class="spec-val">3 (4th replaces Add card)</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Safety Rules</div>
+    <div class="spec-note">✅ No real name required — fun name only<br>✅ Avatar is emoji only — no photos<br>✅ Grade shown for context — not accuracy<br>✅ "Just started" instead of "0 stars"</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Loading Skeletons</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #f8f9fa; color: #1a2e3b; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #343a40; overflow-x: auto; }
+.tab-nav button { flex: 1; min-width: 140px; padding: 13px 12px; background: none; border: none; color: rgba(255,255,255,0.6); font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.page { max-width: 900px; margin: 0 auto; padding: 24px; }
+.page-title { font-size: 22px; font-weight: 700; color: #1a2e3b; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #6b7280; margin-bottom: 28px; }
+
+/* ==================== SHIMMER ANIMATION ==================== */
+@keyframes shimmer {
+  0% { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.sk {
+  background: linear-gradient(90deg, #e0e0e0 25%, #f5f5f5 50%, #e0e0e0 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+/* Dark shimmer for child/owner */
+@keyframes shimmer-dark {
+  0% { background-position: -600px 0; }
+  100% { background-position: 600px 0; }
+}
+.sk-dark {
+  background: linear-gradient(90deg, #1e1650 25%, #2d2060 50%, #1e1650 75%);
+  background-size: 600px 100%;
+  animation: shimmer-dark 1.6s infinite linear;
+  border-radius: 6px;
+}
+.sk-owner {
+  background: linear-gradient(90deg, #161b22 25%, #21262d 50%, #161b22 75%);
+  background-size: 600px 100%;
+  animation: shimmer 1.6s infinite linear;
+  border-radius: 6px;
+}
+
+/* Containers */
+.skel-card { background: #fff; border: 1px solid #e8edf0; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+.skel-card-dark { background: #1a1340; border: 1.5px solid #2d2060; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+.skel-card-owner { background: #161b22; border: 1px solid #30363d; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+
+/* ==================== CHILD SKELETONS ==================== */
+/* Play card */
+.child-play-skel { background: #100b2e; border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+/* Specific child skeleton sizes */
+.sk-circle { border-radius: 50% !important; }
+.sk-btn { border-radius: 50px !important; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }
+@media (max-width: 600px) { .grid-3 { grid-template-columns: 1fr; } }
+
+/* Section label */
+.skel-section-label { font-size: 12px; font-weight: 700; color: #9ca3af; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px; }
+.skel-section-label-light { font-size: 12px; font-weight: 700; color: #9985cc; text-transform: uppercase; letter-spacing: 1px; margin: 20px 0 10px; }
+
+/* Route label chip */
+.route-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; margin-bottom: 12px; }
+.chip-child { background: #1e1650; color: #9985cc; }
+.chip-parent { background: #e8f4f2; color: #2c7a6e; }
+.chip-teacher { background: #dbeafe; color: #2a5080; }
+.chip-owner { background: #21262d; color: #ffd166; }
+.chip-content { background: #e0f2fe; color: #0369a1; }
+
+/* Spec */
+.spec-section { background: #fff; border-radius: 12px; padding: 16px; margin: 12px 0; border: 1px solid #e8edf0; }
+.spec-title { font-size: 14px; font-weight: 700; color: #343a40; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6b7280; }
+.spec-val { color: #1a2e3b; font-weight: 700; }
+.spec-note { font-size: 11px; color: #9ca3af; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('child-skel')">Child Skeletons</button>
+  <button onclick="show('parent-skel')">Parent Skeletons</button>
+  <button onclick="show('teacher-skel')">Teacher Skeletons</button>
+  <button onclick="show('owner-content-skel')">Owner/Content Skeletons</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- CHILD SKELETONS -->
+<div id="child-skel" class="tab-content active">
+  <div class="hint">Child skeleton screens — dark magic theme, purple shimmer. Matches the child play surface layout. Covers: play card, launcher home, session complete loading.</div>
+  <div class="page">
+    <div class="page-title">Child Surface Skeletons</div>
+    <div class="page-sub">Dark theme · #100b2e · Purple shimmer shimmer animation · Matches child play surface proportions</div>
+
+    <span class="route-chip chip-child">🎮 Play Card Loading</span>
+    <div class="child-play-skel">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div style="flex:1">
+          <div class="sk-dark" style="height:22px;width:60%;margin-bottom:8px"></div>
+          <div class="sk-dark" style="height:14px;width:40%"></div>
+        </div>
+        <div class="sk-dark sk-circle" style="width:56px;height:56px"></div>
+      </div>
+      <!-- Question card -->
+      <div style="background:#1a1340;border-radius:16px;padding:20px;margin-bottom:14px">
+        <div class="sk-dark" style="height:16px;width:80%;margin:0 auto 10px"></div>
+        <div class="sk-dark" style="height:16px;width:60%;margin:0 auto 18px"></div>
+        <!-- Answer options -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="sk-dark sk-btn" style="height:52px"></div>
+          <div class="sk-dark sk-btn" style="height:52px"></div>
+          <div class="sk-dark sk-btn" style="height:52px"></div>
+          <div class="sk-dark sk-btn" style="height:52px"></div>
+        </div>
+      </div>
+      <!-- Progress -->
+      <div style="display:flex;gap:6px;justify-content:center">
+        <div class="sk-dark sk-circle" style="width:10px;height:10px"></div>
+        <div class="sk-dark sk-circle" style="width:10px;height:10px"></div>
+        <div class="sk-dark sk-circle" style="width:10px;height:10px"></div>
+        <div class="sk-dark sk-circle" style="width:10px;height:10px;opacity:0.4"></div>
+        <div class="sk-dark sk-circle" style="width:10px;height:10px;opacity:0.4"></div>
+      </div>
+    </div>
+
+    <span class="route-chip chip-child">🏠 Child Home Hub Loading</span>
+    <div class="child-play-skel">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+        <div class="sk-dark sk-circle" style="width:52px;height:52px"></div>
+        <div style="flex:1">
+          <div class="sk-dark" style="height:18px;width:55%;margin-bottom:6px"></div>
+          <div class="sk-dark" style="height:12px;width:35%"></div>
+        </div>
+      </div>
+      <!-- World card -->
+      <div style="background:#1a1340;border-radius:16px;padding:18px;margin-bottom:14px">
+        <div class="sk-dark" style="height:120px;border-radius:12px;margin-bottom:12px"></div>
+        <div class="sk-dark" style="height:16px;width:50%;margin-bottom:6px"></div>
+        <div class="sk-dark" style="height:12px;width:70%"></div>
+      </div>
+      <!-- Badge row -->
+      <div style="display:flex;gap:10px;overflow-x:hidden">
+        <div class="sk-dark sk-circle" style="width:48px;height:48px;flex-shrink:0"></div>
+        <div class="sk-dark sk-circle" style="width:48px;height:48px;flex-shrink:0"></div>
+        <div class="sk-dark sk-circle" style="width:48px;height:48px;flex-shrink:0"></div>
+        <div class="sk-dark sk-circle" style="width:48px;height:48px;flex-shrink:0;opacity:0.4"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PARENT SKELETONS -->
+<div id="parent-skel" class="tab-content">
+  <div class="hint">Parent skeleton screens — warm background (#f5f0e8), green shimmer. Covers: parent dashboard cards, linked children list, skill detail view.</div>
+  <div class="page">
+    <div class="page-title">Parent Surface Skeletons</div>
+    <div class="page-sub">Warm theme · #f5f0e8 · Light grey shimmer · Matches parent hub layout proportions</div>
+
+    <span class="route-chip chip-parent">👪 Parent Dashboard Loading</span>
+    <div style="background:#f5f0e8;border-radius:20px;padding:20px;margin-bottom:16px">
+      <!-- Nav bar skeleton -->
+      <div style="background:#2c7a6e;border-radius:12px 12px 0 0;padding:16px;margin:-20px -20px 20px;display:flex;align-items:center;justify-content:space-between">
+        <div style="background:rgba(255,255,255,0.2);border-radius:6px;height:18px;width:120px"></div>
+        <div style="background:rgba(255,255,255,0.2);border-radius:50%;width:32px;height:32px"></div>
+      </div>
+      <!-- Summary card -->
+      <div class="skel-card">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+          <div class="sk sk-circle" style="width:48px;height:48px"></div>
+          <div style="flex:1">
+            <div class="sk" style="height:18px;width:55%;margin-bottom:6px"></div>
+            <div class="sk" style="height:12px;width:40%"></div>
+          </div>
+        </div>
+        <div class="grid-2">
+          <div class="sk sk-btn" style="height:60px"></div>
+          <div class="sk sk-btn" style="height:60px"></div>
+        </div>
+      </div>
+      <!-- Skill strip -->
+      <div class="skel-card">
+        <div class="sk" style="height:14px;width:40%;margin-bottom:14px"></div>
+        <div class="sk" style="height:10px;border-radius:50px;margin-bottom:8px"></div>
+        <div class="sk" style="height:10px;border-radius:50px;width:80%;margin-bottom:8px"></div>
+        <div class="sk" style="height:10px;border-radius:50px;width:60%"></div>
+      </div>
+    </div>
+
+    <span class="route-chip chip-parent">👶 Linked Children List Loading</span>
+    <div style="background:#f5f0e8;border-radius:20px;padding:20px;margin-bottom:16px">
+      <div class="skel-card" style="display:flex;align-items:center;gap:14px">
+        <div class="sk sk-circle" style="width:52px;height:52px"></div>
+        <div style="flex:1">
+          <div class="sk" style="height:16px;width:50%;margin-bottom:6px"></div>
+          <div class="sk" style="height:12px;width:65%"></div>
+        </div>
+        <div class="sk sk-btn" style="width:80px;height:32px"></div>
+      </div>
+      <div class="skel-card" style="display:flex;align-items:center;gap:14px">
+        <div class="sk sk-circle" style="width:52px;height:52px"></div>
+        <div style="flex:1">
+          <div class="sk" style="height:16px;width:40%;margin-bottom:6px"></div>
+          <div class="sk" style="height:12px;width:55%"></div>
+        </div>
+        <div class="sk sk-btn" style="width:80px;height:32px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TEACHER SKELETONS -->
+<div id="teacher-skel" class="tab-content">
+  <div class="hint">Teacher skeleton screens — light blue-grey (#f0f4f8), blue shimmer. Covers: class list, analytics table, intervention queue.</div>
+  <div class="page">
+    <div class="page-title">Teacher Surface Skeletons</div>
+    <div class="page-sub">Light blue-grey theme · #f0f4f8 · Matches teacher analytics and class list layouts</div>
+
+    <span class="route-chip chip-teacher">📋 Class List Loading</span>
+    <div style="background:#f0f4f8;border-radius:20px;padding:20px;margin-bottom:16px">
+      <!-- Header -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <div>
+          <div class="sk" style="height:20px;width:160px;margin-bottom:6px"></div>
+          <div class="sk" style="height:12px;width:100px"></div>
+        </div>
+        <div class="sk sk-btn" style="width:100px;height:36px"></div>
+      </div>
+      <!-- Student rows -->
+      <div class="skel-card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div class="sk sk-circle" style="width:40px;height:40px"></div>
+        <div style="flex:1">
+          <div class="sk" style="height:14px;width:45%;margin-bottom:5px"></div>
+          <div class="sk" style="height:10px;width:60%"></div>
+        </div>
+        <div class="sk" style="height:10px;width:60px;border-radius:50px"></div>
+      </div>
+      <div class="skel-card" style="display:flex;align-items:center;gap:12px;margin-bottom:10px">
+        <div class="sk sk-circle" style="width:40px;height:40px"></div>
+        <div style="flex:1">
+          <div class="sk" style="height:14px;width:50%;margin-bottom:5px"></div>
+          <div class="sk" style="height:10px;width:55%"></div>
+        </div>
+        <div class="sk" style="height:10px;width:60px;border-radius:50px"></div>
+      </div>
+      <div class="skel-card" style="display:flex;align-items:center;gap:12px">
+        <div class="sk sk-circle" style="width:40px;height:40px"></div>
+        <div style="flex:1">
+          <div class="sk" style="height:14px;width:40%;margin-bottom:5px"></div>
+          <div class="sk" style="height:10px;width:65%"></div>
+        </div>
+        <div class="sk" style="height:10px;width:60px;border-radius:50px"></div>
+      </div>
+    </div>
+
+    <span class="route-chip chip-teacher">⚡ Intervention Queue Loading</span>
+    <div style="background:#f0f4f8;border-radius:20px;padding:20px;margin-bottom:16px">
+      <div class="skel-card" style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="sk sk-circle" style="width:36px;height:36px"></div>
+          <div style="flex:1">
+            <div class="sk" style="height:14px;width:55%;margin-bottom:5px"></div>
+            <div class="sk" style="height:10px;width:40%"></div>
+          </div>
+          <div class="sk sk-btn" style="width:70px;height:28px"></div>
+        </div>
+        <div class="sk" style="height:8px;border-radius:50px;margin-bottom:6px"></div>
+        <div class="sk" style="height:8px;border-radius:50px;width:75%"></div>
+      </div>
+      <div class="skel-card">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+          <div class="sk sk-circle" style="width:36px;height:36px"></div>
+          <div style="flex:1">
+            <div class="sk" style="height:14px;width:50%;margin-bottom:5px"></div>
+            <div class="sk" style="height:10px;width:35%"></div>
+          </div>
+          <div class="sk sk-btn" style="width:70px;height:28px"></div>
+        </div>
+        <div class="sk" style="height:8px;border-radius:50px;margin-bottom:6px"></div>
+        <div class="sk" style="height:8px;border-radius:50px;width:85%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OWNER / CONTENT SKELETONS -->
+<div id="owner-content-skel" class="tab-content">
+  <div class="hint">Owner and content tool skeleton screens — dark owner theme and light content theme. Covers: KPI strip, content table, content browser grid.</div>
+  <div class="page">
+    <div class="page-title">Owner & Content Skeletons</div>
+    <div class="page-sub">Owner: dark theme #0d1117 · Content: light #f8f9fa · Proportions match actual layouts</div>
+
+    <span class="route-chip chip-owner">📊 Owner KPI Strip Loading</span>
+    <div style="background:#0d1117;border-radius:20px;padding:20px;margin-bottom:16px">
+      <!-- Nav -->
+      <div style="background:#161b22;border-radius:12px;padding:14px;margin-bottom:16px;display:flex;gap:12px;align-items:center">
+        <div class="sk-owner" style="height:16px;width:120px"></div>
+        <div style="flex:1"></div>
+        <div class="sk-owner sk-btn" style="width:80px;height:28px"></div>
+        <div class="sk-owner sk-btn" style="width:80px;height:28px"></div>
+      </div>
+      <!-- KPI cards -->
+      <div class="grid-3" style="margin-bottom:16px">
+        <div class="skel-card-owner">
+          <div class="sk-owner" style="height:12px;width:70%;margin-bottom:8px"></div>
+          <div class="sk-owner" style="height:32px;width:55%;margin-bottom:6px"></div>
+          <div class="sk-owner" style="height:10px;width:80%"></div>
+        </div>
+        <div class="skel-card-owner">
+          <div class="sk-owner" style="height:12px;width:60%;margin-bottom:8px"></div>
+          <div class="sk-owner" style="height:32px;width:50%;margin-bottom:6px"></div>
+          <div class="sk-owner" style="height:10px;width:75%"></div>
+        </div>
+        <div class="skel-card-owner">
+          <div class="sk-owner" style="height:12px;width:65%;margin-bottom:8px"></div>
+          <div class="sk-owner" style="height:32px;width:45%;margin-bottom:6px"></div>
+          <div class="sk-owner" style="height:10px;width:70%"></div>
+        </div>
+      </div>
+      <!-- Chart area -->
+      <div class="skel-card-owner">
+        <div class="sk-owner" style="height:14px;width:35%;margin-bottom:14px"></div>
+        <div class="sk-owner" style="height:120px;border-radius:12px"></div>
+      </div>
+    </div>
+
+    <span class="route-chip chip-content">📚 Content Table Loading</span>
+    <div style="background:#fff;border:1px solid #e8edf0;border-radius:20px;padding:0;overflow:hidden;margin-bottom:16px">
+      <!-- Table header -->
+      <div style="background:#f3f4f6;padding:12px 20px;display:flex;gap:20px">
+        <div class="sk" style="height:12px;width:120px"></div>
+        <div class="sk" style="height:12px;width:60px"></div>
+        <div class="sk" style="height:12px;width:80px"></div>
+        <div class="sk" style="height:12px;width:50px;margin-left:auto"></div>
+      </div>
+      <!-- Table rows -->
+      <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:20px">
+        <div class="sk" style="height:14px;width:200px"></div>
+        <div class="sk" style="height:14px;width:60px"></div>
+        <div class="sk sk-btn" style="height:22px;width:70px"></div>
+        <div class="sk sk-btn" style="height:22px;width:50px;margin-left:auto"></div>
+      </div>
+      <div style="padding:14px 20px;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;gap:20px">
+        <div class="sk" style="height:14px;width:160px"></div>
+        <div class="sk" style="height:14px;width:60px"></div>
+        <div class="sk sk-btn" style="height:22px;width:70px"></div>
+        <div class="sk sk-btn" style="height:22px;width:50px;margin-left:auto"></div>
+      </div>
+      <div style="padding:14px 20px;display:flex;align-items:center;gap:20px">
+        <div class="sk" style="height:14px;width:180px"></div>
+        <div class="sk" style="height:14px;width:60px"></div>
+        <div class="sk sk-btn" style="height:22px;width:70px"></div>
+        <div class="sk sk-btn" style="height:22px;width:50px;margin-left:auto"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for global-loading-skeletons-v2.</div>
+  <div class="page">
+    <div class="spec-section">
+      <div class="spec-title">Shimmer Animation</div>
+      <div class="spec-row"><span class="spec-key">Keyframe</span><span class="spec-val">background-position: -600px → 600px</span></div>
+      <div class="spec-row"><span class="spec-key">Duration</span><span class="spec-val">1.6s infinite linear</span></div>
+      <div class="spec-row"><span class="spec-key">Gradient</span><span class="spec-val">base → lighter → base (90deg)</span></div>
+      <div class="spec-row"><span class="spec-key">Background-size</span><span class="spec-val">600px 100%</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Shimmer Color by Surface</div>
+      <div class="spec-row"><span class="spec-key">Child</span><span class="spec-val">#1e1650 → #2d2060 (purple dark)</span></div>
+      <div class="spec-row"><span class="spec-key">Parent</span><span class="spec-val">#e0e0e0 → #f5f5f5 (light grey)</span></div>
+      <div class="spec-row"><span class="spec-key">Teacher</span><span class="spec-val">#e0e0e0 → #f5f5f5 (light grey)</span></div>
+      <div class="spec-row"><span class="spec-key">Owner</span><span class="spec-val">#161b22 → #21262d (dark grey)</span></div>
+      <div class="spec-row"><span class="spec-key">Content</span><span class="spec-val">#e0e0e0 → #f5f5f5 (light grey)</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Skeleton Shapes Used</div>
+      <div class="spec-row"><span class="spec-key">Text line</span><span class="spec-val">border-radius: 6px · various widths</span></div>
+      <div class="spec-row"><span class="spec-key">Avatar</span><span class="spec-val">border-radius: 50% (circle)</span></div>
+      <div class="spec-row"><span class="spec-key">Button</span><span class="spec-val">border-radius: 50px</span></div>
+      <div class="spec-row"><span class="spec-key">Card block</span><span class="spec-val">border-radius: 12px, full width</span></div>
+      <div class="spec-row"><span class="spec-key">Chart area</span><span class="spec-val">border-radius: 12px, fixed height</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Behavior Rules</div>
+      <div class="spec-note">✅ Show skeleton after 200ms delay (avoids flash on fast loads)<br>✅ Match exact layout proportions of loaded state<br>✅ Never show skeleton for >5 seconds — show error state instead<br>✅ Skeleton backgrounds match surface background color<br>✅ Do not animate more than 3 skeleton elements simultaneously (perf)</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

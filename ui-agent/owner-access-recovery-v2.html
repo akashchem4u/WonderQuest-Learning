@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Owner Access Recovery</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: #0d1117; color: #e6edf3; min-height: 100vh; }
+
+.tab-nav { display: flex; background: #161b22; overflow-x: auto; border-bottom: 1px solid #30363d; }
+.tab-nav button { flex: 1; min-width: 120px; padding: 13px 8px; background: none; border: none; color: #6e7681; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.tab-nav button.active { color: #ffd166; border-bottom: 3px solid #ffd166; }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.hint { background: #2a1f00; border: 1.5px solid #ffd166; border-radius: 12px; padding: 14px 16px; margin: 16px; font-size: 13px; color: #ffd166; line-height: 1.5; }
+
+.phone { width: 390px; min-height: 800px; margin: 20px auto; background: #0d1117; border-radius: 40px; overflow: hidden; border: 1px solid #30363d; box-shadow: 0 8px 40px rgba(0,0,0,0.6); }
+.screen { min-height: 800px; display: flex; flex-direction: column; }
+.top-nav { background: #161b22; padding: 50px 20px 20px; border-bottom: 1px solid #30363d; }
+.nav-back { font-size: 13px; color: #6e7681; margin-bottom: 8px; cursor: pointer; }
+.nav-title { font-size: 18px; font-weight: 700; color: #e6edf3; }
+.content { padding: 24px; flex: 1; display: flex; flex-direction: column; }
+
+/* Lockout card */
+.lockout-card { background: #161b22; border: 2px solid #f85149; border-radius: 20px; padding: 28px 24px; text-align: center; margin: 16px 0; }
+.lockout-icon { font-size: 64px; margin-bottom: 16px; }
+.lockout-title { font-size: 22px; font-weight: 700; color: #f85149; margin-bottom: 8px; }
+.lockout-desc { font-size: 14px; color: #8b949e; line-height: 1.6; }
+
+/* Alert */
+.alert-box { border-radius: 12px; padding: 14px 16px; margin: 12px 0; display: flex; gap: 12px; align-items: flex-start; }
+.alert-red { background: #2d1b1b; border: 1px solid #f85149; }
+.alert-amber { background: #2d2000; border: 1px solid #f59e0b; }
+.alert-blue { background: #0e1f2d; border: 1px solid #58a6ff; }
+.alert-green { background: #0d2010; border: 1px solid #3fb950; }
+.alert-icon-sm { font-size: 18px; flex-shrink: 0; }
+.alert-text { font-size: 13px; line-height: 1.6; color: #c9d1d9; }
+.alert-title { font-weight: 700; color: #e6edf3; margin-bottom: 3px; }
+
+/* Timer */
+.timer-display { background: #161b22; border: 2px solid #30363d; border-radius: 20px; padding: 32px 24px; text-align: center; margin: 16px 0; }
+.timer-num { font-size: 64px; font-weight: 700; color: #ffd166; font-variant-numeric: tabular-nums; letter-spacing: -2px; }
+.timer-label { font-size: 14px; color: #6e7681; margin-top: 8px; }
+.timer-sub { font-size: 12px; color: #6e7681; margin-top: 4px; }
+
+/* Progress bar */
+.progress-bar-wrap { background: #21262d; border-radius: 8px; height: 8px; margin: 12px 0; overflow: hidden; }
+.progress-bar-fill { height: 8px; border-radius: 8px; background: linear-gradient(90deg, #f59e0b, #ffd166); width: 65%; }
+
+/* Buttons */
+.btn-primary { background: linear-gradient(135deg, #ffd166, #f59e0b); color: #0d1117; font-family: 'Sora', sans-serif; font-weight: 700; font-size: 15px; border: none; border-radius: 50px; padding: 14px 32px; cursor: pointer; width: 100%; margin-top: 8px; transition: opacity 0.2s; }
+.btn-primary:hover { opacity: 0.9; }
+.btn-ghost { background: none; border: 1px solid #30363d; border-radius: 50px; padding: 13px 32px; color: #6e7681; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+.btn-danger { background: none; border: 1px solid #f85149; border-radius: 50px; padding: 13px 32px; color: #f85149; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 14px; cursor: pointer; margin-top: 10px; width: 100%; }
+
+/* Stat row */
+.stat-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #21262d; font-size: 13px; }
+.stat-row:last-child { border-bottom: none; }
+.stat-key { color: #6e7681; }
+.stat-val { color: #e6edf3; font-weight: 600; }
+.stat-val.red { color: #f85149; }
+.stat-val.amber { color: #f59e0b; }
+
+/* Email verification */
+.email-step { background: #161b22; border: 1px solid #30363d; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.step-num-badge { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 50%; background: #ffd166; color: #0d1117; font-weight: 700; font-size: 13px; margin-bottom: 10px; }
+.step-title { font-size: 15px; font-weight: 700; color: #e6edf3; margin-bottom: 6px; }
+.step-desc { font-size: 13px; color: #8b949e; line-height: 1.5; }
+
+/* Code verification */
+.verify-code-row { display: flex; gap: 10px; justify-content: center; margin: 16px 0; }
+.verify-box { width: 48px; height: 56px; background: #161b22; border: 1.5px solid #30363d; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #ffd166; }
+.verify-box.active { border-color: #ffd166; box-shadow: 0 0 0 3px rgba(255,209,102,0.2); }
+
+/* Admin override */
+.override-card { background: #161b22; border: 2px solid #30363d; border-radius: 16px; padding: 20px; margin: 12px 0; }
+.override-title { font-size: 15px; font-weight: 700; color: #e6edf3; margin-bottom: 8px; }
+.form-label { font-size: 13px; font-weight: 600; color: #8b949e; margin: 10px 0 4px; }
+.form-input { background: #0d1117; border: 1px solid #30363d; border-radius: 10px; padding: 12px 14px; font-family: 'Sora', sans-serif; font-size: 14px; width: 100%; outline: none; color: #e6edf3; transition: border-color 0.2s; }
+.form-input:focus { border-color: #ffd166; }
+
+/* Spec */
+.spec-section { background: #161b22; border-radius: 12px; padding: 16px; margin: 12px 16px; text-align: left; border: 1px solid #30363d; }
+.spec-title { font-size: 14px; font-weight: 700; color: #ffd166; margin-bottom: 10px; }
+.spec-row { display: flex; justify-content: space-between; margin: 6px 0; font-size: 12px; }
+.spec-key { color: #6e7681; }
+.spec-val { color: #e6edf3; font-weight: 700; }
+.spec-note { font-size: 11px; color: #6e7681; margin-top: 8px; line-height: 1.4; }
+</style>
+</head>
+<body>
+
+<div class="tab-nav">
+  <button class="active" onclick="show('locked')">Locked Out</button>
+  <button onclick="show('wait')">Wait State</button>
+  <button onclick="show('recovery-email')">Recovery Email</button>
+  <button onclick="show('admin-override')">Admin Override</button>
+  <button onclick="show('spec')">Spec</button>
+</div>
+
+<!-- LOCKED OUT -->
+<div id="locked" class="tab-content active">
+  <div class="hint">Owner locked out after X failed attempts. Severe but clear — shows attempt count, lockout duration, and two paths forward: wait or recovery email.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back">← WonderQuest Owner Console</div>
+        <div class="nav-title">Account Locked</div>
+      </div>
+      <div class="content">
+        <div class="lockout-card">
+          <div class="lockout-icon">🔒</div>
+          <div class="lockout-title">Account Temporarily Locked</div>
+          <div class="lockout-desc">For security, this owner account has been locked after 5 failed login attempts.</div>
+        </div>
+
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:16px;margin:12px 0">
+          <div class="stat-row">
+            <span class="stat-key">Failed attempts</span>
+            <span class="stat-val red">5 / 5</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Lockout duration</span>
+            <span class="stat-val amber">30 minutes</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">Last attempt</span>
+            <span class="stat-val">2 minutes ago</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-key">IP address</span>
+            <span class="stat-val">192.168.1.xxx</span>
+          </div>
+        </div>
+
+        <div class="alert-box alert-amber">
+          <span class="alert-icon-sm">⚠️</span>
+          <div class="alert-text">
+            <div class="alert-title">Security notice</div>
+            If you did not attempt to log in, another party may be trying to access your account. Contact WonderQuest security immediately.
+          </div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-primary" onclick="show('wait')">Wait for Lockout to Expire</button>
+        <button class="btn-ghost" onclick="show('recovery-email')">Recover via Verified Email</button>
+        <button class="btn-danger" onclick="show('admin-override')">Admin Override (Emergency)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WAIT STATE -->
+<div id="wait" class="tab-content">
+  <div class="hint">Wait state with countdown timer. Shows minutes remaining, security log entry, and option to begin email recovery instead of waiting.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('locked')">← Back</div>
+        <div class="nav-title">Lockout Timer</div>
+      </div>
+      <div class="content">
+        <div style="text-align:center;margin:16px 0 8px">
+          <div style="font-size:14px;color:#6e7681;margin-bottom:4px">Lockout expires in</div>
+        </div>
+
+        <div class="timer-display">
+          <div class="timer-num">27:43</div>
+          <div class="timer-label">minutes : seconds</div>
+          <div style="margin:16px 0 8px">
+            <div class="progress-bar-wrap">
+              <div class="progress-bar-fill"></div>
+            </div>
+          </div>
+          <div class="timer-sub">35% of lockout period elapsed</div>
+        </div>
+
+        <div class="alert-box alert-blue">
+          <span class="alert-icon-sm">ℹ️</span>
+          <div class="alert-text">
+            <div class="alert-title">What happens next</div>
+            After the timer expires, you can attempt to log in again with your correct credentials.
+          </div>
+        </div>
+
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:14px;margin:12px 0">
+          <div style="font-size:12px;font-weight:700;color:#6e7681;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Security Log</div>
+          <div class="stat-row"><span class="stat-key">10:31 AM</span><span class="stat-val red">Failed attempt #5</span></div>
+          <div class="stat-row"><span class="stat-key">10:29 AM</span><span class="stat-val red">Failed attempt #4</span></div>
+          <div class="stat-row"><span class="stat-key">10:27 AM</span><span class="stat-val red">Failed attempt #3</span></div>
+        </div>
+
+        <div style="flex:1"></div>
+        <button class="btn-ghost" onclick="show('recovery-email')">Don't want to wait? Recover via Email →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECOVERY EMAIL -->
+<div id="recovery-email" class="tab-content">
+  <div class="hint">Recovery via verified email flow — step 1: confirm email, step 2: enter 6-digit code sent to that email. Fast path that bypasses the wait timer.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('locked')">← Back</div>
+        <div class="nav-title">Email Recovery</div>
+      </div>
+      <div class="content">
+        <div class="alert-box alert-green" style="margin-bottom:16px">
+          <span class="alert-icon-sm">✅</span>
+          <div class="alert-text">
+            <div class="alert-title">This bypasses the wait timer</div>
+            Verify your identity via email to unlock your account immediately.
+          </div>
+        </div>
+
+        <div class="email-step">
+          <div class="step-num-badge">1</div>
+          <div class="step-title">Confirm your email</div>
+          <div class="step-desc">We'll send a 6-digit verification code to your registered owner email.</div>
+          <div style="margin-top:12px;background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px">
+            <span style="font-size:18px">📧</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:#e6edf3">sarah.admin@wonderquest.io</div>
+              <div style="font-size:11px;color:#6e7681">Registered owner email · <a href="#" style="color:#58a6ff;text-decoration:none">Not you?</a></div>
+            </div>
+          </div>
+          <button style="background:#ffd166;color:#0d1117;font-family:'Sora',sans-serif;font-weight:700;font-size:14px;border:none;border-radius:50px;padding:12px 24px;cursor:pointer;width:100%;margin-top:14px">Send Verification Code</button>
+        </div>
+
+        <div class="email-step">
+          <div class="step-num-badge">2</div>
+          <div class="step-title">Enter the 6-digit code</div>
+          <div class="step-desc">Check your inbox — the code expires in 10 minutes.</div>
+          <div class="verify-code-row" style="margin-top:14px">
+            <div class="verify-box">4</div>
+            <div class="verify-box">7</div>
+            <div class="verify-box">2</div>
+            <div class="verify-box active"></div>
+            <div class="verify-box"></div>
+            <div class="verify-box"></div>
+          </div>
+          <div style="font-size:12px;color:#6e7681;text-align:center">Didn't get it? <a href="#" style="color:#58a6ff;text-decoration:none">Resend code</a> · Expires in 8:22</div>
+        </div>
+
+        <div style="flex:1;min-height:12px"></div>
+        <button class="btn-primary">Verify & Unlock Account</button>
+        <button class="btn-ghost" onclick="show('admin-override')">Use Admin Override Instead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN OVERRIDE -->
+<div id="admin-override" class="tab-content">
+  <div class="hint">Admin override — emergency path requiring a secondary authorized person to unlock. Multi-step approval, logged and audited. Not self-service.</div>
+  <div class="phone">
+    <div class="screen">
+      <div class="top-nav">
+        <div class="nav-back" onclick="show('locked')">← Back</div>
+        <div class="nav-title">Admin Override</div>
+      </div>
+      <div class="content">
+        <div class="alert-box alert-red" style="margin-bottom:16px">
+          <span class="alert-icon-sm">🚨</span>
+          <div class="alert-text">
+            <div class="alert-title">Emergency use only</div>
+            Admin overrides are logged, audited, and require secondary authorization. Only use if email recovery is unavailable.
+          </div>
+        </div>
+
+        <div class="override-card">
+          <div class="override-title">Override Request Details</div>
+          <div class="form-label">Your name (locked owner)</div>
+          <input class="form-input" type="text" placeholder="e.g. Sarah Chen" value="Sarah Chen">
+
+          <div class="form-label">Reason for override</div>
+          <select class="form-input" style="appearance:none">
+            <option>Email account compromised — cannot receive code</option>
+            <option>Email server down / unreachable</option>
+            <option>Urgent production incident requiring immediate access</option>
+            <option>Other emergency</option>
+          </select>
+
+          <div class="form-label">Authorizing admin contact</div>
+          <input class="form-input" type="text" placeholder="Name of secondary admin approver">
+
+          <div style="font-size:11px;color:#6e7681;margin-top:6px;line-height:1.5">The authorizing admin will receive a push notification and must approve this override within 5 minutes.</div>
+        </div>
+
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:12px;margin:8px 0;font-size:12px;color:#8b949e;line-height:1.6">
+          📋 Override events are logged with: requester identity, authorizer identity, timestamp, IP address, reason. Available in Security Audit → Override Log.
+        </div>
+
+        <div style="flex:1;min-height:12px"></div>
+        <button class="btn-primary">Request Admin Override</button>
+        <button class="btn-ghost" onclick="show('recovery-email')">← Try Email Recovery Instead</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="spec" class="tab-content">
+  <div class="hint">Design specification for owner-access-recovery-v2.</div>
+  <div class="spec-section">
+    <div class="spec-title">Design Tokens</div>
+    <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora</span></div>
+    <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#0d1117</span></div>
+    <div class="spec-row"><span class="spec-key">Accent</span><span class="spec-val">#ffd166 (gold)</span></div>
+    <div class="spec-row"><span class="spec-key">Viewport</span><span class="spec-val">390px mobile</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Lockout Policy</div>
+    <div class="spec-row"><span class="spec-key">Trigger</span><span class="spec-val">5 failed attempts</span></div>
+    <div class="spec-row"><span class="spec-key">Duration</span><span class="spec-val">30 minutes</span></div>
+    <div class="spec-row"><span class="spec-key">Recovery paths</span><span class="spec-val">Wait / Email / Admin Override</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Recovery Paths</div>
+    <div class="spec-row"><span class="spec-key">Wait</span><span class="spec-val">Countdown timer, 30 min</span></div>
+    <div class="spec-row"><span class="spec-key">Email</span><span class="spec-val">6-digit code, 10 min expiry</span></div>
+    <div class="spec-row"><span class="spec-key">Admin Override</span><span class="spec-val">Requires secondary approver, fully logged</span></div>
+  </div>
+  <div class="spec-section">
+    <div class="spec-title">Security Rules</div>
+    <div class="spec-note">✅ IP logged on lockout<br>✅ All override events in audit log<br>✅ Email code expires in 10 min<br>✅ Override requires secondary approval<br>✅ Security notice shown if unexpected lockout</div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-nav button').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest Owner — Quality Score Trend</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #0d1117; color: #e0e6f0; min-height: 100vh; }
+  nav { background: #161b24; border-bottom: 1px solid #2a3040; color: #e0e6f0; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-size: 20px; font-weight: 700; color: #ffd166; }
+  nav .sub { font-size: 12px; color: #778899; margin-top: 2px; }
+  .tabs { display: flex; background: #161b24; border-bottom: 1px solid #2a3040; padding: 0 28px; }
+  .tab { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #556677; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .tab.active { color: #ffd166; border-bottom-color: #ffd166; }
+  .panel { display: none; padding: 24px 28px; max-width: 1100px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 12.5px; color: #ffd166; line-height: 1.5; }
+  h2 { font-size: 20px; font-weight: 700; color: #ffd166; margin-bottom: 6px; }
+  h3 { font-size: 15px; font-weight: 600; color: #c8d8e8; margin-bottom: 10px; }
+  p { font-size: 13px; line-height: 1.6; color: #8899aa; margin-bottom: 14px; }
+  .delta-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
+  .delta-card { background: #161b24; border-radius: 12px; padding: 14px; border: 1px solid #2a3040; }
+  .delta-card .crit { font-size: 11px; color: #556677; margin-bottom: 6px; }
+  .delta-card .score { font-size: 22px; font-weight: 700; color: #ffd166; }
+  .delta-card .change { font-size: 11px; font-weight: 700; margin-top: 5px; }
+  .change-pos { color: #3dba82; }
+  .change-neg { color: #e05555; }
+  .change-neu { color: #778899; }
+  .chart-card { background: #161b24; border-radius: 14px; padding: 22px; border: 1px solid #2a3040; margin-bottom: 18px; }
+  .chart-card h3 { margin-bottom: 16px; }
+  svg { display: block; }
+  .chart-label { font-size: 10.5px; fill: #556677; font-family: 'Sora', sans-serif; }
+  .chart-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .threshold-line { stroke: #e05555; stroke-width: 1.5; stroke-dasharray: 6,4; }
+  .chart-legend { display: flex; gap: 16px; margin-top: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #778899; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .legend-line { width: 18px; height: 2px; }
+  .criterion-row { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+  .crit-name { font-size: 12px; font-weight: 600; color: #c8d8e8; width: 120px; flex-shrink: 0; }
+  .crit-bar-w { flex: 1; background: #0d1117; border-radius: 20px; height: 10px; }
+  .crit-bar { height: 10px; border-radius: 20px; }
+  .crit-val { font-size: 12px; font-weight: 700; color: #ffd166; width: 40px; text-align: right; }
+  .threshold-note { background: rgba(224,85,85,0.1); border: 1px solid rgba(224,85,85,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #e05555; margin-bottom: 14px; }
+  .threshold-ok { background: rgba(61,186,130,0.1); border: 1px solid rgba(61,186,130,0.3); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: #3dba82; margin-bottom: 14px; }
+  .history-table { background: #161b24; border-radius: 14px; overflow: hidden; border: 1px solid #2a3040; margin-bottom: 16px; }
+  .history-table table { width: 100%; border-collapse: collapse; }
+  .history-table th { padding: 11px 16px; font-size: 11px; font-weight: 700; color: #556677; text-align: left; border-bottom: 1px solid #2a3040; text-transform: uppercase; letter-spacing: 0.7px; }
+  .history-table td { padding: 10px 16px; font-size: 12.5px; color: #c8d8e8; border-bottom: 1px solid #1a2030; }
+  .history-table tr:last-child td { border-bottom: none; }
+  .score-badge { display: inline-block; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; }
+  .score-green { background: rgba(61,186,130,0.15); color: #3dba82; }
+  .score-yellow { background: rgba(255,209,102,0.15); color: #ffd166; }
+  .score-red { background: rgba(224,85,85,0.15); color: #e05555; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid #2a3040; vertical-align: top; color: #c8d8e8; }
+  .spec-table td:first-child { font-weight: 600; color: #ffd166; width: 35%; }
+</style>
+</head>
+<body>
+<nav>
+  <div>
+    <div class="logo">WonderQuest</div>
+    <div class="sub">Quality Score Trend</div>
+  </div>
+  <div style="font-size:12px;color:#556677;">8-Week View · Spring 2026</div>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="show('overall')">Overall Trend</div>
+  <div class="tab" onclick="show('criterion')">Per-Criterion</div>
+  <div class="tab" onclick="show('threshold')">Threshold Analysis</div>
+  <div class="tab" onclick="show('history')">Score History</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<div id="overall" class="panel active">
+  <div class="hint">The overall readiness score is a composite of 5 criteria. The target threshold for launch readiness is <strong>90/100</strong>. Current score: <strong>87</strong>.</div>
+  <h2>Overall Readiness Score</h2>
+  <p>Weekly composite score across P0 Feedback, Routes, Content, QA, and Sign-Off criteria — weeks 1–8 of Spring 2026.</p>
+
+  <div class="delta-cards">
+    <div class="delta-card">
+      <div class="crit">P0 Feedback</div>
+      <div class="score">91</div>
+      <div class="change change-pos">↑4 this week</div>
+    </div>
+    <div class="delta-card">
+      <div class="crit">Routes</div>
+      <div class="score">88</div>
+      <div class="change change-pos">↑2 this week</div>
+    </div>
+    <div class="delta-card">
+      <div class="crit">Content</div>
+      <div class="score">85</div>
+      <div class="change change-neu">→ stable</div>
+    </div>
+    <div class="delta-card">
+      <div class="crit">QA</div>
+      <div class="score">84</div>
+      <div class="change change-pos">↑1 this week</div>
+    </div>
+    <div class="delta-card">
+      <div class="crit">Sign-Off</div>
+      <div class="score">78</div>
+      <div class="change change-neg">↓2 this week</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Overall Score — 8-Week Trend</h3>
+    <svg width="100%" height="200" viewBox="0 0 600 200">
+      <!-- grid -->
+      <line x1="60" y1="20" x2="580" y2="20" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="55" x2="580" y2="55" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="90" x2="580" y2="90" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="125" x2="580" y2="125" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="160" x2="580" y2="160" stroke="#1a2030" stroke-width="1"/>
+      <!-- y labels -->
+      <text x="52" y="24" class="chart-label" text-anchor="end">100</text>
+      <text x="52" y="59" class="chart-label" text-anchor="end">90</text>
+      <text x="52" y="94" class="chart-label" text-anchor="end">80</text>
+      <text x="52" y="129" class="chart-label" text-anchor="end">70</text>
+      <text x="52" y="164" class="chart-label" text-anchor="end">60</text>
+      <!-- x labels -->
+      <text x="60" y="182" class="chart-label" text-anchor="middle">W1</text>
+      <text x="130" y="182" class="chart-label" text-anchor="middle">W2</text>
+      <text x="200" y="182" class="chart-label" text-anchor="middle">W3</text>
+      <text x="270" y="182" class="chart-label" text-anchor="middle">W4</text>
+      <text x="340" y="182" class="chart-label" text-anchor="middle">W5</text>
+      <text x="410" y="182" class="chart-label" text-anchor="middle">W6</text>
+      <text x="480" y="182" class="chart-label" text-anchor="middle">W7</text>
+      <text x="550" y="182" class="chart-label" text-anchor="middle">W8</text>
+      <!-- Threshold at 90 -->
+      <line x1="60" y1="55" x2="580" y2="55" class="threshold-line"/>
+      <text x="583" y="58" style="font-size:9px;fill:#e05555;font-family:Sora,sans-serif;">90</text>
+      <!-- Overall score line: 68→72→75→78→80→83→85→87 mapped to 160→148→137→125→117→104→94→87 -->
+      <polyline class="chart-line" stroke="#ffd166" stroke-width="3" points="60,160 130,148 200,137 270,125 340,117 410,104 480,94 550,87"/>
+      <!-- current dot -->
+      <circle cx="550" cy="87" r="5" fill="#ffd166"/>
+      <text x="550" y="80" class="chart-label" text-anchor="middle" style="fill:#ffd166;font-weight:700;">87</text>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd166"></div>Overall Readiness Score</div>
+      <div class="legend-item"><div class="legend-line" style="background:#e05555;height:1px;border-top:2px dashed #e05555;"></div><span style="color:#e05555;">Threshold (90)</span></div>
+    </div>
+  </div>
+</div>
+
+<div id="criterion" class="panel">
+  <div class="hint">Each criterion is scored 0–100. All must reach ≥90 for launch readiness. P0 Feedback has crossed the threshold; 4 criteria remain below.</div>
+  <h2>Per-Criterion Trend Lines</h2>
+
+  <div class="chart-card">
+    <h3>All 5 Criteria — 8-Week Trend</h3>
+    <svg width="100%" height="220" viewBox="0 0 600 220">
+      <line x1="60" y1="20" x2="580" y2="20" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="65" x2="580" y2="65" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="110" x2="580" y2="110" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="155" x2="580" y2="155" stroke="#1a2030" stroke-width="1"/>
+      <line x1="60" y1="200" x2="580" y2="200" stroke="#1a2030" stroke-width="1"/>
+      <text x="52" y="24" class="chart-label" text-anchor="end">100</text>
+      <text x="52" y="69" class="chart-label" text-anchor="end">90</text>
+      <text x="52" y="114" class="chart-label" text-anchor="end">80</text>
+      <text x="52" y="159" class="chart-label" text-anchor="end">70</text>
+      <text x="52" y="204" class="chart-label" text-anchor="end">60</text>
+      <text x="60" y="215" class="chart-label" text-anchor="middle">W1</text>
+      <text x="130" y="215" class="chart-label" text-anchor="middle">W2</text>
+      <text x="200" y="215" class="chart-label" text-anchor="middle">W3</text>
+      <text x="270" y="215" class="chart-label" text-anchor="middle">W4</text>
+      <text x="340" y="215" class="chart-label" text-anchor="middle">W5</text>
+      <text x="410" y="215" class="chart-label" text-anchor="middle">W6</text>
+      <text x="480" y="215" class="chart-label" text-anchor="middle">W7</text>
+      <text x="550" y="215" class="chart-label" text-anchor="middle">W8</text>
+      <!-- threshold -->
+      <line x1="60" y1="65" x2="580" y2="65" class="threshold-line"/>
+      <!-- P0 Feedback: 70→75→79→83→85→87→89→91 -->
+      <polyline class="chart-line" stroke="#ffd166" points="60,155 130,133 200,110 270,88 340,75 410,65 480,56 550,42"/>
+      <!-- Routes: 65→70→74→78→81→83→86→88 -->
+      <polyline class="chart-line" stroke="#3dba82" points="60,178 130,155 200,132 270,110 340,88 410,76 480,54 550,42"/>
+      <!-- Content: 72→74→76→79→81→83→85→85 -->
+      <polyline class="chart-line" stroke="#58c8f0" stroke-dasharray="5,3" points="60,143 130,132 200,120 270,100 340,88 410,78 480,65 550,65"/>
+      <!-- QA: 68→70→73→76→79→80→82→84 -->
+      <polyline class="chart-line" stroke="#a78bfa" stroke-dasharray="4,3" points="60,165 130,155 200,143 270,131 340,110 410,100 480,88 550,76"/>
+      <!-- Sign-Off: 62→65→68→70→72→75→80→78 -->
+      <polyline class="chart-line" stroke="#e05555" stroke-dasharray="3,3" points="60,200 130,178 200,165 270,155 340,143 410,122 480,100 550,110"/>
+      <circle cx="550" cy="42" r="4" fill="#ffd166"/>
+      <circle cx="550" cy="42" r="4" fill="#3dba82" cx="550" cy="48"/>
+      <circle cx="550" cy="65" r="4" fill="#58c8f0"/>
+      <circle cx="550" cy="76" r="4" fill="#a78bfa"/>
+      <circle cx="550" cy="110" r="4" fill="#e05555"/>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#ffd166"></div>P0 Feedback (91)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3dba82"></div>Routes (88)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#58c8f0"></div>Content (85)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#a78bfa"></div>QA (84)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e05555"></div>Sign-Off (78)</div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>Current Week — Per-Criterion Scores</h3>
+    <div class="criterion-row"><div class="crit-name">P0 Feedback</div><div class="crit-bar-w"><div class="crit-bar" style="width:91%;background:#3dba82;"></div></div><div class="crit-val">91 ✓</div></div>
+    <div class="criterion-row"><div class="crit-name">Routes</div><div class="crit-bar-w"><div class="crit-bar" style="width:88%;background:#ffd166;"></div></div><div class="crit-val">88</div></div>
+    <div class="criterion-row"><div class="crit-name">Content</div><div class="crit-bar-w"><div class="crit-bar" style="width:85%;background:#ffd166;"></div></div><div class="crit-val">85</div></div>
+    <div class="criterion-row"><div class="crit-name">QA</div><div class="crit-bar-w"><div class="crit-bar" style="width:84%;background:#ffd166;"></div></div><div class="crit-val">84</div></div>
+    <div class="criterion-row"><div class="crit-name">Sign-Off</div><div class="crit-bar-w"><div class="crit-bar" style="width:78%;background:#e05555;"></div></div><div class="crit-val">78 ↓</div></div>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #2a3040;display:flex;justify-content:space-between;font-size:12px;color:#778899;">
+      <span>Target threshold</span><span style="color:#e05555;font-weight:700;">90 on all criteria</span>
+    </div>
+  </div>
+</div>
+
+<div id="threshold" class="panel">
+  <div class="hint">Threshold analysis highlights which criteria are above or below the 90-point launch readiness mark and projects when they'll cross it.</div>
+  <h2>Threshold Analysis</h2>
+  <p>Launch readiness requires all 5 criteria to score ≥90. Current status as of Week 8:</p>
+
+  <div class="threshold-ok">✓ P0 Feedback (91) — Above threshold. Maintain current trajectory.</div>
+  <div class="threshold-note">✗ Routes (88) — 2 points below threshold. At current rate (+2/week), ETA: ~1 week.</div>
+  <div class="threshold-note">✗ Content (85) — 5 points below. Content team needs to ship 3 more reviewed skill clusters. ETA: ~2.5 weeks.</div>
+  <div class="threshold-note">✗ QA (84) — 6 points below. 4 open P1 bugs blocking score increase. ETA: ~3 weeks if bugs resolved.</div>
+  <div class="threshold-note" style="border-color:rgba(224,85,85,0.5);background:rgba(224,85,85,0.15);">⚠ Sign-Off (78) — 12 points below and declining. Stakeholder sign-off cadence has slipped. Immediate action required. ETA: unknown.</div>
+
+  <div class="chart-card" style="margin-top:18px;">
+    <h3>Projected Threshold Crossing</h3>
+    <p style="font-size:12px;color:#778899;margin-bottom:10px;">Projection based on current weekly velocity per criterion.</p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="background:#0d1117;border-radius:8px;padding:12px;border:1px solid #2a3040;">
+        <div style="font-size:11px;color:#556677;margin-bottom:4px;">Routes</div>
+        <div style="font-size:14px;font-weight:700;color:#ffd166;">W9 · Mar 30</div>
+        <div style="font-size:11px;color:#3dba82;">~1 week out</div>
+      </div>
+      <div style="background:#0d1117;border-radius:8px;padding:12px;border:1px solid #2a3040;">
+        <div style="font-size:11px;color:#556677;margin-bottom:4px;">Content</div>
+        <div style="font-size:14px;font-weight:700;color:#ffd166;">W11 · Apr 13</div>
+        <div style="font-size:11px;color:#ffd166;">~2.5 weeks out</div>
+      </div>
+      <div style="background:#0d1117;border-radius:8px;padding:12px;border:1px solid #2a3040;">
+        <div style="font-size:11px;color:#556677;margin-bottom:4px;">QA</div>
+        <div style="font-size:14px;font-weight:700;color:#ffd166;">W11 · Apr 13</div>
+        <div style="font-size:11px;color:#ffd166;">~3 weeks (if bugs cleared)</div>
+      </div>
+      <div style="background:#0d1117;border-radius:8px;padding:12px;border:1px solid rgba(224,85,85,0.4);">
+        <div style="font-size:11px;color:#556677;margin-bottom:4px;">Sign-Off</div>
+        <div style="font-size:14px;font-weight:700;color:#e05555;">TBD</div>
+        <div style="font-size:11px;color:#e05555;">Blocked — escalate now</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="history" class="panel">
+  <div class="hint">Full week-by-week score history for all criteria. Use this to spot inflection points and validate improvement trends.</div>
+  <h2>Score History — All 8 Weeks</h2>
+
+  <div class="history-table">
+    <table>
+      <thead>
+        <tr>
+          <th>Week</th>
+          <th>Overall</th>
+          <th>P0 Feedback</th>
+          <th>Routes</th>
+          <th>Content</th>
+          <th>QA</th>
+          <th>Sign-Off</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td>W1 Jan 27</td><td><span class="score-badge score-red">68</span></td><td>70</td><td>65</td><td>72</td><td>68</td><td>62</td></tr>
+        <tr><td>W2 Feb 3</td><td><span class="score-badge score-red">71</span></td><td>75</td><td>70</td><td>74</td><td>70</td><td>65</td></tr>
+        <tr><td>W3 Feb 10</td><td><span class="score-badge score-red">74</span></td><td>79</td><td>74</td><td>76</td><td>73</td><td>68</td></tr>
+        <tr><td>W4 Feb 17</td><td><span class="score-badge score-red">77</span></td><td>83</td><td>78</td><td>79</td><td>76</td><td>70</td></tr>
+        <tr><td>W5 Feb 24</td><td><span class="score-badge score-yellow">80</span></td><td>85</td><td>81</td><td>81</td><td>79</td><td>72</td></tr>
+        <tr><td>W6 Mar 3</td><td><span class="score-badge score-yellow">82</span></td><td>87</td><td>83</td><td>83</td><td>80</td><td>75</td></tr>
+        <tr><td>W7 Mar 10</td><td><span class="score-badge score-yellow">85</span></td><td>89</td><td>86</td><td>85</td><td>82</td><td>80</td></tr>
+        <tr><td>W8 Mar 23</td><td><span class="score-badge score-yellow">87</span></td><td><span style="color:#3dba82;font-weight:700;">91 ✓</span></td><td>88</td><td>85</td><td>84</td><td><span style="color:#e05555;">78 ↓</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="spec" class="panel">
+  <h2>Spec Reference</h2>
+  <table class="spec-table">
+    <tr><td>File</td><td>owner-quality-score-trend-v2.html</td></tr>
+    <tr><td>Audience</td><td>Owner</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#0d1117</td></tr>
+    <tr><td>Accent</td><td>#ffd166 (gold)</td></tr>
+    <tr><td>Tabs</td><td>Overall Trend / Per-Criterion / Threshold Analysis / Score History / Spec</td></tr>
+    <tr><td>Key features</td><td>SVG 8-week trend line, per-criterion lines, threshold at 90, delta cards, history table</td></tr>
+    <tr><td>Criteria</td><td>P0 Feedback / Routes / Content / QA / Sign-Off</td></tr>
+    <tr><td>Version</td><td>v2 — 2026-03-23</td></tr>
+  </table>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['overall','criterion','threshold','history','spec'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>

@@ -2600,3 +2600,27 @@ When the active batch is done:
 
 **Polling:** UI Agent resuming 5-minute polling for next engineering batch.
 ---
+
+---
+## UI DELIVERY — BACKLOG CLEARANCE BATCH (DESIGN_BACKLOG #156–200)
+**Delivered by:** UI Agent (4 parallel sub-agents)
+**Date:** 2026-03-23
+**Status:** ✅ 45 FILES DELIVERED — DESIGN_BACKLOG.md items #156–200 COMPLETE
+
+### Voice / Audio Layer (10 files) ✅
+`voice-coach-control-bar-v2.html` · `voice-guide-persona-picker-v2.html` · `audio-replay-floating-button-v2.html` · `listening-mode-fullscreen-v2.html` · `mic-response-state-v2.html` · `slow-paced-prek-audio-ui-v2.html` · `caption-support-mode-v2.html` · `voice-disabled-fallback-v2.html` · `interactive-explainer-choice-v2.html` · `audio-success-chime-overlay-v2.html`
+
+### QA / Beta Tester (10 files) ✅
+`beta-tester-home-v2.html` · `beta-feedback-entry-v2.html` · `family-test-scenario-cards-v2.html` · `teacher-test-scenario-cards-v2.html` · `owner-test-scenario-cards-v2.html` · `ux-observation-log-v2.html` · `research-replay-board-v2.html` · `issue-reproduction-helper-v2.html` · `a-b-variant-comparison-v2.html` · `usability-metrics-strip-v2.html`
+
+### Onboarding / Recovery / System States (15 files) ✅
+`child-first-launch-welcome-v2.html` · `child-pin-recovery-flow-v2.html` · `child-profile-switcher-v2.html` · `parent-first-linking-wizard-v2.html` · `parent-relink-recovery-v2.html` · `parent-household-manager-v2.html` · `teacher-access-recovery-v2.html` · `owner-access-recovery-v2.html` · `global-empty-state-gallery-v2.html` · `global-error-state-gallery-v2.html` · `global-maintenance-banner-v3.html` · `global-update-announcement-v2.html` · `global-loading-skeletons-v2.html` · `global-no-results-state-v2.html` · `global-permission-denied-v2.html`
+
+### Comparison / Reports (10 files) ✅
+`parent-benchmark-explainer-v2.html` · `parent-progress-report-download-v2.html` · `parent-age-grade-comparison-v2.html` · `teacher-class-comparison-board-v2.html` · `teacher-student-growth-report-v2.html` · `owner-adoption-comparison-board-v2.html` · `owner-quality-score-trend-v2.html` · `content-coverage-comparison-v2.html` · `beta-feedback-trend-board-v2.html` · `research-session-summary-v2.html`
+
+**Total HTML files in ui-agent/: 257**
+**DESIGN_BACKLOG.md items 1–200: ALL COMPLETE ✅**
+
+**Polling:** UI Agent resuming 5-minute polling for next engineering batch.
+---

@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Student Growth Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sora', sans-serif; background: #f0f4f8; color: #1a2333; min-height: 100vh; }
+  nav { background: #2a5080; color: #fff; padding: 14px 28px; display: flex; align-items: center; justify-content: space-between; }
+  nav .logo { font-size: 20px; font-weight: 700; }
+  nav .sub { font-size: 12px; opacity: 0.75; margin-top: 2px; }
+  nav .actions { display: flex; gap: 10px; }
+  nav .btn-nav { padding: 7px 14px; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3); border-radius: 7px; color: #fff; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 600; cursor: pointer; }
+  .tabs { display: flex; background: #fff; border-bottom: 2px solid #dde4ed; padding: 0 28px; }
+  .tab { padding: 13px 18px; font-size: 13px; font-weight: 600; color: #778899; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; transition: all 0.2s; }
+  .tab.active { color: #2a5080; border-bottom-color: #2a5080; }
+  .panel { display: none; padding: 24px 28px; max-width: 900px; }
+  .panel.active { display: block; }
+  .hint { background: #2a1f00; border: 1px solid #ffd166; border-radius: 10px; padding: 12px 16px; margin-bottom: 22px; font-size: 12.5px; color: #ffd166; line-height: 1.5; }
+  h2 { font-size: 20px; font-weight: 700; color: #0f2040; margin-bottom: 6px; }
+  h3 { font-size: 15px; font-weight: 600; color: #2a5080; margin-bottom: 10px; }
+  p { font-size: 13.5px; line-height: 1.6; color: #445566; margin-bottom: 14px; }
+  .student-header { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); margin-bottom: 22px; display: flex; align-items: center; gap: 18px; border-left: 5px solid #2a5080; }
+  .avatar { width: 60px; height: 60px; border-radius: 50%; background: linear-gradient(135deg, #2a5080, #3db89f); display: flex; align-items: center; justify-content: center; font-size: 26px; flex-shrink: 0; }
+  .student-info h2 { font-size: 18px; margin-bottom: 4px; }
+  .student-meta { font-size: 12px; color: #778899; margin-bottom: 6px; }
+  .tier-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tier-pill { font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+  .strength { background: #d4edda; color: #155724; }
+  .growing { background: #d1ecf1; color: #0c5460; }
+  .opportunity { background: #fff3cd; color: #856404; }
+  .report-card { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); margin-bottom: 18px; }
+  .report-card h3 { margin-bottom: 14px; }
+  svg { display: block; }
+  .chart-label { font-size: 11px; fill: #778899; font-family: 'Sora', sans-serif; }
+  .chart-line { fill: none; stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+  .chart-dot { }
+  .chart-legend { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 11.5px; color: #556677; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .tier-timeline { position: relative; }
+  .tl-skill { margin-bottom: 18px; }
+  .tl-skill-name { font-size: 12.5px; font-weight: 600; color: #334455; margin-bottom: 8px; }
+  .tl-track { display: flex; gap: 4px; }
+  .tl-seg { flex: 1; height: 28px; border-radius: 5px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; color: rgba(255,255,255,0.9); }
+  .tl-seg.opp { background: #e6b800; }
+  .tl-seg.grow { background: #3db89f; }
+  .tl-seg.str { background: #2a5080; }
+  .tl-weeks { display: flex; gap: 4px; margin-top: 4px; }
+  .tl-wk { flex: 1; font-size: 9px; color: #aabbcc; text-align: center; }
+  .notes-area { width: 100%; border: 1px solid #dde4ed; border-radius: 8px; padding: 12px; font-family: 'Sora', sans-serif; font-size: 13px; color: #334455; min-height: 100px; resize: vertical; background: #fafbfc; }
+  .focus-card { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 12px; background: #f4f8fc; border-radius: 10px; padding: 12px 14px; }
+  .focus-num { width: 28px; height: 28px; border-radius: 50%; background: #2a5080; color: #fff; font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .focus-text h4 { font-size: 13px; font-weight: 600; color: #0f2040; margin-bottom: 4px; }
+  .focus-text p { font-size: 12px; color: #556677; margin: 0; }
+  .btn-primary { padding: 11px 22px; background: #2a5080; color: #fff; border: none; border-radius: 8px; font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .spec-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .spec-table td { padding: 9px 12px; border-bottom: 1px solid #dde4ed; vertical-align: top; }
+  .spec-table td:first-child { font-weight: 600; color: #2a5080; width: 35%; }
+
+  @media print {
+    nav, .tabs { display: none !important; }
+    body { background: #fff; }
+    .panel { display: block !important; padding: 0; }
+    #preview { display: block !important; }
+    .hint { display: none; }
+    .report-card { box-shadow: none; border: 1px solid #dde; }
+    .student-header { box-shadow: none; border: 1px solid #dde; }
+    h2 { font-size: 16px; }
+    .btn-primary { display: none; }
+    @page { margin: 1.5cm; }
+  }
+</style>
+</head>
+<body>
+<nav>
+  <div>
+    <div class="logo">WonderQuest</div>
+    <div class="sub">Student Growth Report</div>
+  </div>
+  <div class="actions">
+    <button class="btn-nav" onclick="window.print()">🖨 Print</button>
+    <button class="btn-nav">Export PDF</button>
+  </div>
+</nav>
+<div class="tabs">
+  <div class="tab active" onclick="show('preview')">Report Preview</div>
+  <div class="tab" onclick="show('chart')">Skill Trend Chart</div>
+  <div class="tab" onclick="show('timeline')">Tier Timeline</div>
+  <div class="tab" onclick="show('printprev')">Print Preview</div>
+  <div class="tab" onclick="show('spec')">Spec</div>
+</div>
+
+<div id="preview" class="panel active">
+  <div class="hint">This is the printable growth report for one student. Use the Print button (top right) to produce a paper copy.</div>
+
+  <div class="student-header">
+    <div class="avatar">🦊</div>
+    <div class="student-info">
+      <h2>Aiden Park</h2>
+      <div class="student-meta">Age 7 · Grade 2A · ID: WQ-2024-0041</div>
+      <div class="tier-pills">
+        <span class="tier-pill strength">Phonics: Strength</span>
+        <span class="tier-pill growing">Math: Growing</span>
+        <span class="tier-pill opportunity">Word Problems: Opportunity</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="report-card">
+    <h3>8-Week Progress Overview</h3>
+    <p style="font-size:12px;color:#778899;margin-bottom:14px;">Jan 27 – Mar 23, 2026 · 34 sessions completed</p>
+    <svg width="100%" height="160" viewBox="0 0 520 160">
+      <!-- grid lines -->
+      <line x1="50" y1="20" x2="510" y2="20" stroke="#f0f4f8" stroke-width="1"/>
+      <line x1="50" y1="60" x2="510" y2="60" stroke="#f0f4f8" stroke-width="1"/>
+      <line x1="50" y1="100" x2="510" y2="100" stroke="#f0f4f8" stroke-width="1"/>
+      <line x1="50" y1="140" x2="510" y2="140" stroke="#f0f4f8" stroke-width="1"/>
+      <!-- y labels -->
+      <text x="40" y="24" class="chart-label" text-anchor="end">Str</text>
+      <text x="40" y="64" class="chart-label" text-anchor="end">Grw</text>
+      <text x="40" y="104" class="chart-label" text-anchor="end">Opp</text>
+      <!-- x labels -->
+      <text x="50" y="158" class="chart-label" text-anchor="middle">W1</text>
+      <text x="115" y="158" class="chart-label" text-anchor="middle">W2</text>
+      <text x="180" y="158" class="chart-label" text-anchor="middle">W3</text>
+      <text x="245" y="158" class="chart-label" text-anchor="middle">W4</text>
+      <text x="310" y="158" class="chart-label" text-anchor="middle">W5</text>
+      <text x="375" y="158" class="chart-label" text-anchor="middle">W6</text>
+      <text x="440" y="158" class="chart-label" text-anchor="middle">W7</text>
+      <text x="505" y="158" class="chart-label" text-anchor="middle">W8</text>
+      <!-- Phonics line: mostly Strength -->
+      <polyline class="chart-line" stroke="#2a5080" points="50,60 115,60 180,40 245,30 310,25 375,22 440,20 505,20"/>
+      <!-- Math line: Growing trend -->
+      <polyline class="chart-line" stroke="#3db89f" points="50,100 115,100 180,90 245,80 310,70 375,65 440,62 505,60"/>
+      <!-- Word Problems line: Opportunity -->
+      <polyline class="chart-line" stroke="#e6b800" stroke-dasharray="5,3" points="50,120 115,120 180,115 245,110 310,108 375,105 440,102 505,100"/>
+      <!-- dots -->
+      <circle cx="505" cy="20" r="4" fill="#2a5080"/>
+      <circle cx="505" cy="60" r="4" fill="#3db89f"/>
+      <circle cx="505" cy="100" r="4" fill="#e6b800"/>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#2a5080"></div>Phonics</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3db89f"></div>Math (avg)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e6b800"></div>Word Problems</div>
+    </div>
+  </div>
+
+  <div class="report-card">
+    <h3>Teacher Notes</h3>
+    <p style="font-size:12.5px;color:#334455;background:#f4f8fc;border-radius:8px;padding:12px;line-height:1.7;margin-bottom:0;">Aiden shows strong phonics instincts — he often corrects himself mid-word before completing, which is a great metacognitive sign. Math is progressing well; he benefits from visual representations of problems. Word problems are the focus area for next 4 weeks — we'll start with familiar scenarios (sports, food) to build confidence before introducing abstract contexts.</p>
+  </div>
+
+  <div class="report-card">
+    <h3>Next Focus Areas</h3>
+    <div class="focus-card">
+      <div class="focus-num">1</div>
+      <div class="focus-text">
+        <h4>Word Problem Foundations</h4>
+        <p>Introduce story-based math with familiar contexts. 5 sessions of guided practice using sports scenarios.</p>
+      </div>
+    </div>
+    <div class="focus-card">
+      <div class="focus-num">2</div>
+      <div class="focus-text">
+        <h4>2-Digit Addition with Regrouping</h4>
+        <p>Aiden's number sense is strong enough to push into regrouping. Target: 3 practice sessions this week.</p>
+      </div>
+    </div>
+    <div class="focus-card">
+      <div class="focus-num">3</div>
+      <div class="focus-text">
+        <h4>Extend Reading Strength</h4>
+        <p>Move to longer passages (3–4 paragraphs) and inference questions. Phonics is a solid base to build on.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="chart" class="panel">
+  <div class="hint">The skill trend chart plots each skill's tier progression across 8 weeks — upward slopes are growth, flat lines indicate maintained strength.</div>
+  <h2>8-Week Skill Trend</h2>
+  <p>Aiden Park · Jan 27 – Mar 23, 2026</p>
+
+  <div class="report-card">
+    <h3>All Skills — Tier Movement Over 8 Weeks</h3>
+    <svg width="100%" height="200" viewBox="0 0 560 200">
+      <line x1="60" y1="20" x2="550" y2="20" stroke="#eee" stroke-width="1"/>
+      <line x1="60" y1="65" x2="550" y2="65" stroke="#eee" stroke-width="1"/>
+      <line x1="60" y1="110" x2="550" y2="110" stroke="#eee" stroke-width="1"/>
+      <line x1="60" y1="155" x2="550" y2="155" stroke="#eee" stroke-width="1"/>
+      <text x="52" y="24" class="chart-label" text-anchor="end">Strength</text>
+      <text x="52" y="69" class="chart-label" text-anchor="end">Growing</text>
+      <text x="52" y="114" class="chart-label" text-anchor="end">Opport.</text>
+      <text x="60" y="175" class="chart-label" text-anchor="middle">W1</text>
+      <text x="130" y="175" class="chart-label" text-anchor="middle">W2</text>
+      <text x="200" y="175" class="chart-label" text-anchor="middle">W3</text>
+      <text x="270" y="175" class="chart-label" text-anchor="middle">W4</text>
+      <text x="340" y="175" class="chart-label" text-anchor="middle">W5</text>
+      <text x="410" y="175" class="chart-label" text-anchor="middle">W6</text>
+      <text x="480" y="175" class="chart-label" text-anchor="middle">W7</text>
+      <text x="550" y="175" class="chart-label" text-anchor="middle">W8</text>
+      <!-- Phonics -->
+      <polyline class="chart-line" stroke="#2a5080" points="60,70 130,65 200,45 270,30 340,25 410,22 480,20 550,20"/>
+      <!-- Comprehension -->
+      <polyline class="chart-line" stroke="#4a90d0" points="60,90 130,80 200,70 270,65 340,60 410,55 480,50 550,45"/>
+      <!-- Number Sense -->
+      <polyline class="chart-line" stroke="#3db89f" points="60,110 130,110 200,100 270,90 340,82 410,75 480,70 550,65"/>
+      <!-- Addition -->
+      <polyline class="chart-line" stroke="#56c2a8" stroke-dasharray="4,3" points="60,120 130,118 200,112 270,105 340,98 410,90 480,85 550,80"/>
+      <!-- Word Problems -->
+      <polyline class="chart-line" stroke="#e6b800" stroke-dasharray="5,3" points="60,130 130,128 200,125 270,120 340,115 410,112 480,110 550,108"/>
+      <circle cx="550" cy="20" r="4" fill="#2a5080"/>
+      <circle cx="550" cy="45" r="4" fill="#4a90d0"/>
+      <circle cx="550" cy="65" r="4" fill="#3db89f"/>
+      <circle cx="550" cy="80" r="4" fill="#56c2a8"/>
+      <circle cx="550" cy="108" r="4" fill="#e6b800"/>
+    </svg>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#2a5080"></div>Phonics</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4a90d0"></div>Comprehension</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3db89f"></div>Number Sense</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#56c2a8"></div>Addition</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e6b800"></div>Word Problems</div>
+    </div>
+  </div>
+</div>
+
+<div id="timeline" class="panel">
+  <div class="hint">The tier timeline shows week-by-week tier for each skill as colored segments — easy to see exactly when skills shifted.</div>
+  <h2>Tier Progression Timeline</h2>
+  <p>Aiden Park · Weeks 1–8 of 2026 (Jan 27 – Mar 23)</p>
+
+  <div class="report-card">
+    <div class="tier-timeline">
+      <div class="tl-skill">
+        <div class="tl-skill-name">Phonics</div>
+        <div class="tl-track">
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+        </div>
+      </div>
+      <div class="tl-skill">
+        <div class="tl-skill-name">Reading Comprehension</div>
+        <div class="tl-track">
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg str">S</div>
+          <div class="tl-seg str">S</div>
+        </div>
+      </div>
+      <div class="tl-skill">
+        <div class="tl-skill-name">Number Sense</div>
+        <div class="tl-track">
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+        </div>
+      </div>
+      <div class="tl-skill">
+        <div class="tl-skill-name">Addition</div>
+        <div class="tl-track">
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+          <div class="tl-seg grow">G</div>
+        </div>
+      </div>
+      <div class="tl-skill">
+        <div class="tl-skill-name">Word Problems</div>
+        <div class="tl-track">
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+          <div class="tl-seg opp">O</div>
+        </div>
+      </div>
+      <div class="tl-weeks">
+        <div class="tl-wk">W1</div><div class="tl-wk">W2</div><div class="tl-wk">W3</div>
+        <div class="tl-wk">W4</div><div class="tl-wk">W5</div><div class="tl-wk">W6</div>
+        <div class="tl-wk">W7</div><div class="tl-wk">W8</div>
+      </div>
+    </div>
+    <div class="chart-legend" style="margin-top:12px;">
+      <div class="legend-item"><div class="legend-dot" style="background:#e6b800;border-radius:3px;"></div>Opportunity (O)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3db89f;border-radius:3px;"></div>Growing (G)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2a5080;border-radius:3px;"></div>Strength (S)</div>
+    </div>
+  </div>
+</div>
+
+<div id="printprev" class="panel">
+  <div class="hint">Use your browser's print dialog (Cmd+P / Ctrl+P) or the Print button in the top nav. The report is optimized for A4/Letter paper.</div>
+  <h2>Print Preview</h2>
+  <p>The printed report includes: student card, 8-week skill trend chart, tier timeline, teacher notes, and next focus areas. Navigation and tabs are hidden on print.</p>
+  <div style="background:#fff;border:1px solid #dde;border-radius:10px;padding:20px;margin-bottom:18px;">
+    <p style="font-size:12px;color:#778899;margin-bottom:8px;">Print settings recommended:</p>
+    <ul style="font-size:12.5px;color:#445566;padding-left:18px;line-height:2;">
+      <li>Paper size: A4 or Letter</li>
+      <li>Orientation: Portrait</li>
+      <li>Margins: Normal (1.5cm)</li>
+      <li>Background graphics: ON (for colored tier bars)</li>
+      <li>Pages: 1</li>
+    </ul>
+  </div>
+  <button class="btn-primary" onclick="window.print()">🖨 Print Now</button>
+</div>
+
+<div id="spec" class="panel">
+  <h2>Spec Reference</h2>
+  <table class="spec-table">
+    <tr><td>File</td><td>teacher-student-growth-report-v2.html</td></tr>
+    <tr><td>Audience</td><td>Teacher</td></tr>
+    <tr><td>Viewport</td><td>Desktop 900px+ · print-optimized</td></tr>
+    <tr><td>Font</td><td>Sora</td></tr>
+    <tr><td>Background</td><td>#f0f4f8 (screen) / #fff (print)</td></tr>
+    <tr><td>Nav color</td><td>#2a5080</td></tr>
+    <tr><td>Tabs</td><td>Report Preview / Skill Trend Chart / Tier Timeline / Print Preview / Spec</td></tr>
+    <tr><td>Key features</td><td>Student card header, SVG 8-week trend, tier timeline segments, teacher notes, focus areas, @media print</td></tr>
+    <tr><td>Print behavior</td><td>Nav/tabs hidden, all panels visible, box shadows removed</td></tr>
+    <tr><td>Tiers</td><td>Opportunity / Growing / Strength</td></tr>
+    <tr><td>Version</td><td>v2 — 2026-03-23</td></tr>
+  </table>
+</div>
+
+<script>
+  function show(id) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    const idx = ['preview','chart','timeline','printprev','spec'].indexOf(id);
+    document.querySelectorAll('.tab')[idx].classList.add('active');
+  }
+</script>
+</body>
+</html>
