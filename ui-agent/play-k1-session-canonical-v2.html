@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · K–1 Live Session — Canonical v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #0a0a1a; font-family: 'Nunito', sans-serif; font-weight: 700; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 780px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 820px; }
+.tab-btn { background: #1e0e3e; color: #9b72ff; border: 1.5px solid #3a1888; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #9b72ff; color: #fff; border-color: #9b72ff; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Phone frame */
+.phone { width: 375px; background: #100b2e; border-radius: 40px; border: 3px solid #3a1888; overflow: hidden; box-shadow: 0 20px 60px rgba(155,114,255,.25); margin: 0 auto; min-height: 750px; position: relative; display: flex; flex-direction: column; }
+.status-bar { background: #0d0820; padding: 12px 20px 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #7b6fa0; }
+.status-bar .stars-count { color: #9b72ff; font-size: 13px; font-weight: 900; }
+
+/* Progress header */
+.progress-header { background: #160d38; padding: 8px 16px; }
+.progress-row { display: flex; align-items: center; gap: 10px; }
+.progress-label { font-size: 11px; color: #9b8fc0; white-space: nowrap; }
+.progress-track { flex: 1; height: 8px; background: #2a1f5e; border-radius: 6px; overflow: hidden; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #9b72ff, #d87bff); border-radius: 6px; transition: width .3s; }
+.streak-chip { background: #2a1060; border: 1px solid #9b72ff; border-radius: 12px; padding: 3px 10px; font-size: 11px; color: #d87bff; white-space: nowrap; }
+
+/* World header */
+.world-header { background: linear-gradient(135deg, #1a0f3e 0%, #2a1060 100%); padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #3a1888; }
+.world-emoji { font-size: 22px; }
+.world-info { flex: 1; }
+.world-name { font-size: 13px; color: #d87bff; font-weight: 900; }
+.node-name { font-size: 11px; color: #7b6fa0; }
+.hint-btn { background: #2a1060; border: 1.5px solid #9b72ff; border-radius: 20px; padding: 5px 12px; font-size: 12px; color: #d87bff; font-family: 'Nunito', sans-serif; font-weight: 700; cursor: pointer; }
+
+/* Question area */
+.question-area { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 16px; }
+
+/* Reading question */
+.word-display { background: linear-gradient(135deg, #1a0f3e, #2e1060); border: 3px solid #9b72ff; border-radius: 20px; padding: 20px 30px; text-align: center; margin-bottom: 18px; width: 100%; }
+.word-big { font-size: 54px; font-weight: 900; color: #e8d8ff; letter-spacing: 4px; }
+.word-phoneme { display: flex; justify-content: center; gap: 4px; margin-top: 8px; }
+.phoneme-chunk { background: #3a2888; border-radius: 8px; padding: 4px 10px; font-size: 16px; color: #d87bff; font-weight: 900; }
+.question-prompt { font-size: 18px; color: #e0d0ff; font-weight: 900; text-align: center; margin-bottom: 16px; }
+.question-sub-prompt { font-size: 13px; color: #9b72ff; text-align: center; margin-bottom: 14px; }
+
+/* Number question */
+.number-display { background: linear-gradient(135deg, #0a1e3e, #0a2060); border: 3px solid #58c8f0; border-radius: 20px; padding: 18px; text-align: center; margin-bottom: 18px; width: 100%; }
+.number-big { font-size: 72px; font-weight: 900; color: #d8f0ff; }
+.dot-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; justify-items: center; margin-top: 10px; }
+.dot { width: 18px; height: 18px; background: #58c8f0; border-radius: 50%; }
+.dot.dim { background: #1e3060; }
+.counting-label { font-size: 13px; color: #58c8f0; margin-top: 8px; }
+
+/* Answer cards - 4 option */
+.answer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.ans-card { background: #1e1060; border: 2.5px solid #3a2888; border-radius: 18px; padding: 14px 10px 12px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; transition: transform .15s, border-color .15s; }
+.ans-card:active { transform: scale(.96); }
+.ans-card .ans-emoji { font-size: 32px; line-height: 1; }
+.ans-card .ans-text { font-size: 15px; color: #e0d0ff; font-weight: 900; text-align: center; }
+.ans-card .ans-number { font-size: 28px; color: #e0d0ff; font-weight: 900; }
+.ans-card.correct { background: #0e2e18; border-color: #50e880; }
+.ans-card.correct .ans-text, .ans-card.correct .ans-number { color: #80ff90; }
+.ans-card.wrong-pick { background: #2e0e1a; border-color: #ff6080; animation: shake .3s ease; }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+.ans-card.correct .ans-emoji { filter: drop-shadow(0 0 10px #50e880); }
+
+/* Hint overlay */
+.hint-overlay { background: linear-gradient(135deg, #1a0f3e, #2e1060); border: 2px solid #9b72ff; border-radius: 18px; padding: 14px; margin-bottom: 14px; width: 100%; }
+.hint-header { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.hint-avatar { font-size: 30px; }
+.hint-title { font-size: 14px; color: #d87bff; font-weight: 900; }
+.hint-body { font-size: 14px; color: #e0d0ff; line-height: 1.5; }
+.hint-visual { display: flex; gap: 8px; margin-top: 10px; align-items: center; justify-content: center; }
+.letter-block { background: #3a2888; border-radius: 10px; padding: 8px 12px; font-size: 20px; color: #d87bff; font-weight: 900; }
+.arrow-connector { font-size: 16px; color: #9b72ff; }
+.word-result { background: #4a38a8; border-radius: 10px; padding: 8px 14px; font-size: 18px; color: #fff; font-weight: 900; }
+
+/* Celebration */
+.celebration { text-align: center; padding: 20px 16px; width: 100%; }
+.celeb-big { font-size: 70px; animation: pop .4s ease; }
+@keyframes pop { 0% { transform: scale(0); } 70% { transform: scale(1.2); } 100% { transform: scale(1); } }
+.celeb-title { font-size: 28px; color: #d87bff; font-weight: 900; margin-top: 8px; }
+.celeb-sub { font-size: 15px; color: #c8b8f0; margin-top: 4px; }
+.chip-row { display: flex; gap: 10px; justify-content: center; margin-top: 14px; flex-wrap: wrap; }
+.xp-chip { background: #9b72ff; color: #fff; font-size: 14px; font-weight: 900; padding: 7px 18px; border-radius: 24px; }
+.star-chip { background: #ffd166; color: #1a0f00; font-size: 14px; font-weight: 900; padding: 7px 18px; border-radius: 24px; }
+.streak-celeb { background: linear-gradient(135deg, #ff7b3a, #ffd166); color: #1a0f00; font-size: 14px; font-weight: 900; padding: 7px 18px; border-radius: 24px; }
+.progress-cue { background: #1a0f3e; border-radius: 14px; padding: 12px 16px; margin-top: 16px; font-size: 15px; color: #d87bff; font-weight: 900; text-align: center; }
+.progress-mini-bar { height: 6px; background: #2a1f5e; border-radius: 4px; margin-top: 8px; overflow: hidden; }
+.progress-mini-fill { height: 100%; background: #9b72ff; border-radius: 4px; }
+
+/* CTA buttons */
+.btn-violet { background: #9b72ff; color: #fff; border: none; border-radius: 28px; padding: 16px 40px; font-size: 18px; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; width: 100%; margin-top: 16px; }
+.btn-outline { background: transparent; color: #9b72ff; border: 2.5px solid #9b72ff; border-radius: 28px; padding: 13px 40px; font-size: 16px; font-family: 'Nunito', sans-serif; font-weight: 900; cursor: pointer; width: 100%; margin-top: 10px; }
+
+/* Spec */
+.spec-wrap { padding: 16px; }
+.spec-section { margin-bottom: 20px; }
+.spec-title { font-size: 13px; color: #9b72ff; font-weight: 900; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spec-table th { background: #1e1250; color: #9b72ff; padding: 6px 8px; text-align: left; border-bottom: 1px solid #3a1888; }
+.spec-table td { color: #c8b8f0; padding: 5px 8px; border-bottom: 1px solid #160d38; vertical-align: top; }
+.spec-rule { background: #12093a; border-left: 3px solid #9b72ff; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 12px; color: #c8b8f0; }
+.spec-rule strong { color: #9b72ff; }
+.badge-violet { background: #9b72ff; color: #fff; font-size: 10px; font-weight: 900; padding: 2px 8px; border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>🎮 play-k1-session-canonical-v2.html</strong> — Canonical live play surface for K–1 band (ages 5–7, P1 <span style="background:#9b72ff;color:#fff;padding:1px 8px;border-radius:10px;font-size:11px;">K–1 Violet</span>).<br>
+  <strong>Tabs:</strong> 1 · Reading Question (sight word display, phoneme chunking, 4 answer cards) &nbsp;|&nbsp; 2 · Number Question (large numeral, dot grid, 4 answer cards) &nbsp;|&nbsp; 3 · Correct Celebration (violet sparkle, XP+star+streak chips, progress cue) &nbsp;|&nbsp; 4 · Hint Support (coach overlay, word breakdown visual, no shame) &nbsp;|&nbsp; 5 · Spec (question types, reading load, hint system, routes).<br>
+  <strong>Design:</strong> <code>#100b2e</code> bg · Nunito 900 · P1 <code>#9b72ff</code> accent · 375px frame · max 15 words/question · word+number balance · hint available (not forced).
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('k1-reading')">1 · Reading Question</button>
+  <button class="tab-btn" onclick="show('k1-number')">2 · Number Question</button>
+  <button class="tab-btn" onclick="show('k1-correct')">3 · Correct!</button>
+  <button class="tab-btn" onclick="show('k1-hint')">4 · Hint Support</button>
+  <button class="tab-btn" onclick="show('k1-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Reading Question -->
+<div id="k1-reading" class="tab active">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Ocean World</span>
+      <span class="stars-count">⭐ 7</span>
+    </div>
+    <div class="progress-header">
+      <div class="progress-row">
+        <span class="progress-label">Quest 3 of 6</span>
+        <div class="progress-track"><div class="progress-fill" style="width:50%"></div></div>
+        <span class="streak-chip">🔥 5</span>
+      </div>
+    </div>
+    <div class="world-header">
+      <span class="world-emoji">🌊</span>
+      <div class="world-info">
+        <div class="world-name">Ocean World</div>
+        <div class="node-name">Sight Words · Level 2</div>
+      </div>
+      <button class="hint-btn">💡 Hint</button>
+    </div>
+    <div class="question-area">
+      <div class="word-display">
+        <div class="word-big">PLAY</div>
+        <div class="word-phoneme">
+          <div class="phoneme-chunk">PL</div>
+          <div class="phoneme-chunk">AY</div>
+        </div>
+      </div>
+      <div class="question-prompt">What does this word say?</div>
+      <div class="answer-grid">
+        <div class="ans-card">
+          <div class="ans-emoji">🎮</div>
+          <div class="ans-text">play</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🏃</div>
+          <div class="ans-text">run</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🌧️</div>
+          <div class="ans-text">rain</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🌿</div>
+          <div class="ans-text">plant</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Number Question -->
+<div id="k1-number" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Ocean World</span>
+      <span class="stars-count">⭐ 8</span>
+    </div>
+    <div class="progress-header">
+      <div class="progress-row">
+        <span class="progress-label">Quest 4 of 6</span>
+        <div class="progress-track"><div class="progress-fill" style="width:67%"></div></div>
+        <span class="streak-chip">🔥 6</span>
+      </div>
+    </div>
+    <div class="world-header">
+      <span class="world-emoji">🌊</span>
+      <div class="world-info">
+        <div class="world-name">Ocean World</div>
+        <div class="node-name">Number Sense · Counting to 10</div>
+      </div>
+      <button class="hint-btn">💡 Hint</button>
+    </div>
+    <div class="question-area">
+      <div class="number-display">
+        <div class="number-big">7</div>
+        <div class="dot-grid">
+          <div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+          <div class="dot"></div><div class="dot"></div><div class="dot dim"></div><div class="dot dim"></div><div class="dot dim"></div>
+        </div>
+        <div class="counting-label">Count the blue dots!</div>
+      </div>
+      <div class="question-prompt">How many dots are there?</div>
+      <div class="answer-grid">
+        <div class="ans-card">
+          <div class="ans-number">6</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-number">7</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-number">8</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-number">9</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Correct Celebration -->
+<div id="k1-correct" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Ocean World</span>
+      <span class="stars-count">⭐ 9</span>
+    </div>
+    <div class="progress-header">
+      <div class="progress-row">
+        <span class="progress-label">Quest 4 done! ✨</span>
+        <div class="progress-track"><div class="progress-fill" style="width:67%"></div></div>
+        <span class="streak-chip">🔥 7</span>
+      </div>
+    </div>
+    <div class="question-area" style="padding-top:10px;">
+      <div class="celebration" style="padding-top:0">
+        <div class="celeb-big">🎊</div>
+        <div class="celeb-title">Amazing! ✨</div>
+        <div class="celeb-sub">7 dots — you counted right!</div>
+        <div class="chip-row">
+          <div class="xp-chip">+12 XP</div>
+          <div class="star-chip">⭐ Star!</div>
+          <div class="streak-celeb">🔥 7 streak!</div>
+        </div>
+        <div class="progress-cue">
+          3 done · 3 more to go!
+          <div class="progress-mini-bar"><div class="progress-mini-fill" style="width:50%"></div></div>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; width:100%;">
+        <div class="ans-card correct">
+          <div class="ans-number" style="color:#80ff90; font-size:28px;">7</div>
+          <div class="ans-text" style="color:#80ff90; font-size:12px;">⭐ You picked this!</div>
+        </div>
+        <div class="ans-card" style="opacity:.3"><div class="ans-number">6</div></div>
+        <div class="ans-card" style="opacity:.3"><div class="ans-number">8</div></div>
+        <div class="ans-card" style="opacity:.3"><div class="ans-number">9</div></div>
+      </div>
+      <button class="btn-violet">Next Quest →</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Hint Support -->
+<div id="k1-hint" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Ocean World</span>
+      <span class="stars-count">⭐ 7</span>
+    </div>
+    <div class="progress-header">
+      <div class="progress-row">
+        <span class="progress-label">Quest 3 of 6</span>
+        <div class="progress-track"><div class="progress-fill" style="width:50%"></div></div>
+        <span class="streak-chip">🔥 5</span>
+      </div>
+    </div>
+    <div class="question-area" style="padding-top:12px;">
+      <div class="word-display" style="margin-bottom:12px;">
+        <div class="word-big" style="font-size:44px;">PLAY</div>
+      </div>
+      <div class="hint-overlay">
+        <div class="hint-header">
+          <div class="hint-avatar">🧜‍♀️</div>
+          <div class="hint-title">Wave Guide says:</div>
+        </div>
+        <div class="hint-body">Break it into two sounds! Say the first part, then the second part.</div>
+        <div class="hint-visual">
+          <div class="letter-block">PL</div>
+          <div class="arrow-connector">+</div>
+          <div class="letter-block">AY</div>
+          <div class="arrow-connector">=</div>
+          <div class="word-result">PLAY</div>
+        </div>
+      </div>
+      <div class="question-prompt" style="margin-bottom:12px;">What does this word say?</div>
+      <div class="answer-grid">
+        <div class="ans-card">
+          <div class="ans-emoji">🎮</div>
+          <div class="ans-text">play</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🏃</div>
+          <div class="ans-text">run</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🌧️</div>
+          <div class="ans-text">rain</div>
+        </div>
+        <div class="ans-card">
+          <div class="ans-emoji">🌿</div>
+          <div class="ans-text">plant</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="k1-spec" class="tab">
+  <div class="phone" style="min-height:900px;">
+    <div class="status-bar" style="background:#0d0820;">
+      <span style="color:#9b72ff; font-size:12px;">📋 K–1 Session Spec</span>
+    </div>
+    <div class="spec-wrap">
+      <div class="spec-section">
+        <div class="spec-title">Routes / API</div>
+        <table class="spec-table">
+          <tr><th>Endpoint</th><th>Purpose</th></tr>
+          <tr><td>GET /session/start</td><td>Returns first question with type (reading|number|pattern)</td></tr>
+          <tr><td>POST /session/answer</td><td>Submit answer; XP delta in response</td></tr>
+          <tr><td>GET /session/hint</td><td>Returns hint text + visual breakdown data</td></tr>
+          <tr><td>POST /session/end</td><td>Session end; returns XP, stars, streak update, world state</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Question Types — K–1</div>
+        <table class="spec-table">
+          <tr><th>Type</th><th>Display</th><th>Answer format</th></tr>
+          <tr><td>Sight word</td><td>Word large + phoneme chunks</td><td>4 text+emoji cards</td></tr>
+          <tr><td>CVC / phonics</td><td>Word large + phoneme hint</td><td>4 text+emoji cards</td></tr>
+          <tr><td>Number sense</td><td>Numeral large + dot grid</td><td>4 numeral cards</td></tr>
+          <tr><td>Counting</td><td>Object emoji grid</td><td>4 numeral cards</td></tr>
+          <tr><td>Patterns</td><td>Emoji sequence with gap</td><td>4 emoji cards</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Reading Load Rules (K–1)</div>
+        <div class="spec-rule"><strong>Max question text:</strong> 15 words. Emoji accent encouraged but not required on every question.</div>
+        <div class="spec-rule"><strong>Answer labels:</strong> ≤ 3 words each. Single word strongly preferred.</div>
+        <div class="spec-rule"><strong>Phoneme display:</strong> Show phoneme chunks on all sight-word / CVC questions. Max 3 chunks per word.</div>
+        <div class="spec-rule"><strong>No grade labels</strong> in UI. World names only (Ocean World, Dream World, etc.).</div>
+        <div class="spec-rule"><strong>Wrong answer:</strong> Never say "wrong". Use "Oops!" or "Let's try again!". Stars are never deducted in session.</div>
+        <div class="spec-rule"><strong>Hint:</strong> Always available via button tap. Never auto-shown for first attempt. Auto-shown only after 2 wrong picks.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Word + Number Balance</div>
+        <table class="spec-table">
+          <tr><th>Session length</th><th>Reading Qs</th><th>Number Qs</th></tr>
+          <tr><td>5 questions</td><td>3</td><td>2</td></tr>
+          <tr><td>6 questions</td><td>3</td><td>3</td></tr>
+          <tr><td>8 questions</td><td>4–5</td><td>3–4</td></tr>
+          <tr><td>Adaptive</td><td colspan="2">Re-balance based on mastery signals mid-session</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Band Color — P1 K–1</div>
+        <table class="spec-table">
+          <tr><th>Token</th><th>Value</th><th>Usage</th></tr>
+          <tr><td>P1 accent</td><td>#9b72ff</td><td>Progress bar, hint button, coach border</td></tr>
+          <tr><td>P1 light</td><td>#d87bff</td><td>World name, phoneme chunks, hint text</td></tr>
+          <tr><td>P1 bg</td><td>#100b2e</td><td>Phone frame background</td></tr>
+          <tr><td>Number accent</td><td>#58c8f0</td><td>Dot grid, number display border</td></tr>
+          <tr><td>Correct green</td><td>#50e880</td><td>Correct card border, answer text</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Hint System Rules</div>
+        <div class="spec-rule"><strong>Trigger:</strong> Manual (💡 Hint button) or auto after 2 wrong picks in same question.</div>
+        <div class="spec-rule"><strong>Hint format:</strong> Coach avatar + 1–2 sentence text + optional visual (phoneme split, counting dots, pattern preview).</div>
+        <div class="spec-rule"><strong>No penalty</strong> for using hint. Hint flag sent in POST /session/answer for analytics only.</div>
+        <div class="spec-rule"><strong>XP on hinted correct:</strong> Full XP awarded. Never penalize for hint use in child UI.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Celebration Chips</div>
+        <table class="spec-table">
+          <tr><th>Chip</th><th>When shown</th><th>Color</th></tr>
+          <tr><td>+N XP</td><td>Every correct answer</td><td>P1 violet</td></tr>
+          <tr><td>⭐ Star!</td><td>Each new star earned</td><td>P0 gold</td></tr>
+          <tr><td>🔥 N streak!</td><td>Streak ≥ 3</td><td>Gradient orange-gold</td></tr>
+          <tr><td>Level up!</td><td>XP threshold crossed</td><td>Full-screen overlay</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

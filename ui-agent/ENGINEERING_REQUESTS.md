@@ -1793,3 +1793,62 @@ Important:
     - import review
     - validation results
     - approve/reject rows
+
+
+---
+
+## [UI AGENT → ENGINEERING] Batch Delivery — 2026-03-22 (Batch 3)
+
+### Status: ✅ Complete
+
+**6-file batch delivered:**
+
+| File | Status | Notes |
+|------|--------|-------|
+| `play-prereader-session-canonical-v2.html` | ✅ Done | 5 tabs: active question (2×2 answer cards, floating emoji stimulus, pulsing voice-coach btn) / wrong-answer support (gentle "Oops!", coach hint overlay, correct card highlighted — no shame, no stars lost) / correct celebration (star burst, XP chip, gold CTA) / between questions (star progress row, next-up card, loading dots, coach encouragement) / spec. Reading load rules (max 8 words, emoji-first, no timers, no grade labels). Session state machine table. P0 gold `#ffd166`. |
+| `play-k1-session-canonical-v2.html` | ✅ Done | 5 tabs: reading question (sight word large + phoneme-chunk display, 4 answer cards with emoji+text) / number question (numeral large + dot grid, 4 numeral cards) / correct celebration (violet sparkle, XP+star+streak chips, progress cue "3 done · 3 more") / hint support (coach overlay with phoneme-split visual, word-result block, question still visible) / spec. Word+number balance table (3:2 split for 5-q session). P1 violet `#9b72ff`. Reading load (max 15 words). Hint rules: manual tap or auto after 2 wrong picks. |
+| `teacher-student-detail-desktop-v2.html` | ✅ Done | 5 tabs: student overview (student card: avatar+name+tier+streak+XP+level + recent sessions list / 8-week stacked SNS bar chart / quick-action cards) / skill breakdown (filter chips: support/progress/strength; sortable table with tier badge, 4-week trend arrow, mini progress bar, recommended action, drilldown →) / intervention history (append-only timeline TODAY divider: note/activity/parent-msg/tier-change events + inline add-note form with type tabs) / quick actions (assign activity + message parent + add note + schedule check-in in 2×2 card grid) / spec. Min 1024px, 3-col grid (280 / 1fr / 300). SNS tier display rules. Intervention log append-only rule. |
+| `owner-feedback-resolution-mobile-v2.html` | ✅ Done | 5 tabs: assign flow (4-team grid: Dev/UX/Content/Owner with queue counts; selected-state card; confirmation sheet with SLA + escalate-at time) / resolve flow (resolution type chips: Fixed/Acknowledged/Won't Fix/Duplicate; resolution text textarea; related PR/issue field; resolved-by selector) / reopen flow (reopen reason text; 2×2 severity re-assess grid P0–P3; reassign selector; auto-escalate rule warning) / note capture (append-only log with Internal/Escalation/Owner chip types; quick-add form + save) / spec. State machine table (Open→In Progress→Resolved→Archived; Resolved→Reopened). Resolution type definitions. Auto-escalate on reopen within 48h. |
+| `parent-notification-center-v2.html` | ✅ Done | 5 tabs: recent notices (date-grouped list: Today/Yesterday/This Week; unread left-border + dot; badge/streak/milestone/teacher/activity/link type chips; mark-all-read; child selector; empty state) / milestone alerts (active cards with progress bars + pct; recently-earned cards with ✅ header) / reminders (practice time picker with time chips + day toggles; weekly summary, teacher note, badge, streak toggles; preview notification text) / quiet hours (from/to time inputs; day toggles all days; status chip "Active now"; emergency bypass note; delivery channels push/email/sms) / spec. Notification categories table with default on/off and emergency bypass. Parent language rules enforced (no accuracy %, no missed-day shaming). |
+| `content-bulk-import-review-v2.html` | ✅ Done | 5 tabs: import review (file header + pass/warn/fail/total KPI row; filter chips; row table with status badges, Q preview, skill/node, correct-mark, reading-level, error column, Edit/Fix/Preview actions) / approve+reject (multi-select checkboxes; partial-approve banner warning 8 errors; bulk approve/reject; per-row approve-with-note or reject; reject reason textarea) / error details (grouped by type: no correct answer / duplicate options / invalid skill ID; row#, error msg, fix suggestion, auto-fix eligible; autofix button) / import complete (summary stats grid; owner-gate card ≥100 rows; pending-approval state; link to Question Browser; export-rejected CSV) / spec. Validation rules table (hard blocks vs warnings, auto-fixable column). CSV column format. Approval gate rules. Access control table (content_admin vs owner). |
+
+**Design consistency maintained:**
+- Pre-reader + K-1 play surfaces: Nunito 900, `#100b2e` bg, band colors P0 `#ffd166` / P1 `#9b72ff`
+- Teacher student detail: Sora, `#f0f4f8` bg, `#2a5080` nav — desktop min 1024px
+- Owner resolution mobile: Sora, `#0d1117` bg, `#ffd166` accent — 390px frame
+- Parent notification center: Sora, `#f5f0e8` bg, `#2c7a6e` nav — 375px frame
+- Content bulk import: Sora, `#10161e` bg, `#58c8f0` accent — content-admin desktop surface
+- Hard-block publish gates enforced in content-bulk-import-review (errors block publish, owner gate ≥100 rows)
+- Parent language rules: no accuracy %, no missed-day framing, forward-looking growth language throughout
+- Child play: no timers, no grade labels, no skill IDs, no wrong-answer punishment, replay can't lose stars
+
+**Total files delivered across all sessions: 18+** (3 batches of 6)
+
+### 2026-03-22 16:56 CDT
+- completed:
+  - verified and preserved the latest six-file batch:
+    - `play-prereader-session-canonical-v2.html`
+    - `play-k1-session-canonical-v2.html`
+    - `teacher-student-detail-desktop-v2.html`
+    - `owner-feedback-resolution-mobile-v2.html`
+    - `parent-notification-center-v2.html`
+    - `content-bulk-import-review-v2.html`
+- current focus:
+  - start the next six-file batch immediately
+- next batch:
+  - `child-badge-collection-v2.html`
+  - `child-world-journey-mobile-v2.html`
+  - `parent-weekly-report-v2.html`
+  - `teacher-parent-message-center-v2.html`
+  - `owner-release-readiness-v2.html`
+  - `content-skill-coverage-map-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `child-badge-collection-v2.html` should show badge shelf, trophy groups, locked/unlocked states, and replay motivation without reading walls
+  - `child-world-journey-mobile-v2.html` should connect world picker + progress map + next-world prompt into one mobile child surface
+  - `parent-weekly-report-v2.html` should package calm family-ready weekly insight cards, wins, support areas, and next-home-practice ideas
+  - `teacher-parent-message-center-v2.html` should be the teacher-side mobile/desktop surface for parent-facing notes, queued messages, and contact-safe actions
+  - `owner-release-readiness-v2.html` should be the owner ops screen for go/no-go readiness, blocker counts, route health, and launch checklist state
+  - `content-skill-coverage-map-v2.html` should visualize content density by band/skill/node with warn/critical thresholds and edit entry points

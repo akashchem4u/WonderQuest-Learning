@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Feedback Resolution — Mobile v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #060a10; font-family: 'Sora', sans-serif; display: flex; flex-direction: column; align-items: center; min-height: 100vh; padding: 20px; }
+.hint-box { background: #fffbe6; border: 2px solid #f0c030; border-radius: 10px; padding: 14px 18px; max-width: 780px; width: 100%; margin: 0 auto 18px; font-family: monospace; font-size: 13px; color: #5a4000; line-height: 1.6; }
+.hint-box strong { color: #b06000; }
+.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; max-width: 820px; }
+.tab-btn { background: #0d1117; color: #ffd166; border: 1.5px solid #2a2a1a; border-radius: 20px; padding: 7px 16px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: all .2s; }
+.tab-btn.active { background: #ffd166; color: #1a0f00; border-color: #ffd166; }
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Phone frame */
+.phone { width: 390px; background: #0d1117; border-radius: 40px; border: 3px solid #1e2a3a; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,.7); margin: 0 auto; min-height: 720px; position: relative; display: flex; flex-direction: column; }
+.status-bar { background: #080e16; padding: 12px 20px 8px; display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: #5a7090; }
+.phone-header { background: #080e16; padding: 12px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #1e2a3a; }
+.back-btn { color: #ffd166; font-size: 13px; font-weight: 600; cursor: pointer; }
+.header-title { flex: 1; font-size: 14px; font-weight: 700; color: #e8e0d0; }
+.header-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+.badge-p0 { background: #7a1a1a; color: #ffaaaa; }
+.badge-p1 { background: #7a4a00; color: #ffc070; }
+.badge-open { background: #1a2a3a; color: #60a8d8; }
+.badge-in-progress { background: #2a2a00; color: #e8d060; }
+.badge-resolved { background: #0e2a18; color: #60c880; }
+
+/* Compact feedback item */
+.feedback-item { background: #131c28; border: 1px solid #1e2a3a; border-radius: 14px; margin: 14px 14px 0; padding: 14px; }
+.feedback-item-top { display: flex; align-items: flex-start; gap: 10px; }
+.sev-icon { font-size: 18px; }
+.feedback-info { flex: 1; }
+.feedback-title { font-size: 13px; font-weight: 700; color: #e8e0d0; }
+.feedback-meta { font-size: 11px; color: #5a7090; margin-top: 2px; }
+.feedback-quote { font-size: 12px; color: #9090a0; font-style: italic; margin-top: 6px; border-left: 3px solid #2e3a4e; padding-left: 8px; }
+
+/* Section heading */
+.section-heading { font-size: 12px; font-weight: 700; color: #5a7090; text-transform: uppercase; letter-spacing: .6px; padding: 14px 14px 6px; }
+
+/* Assign grid */
+.assign-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px; }
+.assign-card { background: #131c28; border: 2px solid #1e2a3a; border-radius: 14px; padding: 14px 10px; text-align: center; cursor: pointer; transition: border-color .2s; }
+.assign-card:hover { border-color: #ffd166; }
+.assign-card.selected { border-color: #ffd166; background: #1a1800; }
+.assign-card .assign-icon { font-size: 24px; margin-bottom: 6px; }
+.assign-card .assign-team { font-size: 13px; font-weight: 700; color: #e8e0d0; }
+.assign-card .assign-queue { font-size: 11px; color: #5a7090; margin-top: 2px; }
+.assign-card.selected .assign-team { color: #ffd166; }
+.unassigned-warn { background: #1a1a00; border: 1px solid #c07800; border-radius: 10px; padding: 10px 14px; margin: 10px 14px; font-size: 12px; color: #e8c060; }
+
+/* Resolve form */
+.form-group { padding: 0 14px 12px; }
+.form-label { font-size: 11px; font-weight: 700; color: #5a7090; text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; display: block; }
+.form-select { width: 100%; background: #131c28; border: 1.5px solid #1e2a3a; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: 'Sora', sans-serif; color: #e8e0d0; appearance: none; cursor: pointer; }
+.form-textarea { width: 100%; background: #131c28; border: 1.5px solid #1e2a3a; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: 'Sora', sans-serif; color: #e8e0d0; resize: vertical; min-height: 80px; }
+.form-input { width: 100%; background: #131c28; border: 1.5px solid #1e2a3a; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-family: 'Sora', sans-serif; color: #e8e0d0; }
+.form-select:focus, .form-textarea:focus, .form-input:focus { outline: none; border-color: #ffd166; }
+
+/* Resolution type chips */
+.res-type-grid { display: flex; gap: 8px; flex-wrap: wrap; padding: 0 14px 12px; }
+.res-chip { background: #131c28; border: 1.5px solid #1e2a3a; border-radius: 16px; padding: 6px 14px; font-size: 12px; color: #9090a0; cursor: pointer; }
+.res-chip.selected { background: #1a3a20; border-color: #50c880; color: #80e0a0; }
+
+/* Bottom action bar */
+.action-bar { background: #080e16; border-top: 1px solid #1e2a3a; padding: 12px 14px; display: flex; gap: 10px; }
+.btn-gold { background: #ffd166; color: #1a0f00; border: none; border-radius: 24px; padding: 12px 0; font-size: 14px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-outline { background: transparent; color: #ffd166; border: 2px solid #ffd166; border-radius: 24px; padding: 12px 0; font-size: 14px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-danger { background: #3a1010; color: #ff8080; border: 1.5px solid #6a2020; border-radius: 24px; padding: 12px 0; font-size: 14px; font-family: 'Sora', sans-serif; font-weight: 700; cursor: pointer; flex: 1; }
+.btn-subtle { background: #131c28; color: #9090a0; border: 1px solid #1e2a3a; border-radius: 24px; padding: 12px 0; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; flex: 1; }
+
+/* Confirmation state */
+.confirm-sheet { background: #131c28; border-top: 2px solid #ffd166; border-radius: 20px 20px 0 0; padding: 20px 16px; }
+.confirm-icon { font-size: 40px; text-align: center; margin-bottom: 10px; }
+.confirm-title { font-size: 16px; font-weight: 700; color: #e8e0d0; text-align: center; }
+.confirm-sub { font-size: 13px; color: #5a7090; text-align: center; margin-top: 4px; }
+.confirm-detail { background: #0d1117; border-radius: 10px; padding: 12px; margin-top: 14px; }
+.confirm-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
+.confirm-key { color: #5a7090; }
+.confirm-val { color: #e8e0d0; font-weight: 600; }
+
+/* Note timeline */
+.note-timeline { padding: 0 14px; }
+.note-item { display: flex; gap: 10px; margin-bottom: 12px; align-items: flex-start; }
+.note-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.note-body { flex: 1; }
+.note-type-chip { display: inline-block; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 8px; margin-bottom: 4px; }
+.chip-internal { background: #1e2a3a; color: #60a8d8; }
+.chip-escalation { background: #3a1010; color: #ff8080; }
+.chip-owner { background: #2a2000; color: #e8c060; }
+.note-text { font-size: 12px; color: #c0c8d0; line-height: 1.5; }
+.note-time { font-size: 10px; color: #5a7090; margin-top: 2px; }
+.add-note-form { background: #131c28; border: 1.5px solid #1e2a3a; border-radius: 14px; padding: 14px; margin-top: 10px; }
+.add-note-chips { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+
+/* Severity re-assessment */
+.sev-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 14px 12px; }
+.sev-card { background: #131c28; border: 2px solid #1e2a3a; border-radius: 12px; padding: 12px 10px; text-align: center; cursor: pointer; }
+.sev-card.selected { border-color: #ffd166; }
+.sev-card .sev-label { font-size: 13px; font-weight: 700; }
+.sev-card .sev-desc { font-size: 10px; color: #5a7090; margin-top: 3px; }
+
+/* Spec */
+.spec-wrap { padding: 14px; }
+.spec-section { margin-bottom: 18px; }
+.spec-title { font-size: 12px; font-weight: 700; color: #ffd166; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 8px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.spec-table th { background: #131c28; color: #ffd166; padding: 6px 8px; text-align: left; border-bottom: 1px solid #1e2a3a; }
+.spec-table td { color: #9090a0; padding: 5px 8px; border-bottom: 1px solid #0d1117; vertical-align: top; }
+.spec-rule { background: #0d1117; border-left: 3px solid #ffd166; border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 6px; font-size: 11px; color: #9090a0; }
+.spec-rule strong { color: #ffd166; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>📱 owner-feedback-resolution-mobile-v2.html</strong> — Compact mobile flow for feedback assignment, resolve, reopen, and note capture.<br>
+  <strong>Tabs:</strong> 1 · Assign Flow (team grid, current assignee, confirmation sheet) &nbsp;|&nbsp; 2 · Resolve Flow (resolution type chips, resolution text, related ID, confirm state) &nbsp;|&nbsp; 3 · Reopen Flow (reopen reason, severity re-assess, re-assign or keep) &nbsp;|&nbsp; 4 · Note Capture (append-only log, quick add, type chips: Internal/Escalation/Owner) &nbsp;|&nbsp; 5 · Spec (state machine, resolution types, escalation on reopen).<br>
+  <strong>Design:</strong> <code>#0d1117</code> bg · Sora · <code>#ffd166</code> accent · 390px owner mobile frame.
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="show('res-assign')">1 · Assign</button>
+  <button class="tab-btn" onclick="show('res-resolve')">2 · Resolve</button>
+  <button class="tab-btn" onclick="show('res-reopen')">3 · Reopen</button>
+  <button class="tab-btn" onclick="show('res-notes')">4 · Notes</button>
+  <button class="tab-btn" onclick="show('res-spec')">5 · Spec</button>
+</div>
+
+<!-- TAB 1: Assign Flow -->
+<div id="res-assign" class="tab active">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Owner Dashboard</span>
+      <span style="color:#ffd166; font-size:12px;">⚡ 3 active</span>
+    </div>
+    <div class="phone-header">
+      <span class="back-btn">← Back</span>
+      <span class="header-title">Assign Feedback</span>
+      <span class="header-badge badge-p0">P0</span>
+    </div>
+    <div class="feedback-item">
+      <div class="feedback-item-top">
+        <div class="sev-icon">🔴</div>
+        <div class="feedback-info">
+          <div class="feedback-title">App crashes on login · iOS 17</div>
+          <div class="feedback-meta">FB-00247 · Opened 2h ago · <span style="color:#60a8d8;">Open</span></div>
+          <div class="feedback-quote">"Every time I open the app it crashes immediately"</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-heading">Assign to Team</div>
+    <div class="assign-grid">
+      <div class="assign-card selected">
+        <div class="assign-icon">👨‍💻</div>
+        <div class="assign-team">Dev</div>
+        <div class="assign-queue">8 open · 2 P0</div>
+      </div>
+      <div class="assign-card">
+        <div class="assign-icon">🎨</div>
+        <div class="assign-team">UX</div>
+        <div class="assign-queue">5 open · 0 P0</div>
+      </div>
+      <div class="assign-card">
+        <div class="assign-icon">📝</div>
+        <div class="assign-team">Content</div>
+        <div class="assign-queue">3 open · 0 P0</div>
+      </div>
+      <div class="assign-card">
+        <div class="assign-icon">🏢</div>
+        <div class="assign-team">Owner</div>
+        <div class="assign-queue">2 open · 1 P0</div>
+      </div>
+    </div>
+    <div style="padding:0 14px; margin-top:12px;">
+      <div style="background:#1a1800; border:1px solid #ffd166; border-radius:10px; padding:10px 12px; font-size:12px; color:#e8c060; display:flex; align-items:center; gap:8px;">
+        <span>✅</span>
+        <span>Assigned to <strong>Dev Team</strong> · On-call: @jsmith</span>
+      </div>
+    </div>
+    <div style="padding:14px; flex:1;">
+      <div class="confirm-sheet" style="border-radius:14px; border:1px solid #1e2a3a; background:#131c28;">
+        <div class="confirm-icon">📤</div>
+        <div class="confirm-title">Confirm Assignment</div>
+        <div class="confirm-sub">Dev team will be notified via Slack</div>
+        <div class="confirm-detail">
+          <div class="confirm-row"><span class="confirm-key">Feedback</span><span class="confirm-val">FB-00247</span></div>
+          <div class="confirm-row"><span class="confirm-key">Team</span><span class="confirm-val">Dev · @jsmith</span></div>
+          <div class="confirm-row"><span class="confirm-key">Priority</span><span class="confirm-val" style="color:#ff8080;">P0 · SLA 2h</span></div>
+          <div class="confirm-row"><span class="confirm-key">Escalate at</span><span class="confirm-val">5:32 PM today</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="action-bar">
+      <button class="btn-outline">Cancel</button>
+      <button class="btn-gold">Confirm Assign</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: Resolve Flow -->
+<div id="res-resolve" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Owner Dashboard</span>
+      <span style="color:#ffd166; font-size:12px;">⚡ 3 active</span>
+    </div>
+    <div class="phone-header">
+      <span class="back-btn">← Back</span>
+      <span class="header-title">Resolve Feedback</span>
+      <span class="header-badge badge-in-progress">In Progress</span>
+    </div>
+    <div class="feedback-item">
+      <div class="feedback-item-top">
+        <div class="sev-icon">🟡</div>
+        <div class="feedback-info">
+          <div class="feedback-title">Streak counter resets unexpectedly</div>
+          <div class="feedback-meta">FB-00231 · Opened 3d ago · Dev Team</div>
+        </div>
+      </div>
+    </div>
+    <div class="section-heading">Resolution Type</div>
+    <div class="res-type-grid">
+      <div class="res-chip selected">✅ Fixed</div>
+      <div class="res-chip">🙏 Acknowledged</div>
+      <div class="res-chip">🚫 Won't Fix</div>
+      <div class="res-chip">🔄 Duplicate</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Resolution Notes</label>
+      <textarea class="form-textarea" placeholder="Describe what was done or decided...">Fixed UTC offset bug in streak calculator. Deployed to prod 14:22 UTC. Will monitor for recurrence for 48h.</textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Related Issue / PR</label>
+      <input class="form-input" type="text" value="GH-2847 · fix/streak-utc-offset" placeholder="e.g. GH-1234 or JIRA-567">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Resolved by</label>
+      <select class="form-select">
+        <option>@jsmith (Dev · on-call)</option>
+        <option>@mchen (Dev)</option>
+        <option>Manual — me</option>
+      </select>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="action-bar">
+      <button class="btn-subtle">Cancel</button>
+      <button class="btn-gold">Mark Resolved</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 3: Reopen Flow -->
+<div id="res-reopen" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Owner Dashboard</span>
+      <span style="color:#ffd166; font-size:12px;">⚡ 3 active</span>
+    </div>
+    <div class="phone-header">
+      <span class="back-btn">← Back</span>
+      <span class="header-title">Reopen Feedback</span>
+      <span class="header-badge badge-resolved">Resolved</span>
+    </div>
+    <div class="feedback-item">
+      <div class="feedback-item-top">
+        <div class="sev-icon">✅</div>
+        <div class="feedback-info">
+          <div class="feedback-title">Streak counter resets unexpectedly</div>
+          <div class="feedback-meta">FB-00231 · Resolved 1d ago · 2 new reports since</div>
+        </div>
+      </div>
+    </div>
+    <div class="unassigned-warn">⚠️ 2 new reports match this issue since resolution. Consider P1 escalation.</div>
+    <div class="form-group" style="padding-top:0;">
+      <label class="form-label">Reopen Reason</label>
+      <textarea class="form-textarea" placeholder="Why is this being reopened?">Issue recurred after UTC offset fix. New reports from EU region suggest timezone edge case still present.</textarea>
+    </div>
+    <div class="section-heading" style="padding-top:0;">Re-assess Severity</div>
+    <div class="sev-grid">
+      <div class="sev-card">
+        <div class="sev-label" style="color:#ff8080;">P0</div>
+        <div class="sev-desc">Critical · SLA 2h</div>
+      </div>
+      <div class="sev-card selected">
+        <div class="sev-label" style="color:#ffc060;">P1</div>
+        <div class="sev-desc">High · SLA 8h</div>
+      </div>
+      <div class="sev-card">
+        <div class="sev-label" style="color:#e8d060;">P2</div>
+        <div class="sev-desc">Medium · SLA 48h</div>
+      </div>
+      <div class="sev-card">
+        <div class="sev-label" style="color:#60c880;">P3</div>
+        <div class="sev-desc">Low · SLA 7d</div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Re-assign</label>
+      <select class="form-select">
+        <option>Keep: Dev Team · @jsmith</option>
+        <option>Reassign to Dev · @mchen</option>
+        <option>Escalate to Owner</option>
+      </select>
+    </div>
+    <div style="flex:1;"></div>
+    <div class="action-bar">
+      <button class="btn-subtle">Cancel</button>
+      <button class="btn-danger">Reopen as P1</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 4: Note Capture -->
+<div id="res-notes" class="tab">
+  <div class="phone">
+    <div class="status-bar">
+      <span>Owner Dashboard</span>
+      <span style="color:#ffd166; font-size:12px;">⚡ 3 active</span>
+    </div>
+    <div class="phone-header">
+      <span class="back-btn">← Back</span>
+      <span class="header-title">Feedback Notes</span>
+      <span class="header-badge badge-p0">P0</span>
+    </div>
+    <div style="padding:0 14px 10px; flex:1; overflow-y:auto;">
+      <div class="add-note-form">
+        <div style="font-size:12px; font-weight:700; color:#ffd166; margin-bottom:8px;">+ Add Note</div>
+        <div class="add-note-chips">
+          <div class="res-chip selected" style="font-size:11px;">🔒 Internal</div>
+          <div class="res-chip" style="font-size:11px;">🔴 Escalation</div>
+          <div class="res-chip" style="font-size:11px;">👑 Owner Note</div>
+        </div>
+        <textarea class="form-textarea" style="min-height:65px;" placeholder="Add a note..."></textarea>
+        <button class="btn-gold" style="padding:8px 0; font-size:13px; margin-top:8px; width:100%;">Save Note</button>
+      </div>
+      <div class="section-heading" style="padding-left:0;">Log (append-only)</div>
+      <div class="note-timeline">
+        <div class="note-item">
+          <div class="note-dot" style="background:#ffd166;"></div>
+          <div class="note-body">
+            <div class="note-type-chip chip-owner">👑 Owner Note</div>
+            <div class="note-text">P0 auto-escalated — unacknowledged for 15 min. Paging on-call dev now.</div>
+            <div class="note-time">Today · 3:17 PM · System</div>
+          </div>
+        </div>
+        <div class="note-item">
+          <div class="note-dot" style="background:#ff8080;"></div>
+          <div class="note-body">
+            <div class="note-type-chip chip-escalation">🔴 Escalation</div>
+            <div class="note-text">Escalated to Dev on-call (@jsmith). Expected SLA response by 5:32 PM.</div>
+            <div class="note-time">Today · 3:02 PM · @owner</div>
+          </div>
+        </div>
+        <div class="note-item">
+          <div class="note-dot" style="background:#60a8d8;"></div>
+          <div class="note-body">
+            <div class="note-type-chip chip-internal">🔒 Internal</div>
+            <div class="note-text">Reviewing crash logs. Appears related to iOS 17.2.1 WebKit change. Checking sentry.</div>
+            <div class="note-time">Today · 3:00 PM · @jsmith</div>
+          </div>
+        </div>
+        <div class="note-item">
+          <div class="note-dot" style="background:#60a8d8;"></div>
+          <div class="note-body">
+            <div class="note-type-chip chip-internal">🔒 Internal</div>
+            <div class="note-text">FB-00247 created from user report. Assigned to triage queue.</div>
+            <div class="note-time">Today · 2:47 PM · System</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 5: Spec -->
+<div id="res-spec" class="tab">
+  <div class="phone" style="min-height:860px;">
+    <div class="status-bar" style="background:#080e16;">
+      <span style="color:#ffd166; font-size:12px;">📋 Resolution Spec</span>
+    </div>
+    <div class="spec-wrap">
+      <div class="spec-section">
+        <div class="spec-title">Routes / API</div>
+        <table class="spec-table">
+          <tr><th>Endpoint</th><th>Purpose</th></tr>
+          <tr><td>PATCH /feedback/:id/assign</td><td>Assign to team + on-call member</td></tr>
+          <tr><td>PATCH /feedback/:id/resolve</td><td>Mark resolved with type + notes + related ID</td></tr>
+          <tr><td>PATCH /feedback/:id/reopen</td><td>Reopen with reason + new severity</td></tr>
+          <tr><td>POST /feedback/:id/notes</td><td>Append note with type (internal/escalation/owner)</td></tr>
+          <tr><td>GET /feedback/:id/notes</td><td>Full append-only note log</td></tr>
+          <tr><td>GET /teams/oncall</td><td>Current on-call member per team</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Resolution State Machine</div>
+        <table class="spec-table">
+          <tr><th>From</th><th>Action</th><th>To</th><th>Rules</th></tr>
+          <tr><td>Open</td><td>Assign</td><td>In Progress</td><td>Team + on-call required for P0/P1</td></tr>
+          <tr><td>In Progress</td><td>Resolve</td><td>Resolved</td><td>Resolution type + notes required</td></tr>
+          <tr><td>Resolved</td><td>Archive</td><td>Archived</td><td>No re-open after archive</td></tr>
+          <tr><td>Resolved</td><td>Reopen</td><td>Reopened→In Progress</td><td>Reason + new severity required</td></tr>
+          <tr><td>Any</td><td>Add Note</td><td>(same state)</td><td>Append-only; never edit/delete</td></tr>
+        </table>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Resolution Types</div>
+        <div class="spec-rule"><strong>Fixed:</strong> Issue resolved; related PR/issue ID required for P0/P1.</div>
+        <div class="spec-rule"><strong>Acknowledged:</strong> Known issue; added to backlog; no immediate fix.</div>
+        <div class="spec-rule"><strong>Won't Fix:</strong> Out of scope or by design. Owner must note reason.</div>
+        <div class="spec-rule"><strong>Duplicate:</strong> Duplicate of existing item; link canonical FB ID.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Escalation on Reopen</div>
+        <div class="spec-rule"><strong>Auto-escalate severity:</strong> If reopened within 48h of resolution, bump severity by 1 level (P2→P1, P1→P0). Owner can override.</div>
+        <div class="spec-rule"><strong>P0 reopen:</strong> Always remains P0 unless owner explicitly downgrades.</div>
+        <div class="spec-rule"><strong>Notification:</strong> Slack ping to original assignee + on-call when reopened.</div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Design Tokens</div>
+        <table class="spec-table">
+          <tr><th>Token</th><th>Value</th></tr>
+          <tr><td>Owner bg</td><td>#0d1117</td></tr>
+          <tr><td>Owner gold</td><td>#ffd166</td></tr>
+          <tr><td>Card bg</td><td>#131c28</td></tr>
+          <tr><td>P0 badge</td><td>#7a1a1a / #ffaaaa</td></tr>
+          <tr><td>P1 badge</td><td>#7a4a00 / #ffc070</td></tr>
+          <tr><td>Resolved green</td><td>#0e2a18 / #60c880</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function show(id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
