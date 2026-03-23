@@ -1,0 +1,1609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WonderQuest — Teacher Assignment Creator Mobile v2</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #f0f4f8;
+      --bg2:      #e4eaf1;
+      --navy:     #2a5080;
+      --navy-lt:  #3a6fa8;
+      --navy-bg:  rgba(42,80,128,.09);
+      --navy-tint:rgba(42,80,128,.06);
+      --ink:      #1c1c1e;
+      --mid:      #4b5563;
+      --faint:    #9ca3af;
+      --white:    #ffffff;
+      --p0:       #ffd166;
+      --p1:       #9b72ff;
+      --p2:       #58e8c1;
+      --p3:       #ff7b6b;
+      --radius:   12px;
+      --shadow:   0 2px 10px rgba(0,0,0,.08);
+    }
+
+    body {
+      font-family: 'Sora', sans-serif;
+      background: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 32px 16px 48px;
+    }
+
+    /* ─── CANVAS ─── */
+    .canvas-label {
+      text-align: center;
+      font-size: 11px;
+      font-weight: 600;
+      color: #9ca3af;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    /* ─── PHONE FRAME ─── */
+    .phone-frame {
+      width: 390px;
+      min-height: 844px;
+      border-radius: 40px;
+      box-shadow: 0 24px 80px rgba(0,0,0,.18), 0 4px 16px rgba(0,0,0,.1), inset 0 0 0 1.5px rgba(0,0,0,.12);
+      background: var(--bg);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* ─── STATUS BAR ─── */
+    .status-bar {
+      background: var(--navy);
+      height: 44px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+    .status-time { font-size: 13px; font-weight: 600; color: #fff; }
+    .status-icons { display: flex; gap: 6px; align-items: center; }
+    .status-icons svg { fill: #fff; opacity: .9; }
+
+    /* ─── NAV BAR ─── */
+    .top-nav {
+      background: var(--navy);
+      height: 52px;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .top-nav-logo {
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .top-nav-logo span { color: var(--p0); }
+    .top-nav-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255,255,255,.85);
+      margin-left: 2px;
+    }
+    .top-nav-spacer { flex: 1; }
+    .top-nav-avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.18);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; color: #fff;
+    }
+
+    /* ─── SCROLL AREA ─── */
+    .screen-body {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-bottom: 72px; /* room for tab bar */
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen-body::-webkit-scrollbar { display: none; }
+
+    /* ─── TAB BAR ─── */
+    .tab-bar {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 68px;
+      background: var(--white);
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      padding: 0 4px 8px;
+      z-index: 100;
+    }
+    .tab-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      padding: 6px 4px;
+      cursor: pointer;
+      min-height: 44px;
+      border-radius: 10px;
+      transition: background .15s;
+    }
+    .tab-item:hover { background: var(--navy-tint); }
+    .tab-icon { font-size: 18px; line-height: 1; }
+    .tab-label { font-size: 9px; font-weight: 600; color: var(--faint); letter-spacing: .02em; }
+    .tab-item.active .tab-label { color: var(--navy); }
+    .tab-item.active .tab-icon { filter: none; }
+    .tab-dot {
+      width: 4px; height: 4px; border-radius: 2px;
+      background: var(--navy);
+      margin-top: 1px;
+      display: none;
+    }
+    .tab-item.active .tab-dot { display: block; }
+
+    /* ─── PANELS ─── */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ─── ENGINEERING HINT ─── */
+    .eng-hint {
+      background: #fffbea;
+      border: 2px solid #f0c040;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 12px 14px 4px;
+      font-size: 10.5px;
+      line-height: 1.55;
+      color: #7a5c00;
+    }
+    .eng-hint strong { font-weight: 700; color: #5a4000; display: block; margin-bottom: 3px; }
+
+    /* ─── STEP INDICATOR ─── */
+    .step-indicator {
+      padding: 14px 16px 0;
+    }
+    .step-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 7px;
+    }
+    .step-label { font-size: 11px; font-weight: 600; color: var(--mid); text-transform: uppercase; letter-spacing: .06em; }
+    .step-title { font-size: 15px; font-weight: 700; color: var(--ink); }
+    .progress-bar {
+      height: 4px;
+      background: #dde3ea;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: var(--navy);
+      border-radius: 2px;
+      transition: width .3s ease;
+    }
+
+    /* ─── SEARCH BAR ─── */
+    .search-bar {
+      margin: 14px 14px 0;
+      position: relative;
+    }
+    .search-bar input {
+      width: 100%;
+      height: 44px;
+      border-radius: 22px;
+      border: 1.5px solid #d1d9e3;
+      background: var(--white);
+      padding: 0 44px 0 16px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      color: var(--ink);
+      outline: none;
+    }
+    .search-bar input:focus { border-color: var(--navy); }
+    .search-bar input::placeholder { color: var(--faint); }
+    .search-mic {
+      position: absolute;
+      right: 12px; top: 50%;
+      transform: translateY(-50%);
+      font-size: 17px;
+      opacity: .45;
+      cursor: default;
+    }
+
+    /* ─── BAND CHIPS ROW ─── */
+    .band-chips-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 14px 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .band-chips-row::-webkit-scrollbar { display: none; }
+    .band-chip {
+      flex-shrink: 0;
+      height: 30px;
+      padding: 0 12px;
+      border-radius: 15px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 2px solid transparent;
+      transition: opacity .15s, border-color .15s;
+    }
+    .band-chip.p0 { background: var(--p0); color: #7a5c00; }
+    .band-chip.p1 { background: var(--p1); color: #fff; }
+    .band-chip.p2 { background: var(--p2); color: #0d6650; }
+    .band-chip.p3 { background: var(--p3); color: #fff; }
+    .band-chip.inactive { opacity: .45; }
+    .band-chip.selected-filter { border-color: var(--ink); opacity: 1; }
+
+    /* ─── SKILL LIST ─── */
+    .skill-list-mobile {
+      margin: 12px 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .skill-row-mobile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-bottom: 1px solid #f0f4f8;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: background .12s, border-left-color .12s;
+      min-height: 58px;
+    }
+    .skill-row-mobile:last-child { border-bottom: none; }
+    .skill-row-mobile:hover { background: var(--navy-tint); }
+    .skill-row-mobile.selected {
+      border-left-color: var(--navy);
+      background: var(--navy-bg);
+    }
+    .skill-band-dot {
+      width: 28px; height: 22px;
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px; font-weight: 800;
+      flex-shrink: 0;
+    }
+    .skill-band-dot.p0 { background: var(--p0); color: #7a5c00; }
+    .skill-band-dot.p1 { background: var(--p1); color: #fff; }
+    .skill-band-dot.p2 { background: var(--p2); color: #0d6650; }
+    .skill-band-dot.p3 { background: var(--p3); color: #fff; }
+    .skill-info { flex: 1; min-width: 0; }
+    .skill-name { font-size: 12.5px; font-weight: 600; color: var(--ink); line-height: 1.3; }
+    .skill-sub { font-size: 10.5px; color: var(--mid); margin-top: 1px; }
+    .q-chip {
+      flex-shrink: 0;
+      background: #eef2f7;
+      border-radius: 8px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--mid);
+    }
+    .skill-radio {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid #c5cdd8;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: border-color .15s, background .15s;
+    }
+    .skill-row-mobile.selected .skill-radio {
+      border-color: var(--navy);
+      background: var(--navy);
+    }
+    .skill-row-mobile.selected .skill-radio::after {
+      content: '';
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .checkmark-chip {
+      flex-shrink: 0;
+      background: var(--navy);
+      color: #fff;
+      border-radius: 8px;
+      padding: 2px 7px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* ─── SELECTED BAR (sticky) ─── */
+    .selected-bar {
+      position: sticky;
+      bottom: 72px;
+      left: 0; right: 0;
+      background: var(--white);
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 50;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+    }
+    .selected-bar-text {
+      flex: 1;
+      font-size: 11.5px;
+      color: var(--mid);
+      min-width: 0;
+    }
+    .selected-bar-text strong { color: var(--ink); font-weight: 700; }
+    .btn-navy {
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 22px;
+      padding: 0 18px;
+      height: 40px;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .15s;
+    }
+    .btn-navy:hover { background: var(--navy-lt); }
+    .btn-navy:disabled { background: #b0bec5; cursor: default; }
+
+    /* ─── CONFIG CARD ─── */
+    .config-card {
+      margin: 14px 14px 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .config-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 13px 14px;
+      border-bottom: 1px solid #f0f4f8;
+    }
+    .config-row:last-child { border-bottom: none; }
+    .config-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--mid);
+      min-width: 80px;
+      flex-shrink: 0;
+    }
+    .config-input {
+      flex: 1;
+      height: 38px;
+      border: 1.5px solid #d1d9e3;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 12.5px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+    }
+    .config-input:focus { border-color: var(--navy); background: #fff; }
+    .stepper-row {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+    .stepper-btn {
+      width: 38px; height: 38px;
+      border: 1.5px solid #d1d9e3;
+      background: var(--bg);
+      border-radius: 8px;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .12s;
+      flex-shrink: 0;
+    }
+    .stepper-btn:hover { background: var(--navy-tint); }
+    .stepper-value {
+      width: 44px;
+      text-align: center;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+    .difficulty-pills {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    .diff-pill {
+      flex: 1;
+      height: 34px;
+      border-radius: 17px;
+      border: 1.5px solid #d1d9e3;
+      background: var(--bg);
+      font-family: 'Sora', sans-serif;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--mid);
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .diff-pill.selected {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+    .config-textarea {
+      flex: 1;
+      border: 1.5px solid #d1d9e3;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      resize: none;
+      line-height: 1.5;
+    }
+    .config-textarea:focus { border-color: var(--navy); background: #fff; }
+    .char-count {
+      font-size: 10px;
+      color: var(--faint);
+      text-align: right;
+      padding: 4px 14px 10px;
+    }
+
+    /* ─── PREVIEW MINI CARD ─── */
+    .preview-mini-card {
+      margin: 12px 14px 0;
+      background: var(--navy-tint);
+      border: 1.5px solid var(--navy-bg);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+    }
+    .preview-mini-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--navy);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 7px;
+    }
+    .preview-mini-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 4px;
+      font-size: 12px;
+      color: var(--ink);
+    }
+    .preview-mini-row .mini-label { color: var(--mid); font-size: 11px; min-width: 70px; }
+
+    /* ─── NAV ACTIONS ─── */
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      margin-top: 4px;
+    }
+    .btn-back {
+      background: none;
+      border: none;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      cursor: pointer;
+      padding: 6px 0;
+      min-height: 44px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-back:hover { opacity: .75; }
+
+    /* ─── GROUP CHIPS ROW ─── */
+    .group-chips-row {
+      display: flex;
+      gap: 8px;
+      padding: 12px 14px 0;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .group-chips-row::-webkit-scrollbar { display: none; }
+    .group-chip {
+      flex-shrink: 0;
+      height: 34px;
+      padding: 0 12px;
+      border-radius: 17px;
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1.5px solid #d1d9e3;
+      background: var(--white);
+      color: var(--mid);
+      transition: all .15s;
+      white-space: nowrap;
+    }
+    .group-chip.selected {
+      background: var(--navy);
+      border-color: var(--navy);
+      color: #fff;
+    }
+
+    /* ─── STUDENT LIST ─── */
+    .student-scroll-list {
+      margin: 12px 14px 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    .student-item-mobile {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 14px;
+      border-bottom: 1px solid #f0f4f8;
+      cursor: pointer;
+      transition: background .12s;
+      min-height: 52px;
+    }
+    .student-item-mobile:last-child { border-bottom: none; }
+    .student-item-mobile:hover { background: var(--navy-tint); }
+    .student-item-mobile.selected { background: var(--navy-bg); }
+    .student-cb {
+      width: 20px; height: 20px;
+      border-radius: 5px;
+      border: 2px solid #c5cdd8;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: all .12s;
+      background: var(--white);
+    }
+    .student-item-mobile.selected .student-cb {
+      background: var(--navy);
+      border-color: var(--navy);
+    }
+    .student-item-mobile.selected .student-cb::after {
+      content: '✓';
+      font-size: 11px;
+      color: #fff;
+      font-weight: 700;
+    }
+    .student-name {
+      flex: 1;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+    .tier-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .tier-dot.alert { background: #ef4444; }
+    .tier-dot.watch { background: #f59e0b; }
+    .tier-dot.ok    { background: #22c55e; }
+    .student-band-chip {
+      flex-shrink: 0;
+      height: 20px;
+      padding: 0 7px;
+      border-radius: 5px;
+      font-size: 9.5px;
+      font-weight: 800;
+      display: flex; align-items: center;
+    }
+    .student-band-chip.p0 { background: var(--p0); color: #7a5c00; }
+    .student-band-chip.p1 { background: var(--p1); color: #fff; }
+    .student-band-chip.p2 { background: var(--p2); color: #0d6650; }
+    .student-band-chip.p3 { background: var(--p3); color: #fff; }
+
+    /* ─── SELECTION SUMMARY BAR ─── */
+    .selection-summary-bar {
+      position: sticky;
+      bottom: 72px;
+      left: 0; right: 0;
+      background: var(--white);
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      z-index: 50;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+    }
+    .summary-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .summary-count { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .tier-breakdown { display: flex; gap: 8px; }
+    .tier-pill {
+      font-size: 10.5px;
+      background: #f0f4f8;
+      border-radius: 8px;
+      padding: 2px 8px;
+      font-weight: 600;
+      color: var(--mid);
+    }
+    .support-hint {
+      margin: 10px 14px 0;
+      background: #fff8e1;
+      border-radius: 10px;
+      padding: 9px 12px;
+      font-size: 11px;
+      color: #7a5c00;
+      line-height: 1.5;
+    }
+
+    /* ─── REVIEW CARD ─── */
+    .review-card {
+      margin: 14px 14px 0;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .review-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .review-skill-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+      flex: 1;
+    }
+    .review-meta-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .review-meta-chip {
+      background: #eef2f7;
+      border-radius: 8px;
+      padding: 3px 9px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--mid);
+    }
+    .review-note {
+      margin-top: 10px;
+      background: #f8f9fc;
+      border-radius: 8px;
+      padding: 9px 11px;
+      font-size: 11.5px;
+      color: var(--mid);
+      line-height: 1.5;
+      font-style: italic;
+    }
+    .review-note strong { color: var(--ink); font-style: normal; font-size: 11px; display: block; margin-bottom: 3px; }
+
+    /* ─── SEND OPTIONS CARD ─── */
+    .send-options-card {
+      margin: 12px 14px 0;
+    }
+    .send-option-toggle {
+      background: var(--white);
+      border: 2px solid #e2e8f0;
+      border-radius: var(--radius);
+      padding: 14px;
+      cursor: pointer;
+      transition: all .15s;
+      margin-bottom: 10px;
+    }
+    .send-option-toggle.selected {
+      border-color: var(--navy);
+      background: var(--navy-tint);
+    }
+    .send-option-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .send-option-icon { font-size: 20px; }
+    .send-option-label { font-size: 13px; font-weight: 700; color: var(--ink); }
+    .send-option-sub { font-size: 11px; color: var(--mid); margin-top: 2px; }
+    .send-option-check {
+      margin-left: auto;
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: 2px solid #c5cdd8;
+      transition: all .15s;
+    }
+    .send-option-toggle.selected .send-option-check {
+      background: var(--navy);
+      border-color: var(--navy);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .send-option-toggle.selected .send-option-check::after {
+      content: '✓';
+      font-size: 11px;
+      color: #fff;
+      font-weight: 700;
+    }
+    .schedule-inputs {
+      display: none;
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      gap: 8px;
+    }
+    .schedule-inputs.visible { display: flex; }
+    .schedule-input {
+      flex: 1;
+      height: 38px;
+      border: 1.5px solid #d1d9e3;
+      border-radius: 8px;
+      padding: 0 10px;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+    }
+    .schedule-input:focus { border-color: var(--navy); }
+
+    /* ─── SEND BAR ─── */
+    .send-bar {
+      position: sticky;
+      bottom: 72px;
+      left: 0; right: 0;
+      background: var(--white);
+      border-top: 1px solid #e2e8f0;
+      padding: 10px 14px;
+      display: flex;
+      gap: 10px;
+      z-index: 50;
+      box-shadow: 0 -4px 16px rgba(0,0,0,.06);
+    }
+    .btn-outline {
+      flex: 0 0 auto;
+      height: 44px;
+      padding: 0 16px;
+      border: 2px solid var(--navy);
+      background: transparent;
+      border-radius: 22px;
+      font-family: 'Sora', sans-serif;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--navy);
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-outline:hover { background: var(--navy-tint); }
+    .btn-send {
+      flex: 1;
+      height: 44px;
+      background: var(--navy);
+      border: none;
+      border-radius: 22px;
+      font-family: 'Sora', sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: background .15s;
+    }
+    .btn-send:hover { background: var(--navy-lt); }
+
+    /* ─── SUCCESS OVERLAY ─── */
+    .success-overlay {
+      display: none;
+      position: absolute;
+      inset: 0;
+      background: var(--white);
+      z-index: 200;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 24px;
+      text-align: center;
+      border-radius: inherit;
+    }
+    .success-overlay.show { display: flex; }
+    .success-check {
+      font-size: 64px;
+      margin-bottom: 16px;
+      animation: pop .4s cubic-bezier(.34,1.56,.64,1);
+    }
+    @keyframes pop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
+    .success-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      margin-bottom: 8px;
+    }
+    .success-sub {
+      font-size: 13px;
+      color: var(--mid);
+      margin-bottom: 28px;
+    }
+    .success-actions { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+    .btn-success-primary {
+      width: 100%;
+      height: 46px;
+      background: var(--navy);
+      border: none;
+      border-radius: 23px;
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+    }
+    .btn-success-secondary {
+      width: 100%;
+      height: 46px;
+      border: 2px solid var(--navy);
+      background: transparent;
+      border-radius: 23px;
+      font-family: 'Sora', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      cursor: pointer;
+    }
+
+    /* ─── SPEC TAB ─── */
+    .spec-block {
+      margin: 12px 14px;
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 14px;
+    }
+    .spec-section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .07em;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .spec-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 11.5px;
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    .spec-key { color: var(--mid); min-width: 90px; flex-shrink: 0; font-size: 11px; }
+    .spec-val { flex: 1; font-weight: 500; }
+    .spec-code {
+      font-family: 'Courier New', monospace;
+      background: #eef2f7;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 10.5px;
+      color: var(--navy);
+    }
+    .token-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .token-swatch {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 10.5px;
+      color: var(--mid);
+    }
+    .swatch-dot {
+      width: 14px; height: 14px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+<div style="display:flex;flex-direction:column;align-items:center;">
+  <div class="canvas-label">WonderQuest — Teacher Assignment Creator · Mobile v2 · 390px</div>
+
+  <div class="phone-frame">
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <span class="status-time">9:41</span>
+      <div class="status-icons">
+        <svg width="16" height="11" viewBox="0 0 16 11"><rect x="0" y="3" width="3" height="8" rx="1"/><rect x="4.5" y="2" width="3" height="9" rx="1"/><rect x="9" y="0" width="3" height="11" rx="1"/><rect x="13.5" y="1" width="2.5" height="9" rx="1" opacity=".3"/></svg>
+        <svg width="15" height="11" viewBox="0 0 15 11"><path d="M7.5 2.2 13.2 8 14.5 6.6C12.8 4.8 10.3 3.7 7.5 3.7S2.2 4.8.5 6.6L1.8 8l5.7-5.8z" opacity=".4"/><path d="M7.5 4.4 11.2 8.2 9.8 9.6 7.5 7.2 5.2 9.6 3.8 8.2 7.5 4.4z"/><circle cx="7.5" cy="10.5" r="1"/></svg>
+        <svg width="25" height="12" viewBox="0 0 25 12"><rect x="0" y="1" width="22" height="10" rx="3" stroke="#fff" stroke-width="1.5" fill="none"/><rect x="1.5" y="2.5" width="17" height="7" rx="2" fill="#fff"/><rect x="23" y="4" width="2" height="4" rx="1" fill="#fff" opacity=".5"/></svg>
+      </div>
+    </div>
+
+    <!-- Top Nav -->
+    <div class="top-nav">
+      <div class="top-nav-logo">Wonder<span>Quest</span></div>
+      <div class="top-nav-title">· New Assignment</div>
+      <div class="top-nav-spacer"></div>
+      <div class="top-nav-avatar">SR</div>
+    </div>
+
+    <!-- Screen Body -->
+    <div class="screen-body" id="screenBody">
+
+      <!-- ═══════════════════════════════════════ TAB 1: SKILL PICKER ═══ -->
+      <div class="panel active" id="panel-skill">
+
+        <div class="eng-hint">
+          <strong>⚙ Engineering Hint — Tab 1: Skill Picker (Mobile)</strong>
+          Endpoint: <span class="spec-code">GET /teacher/skills?band=P0|P1|P2|P3&q=…</span> — returns skill list with question count. Mobile uses vertical list (not grid). Band chip filter is additive. Tapping a row sets <span class="spec-code">selectedSkillId</span>; selected bar activates once a skill is picked.
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-row">
+            <span class="step-label">Step 1 of 3</span>
+            <span style="font-size:11px;color:var(--mid);font-weight:600;">Skill</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:33%"></div></div>
+        </div>
+
+        <div class="search-bar">
+          <input type="text" placeholder="Search skills…" id="skillSearch" oninput="filterSkills()" />
+          <span class="search-mic">🎙</span>
+        </div>
+
+        <div class="band-chips-row">
+          <div class="band-chip p0 selected-filter" onclick="toggleBandFilter(this,'P0')">P0 Foundation</div>
+          <div class="band-chip p1" onclick="toggleBandFilter(this,'P1')">P1 Core</div>
+          <div class="band-chip p2" onclick="toggleBandFilter(this,'P2')">P2 Fluent</div>
+          <div class="band-chip p3" onclick="toggleBandFilter(this,'P3')">P3 Advanced</div>
+        </div>
+
+        <div class="skill-list-mobile" id="skillList">
+          <!-- rows injected by JS -->
+        </div>
+
+        <div class="selected-bar">
+          <div class="selected-bar-text">
+            Selected: <strong id="selectedSkillLabel">None</strong>
+          </div>
+          <button class="btn-navy" id="skillNextBtn" disabled onclick="show('configure')">Next: Configure →</button>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════ TAB 2: CONFIGURE ═══ -->
+      <div class="panel" id="panel-configure">
+
+        <div class="eng-hint">
+          <strong>⚙ Engineering Hint — Tab 2: Configure</strong>
+          POST body fields: <span class="spec-code">name</span>, <span class="spec-code">questionCount</span> (3–10, default 5), <span class="spec-code">difficulty</span> (gentle|standard|challenge), <span class="spec-code">dueDate</span>, <span class="spec-code">teacherNote</span> (optional, max 200 chars). Stepper replaces slider for thumb safety. Preview card mirrors live values.
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-row">
+            <span class="step-label">Step 2 of 3</span>
+            <span style="font-size:11px;color:var(--mid);font-weight:600;">Configure</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:66%"></div></div>
+        </div>
+
+        <div class="config-card">
+          <div class="config-row">
+            <span class="config-label">Name</span>
+            <input class="config-input" id="assignName" type="text" value="Place Value — P1 Core" oninput="updatePreview()" />
+          </div>
+          <div class="config-row">
+            <span class="config-label">Questions</span>
+            <div class="stepper-row">
+              <button class="stepper-btn" onclick="stepQ(-1)">−</button>
+              <span class="stepper-value" id="qCount">5</span>
+              <button class="stepper-btn" onclick="stepQ(1)">+</button>
+            </div>
+          </div>
+          <div class="config-row">
+            <span class="config-label">Difficulty</span>
+            <div class="difficulty-pills">
+              <button class="diff-pill" onclick="setDiff(this,'gentle')">Gentle</button>
+              <button class="diff-pill selected" onclick="setDiff(this,'standard')">Standard</button>
+              <button class="diff-pill" onclick="setDiff(this,'challenge')">Challenge</button>
+            </div>
+          </div>
+          <div class="config-row">
+            <span class="config-label">Due Date</span>
+            <input class="config-input" id="dueDate" type="date" value="2026-03-27" oninput="updatePreview()" style="flex:1;" />
+          </div>
+          <div style="padding:13px 14px 0;">
+            <span class="config-label" style="display:block;margin-bottom:6px;">Teacher Note <span style="font-weight:400;color:var(--faint);">(optional)</span></span>
+            <textarea class="config-textarea" id="teacherNote" rows="2" placeholder="E.g. Focus on regrouping steps…" maxlength="200" oninput="updateCharCount()"></textarea>
+          </div>
+          <div class="char-count" id="charCount">0 / 200</div>
+        </div>
+
+        <div class="preview-mini-card">
+          <div class="preview-mini-title">Preview</div>
+          <div class="preview-mini-row"><span class="mini-label">Assignment</span><strong id="prev-name">Place Value — P1 Core</strong></div>
+          <div class="preview-mini-row"><span class="mini-label">Questions</span><span id="prev-q">5 questions</span></div>
+          <div class="preview-mini-row"><span class="mini-label">Difficulty</span><span id="prev-diff">Standard</span></div>
+          <div class="preview-mini-row"><span class="mini-label">Due</span><span id="prev-due">27 Mar 2026</span></div>
+        </div>
+
+        <div class="nav-actions">
+          <button class="btn-back" onclick="show('skill')">← Back</button>
+          <button class="btn-navy" onclick="show('learners')">Next: Learners →</button>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════ TAB 3: LEARNERS ═══ -->
+      <div class="panel" id="panel-learners">
+
+        <div class="eng-hint">
+          <strong>⚙ Engineering Hint — Tab 3: Select Learners</strong>
+          Endpoint: <span class="spec-code">GET /teacher/class/:id/students</span>. Group chips pre-filter by SNS tier: Whole Class = all, Needs Support = alert tier, On Track = watch+ok, Advanced = top band. Student list not a table — thumb-friendly rows. Selection state tracked in <span class="spec-code">selectedStudents[]</span>.
+        </div>
+
+        <div class="step-indicator">
+          <div class="step-row">
+            <span class="step-label">Step 3 of 3</span>
+            <span style="font-size:11px;color:var(--mid);font-weight:600;">Learners</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:100%"></div></div>
+        </div>
+
+        <div class="group-chips-row">
+          <div class="group-chip" onclick="selectGroup('all',this)">Whole Class (24)</div>
+          <div class="group-chip" onclick="selectGroup('support',this)">Needs Support (8)</div>
+          <div class="group-chip" onclick="selectGroup('ontrack',this)">On Track (11)</div>
+          <div class="group-chip" onclick="selectGroup('advanced',this)">Advanced (5)</div>
+        </div>
+
+        <div class="student-scroll-list" id="studentList">
+          <!-- rows injected by JS -->
+        </div>
+
+        <div class="support-hint">ℹ️ Support-tier students automatically receive hints during questions.</div>
+
+        <div class="selection-summary-bar">
+          <div class="summary-top">
+            <span class="summary-count" id="selCount">0 selected</span>
+            <div class="tier-breakdown">
+              <span class="tier-pill" id="tierAlert">🚨 0</span>
+              <span class="tier-pill" id="tierWatch">👀 0</span>
+              <span class="tier-pill" id="tierOk">✅ 0</span>
+            </div>
+          </div>
+          <button class="btn-navy" style="width:100%;margin-top:6px;" id="learnersNextBtn" disabled onclick="show('review')">Review &amp; Send →</button>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════ TAB 4: REVIEW & SEND ═══ -->
+      <div class="panel" id="panel-review">
+
+        <div class="eng-hint">
+          <strong>⚙ Engineering Hint — Tab 4: Review &amp; Send</strong>
+          Endpoint: <span class="spec-code">POST /assignments/create</span> — body: <span class="spec-code">{ skillId, name, questionCount, difficulty, dueDate, teacherNote, studentIds, sendMode: 'now'|'scheduled', scheduledAt? }</span>. Mobile combines Review + Send into one screen (desktop has separate steps). Success overlay shown on 200 response.
+        </div>
+
+        <div class="review-card">
+          <div class="review-card-header">
+            <div style="flex:1;">
+              <div class="review-skill-name" id="rev-skillName">Place Value — P1 Core</div>
+              <div class="review-meta-row">
+                <span class="student-band-chip p1">P1</span>
+                <span class="review-meta-chip" id="rev-qMeta">5 questions</span>
+                <span class="review-meta-chip" id="rev-diffMeta">Standard</span>
+                <span class="review-meta-chip" id="rev-dueMeta">Due Mar 27</span>
+                <span class="review-meta-chip" id="rev-studentsMeta">12 students</span>
+              </div>
+            </div>
+          </div>
+          <div class="review-note" id="rev-note">
+            <strong>Teacher note</strong>
+            Focus on regrouping steps…
+          </div>
+        </div>
+
+        <div class="send-options-card">
+          <div class="send-option-toggle selected" id="sendNowCard" onclick="selectSendMode('now')">
+            <div class="send-option-top">
+              <span class="send-option-icon">⚡</span>
+              <div>
+                <div class="send-option-label">Send Now</div>
+                <div class="send-option-sub">Students receive immediately</div>
+              </div>
+              <div class="send-option-check"></div>
+            </div>
+          </div>
+
+          <div class="send-option-toggle" id="sendLaterCard" onclick="selectSendMode('later')">
+            <div class="send-option-top">
+              <span class="send-option-icon">📅</span>
+              <div>
+                <div class="send-option-label">Schedule for Later</div>
+                <div class="send-option-sub">Choose date and time</div>
+              </div>
+              <div class="send-option-check"></div>
+            </div>
+            <div class="schedule-inputs" id="scheduleInputs">
+              <input class="schedule-input" type="date" value="2026-03-25" />
+              <input class="schedule-input" type="time" value="08:30" />
+            </div>
+          </div>
+        </div>
+
+        <div class="send-bar">
+          <button class="btn-outline" onclick="saveDraft()">Save Draft</button>
+          <button class="btn-send" onclick="sendAssignment()">Send Assignment →</button>
+        </div>
+
+        <!-- Success Overlay -->
+        <div class="success-overlay" id="successOverlay">
+          <div class="success-check">✅</div>
+          <div class="success-title">Assignment Sent!</div>
+          <div class="success-sub" id="successSub">Sent to 12 students successfully.</div>
+          <div class="success-actions">
+            <button class="btn-success-primary" onclick="createAnother()">+ Create Another</button>
+            <button class="btn-success-secondary" onclick="show('skill')">View Assignments</button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ═══════════════════════════════════════ TAB 5: SPEC ═══ -->
+      <div class="panel" id="panel-spec">
+
+        <div class="eng-hint">
+          <strong>⚙ Engineering Hint — Tab 5: Spec Reference</strong>
+          This tab is for engineers and designers. It summarizes mobile-specific decisions, API routes, design tokens, and UX rules for this assignment creator flow.
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">API Routes</div>
+          <div class="spec-row">
+            <span class="spec-key">Skill list</span>
+            <span class="spec-val"><span class="spec-code">GET /teacher/skills</span> — same endpoint as desktop; add <span class="spec-code">?band=</span> &amp; <span class="spec-code">?q=</span> filters</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Student list</span>
+            <span class="spec-val"><span class="spec-code">GET /teacher/class/:id/students</span> — returns tier, band, name</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Create</span>
+            <span class="spec-val"><span class="spec-code">POST /assignments/create</span> — full payload including send mode</span>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Mobile vs Desktop Flow</div>
+          <div class="spec-row">
+            <span class="spec-key">Desktop</span>
+            <span class="spec-val">4 steps: Skill → Configure → Learners → Review → separate Send screen</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Mobile</span>
+            <span class="spec-val">3 steps: Skill → Configure → Learners → Review+Send combined (one screen)</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-key">Why merged</span>
+            <span class="spec-val">Reduces tap count; send options fit single scroll on 390px phone</span>
+          </div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Question Count Rules</div>
+          <div class="spec-row"><span class="spec-key">Min</span><span class="spec-val">3 questions</span></div>
+          <div class="spec-row"><span class="spec-key">Max</span><span class="spec-val">10 questions</span></div>
+          <div class="spec-row"><span class="spec-key">Default</span><span class="spec-val">5 questions</span></div>
+          <div class="spec-row"><span class="spec-key">Input</span><span class="spec-val">Stepper (not slider) — safer for thumbs, avoids accidental mis-swipes</span></div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Difficulty Levels</div>
+          <div class="spec-row"><span class="spec-key">Gentle</span><span class="spec-val">Below-grade prompts; same logic as desktop</span></div>
+          <div class="spec-row"><span class="spec-key">Standard</span><span class="spec-val">Grade-level; default selection</span></div>
+          <div class="spec-row"><span class="spec-key">Challenge</span><span class="spec-val">Above-grade; stretch questions</span></div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Learner Group Chips</div>
+          <div class="spec-row"><span class="spec-key">Whole Class</span><span class="spec-val">All 24 students pre-selected</span></div>
+          <div class="spec-row"><span class="spec-key">Needs Support</span><span class="spec-val">Alert tier (SNS) — 8 students</span></div>
+          <div class="spec-row"><span class="spec-key">On Track</span><span class="spec-val">Watch + OK tier — 11 students</span></div>
+          <div class="spec-row"><span class="spec-key">Advanced</span><span class="spec-val">Top band — 5 students</span></div>
+          <div class="spec-row"><span class="spec-key">Note</span><span class="spec-val">Same SNS tier logic as desktop; chips are additive toggles</span></div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Mobile UX Rules</div>
+          <div class="spec-row"><span class="spec-key">Touch targets</span><span class="spec-val">All interactive elements ≥ 44px height</span></div>
+          <div class="spec-row"><span class="spec-key">Skill input</span><span class="spec-val">Vertical list — NOT grid (too cramped at 390px)</span></div>
+          <div class="spec-row"><span class="spec-key">Student input</span><span class="spec-val">Vertical list — NOT table</span></div>
+          <div class="spec-row"><span class="spec-key">Q count</span><span class="spec-val">Stepper — NOT slider</span></div>
+          <div class="spec-row"><span class="spec-key">Sticky bars</span><span class="spec-val">Selected bar &amp; send bar sticky above tab bar (bottom: 72px)</span></div>
+          <div class="spec-row"><span class="spec-key">Scroll</span><span class="spec-val">screen-body scrolls; tab bar and sticky bars remain fixed</span></div>
+        </div>
+
+        <div class="spec-block">
+          <div class="spec-section-title">Design Tokens</div>
+          <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val"><span class="spec-code">#f0f4f8</span> cool steel</span></div>
+          <div class="spec-row"><span class="spec-key">Nav</span><span class="spec-val"><span class="spec-code">#2a5080</span> navy</span></div>
+          <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Sora (Google Fonts)</span></div>
+          <div class="spec-row"><span class="spec-key">Frame</span><span class="spec-val">390px wide, min-height 844px, border-radius 40px</span></div>
+          <div class="spec-section-title" style="margin-top:10px;">Band Chip Colors</div>
+          <div class="token-row">
+            <span class="token-swatch"><span class="swatch-dot" style="background:#ffd166;"></span>P0 <span class="spec-code">#ffd166</span></span>
+            <span class="token-swatch"><span class="swatch-dot" style="background:#9b72ff;"></span>P1 <span class="spec-code">#9b72ff</span></span>
+            <span class="token-swatch"><span class="swatch-dot" style="background:#58e8c1;"></span>P2 <span class="spec-code">#58e8c1</span></span>
+            <span class="token-swatch"><span class="swatch-dot" style="background:#ff7b6b;"></span>P3 <span class="spec-code">#ff7b6b</span></span>
+          </div>
+        </div>
+
+        <div style="height:16px;"></div>
+
+      </div>
+
+    </div><!-- /screen-body -->
+
+    <!-- Tab Bar -->
+    <div class="tab-bar">
+      <div class="tab-item active" id="tab-skill" onclick="show('skill')">
+        <span class="tab-icon">🎯</span>
+        <span class="tab-label">Skill</span>
+        <span class="tab-dot"></span>
+      </div>
+      <div class="tab-item" id="tab-configure" onclick="show('configure')">
+        <span class="tab-icon">⚙️</span>
+        <span class="tab-label">Configure</span>
+        <span class="tab-dot"></span>
+      </div>
+      <div class="tab-item" id="tab-learners" onclick="show('learners')">
+        <span class="tab-icon">👥</span>
+        <span class="tab-label">Learners</span>
+        <span class="tab-dot"></span>
+      </div>
+      <div class="tab-item" id="tab-review" onclick="show('review')">
+        <span class="tab-icon">📤</span>
+        <span class="tab-label">Send</span>
+        <span class="tab-dot"></span>
+      </div>
+      <div class="tab-item" id="tab-spec" onclick="show('spec')">
+        <span class="tab-icon">📋</span>
+        <span class="tab-label">Spec</span>
+        <span class="tab-dot"></span>
+      </div>
+    </div>
+
+  </div><!-- /phone-frame -->
+</div>
+
+<script>
+  /* ─── DATA ─── */
+  const SKILLS = [
+    { id:1, name:'Place Value: Tens & Ones',    sub:'Numbers to 100',           band:'P1', q:14 },
+    { id:2, name:'Addition within 20',           sub:'Counting on strategy',     band:'P0', q:12 },
+    { id:3, name:'Subtraction within 20',        sub:'Take-away & counting back',band:'P0', q:10 },
+    { id:4, name:'Number Bonds to 10',           sub:'Part-part-whole',          band:'P0', q: 8 },
+    { id:5, name:'Multiplication — 2× table',    sub:'Skip counting',            band:'P1', q:16 },
+    { id:6, name:'Division: Equal Groups',       sub:'Sharing & grouping',       band:'P2', q:14 },
+    { id:7, name:'Fractions: Half & Quarter',    sub:'Equal parts of shapes',    band:'P1', q:12 },
+    { id:8, name:'Measurement: Length cm',       sub:'Rulers & comparison',      band:'P1', q:10 },
+    { id:9, name:'Time: Telling O\'clock',       sub:'Analogue clock reading',   band:'P0', q: 9 },
+    { id:10,name:'Geometry: 2D Shapes',          sub:'Sides & corners',          band:'P2', q:12 },
+    { id:11,name:'Data: Tally Charts',           sub:'Collecting & reading data',band:'P2', q:11 },
+    { id:12,name:'Algebra: Number Patterns',     sub:'Repeating & growing',      band:'P3', q:10 },
+    { id:13,name:'Place Value: Hundreds',        sub:'3-digit numbers',          band:'P2', q:14 },
+    { id:14,name:'Fractions: Thirds & Fifths',   sub:'Equal parts naming',       band:'P3', q:12 },
+    { id:15,name:'Measurement: Mass (kg/g)',     sub:'Comparing & estimating',   band:'P3', q:10 },
+  ];
+
+  const STUDENTS = [
+    { id:1,  name:'Aisha Patel',       tier:'alert', band:'P0' },
+    { id:2,  name:'Ben Okafor',        tier:'watch', band:'P1' },
+    { id:3,  name:'Clara Nguyen',      tier:'ok',    band:'P2' },
+    { id:4,  name:'David Kim',         tier:'ok',    band:'P2' },
+    { id:5,  name:'Emma Russo',        tier:'alert', band:'P0' },
+    { id:6,  name:'Felix Andersen',    tier:'watch', band:'P1' },
+    { id:7,  name:'Grace Osei',        tier:'ok',    band:'P3' },
+    { id:8,  name:'Henry Malik',       tier:'alert', band:'P0' },
+    { id:9,  name:'Isla Fernandez',    tier:'watch', band:'P1' },
+    { id:10, name:'Jack Thornton',     tier:'ok',    band:'P2' },
+    { id:11, name:'Kira Santos',       tier:'alert', band:'P0' },
+    { id:12, name:'Liam Johansson',    tier:'watch', band:'P1' },
+    { id:13, name:'Mia Tremblay',      tier:'ok',    band:'P3' },
+    { id:14, name:'Noah Williams',     tier:'alert', band:'P0' },
+    { id:15, name:'Olivia Chen',       tier:'ok',    band:'P2' },
+    { id:16, name:'Pablo Torres',      tier:'watch', band:'P1' },
+    { id:17, name:'Quinn Murphy',      tier:'ok',    band:'P3' },
+    { id:18, name:'Ruby Patel',        tier:'alert', band:'P0' },
+    { id:19, name:'Sam Achebe',        tier:'watch', band:'P1' },
+    { id:20, name:'Tara Nielsen',      tier:'ok',    band:'P2' },
+    { id:21, name:'Uma Kobayashi',     tier:'alert', band:'P1' },
+    { id:22, name:'Victor Larsson',    tier:'ok',    band:'P3' },
+    { id:23, name:'Wendy Okonkwo',     tier:'watch', band:'P1' },
+    { id:24, name:'Zoe Park',          tier:'ok',    band:'P3' },
+  ];
+
+  /* ─── STATE ─── */
+  let selectedSkillId = null;
+  let activeBandFilters = new Set(['P0']);
+  let selectedStudents = new Set();
+  let qCountVal = 5;
+  let diffVal = 'standard';
+  let sendMode = 'now';
+
+  /* ─── TAB SWITCHER ─── */
+  const TABS = ['skill','configure','learners','review','spec'];
+  function show(tab) {
+    TABS.forEach(t => {
+      document.getElementById('panel-' + t).classList.toggle('active', t === tab);
+      document.getElementById('tab-' + t).classList.toggle('active', t === tab);
+    });
+    document.getElementById('screenBody').scrollTop = 0;
+    if (tab === 'review') syncReview();
+  }
+
+  /* ─── SKILL LIST ─── */
+  function bandClass(b) { return b.toLowerCase(); }
+
+  function renderSkills() {
+    const q = (document.getElementById('skillSearch').value || '').toLowerCase();
+    const list = document.getElementById('skillList');
+    const filtered = SKILLS.filter(s => {
+      const bandOk = activeBandFilters.size === 0 || activeBandFilters.has(s.band);
+      const textOk = !q || s.name.toLowerCase().includes(q) || s.sub.toLowerCase().includes(q);
+      return bandOk && textOk;
+    });
+
+    if (filtered.length === 0) {
+      list.innerHTML = '<div style="padding:20px 14px;text-align:center;font-size:12px;color:var(--faint);">No skills match your filters.</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(s => {
+      const sel = selectedSkillId === s.id;
+      return `<div class="skill-row-mobile${sel?' selected':''}" onclick="selectSkill(${s.id})">
+        <span class="skill-band-dot ${bandClass(s.band)}">${s.band}</span>
+        <div class="skill-info">
+          <div class="skill-name">${s.name}</div>
+          <div class="skill-sub">${s.sub}</div>
+        </div>
+        <span class="q-chip">${s.q} Q</span>
+        ${sel
+          ? '<span class="checkmark-chip">✓</span>'
+          : '<div class="skill-radio"></div>'
+        }
+      </div>`;
+    }).join('');
+  }
+
+  function selectSkill(id) {
+    selectedSkillId = id;
+    const skill = SKILLS.find(s => s.id === id);
+    document.getElementById('selectedSkillLabel').textContent = skill ? skill.name : 'None';
+    document.getElementById('skillNextBtn').disabled = false;
+    // prefill assignment name
+    if (skill) {
+      document.getElementById('assignName').value = skill.name + ' — ' + skill.band + ' ' + bandLabel(skill.band);
+      updatePreview();
+    }
+    renderSkills();
+  }
+
+  function bandLabel(b) {
+    return { P0:'Foundation', P1:'Core', P2:'Fluent', P3:'Advanced' }[b] || '';
+  }
+
+  function filterSkills() { renderSkills(); }
+
+  function toggleBandFilter(el, band) {
+    if (activeBandFilters.has(band)) {
+      activeBandFilters.delete(band);
+      el.classList.remove('selected-filter');
+      el.classList.add('inactive');
+    } else {
+      activeBandFilters.add(band);
+      el.classList.add('selected-filter');
+      el.classList.remove('inactive');
+    }
+    renderSkills();
+  }
+
+  /* ─── CONFIGURE ─── */
+  function stepQ(delta) {
+    qCountVal = Math.min(10, Math.max(3, qCountVal + delta));
+    document.getElementById('qCount').textContent = qCountVal;
+    updatePreview();
+  }
+
+  function setDiff(btn, val) {
+    diffVal = val;
+    document.querySelectorAll('.diff-pill').forEach(p => p.classList.remove('selected'));
+    btn.classList.add('selected');
+    updatePreview();
+  }
+
+  function updatePreview() {
+    const name = document.getElementById('assignName').value || '—';
+    const due = document.getElementById('dueDate').value;
+    document.getElementById('prev-name').textContent = name;
+    document.getElementById('prev-q').textContent = qCountVal + ' questions';
+    document.getElementById('prev-diff').textContent = { gentle:'Gentle', standard:'Standard', challenge:'Challenge' }[diffVal];
+    if (due) {
+      const d = new Date(due + 'T00:00:00');
+      document.getElementById('prev-due').textContent = d.toLocaleDateString('en-GB', {day:'numeric',month:'short',year:'numeric'});
+    }
+  }
+
+  function updateCharCount() {
+    const v = document.getElementById('teacherNote').value.length;
+    document.getElementById('charCount').textContent = v + ' / 200';
+  }
+
+  /* ─── STUDENT LIST ─── */
+  function renderStudents() {
+    const list = document.getElementById('studentList');
+    list.innerHTML = STUDENTS.map(s => {
+      const sel = selectedStudents.has(s.id);
+      return `<div class="student-item-mobile${sel?' selected':''}" onclick="toggleStudent(${s.id})">
+        <div class="student-cb"></div>
+        <span class="student-name">${s.name}</span>
+        <span class="tier-dot ${s.tier}"></span>
+        <span class="student-band-chip ${bandClass(s.band)}">${s.band}</span>
+      </div>`;
+    }).join('');
+    updateSelectionSummary();
+  }
+
+  function toggleStudent(id) {
+    if (selectedStudents.has(id)) {
+      selectedStudents.delete(id);
+    } else {
+      selectedStudents.add(id);
+    }
+    renderStudents();
+  }
+
+  function selectGroup(group, chipEl) {
+    // toggle chip selection
+    const chips = document.querySelectorAll('.group-chip');
+    chips.forEach(c => c.classList.remove('selected'));
+    chipEl.classList.add('selected');
+
+    selectedStudents.clear();
+    STUDENTS.forEach(s => {
+      if (group === 'all') selectedStudents.add(s.id);
+      else if (group === 'support' && s.tier === 'alert') selectedStudents.add(s.id);
+      else if (group === 'ontrack' && (s.tier === 'watch' || s.tier === 'ok')) selectedStudents.add(s.id);
+      else if (group === 'advanced' && (s.band === 'P3')) selectedStudents.add(s.id);
+    });
+    renderStudents();
+  }
+
+  function updateSelectionSummary() {
+    const count = selectedStudents.size;
+    document.getElementById('selCount').textContent = count + ' selected';
+    document.getElementById('learnersNextBtn').disabled = count === 0;
+
+    let alert=0, watch=0, ok=0;
+    selectedStudents.forEach(id => {
+      const s = STUDENTS.find(x => x.id === id);
+      if (s) { if(s.tier==='alert') alert++; else if(s.tier==='watch') watch++; else ok++; }
+    });
+    document.getElementById('tierAlert').textContent = '🚨 ' + alert;
+    document.getElementById('tierWatch').textContent = '👀 ' + watch;
+    document.getElementById('tierOk').textContent = '✅ ' + ok;
+  }
+
+  /* ─── REVIEW & SEND ─── */
+  function syncReview() {
+    const skill = SKILLS.find(s => s.id === selectedSkillId) || SKILLS[0];
+    const name = document.getElementById('assignName').value || skill.name;
+    const due = document.getElementById('dueDate').value;
+    const note = document.getElementById('teacherNote').value;
+    const count = selectedStudents.size || 12;
+
+    document.getElementById('rev-skillName').textContent = name;
+    document.getElementById('rev-qMeta').textContent = qCountVal + ' questions';
+    document.getElementById('rev-diffMeta').textContent = { gentle:'Gentle', standard:'Standard', challenge:'Challenge' }[diffVal];
+    if (due) {
+      const d = new Date(due + 'T00:00:00');
+      document.getElementById('rev-dueMeta').textContent = 'Due ' + d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    }
+    document.getElementById('rev-studentsMeta').textContent = count + ' students';
+    const noteEl = document.getElementById('rev-note');
+    if (note.trim()) {
+      const truncated = note.length > 80 ? note.substring(0, 80) + '…' : note;
+      noteEl.innerHTML = '<strong>Teacher note</strong>' + truncated;
+      noteEl.style.display = 'block';
+    } else {
+      noteEl.style.display = 'none';
+    }
+    document.getElementById('successSub').textContent = 'Sent to ' + count + ' students successfully.';
+  }
+
+  function selectSendMode(mode) {
+    sendMode = mode;
+    const nowCard = document.getElementById('sendNowCard');
+    const laterCard = document.getElementById('sendLaterCard');
+    const sched = document.getElementById('scheduleInputs');
+    nowCard.classList.toggle('selected', mode === 'now');
+    laterCard.classList.toggle('selected', mode === 'later');
+    sched.classList.toggle('visible', mode === 'later');
+  }
+
+  function saveDraft() {
+    const btn = document.querySelector('.btn-outline');
+    btn.textContent = 'Saved ✓';
+    btn.style.color = '#22c55e';
+    btn.style.borderColor = '#22c55e';
+    setTimeout(() => {
+      btn.textContent = 'Save Draft';
+      btn.style.color = '';
+      btn.style.borderColor = '';
+    }, 2000);
+  }
+
+  function sendAssignment() {
+    syncReview();
+    document.getElementById('successOverlay').classList.add('show');
+  }
+
+  function createAnother() {
+    document.getElementById('successOverlay').classList.remove('show');
+    // reset state
+    selectedSkillId = null;
+    selectedStudents.clear();
+    qCountVal = 5;
+    diffVal = 'standard';
+    document.getElementById('selectedSkillLabel').textContent = 'None';
+    document.getElementById('skillNextBtn').disabled = true;
+    document.getElementById('qCount').textContent = '5';
+    document.querySelectorAll('.diff-pill').forEach(p => p.classList.remove('selected'));
+    document.querySelector('.diff-pill:nth-child(2)').classList.add('selected');
+    document.getElementById('teacherNote').value = '';
+    document.getElementById('charCount').textContent = '0 / 200';
+    renderSkills();
+    renderStudents();
+    show('skill');
+  }
+
+  /* ─── INIT ─── */
+  renderSkills();
+  renderStudents();
+  updatePreview();
+</script>
+</body>
+</html>

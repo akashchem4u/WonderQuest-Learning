@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Question Factory Workbench v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #10161e; font-family: 'Sora', sans-serif; min-height: 100vh; padding: 20px; color: #d0e8f0; }
+
+/* ── Top-level layout ── */
+.workbench { max-width: 1200px; margin: 0 auto; }
+
+/* ── Top nav bar ── */
+.top-nav { background: #0a1018; border: 1px solid #1e2e3e; border-radius: 12px 12px 0 0; padding: 0 24px; display: flex; align-items: center; height: 52px; gap: 0; margin-bottom: 0; }
+.nav-brand { color: #58c8f0; font-size: 14px; font-weight: 700; margin-right: 28px; display: flex; align-items: center; gap: 8px; }
+.nav-dot { width: 8px; height: 8px; background: #58c8f0; border-radius: 50%; }
+.nav-role { background: #1e2e3e; border-radius: 14px; padding: 4px 12px; font-size: 11px; color: #58c8f0; margin-left: auto; }
+.nav-date-chip { background: #0d1820; border: 1px solid #1e2e3e; border-radius: 10px; padding: 4px 12px; font-size: 11px; color: #7a9ab0; margin-left: 12px; }
+
+/* ── Tab bar ── */
+.tab-bar { background: #0d1520; border-left: 1px solid #1e2e3e; border-right: 1px solid #1e2e3e; border-bottom: 1px solid #1e2e3e; display: flex; gap: 0; overflow-x: auto; }
+.tab-btn { background: transparent; border: none; color: #7a9ab0; padding: 14px 22px; font-size: 13px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; white-space: nowrap; border-bottom: 3px solid transparent; transition: color .2s, border-color .2s; }
+.tab-btn:hover { color: #d0e8f0; }
+.tab-btn.active { color: #58c8f0; border-bottom-color: #58c8f0; }
+
+/* ── Tab content ── */
+.tab-content { background: #10161e; border: 1px solid #1e2e3e; border-top: none; border-radius: 0 0 12px 12px; padding: 24px; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* ── Engineering hint box ── */
+.hint-box { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 14px 18px; margin-bottom: 20px; font-family: monospace; font-size: 12px; color: #5a4000; line-height: 1.7; }
+.hint-box strong { color: #a06000; }
+
+/* ── Cards ── */
+.card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 18px; }
+.card + .card { margin-top: 14px; }
+
+/* ── Band chip colors ── */
+.chip { display: inline-flex; align-items: center; border-radius: 20px; padding: 4px 12px; font-size: 11px; font-weight: 600; white-space: nowrap; cursor: pointer; }
+.chip-p0 { background: #2a2000; border: 1.5px solid #ffd166; color: #ffd166; }
+.chip-p1 { background: #1a0e30; border: 1.5px solid #9b72ff; color: #9b72ff; }
+.chip-p2 { background: #0e2a22; border: 1.5px solid #58e8c1; color: #58e8c1; }
+.chip-p3 { background: #2a1010; border: 1.5px solid #ff7b6b; color: #ff7b6b; }
+
+/* Status chips */
+.chip-approved { background: #1a5030; border: 1.5px solid #50c880; color: #50c880; }
+.chip-review { background: #1a3a5a; border: 1.5px solid #58c8f0; color: #58c8f0; }
+.chip-draft { background: #2a2a00; border: 1.5px solid #c8c840; color: #c8c840; }
+.chip-gap { background: #2a0808; border: 1.5px solid #ff6060; color: #ff6060; }
+.chip-returned { background: #2a1200; border: 1.5px solid #f09040; color: #f09040; }
+.chip-neutral { background: #1e2e3e; border: 1.5px solid #3a5060; color: #7a9ab0; }
+.chip-active { background: #1a3a5a; border: 1.5px solid #58c8f0; color: #58c8f0; }
+
+/* ── Buttons ── */
+.btn { display: inline-flex; align-items: center; gap: 6px; border-radius: 8px; padding: 8px 16px; font-size: 12px; font-family: 'Sora', sans-serif; font-weight: 600; cursor: pointer; transition: opacity .2s, transform .1s; border: none; }
+.btn:hover { opacity: .85; transform: translateY(-1px); }
+.btn:active { transform: translateY(0); }
+.btn-approve { background: #1a5030; border: 1.5px solid #50c880; color: #50c880; }
+.btn-return { background: #2a2000; border: 1.5px solid #c8c840; color: #c8c840; }
+.btn-delete { background: transparent; border: 1.5px solid #3a2020; color: #ff6060; }
+.btn-cyan { background: #58c8f0; color: #0a1018; border: none; }
+.btn-outline { background: transparent; border: 1.5px solid #1e2e3e; color: #7a9ab0; }
+.btn-sm { padding: 5px 11px; font-size: 11px; }
+.btn-disabled { opacity: .4; cursor: not-allowed; }
+.btn-disabled:hover { opacity: .4; transform: none; }
+
+/* ── Progress bar ── */
+.progress-wrap { background: #0a1018; border-radius: 4px; height: 8px; overflow: hidden; }
+.progress-bar { height: 100%; border-radius: 4px; transition: width .4s; }
+.progress-cyan { background: #58c8f0; }
+.progress-green { background: #50c880; }
+.progress-red { background: #ff6060; }
+.progress-amber { background: #f0c040; }
+
+/* ── Utility ── */
+.row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.row-between { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.col { display: flex; flex-direction: column; gap: 6px; }
+.label { font-size: 11px; color: #7a9ab0; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.value { font-size: 22px; font-weight: 700; color: #d0e8f0; }
+.value-sm { font-size: 14px; font-weight: 700; color: #d0e8f0; }
+.muted { color: #7a9ab0; font-size: 12px; }
+.section-title { font-size: 13px; font-weight: 700; color: #d0e8f0; margin-bottom: 12px; }
+.sep { width: 1px; height: 100%; background: #1e2e3e; align-self: stretch; }
+hr.divider { border: none; border-top: 1px solid #1e2e3e; margin: 14px 0; }
+
+/* ═══════════════════════════════════════════════
+   TAB 1 — Factory Overview
+═══════════════════════════════════════════════ */
+.factory-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+.factory-title { font-size: 20px; font-weight: 700; color: #d0e8f0; }
+.total-chip { background: #1e2e3e; border: 1.5px solid #3a5060; border-radius: 20px; padding: 5px 14px; font-size: 12px; font-weight: 700; color: #58c8f0; }
+
+.band-count-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+.band-card { background: #141e28; border: 2px solid #1e2e3e; border-radius: 12px; padding: 20px; }
+.band-card.warn-border { border-color: #c8a020; }
+.band-card.crit-border { border-color: #cc3030; }
+.band-name { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+.band-total { font-size: 32px; font-weight: 700; margin: 8px 0; }
+.band-breakdown { display: flex; gap: 14px; flex-wrap: wrap; }
+.breakdown-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #7a9ab0; }
+.breakdown-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot-approved { background: #50c880; }
+.dot-review { background: #58c8f0; }
+.dot-draft { background: #c8c840; }
+.band-badge { display: inline-flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+.band-badge-label { font-size: 11px; font-weight: 700; border-radius: 10px; padding: 3px 10px; }
+
+.status-pipeline-row { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+.pipeline-title { font-size: 12px; font-weight: 700; color: #7a9ab0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 14px; }
+.pipeline-track { display: flex; align-items: center; gap: 0; overflow-x: auto; }
+.pipeline-stage { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 120px; }
+.stage-count { font-size: 22px; font-weight: 700; }
+.stage-label { font-size: 11px; color: #7a9ab0; font-weight: 600; }
+.stage-chip { font-size: 11px; font-weight: 700; border-radius: 12px; padding: 3px 10px; }
+.pipeline-arrow { color: #3a5060; font-size: 20px; padding: 0 12px; flex-shrink: 0; }
+
+.count-draft { color: #c8c840; }
+.count-review { color: #58c8f0; }
+.count-approved { color: #50c880; }
+.count-published { color: #9b72ff; }
+
+.today-stats-card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 16px 20px; margin-bottom: 14px; display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+.today-label { font-size: 12px; color: #7a9ab0; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; margin-right: 6px; }
+.today-stat { display: flex; align-items: center; gap: 8px; }
+.today-num { font-size: 18px; font-weight: 700; }
+.today-desc { font-size: 12px; color: #7a9ab0; }
+
+.gap-alert-card { background: #200a0a; border: 1px solid #4a1010; border-left: 4px solid #ff4040; border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.gap-alert-text { font-size: 13px; font-weight: 600; color: #ff8080; }
+.gap-alert-sub { font-size: 11px; color: #a06060; margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════
+   TAB 2 — Question Queue
+═══════════════════════════════════════════════ */
+.queue-filter-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.filter-label { font-size: 11px; color: #7a9ab0; font-weight: 600; text-transform: uppercase; letter-spacing: .4px; }
+.filter-chip { background: #141e28; border: 1.5px solid #1e2e3e; border-radius: 20px; padding: 5px 13px; font-size: 11px; font-weight: 600; color: #7a9ab0; cursor: pointer; transition: all .15s; }
+.filter-chip.active { background: #1a3a5a; border-color: #58c8f0; color: #58c8f0; }
+.filter-chip:hover:not(.active) { border-color: #3a5060; color: #d0e8f0; }
+.sort-select { background: #141e28; border: 1.5px solid #1e2e3e; border-radius: 8px; padding: 6px 12px; font-size: 11px; color: #7a9ab0; font-family: 'Sora', sans-serif; cursor: pointer; margin-left: auto; }
+
+.queue-stats-bar { background: #0d1520; border: 1px solid #1e2e3e; border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 16px; }
+.queue-stats-bar .stat-label { font-size: 12px; color: #7a9ab0; }
+.queue-stats-bar .stat-count { font-size: 16px; font-weight: 700; color: #58c8f0; }
+
+.bulk-action-bar { background: #0d1520; border: 1px solid #1e2e3e; border-radius: 8px; padding: 10px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bulk-checkbox { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #7a9ab0; cursor: pointer; }
+.bulk-checkbox input { accent-color: #58c8f0; width: 14px; height: 14px; cursor: pointer; }
+
+.question-queue-list { display: flex; flex-direction: column; gap: 10px; max-height: 640px; overflow-y: auto; padding-right: 4px; }
+.question-queue-list::-webkit-scrollbar { width: 5px; }
+.question-queue-list::-webkit-scrollbar-track { background: #0a1018; border-radius: 3px; }
+.question-queue-list::-webkit-scrollbar-thumb { background: #1e2e3e; border-radius: 3px; }
+
+.question-card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; overflow: hidden; }
+.question-card.expanded .qcard-body { display: block; }
+.qcard-header { padding: 14px 16px; display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+.qcard-header:hover { background: #18242e; }
+.qcard-meta-col { flex: 1; min-width: 0; }
+.qcard-top-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.qcard-skill { font-size: 11px; font-weight: 700; color: #7a9ab0; }
+.qcard-text { font-size: 13px; color: #d0e8f0; line-height: 1.5; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+.qcard-options-compact { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.option-pill { font-size: 11px; padding: 3px 10px; border-radius: 14px; background: #1e2e3e; color: #7a9ab0; border: 1px solid #2a3e50; }
+.option-pill.correct { background: #1a4028; border-color: #50c880; color: #50c880; font-weight: 700; }
+.qcard-info-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.qcard-date { font-size: 11px; color: #4a6a80; }
+.creator-chip { background: #1e2e3e; border-radius: 10px; padding: 2px 9px; font-size: 10px; color: #7a9ab0; }
+.qa-flag { display: inline-flex; align-items: center; gap: 4px; font-size: 10px; color: #f09040; background: #2a1a00; border: 1px solid #4a2a00; border-radius: 10px; padding: 2px 8px; }
+.hard-block-chip { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; color: #ff6060; background: #2a0808; border: 1.5px solid #cc2020; border-radius: 10px; padding: 3px 10px; font-weight: 700; }
+.qcard-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-top: 2px; }
+.expand-arrow { color: #3a5060; font-size: 16px; transition: transform .2s; margin-left: auto; flex-shrink: 0; align-self: flex-start; margin-top: 4px; }
+.expanded .expand-arrow { transform: rotate(180deg); }
+
+.qcard-body { display: none; padding: 0 16px 16px; border-top: 1px solid #1e2e3e; margin-top: 0; }
+.full-question { font-size: 13px; color: #d0e8f0; line-height: 1.6; padding: 12px 0; }
+.options-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.option-row { display: flex; align-items: center; gap: 10px; font-size: 12px; }
+.option-letter { width: 22px; height: 22px; border-radius: 50%; background: #1e2e3e; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: #7a9ab0; flex-shrink: 0; }
+.option-row.correct-row .option-letter { background: #1a4028; color: #50c880; }
+.option-text { color: #d0e8f0; }
+.option-row.correct-row .option-text { color: #50c880; font-weight: 600; }
+.correct-marker { color: #50c880; font-size: 12px; margin-left: auto; }
+.explainer-field { background: #0d1520; border: 1px solid #1e2e3e; border-radius: 8px; padding: 10px; font-size: 12px; color: #7a9ab0; font-family: 'Sora', sans-serif; width: 100%; min-height: 56px; resize: vertical; }
+
+/* ═══════════════════════════════════════════════
+   TAB 3 — Batch Generation Review
+═══════════════════════════════════════════════ */
+.batch-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.batch-title { font-size: 18px; font-weight: 700; color: #d0e8f0; }
+
+.batch-summary-card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.batch-stats-row { display: flex; gap: 20px; flex-wrap: wrap; margin: 14px 0; }
+.batch-stat { display: flex; flex-direction: column; gap: 3px; }
+.batch-stat .num { font-size: 20px; font-weight: 700; }
+.pass-num { color: #50c880; }
+.warn-num { color: #f0c040; }
+.block-num { color: #ff6060; }
+.total-num { color: #58c8f0; }
+.batch-progress-label { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 11px; color: #7a9ab0; }
+
+.auto-check-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 12px; padding: 3px 10px; font-size: 10px; font-weight: 700; }
+.auto-check-chip.pass { background: #1a5030; border: 1px solid #50c880; color: #50c880; }
+.auto-check-chip.warn { background: #2a2000; border: 1px solid #f0c040; color: #f0c040; }
+.auto-check-chip.block { background: #2a0808; border: 1px solid #ff6060; color: #ff6060; }
+
+.batch-completion-bar { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 14px 18px; margin-top: 16px; }
+.batch-completion-label { display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 8px; }
+.batch-bulk-approve-card { background: #0f2a1e; border: 1.5px solid #1a5030; border-radius: 10px; padding: 16px 20px; margin-top: 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.bulk-approve-text { font-size: 13px; font-weight: 600; color: #d0e8f0; }
+.bulk-approve-sub { font-size: 11px; color: #7a9ab0; margin-top: 2px; }
+
+/* ═══════════════════════════════════════════════
+   TAB 4 — Gap Identification
+═══════════════════════════════════════════════ */
+.gap-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.gap-title { font-size: 18px; font-weight: 700; color: #d0e8f0; }
+.refresh-btn { background: #141e28; border: 1.5px solid #1e2e3e; border-radius: 8px; padding: 6px 12px; font-size: 11px; color: #7a9ab0; font-family: 'Sora', sans-serif; cursor: pointer; }
+.refresh-btn:hover { border-color: #58c8f0; color: #58c8f0; }
+.updated-chip { font-size: 11px; color: #4a6a80; }
+
+.gap-summary-stats { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+.gap-stat-chip { border-radius: 10px; padding: 10px 16px; display: flex; flex-direction: column; gap: 2px; }
+.gap-stat-chip.crit { background: #2a0808; border: 1.5px solid #ff6060; }
+.gap-stat-chip.warn { background: #2a1a00; border: 1.5px solid #f0c040; }
+.gap-stat-chip.ok { background: #0e2a18; border: 1.5px solid #50c880; }
+.gap-stat-num { font-size: 20px; font-weight: 700; }
+.crit .gap-stat-num { color: #ff6060; }
+.warn .gap-stat-num { color: #f0c040; }
+.ok .gap-stat-num { color: #50c880; }
+.gap-stat-label { font-size: 11px; font-weight: 600; }
+.crit .gap-stat-label { color: #cc4040; }
+.warn .gap-stat-label { color: #c09030; }
+.ok .gap-stat-label { color: #3a9060; }
+
+.gap-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+.gap-card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 16px; }
+.gap-card.gap-critical { border-left: 4px solid #ff4040; animation: cell-pulse 2.5s ease-in-out infinite; }
+.gap-card.gap-warning { border-left: 4px solid #f0c040; }
+.gap-card-top { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+.gap-skill-name { font-size: 13px; font-weight: 700; color: #d0e8f0; flex: 1; }
+.gap-node-name { font-size: 11px; color: #7a9ab0; }
+.gap-counts { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.gap-current { font-weight: 700; }
+.gap-target { color: #7a9ab0; }
+.gap-delta { font-weight: 700; }
+.gap-delta.crit { color: #ff6060; }
+.gap-delta.warn { color: #f0c040; }
+.gap-progress-wrap { margin-bottom: 10px; }
+.gap-progress-label { display: flex; justify-content: space-between; font-size: 11px; color: #7a9ab0; margin-bottom: 4px; }
+.gap-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@keyframes cell-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 64, 64, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(255, 64, 64, 0.15); }
+}
+
+.gap-chart-card { background: #141e28; border: 1px solid #1e2e3e; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+.chart-title { font-size: 12px; font-weight: 700; color: #7a9ab0; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 16px; }
+.chart-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.chart-label { width: 160px; font-size: 11px; color: #7a9ab0; flex-shrink: 0; text-align: right; }
+.chart-bar-wrap { flex: 1; background: #0a1018; border-radius: 4px; height: 16px; overflow: hidden; }
+.chart-bar { height: 100%; border-radius: 4px; display: flex; align-items: center; justify-content: flex-end; padding-right: 6px; }
+.chart-bar-label { font-size: 10px; font-weight: 700; color: rgba(255,255,255,.7); }
+.chart-bar.crit { background: #cc2020; }
+.chart-bar.warn { background: #b08000; }
+.chart-count { width: 40px; font-size: 11px; color: #7a9ab0; text-align: right; flex-shrink: 0; }
+
+.fill-all-cta { margin-top: 14px; text-align: center; }
+
+/* ═══════════════════════════════════════════════
+   TAB 5 — Spec
+═══════════════════════════════════════════════ */
+.spec-hint-box { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 20px 24px; font-family: monospace; font-size: 12.5px; color: #5a4000; line-height: 1.9; }
+.spec-hint-box h4 { color: #8a5000; font-size: 13px; margin-top: 16px; margin-bottom: 6px; }
+.spec-hint-box h4:first-child { margin-top: 0; }
+.spec-hint-box ul { padding-left: 18px; }
+.spec-hint-box li { margin-bottom: 2px; }
+.spec-hint-box code { background: #f0e0a0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="workbench">
+
+  <!-- Top Nav -->
+  <div class="top-nav">
+    <div class="nav-brand"><div class="nav-dot"></div> WonderQuest</div>
+    <span style="font-size:13px; color:#7a9ab0; font-weight:600;">Question Factory Workbench</span>
+    <div class="nav-role" style="margin-left:auto;">Content Admin</div>
+    <div class="nav-date-chip">Mar 22, 2026</div>
+  </div>
+
+  <!-- Tab Bar -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="show('overview')">Factory Overview</button>
+    <button class="tab-btn" onclick="show('queue')">Question Queue</button>
+    <button class="tab-btn" onclick="show('batch')">Batch Generation</button>
+    <button class="tab-btn" onclick="show('gaps')">Gap Identification</button>
+    <button class="tab-btn" onclick="show('spec')">Spec</button>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="tab-content">
+
+    <!-- ════════════════════════════════════════
+         TAB 1 — Factory Overview
+    ════════════════════════════════════════ -->
+    <div id="tab-overview" class="tab-pane active">
+      <div class="hint-box">
+        <strong>Engineering hint (Tab 1):</strong> Pull summary counts from <code>GET /content/questions/summary</code> → aggregate by band + status.
+        Refresh on a 60-second poll in prod. Pipeline counts should be live. "Today's output" derived from audit log events with today's date filter.
+        Gap alert CTA routes to Tab 4 (Gap Identification). Band cards with warn/crit border derive from coverage thresholds (&lt;4 Q/node critical, 4-5 warning).
+      </div>
+
+      <!-- Header -->
+      <div class="factory-header">
+        <div class="factory-title">Question Factory</div>
+        <div class="chip chip-neutral">Mar 22, 2026</div>
+        <div class="total-chip">Total: 553 questions</div>
+      </div>
+
+      <!-- Band Count Grid -->
+      <div class="band-count-grid">
+
+        <!-- P0 -->
+        <div class="band-card">
+          <div class="band-badge">
+            <div class="chip chip-p0">P0</div>
+            <span style="font-size:13px; color:#ffd166; font-weight:700;">Foundational</span>
+          </div>
+          <div class="band-total" style="color:#ffd166;">214</div>
+          <div class="label" style="margin-bottom:10px;">Total questions</div>
+          <div class="band-breakdown">
+            <div class="breakdown-item"><div class="breakdown-dot dot-approved"></div>180 approved</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-review"></div>20 in review</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-draft"></div>14 draft</div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="progress-wrap"><div class="progress-bar progress-green" style="width:84%;"></div></div>
+            <div style="font-size:10px; color:#50c880; margin-top:4px;">84% approved</div>
+          </div>
+        </div>
+
+        <!-- P1 -->
+        <div class="band-card">
+          <div class="band-badge">
+            <div class="chip chip-p1">P1</div>
+            <span style="font-size:13px; color:#9b72ff; font-weight:700;">Emerging</span>
+          </div>
+          <div class="band-total" style="color:#9b72ff;">187</div>
+          <div class="label" style="margin-bottom:10px;">Total questions</div>
+          <div class="band-breakdown">
+            <div class="breakdown-item"><div class="breakdown-dot dot-approved"></div>150 approved</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-review"></div>22 in review</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-draft"></div>15 draft</div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="progress-wrap"><div class="progress-bar progress-green" style="width:80%;"></div></div>
+            <div style="font-size:10px; color:#50c880; margin-top:4px;">80% approved</div>
+          </div>
+        </div>
+
+        <!-- P2 — amber border (below target) -->
+        <div class="band-card warn-border">
+          <div class="band-badge">
+            <div class="chip chip-p2">P2</div>
+            <span style="font-size:13px; color:#58e8c1; font-weight:700;">Developing</span>
+            <span class="chip chip-draft" style="font-size:10px; padding:2px 8px;">Below target</span>
+          </div>
+          <div class="band-total" style="color:#58e8c1;">134</div>
+          <div class="label" style="margin-bottom:10px;">Total questions</div>
+          <div class="band-breakdown">
+            <div class="breakdown-item"><div class="breakdown-dot dot-approved"></div>100 approved</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-review"></div>20 in review</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-draft"></div>14 draft</div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="progress-wrap"><div class="progress-bar progress-amber" style="width:75%;"></div></div>
+            <div style="font-size:10px; color:#c8a020; margin-top:4px;">75% approved — below 80% target</div>
+          </div>
+        </div>
+
+        <!-- P3 — red border (critical) -->
+        <div class="band-card crit-border">
+          <div class="band-badge">
+            <div class="chip chip-p3">P3</div>
+            <span style="font-size:13px; color:#ff7b6b; font-weight:700;">Advanced</span>
+            <span class="chip chip-gap" style="font-size:10px; padding:2px 8px;">Critical</span>
+          </div>
+          <div class="band-total" style="color:#ff7b6b;">76</div>
+          <div class="label" style="margin-bottom:10px;">Total questions</div>
+          <div class="band-breakdown">
+            <div class="breakdown-item"><div class="breakdown-dot dot-approved"></div>50 approved</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-review"></div>12 in review</div>
+            <div class="breakdown-item"><div class="breakdown-dot dot-draft"></div>14 draft</div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="progress-wrap"><div class="progress-bar progress-red" style="width:66%;"></div></div>
+            <div style="font-size:10px; color:#ff6060; margin-top:4px;">66% approved — critical coverage</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Status Pipeline -->
+      <div class="status-pipeline-row">
+        <div class="pipeline-title">Status Pipeline</div>
+        <div class="pipeline-track">
+          <div class="pipeline-stage">
+            <div class="stage-count count-draft">46</div>
+            <div class="stage-chip chip-draft">Draft</div>
+            <div class="stage-label">questions</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage">
+            <div class="stage-count count-review">74</div>
+            <div class="stage-chip chip-review">In Review</div>
+            <div class="stage-label">questions</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage">
+            <div class="stage-count count-approved">480</div>
+            <div class="stage-chip chip-approved">Approved</div>
+            <div class="stage-label">questions</div>
+          </div>
+          <div class="pipeline-arrow">→</div>
+          <div class="pipeline-stage">
+            <div class="stage-count count-published">430</div>
+            <div class="stage-chip" style="background:#1e1040; border:1.5px solid #9b72ff; color:#9b72ff; font-size:11px; font-weight:700; border-radius:12px; padding:3px 10px;">Published</div>
+            <div class="stage-label">questions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Today Stats -->
+      <div class="today-stats-card">
+        <div>
+          <span class="today-label">Today's output</span>
+        </div>
+        <div class="today-stat">
+          <div class="today-num" style="color:#50c880;">12</div>
+          <div class="today-desc">approved</div>
+        </div>
+        <div style="width:1px; height:32px; background:#1e2e3e;"></div>
+        <div class="today-stat">
+          <div class="today-num" style="color:#f0c040;">3</div>
+          <div class="today-desc">returned</div>
+        </div>
+        <div style="width:1px; height:32px; background:#1e2e3e;"></div>
+        <div class="today-stat">
+          <div class="today-num" style="color:#7a9ab0;">0</div>
+          <div class="today-desc">gap-fills</div>
+        </div>
+      </div>
+
+      <!-- Gap Alert -->
+      <div class="gap-alert-card">
+        <div>
+          <div class="gap-alert-text">⚠️ 8 critical gaps in P3 — prioritize!</div>
+          <div class="gap-alert-sub">Advanced band fractions, decimals, and geometry nodes below minimum coverage threshold</div>
+        </div>
+        <button class="btn btn-cyan" onclick="show('gaps')">View Gaps →</button>
+      </div>
+
+    </div><!-- /tab-overview -->
+
+
+    <!-- ════════════════════════════════════════
+         TAB 2 — Question Queue
+    ════════════════════════════════════════ -->
+    <div id="tab-queue" class="tab-pane">
+      <div class="hint-box">
+        <strong>Engineering hint (Tab 2):</strong> <code>GET /content/questions/queue?status=&band=&sort=oldest</code> paginated (page size 30).
+        Approve: <code>PUT /content/questions/:id/approve</code> — requires <code>correct_answer_index</code> set (hard block if missing).
+        Return: <code>PUT /content/questions/:id/return</code> with optional note. Bulk operations accept array of IDs.
+        QA flags computed server-side on save; hard blocks prevent approve button activation.
+        Expand-in-place card: fetch full question from <code>GET /content/questions/:id</code> on first expand.
+      </div>
+
+      <!-- Bulk Action Bar (sticky concept) -->
+      <div class="bulk-action-bar">
+        <label class="bulk-checkbox">
+          <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)">
+          Select all In Review (74)
+        </label>
+        <button class="btn btn-approve btn-sm" onclick="bulkAction('approve')">Bulk Approve ✅</button>
+        <button class="btn btn-return btn-sm" onclick="bulkAction('return')">Bulk Return ↩️</button>
+        <span class="muted" style="margin-left:auto;" id="bulk-selection-count">0 selected</span>
+      </div>
+
+      <!-- Filter Row -->
+      <div class="queue-filter-row">
+        <span class="filter-label">Status:</span>
+        <button class="filter-chip" onclick="setStatusFilter('all', this)">All</button>
+        <button class="filter-chip" onclick="setStatusFilter('draft', this)">Draft</button>
+        <button class="filter-chip active" onclick="setStatusFilter('review', this)">In Review</button>
+        <button class="filter-chip" onclick="setStatusFilter('approved', this)">Approved</button>
+        <button class="filter-chip" onclick="setStatusFilter('returned', this)">Returned</button>
+        <span class="filter-label" style="margin-left:8px;">Band:</span>
+        <button class="filter-chip chip-p0" onclick="setBandFilter('p0', this)">P0</button>
+        <button class="filter-chip chip-p1" onclick="setBandFilter('p1', this)">P1</button>
+        <button class="filter-chip chip-p2" onclick="setBandFilter('p2', this)">P2</button>
+        <button class="filter-chip chip-p3" onclick="setBandFilter('p3', this)">P3</button>
+        <select class="sort-select">
+          <option>Sort by: Oldest First</option>
+          <option>Sort by: Newest First</option>
+          <option>Sort by: Band</option>
+          <option>Sort by: Creator</option>
+        </select>
+      </div>
+
+      <!-- Queue Stats -->
+      <div class="queue-stats-bar">
+        <span class="stat-label">Showing:</span>
+        <span class="stat-count" id="queue-stats-count">74</span>
+        <span class="stat-label">In Review</span>
+        <span class="muted" style="margin-left:auto;">Page 1 of 3</span>
+      </div>
+
+      <!-- Question List -->
+      <div class="question-queue-list" id="question-queue-list">
+        <!-- Cards injected by JS -->
+      </div>
+
+    </div><!-- /tab-queue -->
+
+
+    <!-- ════════════════════════════════════════
+         TAB 3 — Batch Generation Review
+    ════════════════════════════════════════ -->
+    <div id="tab-batch" class="tab-pane">
+      <div class="hint-box">
+        <strong>Engineering hint (Tab 3):</strong> <code>GET /content/batches/:id</code> returns batch metadata + question list with auto-check results.
+        Auto-check runs on ingest: hard blocks = no correct answer, duplicate options, prohibited words.
+        Warnings = borderline word length (&gt;18 words), missing emoji for pre-reader context.
+        Bulk approve: <code>POST /content/batches/:id/bulk-approve</code> with <code>{"filter":"pass"}</code> — skips hard blocks automatically.
+        Editors must manually resolve each hard block question before it can be approved individually.
+      </div>
+
+      <!-- Batch Header -->
+      <div class="batch-header">
+        <div class="batch-title">Batch Review</div>
+        <div class="chip chip-review">Batch #14 — P3 Fractions — 24 questions</div>
+        <div class="muted" style="margin-left:auto;">Generated Mar 22, 2026 · 09:14 AM</div>
+      </div>
+
+      <!-- Batch Summary Card -->
+      <div class="batch-summary-card">
+        <div class="row-between">
+          <div>
+            <div style="font-size:14px; font-weight:700; color:#d0e8f0; margin-bottom:4px;">Batch #14 — P3 Fractions</div>
+            <div class="muted">Skill: Equivalent Fractions · Band: P3 · Auto-generated via Claude 3.5</div>
+          </div>
+          <div class="chip chip-p3">P3 Advanced</div>
+        </div>
+        <div class="batch-stats-row">
+          <div class="batch-stat"><div class="num total-num">24</div><div class="muted">Total</div></div>
+          <div style="width:1px; background:#1e2e3e; align-self:stretch;"></div>
+          <div class="batch-stat"><div class="num pass-num">18</div><div class="muted">Auto-check pass</div></div>
+          <div style="width:1px; background:#1e2e3e; align-self:stretch;"></div>
+          <div class="batch-stat"><div class="num warn-num">4</div><div class="muted">Warnings</div></div>
+          <div style="width:1px; background:#1e2e3e; align-self:stretch;"></div>
+          <div class="batch-stat"><div class="num block-num">2</div><div class="muted">Hard blocks</div></div>
+        </div>
+        <div>
+          <div class="batch-progress-label"><span>Auto-check pass rate</span><span style="color:#58c8f0; font-weight:700;">75%</span></div>
+          <div class="progress-wrap"><div class="progress-bar progress-cyan" style="width:75%;"></div></div>
+        </div>
+      </div>
+
+      <!-- Batch Filter Row -->
+      <div class="queue-filter-row" style="margin-bottom:14px;">
+        <span class="filter-label">Filter:</span>
+        <button class="filter-chip active">All (24)</button>
+        <button class="filter-chip">Pass (18)</button>
+        <button class="filter-chip">Warning (4)</button>
+        <button class="filter-chip">Hard Block (2)</button>
+      </div>
+
+      <!-- Batch Question List -->
+      <div class="question-queue-list" id="batch-question-list" style="max-height:500px;">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- Bulk Approve CTA -->
+      <div class="batch-bulk-approve-card">
+        <div>
+          <div class="bulk-approve-text">Approve all passing questions (18)</div>
+          <div class="bulk-approve-sub">Hard blocks (2) will be skipped — resolve manually</div>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn btn-cyan" onclick="alert('Bulk approving 18 passing questions...')">Approve All Passing ✅</button>
+          <button class="btn btn-outline" onclick="alert('Returning 4 warning questions for review...')">Return All Warnings ↩️</button>
+        </div>
+      </div>
+
+      <!-- Batch Completion Bar -->
+      <div class="batch-completion-bar">
+        <div class="batch-completion-label">
+          <span style="color:#d0e8f0; font-weight:600;">18 / 24 approved</span>
+          <span style="color:#ff6060;">2 hard blocks remaining</span>
+        </div>
+        <div class="progress-wrap" style="height:10px;">
+          <div class="progress-bar progress-cyan" style="width:75%;"></div>
+        </div>
+      </div>
+
+    </div><!-- /tab-batch -->
+
+
+    <!-- ════════════════════════════════════════
+         TAB 4 — Gap Identification
+    ════════════════════════════════════════ -->
+    <div id="tab-gaps" class="tab-pane">
+      <div class="hint-box">
+        <strong>Engineering hint (Tab 4):</strong> <code>GET /content/gaps</code> returns nodes sorted by severity.
+        Thresholds: &lt;4 Q/node = critical, 4-5 = warning, ≥6 = on target. Same logic as coverage map.
+        "Add Questions →" routes to factory with node pre-selected. "Assign to Writer" opens assignment modal (future).
+        "Generate batch for all critical gaps" calls <code>POST /content/batches/generate</code> with <code>{"node_ids":[...],"count_each":6}</code>.
+        Pulse animation on critical cards draws editor eye. Refresh triggers re-fetch + re-sort.
+      </div>
+
+      <!-- Gap Header -->
+      <div class="gap-header">
+        <div class="gap-title">Content Gaps</div>
+        <span class="updated-chip">Last updated: just now</span>
+        <button class="refresh-btn" onclick="this.textContent='↺ Refreshing...'; setTimeout(()=>this.textContent='↺ Refresh',1200);">↺ Refresh</button>
+      </div>
+
+      <!-- Filter Row -->
+      <div class="queue-filter-row" style="margin-bottom:14px;">
+        <span class="filter-label">Band:</span>
+        <button class="filter-chip chip-p0 active">P0</button>
+        <button class="filter-chip chip-p1 active">P1</button>
+        <button class="filter-chip chip-p2 active">P2</button>
+        <button class="filter-chip chip-p3 active">P3</button>
+        <span class="filter-label" style="margin-left:10px;">Severity:</span>
+        <button class="filter-chip active">All</button>
+        <button class="filter-chip">Critical</button>
+        <button class="filter-chip">Warning</button>
+      </div>
+
+      <!-- Summary Stats -->
+      <div class="gap-summary-stats">
+        <div class="gap-stat-chip crit">
+          <div class="gap-stat-num">8</div>
+          <div class="gap-stat-label">Critical nodes</div>
+        </div>
+        <div class="gap-stat-chip warn">
+          <div class="gap-stat-num">14</div>
+          <div class="gap-stat-label">Warning nodes</div>
+        </div>
+        <div class="gap-stat-chip ok">
+          <div class="gap-stat-num">31</div>
+          <div class="gap-stat-label">On Target</div>
+        </div>
+      </div>
+
+      <!-- Gap List (critical first) -->
+      <div class="gap-list" id="gap-list">
+        <!-- Injected by JS -->
+      </div>
+
+      <!-- CSS Bar Chart -->
+      <div class="gap-chart-card">
+        <div class="chart-title">Top 8 Gap Skills by Severity</div>
+        <div id="gap-chart-rows"><!-- Injected by JS --></div>
+      </div>
+
+      <!-- Generate CTA -->
+      <div class="fill-all-cta">
+        <button class="btn btn-cyan" style="font-size:14px; padding:12px 28px;" onclick="alert('Generating batch for 8 critical gap nodes...')">
+          Generate batch for all critical gaps →
+        </button>
+      </div>
+
+    </div><!-- /tab-gaps -->
+
+
+    <!-- ════════════════════════════════════════
+         TAB 5 — Spec
+    ════════════════════════════════════════ -->
+    <div id="tab-spec" class="tab-pane">
+      <div class="hint-box">
+        <strong>Engineering hint (Tab 5):</strong> This tab is the live spec reference for the content team and engineering.
+        Keep in sync with <code>docs/content-admin-spec.md</code>. API routes documented below are canonical;
+        implementation must match. QA rules are enforced server-side; client disables approve button for hard blocks
+        but server also rejects approve requests for blocked questions.
+      </div>
+
+      <div class="spec-hint-box">
+        <h4>API Routes</h4>
+        <ul>
+          <li><code>GET  /content/questions/summary</code> — band × status aggregates for overview dashboard</li>
+          <li><code>GET  /content/questions/queue?status=&amp;band=&amp;sort=&amp;page=</code> — paginated question list with QA flags</li>
+          <li><code>GET  /content/questions/:id</code> — full question detail including options + explainer</li>
+          <li><code>PUT  /content/questions/:id/approve</code> — approve single question (hard block if no correct answer)</li>
+          <li><code>PUT  /content/questions/:id/return</code> — return to draft with optional note</li>
+          <li><code>DELETE /content/questions/:id</code> — soft-delete question</li>
+          <li><code>GET  /content/batches/:id</code> — batch metadata + question list + auto-check results</li>
+          <li><code>POST /content/batches/:id/bulk-approve</code> — approve all passing questions in batch</li>
+          <li><code>GET  /content/gaps</code> — gap nodes sorted by severity (critical → warning → ok)</li>
+          <li><code>POST /content/batches/generate</code> — trigger AI batch generation for node IDs</li>
+        </ul>
+
+        <h4>Question State Machine</h4>
+        <ul>
+          <li><strong>Draft</strong> → submitted for review → <strong>In Review</strong></li>
+          <li><strong>In Review</strong> → approved → <strong>Approved</strong></li>
+          <li><strong>Approved</strong> → published to live content → <strong>Published</strong></li>
+          <li><strong>In Review</strong> → returned → <strong>Draft</strong> (with return note)</li>
+          <li><strong>Returned</strong> is a transient display state; storage state = Draft with return flag</li>
+        </ul>
+
+        <h4>Hard QA Blocks (cannot approve)</h4>
+        <ul>
+          <li>No correct answer marked on the question</li>
+          <li>Duplicate answer options (identical text in two or more options)</li>
+          <li>Prohibited content detected (slur, brand name, violence keyword)</li>
+          <li>Fewer than 2 answer options provided (minimum 4 required)</li>
+        </ul>
+
+        <h4>Warnings (can approve with override)</h4>
+        <ul>
+          <li>Borderline word length: question stem &gt;18 words or any option &gt;12 words</li>
+          <li>Missing emoji in question for pre-reader context (P0 band only)</li>
+          <li>Thin skill coverage: question is the only Q for this node (coverage = 1)</li>
+          <li>Readability score outside band-appropriate range (Flesch-Kincaid deviation &gt;2 grades)</li>
+        </ul>
+
+        <h4>Auto-check Rules</h4>
+        <ul>
+          <li>Runs automatically on save/import; results cached until next edit</li>
+          <li>Hard blocks prevent approval via UI and API</li>
+          <li>Warnings flag the card for human review but do not block</li>
+          <li>Batch ingest runs auto-check on all imported questions before queuing</li>
+          <li>Manual override of warnings requires editor role or above</li>
+        </ul>
+
+        <h4>Coverage Thresholds</h4>
+        <ul>
+          <li><strong>On target:</strong> ≥6 approved questions per node</li>
+          <li><strong>Warning:</strong> 4–5 approved questions per node</li>
+          <li><strong>Critical:</strong> &lt;4 approved questions per node</li>
+          <li>Counts are approved-only; draft and in-review do not count toward threshold</li>
+        </ul>
+
+        <h4>Batch Review Flow</h4>
+        <ul>
+          <li>AI-generated batches land in batch review queue; status = Draft + batch_id set</li>
+          <li>Auto-check runs on ingest and tags each question: pass / warn / block</li>
+          <li>Editor reviews batch, can bulk-approve all passing questions</li>
+          <li>Each approved question individually transitions to Approved state</li>
+          <li>Hard block questions remain in Draft; editor must edit + resubmit</li>
+          <li>Batch is "complete" when 0 hard blocks remain (warnings can be left for next pass)</li>
+        </ul>
+
+        <h4>Design Tokens</h4>
+        <ul>
+          <li><code>bg</code>: <code>#10161e</code> · <code>card</code>: <code>#141e28</code> · <code>border</code>: <code>#1e2e3e</code></li>
+          <li><code>accent</code>: <code>#58c8f0</code> · <code>text</code>: <code>#d0e8f0</code> · <code>muted</code>: <code>#7a9ab0</code></li>
+          <li><code>font</code>: Sora (Google Fonts) · desktop max-width: 1200px</li>
+          <li>P0: <code>#ffd166</code> · P1: <code>#9b72ff</code> · P2: <code>#58e8c1</code> · P3: <code>#ff7b6b</code></li>
+          <li>approved: <code>#1a5030</code>/<code>#50c880</code> · review: <code>#1a3a5a</code>/<code>#58c8f0</code></li>
+          <li>draft: <code>#2a2a00</code>/<code>#c8c840</code> · gap/critical: <code>#2a0808</code>/<code>#ff6060</code></li>
+        </ul>
+      </div>
+
+    </div><!-- /tab-spec -->
+
+  </div><!-- /tab-content -->
+</div><!-- /workbench -->
+
+<script>
+// ── Tab switching ──────────────────────────────────────────────
+function show(tab) {
+  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  const pane = document.getElementById('tab-' + tab);
+  if (pane) pane.classList.add('active');
+  const btns = document.querySelectorAll('.tab-btn');
+  const tabIndex = { overview: 0, queue: 1, batch: 2, gaps: 3, spec: 4 };
+  if (btns[tabIndex[tab]]) btns[tabIndex[tab]].classList.add('active');
+}
+
+// ── Question Queue Data ────────────────────────────────────────
+const QUESTIONS = [
+  {
+    id: 'q001', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions',
+    text: 'Which fraction is equivalent to 3/4?',
+    options: ['2/4', '6/8', '4/5', '9/16'],
+    correct: 1,
+    status: 'review', created: 'Mar 20', creator: 'sora.ai',
+    flags: [], hardBlock: false
+  },
+  {
+    id: 'q002', band: 'p3', bandLabel: 'P3', skill: 'Decimal Place Value',
+    text: 'What is the value of the digit 7 in the number 3.75?',
+    options: ['7 tenths', '7 ones', '7 hundredths', '7 tens'],
+    correct: 0,
+    status: 'review', created: 'Mar 21', creator: 'content.team',
+    flags: ['⚠️ Borderline word length'], hardBlock: false
+  },
+  {
+    id: 'q003', band: 'p2', bandLabel: 'P2', skill: 'Multiplication Facts',
+    text: 'What is 8 × 7?',
+    options: ['54', '56', '64', '49'],
+    correct: 1,
+    status: 'review', created: 'Mar 21', creator: 'content.team',
+    flags: [], hardBlock: false
+  },
+  {
+    id: 'q004', band: 'p3', bandLabel: 'P3', skill: 'Geometry: Area',
+    text: 'A rectangle has a length of 9 cm and a width of 5 cm. What is its area?',
+    options: ['14 cm²', '28 cm²', '45 cm²', '40 cm²'],
+    correct: 2,
+    status: 'review', created: 'Mar 19', creator: 'sora.ai',
+    flags: ['⚠️ Thin skill coverage'], hardBlock: false
+  },
+  {
+    id: 'q005', band: 'p0', bandLabel: 'P0', skill: 'Number Recognition',
+    text: 'Which number comes after 5?',
+    options: ['4', '5', '6', '7'],
+    correct: 2,
+    status: 'review', created: 'Mar 22', creator: 'content.team',
+    flags: ['⚠️ Missing emoji (pre-reader)'], hardBlock: false
+  },
+  {
+    id: 'q006', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Addition',
+    text: 'Add the fractions: 1/3 + 1/3 =',
+    options: ['1/6', '2/6', '2/3', '2/3'],
+    correct: null,
+    status: 'review', created: 'Mar 22', creator: 'sora.ai',
+    flags: ['⚠️ Duplicate option detected'],
+    hardBlock: true, hardBlockMsg: '⛔ Cannot approve — duplicate answer options'
+  },
+  {
+    id: 'q007', band: 'p1', bandLabel: 'P1', skill: 'Counting to 20',
+    text: 'Count the stars: ⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐⭐ How many stars are there?',
+    options: ['10', '11', '12', '13'],
+    correct: 2,
+    status: 'review', created: 'Mar 21', creator: 'content.team',
+    flags: [], hardBlock: false
+  },
+  {
+    id: 'q008', band: 'p2', bandLabel: 'P2', skill: 'Division Basics',
+    text: 'If you share 24 stickers equally between 4 friends, how many does each friend get?',
+    options: ['5', '6', '7', '8'],
+    correct: 1,
+    status: 'review', created: 'Mar 20', creator: 'sora.ai',
+    flags: [], hardBlock: false
+  },
+  {
+    id: 'q009', band: 'p1', bandLabel: 'P1', skill: 'Addition to 10',
+    text: 'What is 4 + 3?',
+    options: ['6', '7', '8', '9'],
+    correct: 1,
+    status: 'review', created: 'Mar 19', creator: 'content.team',
+    flags: [], hardBlock: false
+  },
+  {
+    id: 'q010', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Comparison',
+    text: 'Which fraction is greater?',
+    options: [],
+    correct: null,
+    status: 'review', created: 'Mar 22', creator: 'sora.ai',
+    flags: [],
+    hardBlock: true, hardBlockMsg: '⛔ Cannot approve — no correct answer marked'
+  }
+];
+
+function bandChipClass(band) {
+  const m = { p0: 'chip-p0', p1: 'chip-p1', p2: 'chip-p2', p3: 'chip-p3' };
+  return m[band] || 'chip-neutral';
+}
+
+function renderQuestionCard(q, idPrefix) {
+  const cid = (idPrefix || 'qc') + '-' + q.id;
+  const options = q.options.length ? q.options.map((opt, i) => {
+    const isCorrect = q.correct === i;
+    return `<span class="option-pill ${isCorrect ? 'correct' : ''}">${['A','B','C','D'][i]}: ${opt}${isCorrect ? ' ✓' : ''}</span>`;
+  }).join('') : '<span class="muted" style="font-size:11px;">No options added</span>';
+
+  const fullOptions = q.options.length ? q.options.map((opt, i) => {
+    const isCorrect = q.correct === i;
+    return `<div class="option-row ${isCorrect ? 'correct-row' : ''}">
+      <div class="option-letter">${['A','B','C','D'][i]}</div>
+      <div class="option-text">${opt}</div>
+      ${isCorrect ? '<span class="correct-marker">✓ Correct</span>' : ''}
+    </div>`;
+  }).join('') : '<div class="muted" style="font-size:12px; padding:8px 0;">No options defined yet</div>';
+
+  const flags = q.flags.map(f => `<span class="qa-flag">${f}</span>`).join('');
+  const hardBlockEl = q.hardBlock ? `<div style="margin-top:8px;"><span class="hard-block-chip">${q.hardBlockMsg}</span></div>` : '';
+
+  const approveBtn = q.hardBlock
+    ? `<button class="btn btn-approve btn-sm btn-disabled" disabled>Approve ✅</button>`
+    : `<button class="btn btn-approve btn-sm" onclick="approveQ('${q.id}', this)">Approve ✅</button>`;
+
+  return `<div class="question-card" id="${cid}">
+    <div class="qcard-header" onclick="toggleExpand('${cid}')">
+      <input type="checkbox" class="q-checkbox" style="margin-top:3px; accent-color:#58c8f0; width:14px; height:14px; flex-shrink:0;" onchange="updateBulkCount()">
+      <div class="qcard-meta-col">
+        <div class="qcard-top-row">
+          <span class="chip ${bandChipClass(q.band)}" style="font-size:10px; padding:3px 9px;">${q.bandLabel}</span>
+          <span class="qcard-skill">${q.skill}</span>
+          <span class="chip chip-review" style="font-size:10px; padding:3px 9px; margin-left:auto;">In Review</span>
+        </div>
+        <div class="qcard-text">${q.text || '<em style="color:#4a6a80;">No question text yet</em>'}</div>
+        <div class="qcard-options-compact">${options}</div>
+        <div class="qcard-info-row">
+          <span class="qcard-date">${q.created}</span>
+          <span class="creator-chip">${q.creator}</span>
+          ${flags}
+        </div>
+        ${hardBlockEl}
+        <div class="qcard-actions" style="margin-top:10px;">
+          ${approveBtn}
+          <button class="btn btn-return btn-sm" onclick="returnQ('${q.id}', this)">Return ↩️</button>
+          <button class="btn btn-delete btn-sm" onclick="deleteQ('${q.id}', this)">Delete 🗑</button>
+        </div>
+      </div>
+      <div class="expand-arrow">▼</div>
+    </div>
+    <div class="qcard-body">
+      <div class="full-question"><strong>Full question:</strong> ${q.text || '<em style="color:#4a6a80;">No question text</em>'}</div>
+      <div class="options-list" style="margin-top:10px;">${fullOptions}</div>
+      <hr class="divider">
+      <div style="font-size:11px; color:#7a9ab0; margin-bottom:6px; font-weight:700; text-transform:uppercase; letter-spacing:.4px;">Explainer / Return Note</div>
+      <textarea class="explainer-field" placeholder="Add an explainer note or return reason..."></textarea>
+    </div>
+  </div>`;
+}
+
+function toggleExpand(cid) {
+  const card = document.getElementById(cid);
+  if (card) card.classList.toggle('expanded');
+}
+
+function approveQ(id, btn) {
+  const card = btn.closest('.question-card');
+  if (card) {
+    card.style.opacity = '0.4';
+    setTimeout(() => card.remove(), 400);
+  }
+}
+
+function returnQ(id, btn) {
+  const card = btn.closest('.question-card');
+  if (card) {
+    card.style.borderColor = '#c8a020';
+    card.style.opacity = '0.4';
+    setTimeout(() => card.remove(), 400);
+  }
+}
+
+function deleteQ(id, btn) {
+  if (!confirm('Delete this question? This cannot be undone.')) return;
+  const card = btn.closest('.question-card');
+  if (card) { card.style.opacity = '0'; setTimeout(() => card.remove(), 300); }
+}
+
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.q-checkbox').forEach(c => c.checked = cb.checked);
+  updateBulkCount();
+}
+
+function updateBulkCount() {
+  const checked = document.querySelectorAll('.q-checkbox:checked').length;
+  const el = document.getElementById('bulk-selection-count');
+  if (el) el.textContent = checked + ' selected';
+}
+
+function bulkAction(action) {
+  const checked = document.querySelectorAll('.q-checkbox:checked');
+  if (!checked.length) { alert('No questions selected.'); return; }
+  const msg = action === 'approve' ? `Approving ${checked.length} question(s)...` : `Returning ${checked.length} question(s) for edit...`;
+  alert(msg);
+}
+
+function setStatusFilter(status, btn) {
+  document.querySelectorAll('.queue-filter-row .filter-chip').forEach(b => {
+    const isStatus = ['all','draft','review','approved','returned'].some(s => b.textContent.toLowerCase().includes(s));
+    if (isStatus) b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  const counts = { all: 120, draft: 46, review: 74, approved: 480, returned: 9 };
+  const labels = { all: 'All', draft: 'Draft', review: 'In Review', approved: 'Approved', returned: 'Returned' };
+  const el = document.getElementById('queue-stats-count');
+  if (el) el.textContent = counts[status] || 0;
+  const label = document.querySelector('.queue-stats-bar .stat-label:last-child');
+  if (label) label.textContent = labels[status] || '';
+}
+
+function setBandFilter(band, btn) {
+  btn.classList.toggle('active');
+}
+
+// ── Batch Question Data ────────────────────────────────────────
+const BATCH_QUESTIONS = [
+  { id: 'b01', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions', text: '3/6 is the same as which of the following?', options: ['1/2', '2/3', '3/4', '1/3'], correct: 0, autoCheck: 'pass' },
+  { id: 'b02', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions', text: 'Which two fractions are equivalent? Circle the pair.', options: ['1/2 and 2/4', '1/3 and 1/4', '2/5 and 3/5', '3/8 and 4/8'], correct: 0, autoCheck: 'pass' },
+  { id: 'b03', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Simplify', text: 'Simplify the fraction 8/12 to its lowest terms by finding the greatest common factor and dividing both numerator and denominator.', options: ['2/3', '4/6', '1/2', '3/4'], correct: 0, autoCheck: 'warn', warnMsg: 'Warn: borderline word length (21 words)' },
+  { id: 'b04', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions', text: 'Fill in the missing number: 2/5 = ?/10', options: ['3', '4', '5', '6'], correct: 1, autoCheck: 'pass' },
+  { id: 'b05', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Compare', text: 'Which fraction is less than 1/2?', options: ['3/4', '2/3', '1/3', '5/8'], correct: 2, autoCheck: 'pass' },
+  { id: 'b06', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions', text: 'Is 4/8 equivalent to 1/2?', options: ['Yes', 'No', 'Sometimes', 'Cannot tell'], correct: 0, autoCheck: 'pass' },
+  { id: 'b07', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Denominator', text: 'What goes in the blank? 3/4 = 6/__', options: ['6', '7', '8', '9'], correct: 2, autoCheck: 'pass' },
+  { id: 'b08', band: 'p3', bandLabel: 'P3', skill: 'Equivalent Fractions', text: 'Which shows a fraction equivalent to 2/3?', options: ['4/6', '3/6', '2/6', '1/3'], correct: 0, autoCheck: 'warn', warnMsg: 'Warn: thin skill coverage on this node' },
+  { id: 'b09', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Add', text: 'Add: 1/4 + 1/4 =', options: [], correct: null, autoCheck: 'block', blockMsg: 'Block: no correct answer marked' },
+  { id: 'b10', band: 'p3', bandLabel: 'P3', skill: 'Fractions: Add', text: 'What is 2/5 + 2/5?', options: ['4/5', '4/10', '2/5', '4/5'], correct: null, autoCheck: 'block', blockMsg: 'Block: duplicate answer options' },
+];
+
+function renderBatchCard(q) {
+  const cid = 'bc-' + q.id;
+  const autoCheckEl = q.autoCheck === 'pass'
+    ? `<span class="auto-check-chip pass">Auto-check: PASS</span>`
+    : q.autoCheck === 'warn'
+    ? `<span class="auto-check-chip warn">⚠ ${q.warnMsg}</span>`
+    : `<span class="auto-check-chip block">⛔ ${q.blockMsg}</span>`;
+
+  const options = q.options && q.options.length
+    ? q.options.map((opt, i) => `<span class="option-pill ${q.correct === i ? 'correct' : ''}">${['A','B','C','D'][i]}: ${opt}${q.correct === i ? ' ✓' : ''}</span>`).join('')
+    : '<span class="muted" style="font-size:11px;">No options</span>';
+
+  const approvable = q.autoCheck !== 'block';
+  const approveBtn = approvable
+    ? `<button class="btn btn-approve btn-sm" onclick="this.closest('.question-card').remove()">Approve ✅</button>`
+    : `<button class="btn btn-approve btn-sm btn-disabled" disabled>Approve ✅</button>`;
+
+  return `<div class="question-card" id="${cid}">
+    <div class="qcard-header" onclick="toggleExpand('${cid}')">
+      <div class="qcard-meta-col">
+        <div class="qcard-top-row">
+          <span class="chip ${bandChipClass(q.band)}" style="font-size:10px; padding:3px 9px;">${q.bandLabel}</span>
+          <span class="qcard-skill">${q.skill}</span>
+          ${autoCheckEl}
+          <span class="chip chip-draft" style="font-size:10px; padding:3px 9px; margin-left:auto;">Draft</span>
+        </div>
+        <div class="qcard-text">${q.text}</div>
+        <div class="qcard-options-compact">${options}</div>
+        <div class="qcard-actions" style="margin-top:10px;">
+          ${approveBtn}
+          <button class="btn btn-return btn-sm" onclick="this.closest('.question-card').remove()">Return ↩️</button>
+          <button class="btn btn-delete btn-sm" onclick="if(confirm('Delete?')) this.closest('.question-card').remove()">Delete 🗑</button>
+        </div>
+      </div>
+      <div class="expand-arrow">▼</div>
+    </div>
+    <div class="qcard-body">
+      <div class="full-question"><strong>Question:</strong> ${q.text}</div>
+      <div class="options-list" style="margin-top:10px;">
+        ${q.options && q.options.length ? q.options.map((opt, i) => `<div class="option-row ${q.correct===i?'correct-row':''}"><div class="option-letter">${['A','B','C','D'][i]}</div><div class="option-text">${opt}</div>${q.correct===i?'<span class="correct-marker">✓</span>':''}</div>`).join('') : '<div class="muted">No options defined</div>'}
+      </div>
+      <hr class="divider">
+      <textarea class="explainer-field" placeholder="Return note or explainer..."></textarea>
+    </div>
+  </div>`;
+}
+
+// ── Gap Data ───────────────────────────────────────────────────
+const GAPS = [
+  { id: 'g01', severity: 'critical', skill: 'Fractions: Mixed Numbers', band: 'p3', bandLabel: 'P3', node: 'P3.FR.04', current: 2, target: 6 },
+  { id: 'g02', severity: 'critical', skill: 'Geometry: Volume', band: 'p3', bandLabel: 'P3', node: 'P3.GE.07', current: 1, target: 6 },
+  { id: 'g03', severity: 'critical', skill: 'Decimals: Subtraction', band: 'p3', bandLabel: 'P3', node: 'P3.DE.03', current: 3, target: 6 },
+  { id: 'g04', severity: 'critical', skill: 'Fractions: Multiplication', band: 'p3', bandLabel: 'P3', node: 'P3.FR.06', current: 0, target: 6 },
+  { id: 'g05', severity: 'critical', skill: 'Algebra: Variables', band: 'p3', bandLabel: 'P3', node: 'P3.AL.01', current: 2, target: 6 },
+  { id: 'g06', severity: 'critical', skill: 'Geometry: Angles', band: 'p3', bandLabel: 'P3', node: 'P3.GE.05', current: 3, target: 6 },
+  { id: 'g07', severity: 'critical', skill: 'Long Division', band: 'p2', bandLabel: 'P2', node: 'P2.DV.04', current: 2, target: 6 },
+  { id: 'g08', severity: 'critical', skill: 'Subtraction Regrouping', band: 'p1', bandLabel: 'P1', node: 'P1.SB.03', current: 3, target: 6 },
+  { id: 'g09', severity: 'warning', skill: 'Multiplication: 2-Digit', band: 'p2', bandLabel: 'P2', node: 'P2.MU.05', current: 4, target: 6 },
+  { id: 'g10', severity: 'warning', skill: 'Patterns: Skip Counting', band: 'p1', bandLabel: 'P1', node: 'P1.PT.02', current: 5, target: 6 },
+  { id: 'g11', severity: 'warning', skill: 'Measurement: Length', band: 'p2', bandLabel: 'P2', node: 'P2.ME.01', current: 4, target: 6 },
+  { id: 'g12', severity: 'warning', skill: 'Fractions: Denominator', band: 'p2', bandLabel: 'P2', node: 'P2.FR.02', current: 5, target: 6 },
+];
+
+function renderGapCard(g) {
+  const pct = Math.round((g.current / g.target) * 100);
+  const isCrit = g.severity === 'critical';
+  const barClass = isCrit ? 'progress-red' : 'progress-amber';
+  const chipClass = isCrit ? 'chip-gap' : 'chip-draft';
+  const chipLabel = isCrit ? 'Critical' : 'Warning';
+  const gapDelta = g.target - g.current;
+  const deltaClass = isCrit ? 'crit' : 'warn';
+
+  return `<div class="gap-card gap-${g.severity}" id="gc-${g.id}">
+    <div class="gap-card-top">
+      <span class="chip ${chipClass}" style="font-size:10px; padding:3px 9px;">${chipLabel}</span>
+      <div style="flex:1;">
+        <div class="gap-skill-name">${g.skill}</div>
+        <div class="gap-node-name">${g.node}</div>
+      </div>
+      <span class="chip ${bandChipClass(g.band)}" style="font-size:10px; padding:3px 9px;">${g.bandLabel}</span>
+      <div class="gap-counts" style="flex-shrink:0;">
+        <span class="gap-current" style="color:${isCrit ? '#ff6060' : '#f0c040'};">${g.current}</span>
+        <span class="gap-target">/ ${g.target} target</span>
+        <span class="gap-delta ${deltaClass}">−${gapDelta} gap</span>
+      </div>
+    </div>
+    <div class="gap-progress-wrap">
+      <div class="gap-progress-label"><span>${g.current} approved</span><span>Target: ${g.target}</span></div>
+      <div class="progress-wrap"><div class="progress-bar ${barClass}" style="width:${pct}%;"></div></div>
+    </div>
+    <div class="gap-actions">
+      <button class="btn btn-cyan btn-sm" onclick="show('queue')">Add Questions →</button>
+      <button class="btn btn-outline btn-sm">Assign to Writer</button>
+      <button class="btn btn-outline btn-sm" onclick="show('overview')">View in Factory →</button>
+    </div>
+  </div>`;
+}
+
+// ── Bar Chart Data ─────────────────────────────────────────────
+const CHART_DATA = [
+  { label: 'Fractions: Mult.', current: 0, target: 6, severity: 'crit' },
+  { label: 'Geometry: Volume', current: 1, target: 6, severity: 'crit' },
+  { label: 'Algebra: Variables', current: 2, target: 6, severity: 'crit' },
+  { label: 'Fractions: Mixed Nos', current: 2, target: 6, severity: 'crit' },
+  { label: 'Long Division', current: 2, target: 6, severity: 'crit' },
+  { label: 'Decimals: Subtraction', current: 3, target: 6, severity: 'crit' },
+  { label: 'Multiplication 2-Digit', current: 4, target: 6, severity: 'warn' },
+  { label: 'Measurement: Length', current: 4, target: 6, severity: 'warn' },
+];
+
+function renderChart() {
+  const container = document.getElementById('gap-chart-rows');
+  if (!container) return;
+  container.innerHTML = CHART_DATA.map(d => {
+    const pct = Math.round((d.current / d.target) * 100);
+    return `<div class="chart-row">
+      <div class="chart-label">${d.label}</div>
+      <div class="chart-bar-wrap">
+        <div class="chart-bar ${d.severity}" style="width:${pct}%;">
+          <span class="chart-bar-label">${d.current}</span>
+        </div>
+      </div>
+      <div class="chart-count">${d.current}/${d.target}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Init ───────────────────────────────────────────────────────
+function init() {
+  // Render queue
+  const qList = document.getElementById('question-queue-list');
+  if (qList) qList.innerHTML = QUESTIONS.map(q => renderQuestionCard(q, 'qc')).join('');
+
+  // Render batch
+  const bList = document.getElementById('batch-question-list');
+  if (bList) bList.innerHTML = BATCH_QUESTIONS.map(q => renderBatchCard(q)).join('');
+
+  // Render gap list
+  const gList = document.getElementById('gap-list');
+  if (gList) gList.innerHTML = GAPS.map(g => renderGapCard(g)).join('');
+
+  // Render chart
+  renderChart();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

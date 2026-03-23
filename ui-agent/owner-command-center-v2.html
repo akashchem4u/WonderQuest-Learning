@@ -1,0 +1,1359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest · Owner Command Center v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #ffffff;
+  font-family: 'Sora', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 32px 20px;
+}
+
+/* Engineering hint box */
+.hint-box {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 10px;
+  padding: 14px 18px;
+  max-width: 780px;
+  width: 100%;
+  margin: 0 auto 20px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #5a4000;
+  line-height: 1.7;
+}
+.hint-box strong { color: #b06000; }
+
+/* Phone frame */
+.phone-wrap {
+  width: 390px;
+  margin: 0 auto;
+}
+.phone {
+  width: 390px;
+  background: #0d1117;
+  border-radius: 40px;
+  border: 3px solid #1e2d40;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 1px #0a1520,
+    0 30px 80px rgba(0,0,0,.75),
+    0 8px 20px rgba(0,0,0,.5);
+  min-height: 844px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Status bar */
+.status-bar {
+  background: #080e16;
+  padding: 14px 24px 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #4a6080;
+  flex-shrink: 0;
+}
+
+/* Header */
+.phone-header {
+  background: #080e16;
+  padding: 10px 16px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-bottom: 1px solid #1e2d40;
+  flex-shrink: 0;
+}
+.header-badge {
+  background: #ffd166;
+  color: #1a0f00;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+}
+.header-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #e8edf5;
+  flex: 1;
+}
+.header-refresh {
+  font-size: 10px;
+  color: #7a90a8;
+}
+
+/* Scrollable content area */
+.phone-body {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #2a3548 transparent;
+}
+.phone-body::-webkit-scrollbar { width: 4px; }
+.phone-body::-webkit-scrollbar-track { background: transparent; }
+.phone-body::-webkit-scrollbar-thumb { background: #2a3548; border-radius: 2px; }
+
+/* Tab content */
+.tab { display: none; }
+.tab.active { display: block; }
+
+/* Tab bar */
+.tab-bar {
+  background: #080e16;
+  border-top: 1px solid #1e2d40;
+  display: flex;
+  align-items: stretch;
+  flex-shrink: 0;
+  padding: 0 4px 10px;
+}
+.tab-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 10px 4px 4px;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: 'Sora', sans-serif;
+  transition: all .15s;
+  border-top: 2px solid transparent;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-item.active { border-top-color: #ffd166; }
+.tab-item .ti-icon { font-size: 18px; line-height: 1; }
+.tab-item .ti-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: #4a6080;
+  text-align: center;
+  letter-spacing: .2px;
+}
+.tab-item.active .ti-label { color: #ffd166; }
+
+/* ===== SHARED COMPONENTS ===== */
+.section-pad { padding: 14px 14px 0; }
+.section-pad-full { padding: 14px; }
+
+.card {
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.section-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a90a8;
+  text-transform: uppercase;
+  letter-spacing: .7px;
+  margin-bottom: 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 8px;
+  white-space: nowrap;
+}
+.chip-p0 { background: #3a0a0a; color: #ff7070; border: 1px solid #5a1515; }
+.chip-p1 { background: #2a1a00; color: #ff9900; border: 1px solid #4a3000; }
+.chip-p2 { background: #1a2000; color: #c8e030; border: 1px solid #3a4000; }
+.chip-p3 { background: #001a2a; color: #58b8e8; border: 1px solid #003a5a; }
+.chip-ok { background: #0a2a18; color: #50e890; border: 1px solid #155530; }
+.chip-warn { background: #2a1e00; color: #f0c030; border: 1px solid #4a3800; }
+.chip-amber { background: #2a1a00; color: #ffa040; border: 1px solid #4a3000; }
+.chip-muted { background: #161d2a; color: #7a90a8; border: 1px solid #2a3548; }
+.chip-gold { background: #2a2200; color: #ffd166; border: 1px solid #4a3a00; }
+.chip-get { background: #0a2a18; color: #50e890; border: 1px solid #155530; }
+.chip-post { background: #001a35; color: #5ab8ff; border: 1px solid #003060; }
+.chip-delete { background: #3a0a0a; color: #ff7070; border: 1px solid #5a1515; }
+
+.divider { border: none; border-top: 1px solid #2a3548; margin: 0; }
+
+.cta-row { padding: 12px 14px; display: flex; gap: 8px; }
+.btn-gold {
+  background: #ffd166;
+  color: #1a0f00;
+  font-family: 'Sora', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  cursor: pointer;
+  flex: 1;
+  transition: opacity .15s;
+}
+.btn-gold:disabled { opacity: .4; cursor: not-allowed; }
+.btn-outline {
+  background: transparent;
+  color: #7a90a8;
+  font-family: 'Sora', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #2a3548;
+  border-radius: 12px;
+  padding: 10px 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.mini-note {
+  font-size: 10px;
+  color: #7a90a8;
+  padding: 6px 14px 12px;
+  text-align: center;
+}
+
+/* ===== TAB 1 — COMMAND OVERVIEW ===== */
+
+/* Readiness banner */
+.readiness-banner {
+  margin: 14px;
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+}
+.rb-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.rb-score-wrap { display: flex; align-items: baseline; gap: 4px; }
+.rb-score { font-size: 42px; font-weight: 700; color: #ffd166; line-height: 1; }
+.rb-denom { font-size: 16px; color: #7a90a8; }
+.rb-status {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f0c030;
+  background: #2a2000;
+  border: 1px solid #4a3800;
+  border-radius: 8px;
+  padding: 4px 10px;
+  margin-top: 4px;
+}
+.rb-threshold {
+  font-size: 10px;
+  color: #7a90a8;
+  margin-top: 2px;
+}
+.rb-tap-hint {
+  font-size: 10px;
+  color: #7a90a8;
+  text-align: right;
+}
+.rb-bars { display: flex; flex-direction: column; gap: 6px; }
+.rb-bar-row { display: flex; align-items: center; gap: 8px; }
+.rb-bar-label { font-size: 10px; color: #7a90a8; width: 90px; flex-shrink: 0; }
+.rb-bar-track { flex: 1; height: 5px; background: #2a3548; border-radius: 3px; overflow: hidden; }
+.rb-bar-fill { height: 100%; border-radius: 3px; }
+.rb-bar-val { font-size: 10px; font-weight: 700; width: 26px; text-align: right; flex-shrink: 0; }
+.fill-green { background: #50e890; }
+.fill-amber { background: #f0c030; }
+.fill-red { background: #ff4444; }
+.fill-gold { background: #ffd166; }
+.fill-violet { background: #9b72ff; }
+.fill-mint { background: #58e8c1; }
+.fill-coral { background: #ff7b6b; }
+.val-green { color: #50e890; }
+.val-amber { color: #f0c030; }
+.val-red { color: #ff4444; }
+
+/* Alert strip */
+.alert-strip { margin: 0 14px 14px; display: flex; flex-direction: column; gap: 6px; }
+.alert-item {
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-left-width: 3px;
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.alert-item.p0 { border-left-color: #ff4444; }
+.alert-item.warn { border-left-color: #f0c030; }
+.alert-item.ok { border-left-color: #50e890; }
+.alert-text { flex: 1; font-size: 11px; color: #c8d4e0; }
+.alert-text strong { color: #e8edf5; }
+.alert-arrow { font-size: 12px; color: #4a6080; }
+
+/* Action tiles */
+.action-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0 14px 14px;
+}
+.action-tile {
+  border-radius: 14px;
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: opacity .15s;
+}
+.action-tile:active { opacity: .75; }
+.at-emoji { font-size: 22px; line-height: 1; }
+.at-label { font-size: 11px; font-weight: 700; color: #c8d4e0; line-height: 1.3; }
+.at-count { font-size: 12px; font-weight: 700; }
+.at-chevron { font-size: 10px; color: #4a6080; margin-top: 2px; }
+.at-red { background: #1e0808; border-color: #4a1515; }
+.at-red .at-count { color: #ff4444; }
+.at-green { background: #081e0f; border-color: #155530; }
+.at-green .at-count { color: #50e890; }
+.at-amber { background: #1e1400; border-color: #4a3000; }
+.at-amber .at-count { color: #ff9900; }
+.at-teal { background: #081e20; border-color: #155040; }
+.at-teal .at-count { color: #58e8c1; }
+
+/* ===== TAB 2 — RELEASE READINESS ===== */
+
+.readiness-header-block {
+  padding: 20px 14px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.rh-score-wrap { display: flex; align-items: baseline; gap: 4px; }
+.rh-big { font-size: 48px; font-weight: 700; color: #ffd166; line-height: 1; }
+.rh-denom { font-size: 18px; color: #7a90a8; }
+.rh-status-block { text-align: right; }
+.rh-status-pill {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 10px;
+  background: #2a2000;
+  color: #f0c030;
+  border: 2px solid #4a3800;
+  margin-bottom: 4px;
+}
+.rh-threshold { font-size: 10px; color: #7a90a8; }
+
+.score-breakdown { margin: 0 14px 12px; }
+.sb-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #2a3548;
+}
+.sb-row:last-child { border-bottom: none; }
+.sb-name { font-size: 11px; color: #c8d4e0; flex: 1; min-width: 0; }
+.sb-weight { font-size: 10px; color: #7a90a8; width: 30px; flex-shrink: 0; text-align: center; }
+.sb-bar-wrap { width: 60px; flex-shrink: 0; }
+.sb-bar-track { height: 5px; background: #2a3548; border-radius: 3px; overflow: hidden; }
+.sb-bar-fill { height: 100%; border-radius: 3px; }
+.sb-pts { font-size: 11px; font-weight: 700; width: 32px; text-align: right; flex-shrink: 0; }
+.sb-icon { font-size: 13px; flex-shrink: 0; }
+.sb-total-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #1e2a3a;
+}
+.sb-total-label { flex: 1; font-size: 12px; font-weight: 700; color: #e8edf5; }
+.sb-total-score { font-size: 16px; font-weight: 700; color: #ffd166; }
+
+.blockers-mini { margin: 0 14px 12px; }
+.bm-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: #e8edf5;
+  padding: 10px 12px 8px;
+}
+.bm-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-top: 1px solid #2a3548;
+}
+.bm-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.bm-dot-red { background: #ff4444; }
+.bm-dot-amber { background: #f0c030; }
+.bm-dot-gray { background: #4a6080; }
+.bm-text { font-size: 11px; color: #c8d4e0; flex: 1; }
+
+.launch-checklist-mini { margin: 0 14px 12px; }
+.lcm-title { font-size: 11px; font-weight: 700; color: #e8edf5; padding: 10px 12px 8px; }
+.lc-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-top: 1px solid #2a3548;
+}
+.lc-icon { font-size: 14px; flex-shrink: 0; }
+.lc-text { font-size: 11px; color: #c8d4e0; flex: 1; }
+.lc-status { font-size: 10px; font-weight: 700; flex-shrink: 0; }
+
+/* ===== TAB 3 — ROUTE HEALTH + FEEDBACK ===== */
+
+.routes-header {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.routes-title { font-size: 14px; font-weight: 700; color: #e8edf5; }
+.routes-last-check { font-size: 10px; color: #7a90a8; text-align: right; }
+
+.route-list { margin: 0 14px 4px; }
+.route-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 10px;
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-left-width: 3px;
+  border-radius: 10px;
+  margin-bottom: 6px;
+  border-left-color: #2a3548;
+}
+.route-row.healthy { border-left-color: #50e890; }
+.route-row.degraded { border-left-color: #f0c030; }
+.route-row.down { border-left-color: #ff4444; }
+.method-chip {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 5px;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+.method-get { background: #0a2a18; color: #50e890; }
+.method-post { background: #001a35; color: #5ab8ff; }
+.method-delete { background: #3a0a0a; color: #ff7070; }
+.route-path { flex: 1; font-size: 11px; color: #c8d4e0; font-family: monospace; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.status-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-green { background: #50e890; }
+.dot-amber { background: #f0c030; }
+.dot-red { background: #ff4444; box-shadow: 0 0 6px rgba(255,68,68,.5); }
+.latency-chip {
+  font-size: 10px;
+  font-weight: 600;
+  color: #7a90a8;
+  background: #0d1117;
+  border: 1px solid #2a3548;
+  border-radius: 6px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+.latency-chip.slow { color: #f0c030; border-color: #4a3800; background: #2a1e00; }
+.incident-chip {
+  font-size: 9px;
+  font-weight: 700;
+  background: #3a0a0a;
+  color: #ff7070;
+  border: 1px solid #5a1515;
+  border-radius: 6px;
+  padding: 2px 7px;
+  flex-shrink: 0;
+}
+
+.feedback-header {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.feedback-title { font-size: 14px; font-weight: 700; color: #e8edf5; }
+
+.feedback-filter-row {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.feedback-filter-row::-webkit-scrollbar { display: none; }
+.filter-chip {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 4px 12px;
+  border-radius: 8px;
+  border: 1px solid #2a3548;
+  background: #161d2a;
+  color: #7a90a8;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.filter-chip.active-p0 { background: #3a0a0a; color: #ff7070; border-color: #5a1515; }
+.filter-chip.active-p1 { background: #2a1a00; color: #ff9900; border-color: #4a3000; }
+.filter-chip.active-all { background: #2a2200; color: #ffd166; border-color: #4a3a00; }
+
+.feedback-list { margin: 0 14px 4px; display: flex; flex-direction: column; gap: 6px; }
+.feedback-item {
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-left-width: 3px;
+  border-left-color: #2a3548;
+  border-radius: 10px;
+  padding: 9px 11px;
+}
+.feedback-item.p0-item { border-left-color: #ff4444; }
+.feedback-item.p1-item { border-left-color: #ff9900; }
+.fi-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.fi-title { font-size: 11px; font-weight: 700; color: #e8edf5; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-bottom { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.team-chip {
+  font-size: 9px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #1e2a3a;
+  color: #7a90a8;
+  border: 1px solid #2a3548;
+}
+.age-chip {
+  font-size: 9px;
+  color: #7a90a8;
+  padding: 2px 7px;
+  background: #0d1117;
+  border: 1px solid #2a3548;
+  border-radius: 6px;
+}
+.status-open { font-size: 9px; font-weight: 700; color: #ff9900; background: #2a1a00; border: 1px solid #4a3000; border-radius: 6px; padding: 2px 7px; }
+.status-inprog { font-size: 9px; font-weight: 700; color: #58b8e8; background: #001a2a; border: 1px solid #003a5a; border-radius: 6px; padding: 2px 7px; }
+
+.tab3-cta { padding: 10px 14px 14px; display: flex; gap: 8px; }
+
+/* ===== TAB 4 — ADOPTION + BLOCKERS ===== */
+
+.adoption-header {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.adoption-title { font-size: 14px; font-weight: 700; color: #e8edf5; }
+.adoption-range { font-size: 10px; color: #7a90a8; }
+
+.adoption-kpi-row {
+  display: flex;
+  gap: 6px;
+  padding: 0 14px 12px;
+}
+.kpi-chip {
+  flex: 1;
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-radius: 10px;
+  padding: 8px 8px 7px;
+  text-align: center;
+}
+.kpi-val { font-size: 12px; font-weight: 700; color: #e8edf5; }
+.kpi-sub { font-size: 9px; color: #7a90a8; margin-top: 2px; }
+.kpi-trend { font-size: 10px; color: #50e890; margin-top: 2px; }
+
+.band-adoption-bars { margin: 0 14px 10px; display: flex; flex-direction: column; gap: 0; }
+.bab-header {
+  font-size: 10px;
+  font-weight: 700;
+  color: #7a90a8;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  padding: 8px 12px 6px;
+  border-bottom: 1px solid #2a3548;
+}
+.bab-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #2a3548;
+}
+.bab-row:last-child { border-bottom: none; }
+.bab-label { font-size: 11px; font-weight: 700; width: 24px; flex-shrink: 0; }
+.bab-track { flex: 1; height: 8px; background: #2a3548; border-radius: 4px; overflow: hidden; }
+.bab-fill { height: 100%; border-radius: 4px; transition: width .4s ease; }
+.bab-pct { font-size: 11px; font-weight: 700; width: 34px; text-align: right; flex-shrink: 0; }
+.bab-target { font-size: 9px; color: #7a90a8; width: 38px; flex-shrink: 0; text-align: right; }
+
+.adoption-alert {
+  margin: 0 14px 12px;
+  background: #2a1e00;
+  border: 1px solid #4a3800;
+  border-radius: 10px;
+  padding: 9px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.aa-icon { font-size: 14px; }
+.aa-text { font-size: 11px; color: #f0c030; }
+
+.blockers-header {
+  padding: 14px 14px 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.blockers-title { font-size: 14px; font-weight: 700; color: #e8edf5; }
+.blockers-count-chip { font-size: 10px; font-weight: 700; color: #ff4444; background: #2a0808; border: 1px solid #4a1515; border-radius: 8px; padding: 3px 10px; }
+
+.blocker-list { margin: 0 14px 4px; display: flex; flex-direction: column; gap: 8px; }
+.blocker-card {
+  background: #161d2a;
+  border: 1px solid #2a3548;
+  border-left-width: 3px;
+  border-radius: 12px;
+  padding: 11px 12px;
+}
+.blocker-card.bc-p0 { border-left-color: #ff4444; background: #160808; }
+.blocker-card.bc-p1 { border-left-color: #ff9900; background: #161000; }
+.blocker-card.bc-warn { border-left-color: #f0c030; }
+.bc-top { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+.bc-title { font-size: 11px; font-weight: 700; color: #e8edf5; flex: 1; }
+.bc-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.sla-chip {
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #1e2a3a;
+  color: #7a90a8;
+  border: 1px solid #2a3548;
+}
+.sla-chip.sla-hot { background: #2a0808; color: #ff7070; border-color: #4a1515; }
+.bc-actions { display: flex; gap: 6px; }
+.bc-btn {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: 'Sora', sans-serif;
+  border: none;
+  transition: opacity .15s;
+}
+.bc-btn:active { opacity: .7; }
+.bc-btn-red { background: #ff4444; color: #fff; }
+.bc-btn-outline { background: transparent; color: #7a90a8; border: 1px solid #2a3548; }
+.bc-btn-gold { background: #ffd166; color: #1a0f00; }
+
+.blocker-resolve-note {
+  font-size: 10px;
+  color: #7a90a8;
+  text-align: center;
+  padding: 4px 14px 14px;
+}
+
+/* ===== TAB 5 — SPEC ===== */
+.spec-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 12px;
+  padding: 16px;
+  margin: 14px;
+  font-family: monospace;
+  font-size: 11px;
+  color: #5a4000;
+  line-height: 1.75;
+}
+.spec-hint h4 { font-size: 12px; color: #b06000; margin-bottom: 6px; margin-top: 12px; }
+.spec-hint h4:first-child { margin-top: 0; }
+.spec-hint ul { padding-left: 16px; }
+.spec-hint ul li { margin-bottom: 3px; }
+.spec-hint code { background: #f0e8c8; padding: 1px 4px; border-radius: 3px; font-size: 11px; }
+
+/* Scrollbar for spec */
+.tab#tab5 .phone-body { padding: 0; }
+</style>
+</head>
+<body>
+
+<div class="hint-box">
+  <strong>WonderQuest · Owner Command Center v2</strong> — Unified ops triage surface.<br>
+  Single screen for "are we ready to ship?" and "what's on fire?" · 5 tabs · 390px phone frame<br>
+  <strong>Tabs:</strong> Overview · Release Readiness · Routes + Feedback · Adoption + Blockers · Spec<br>
+  <strong>GO threshold:</strong> 90/100 · Current score: 78/100 · Status: APPROACHING GO (amber)
+</div>
+
+<div class="phone-wrap">
+<div class="phone">
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>9:41</span>
+    <span>WonderQuest OPS</span>
+    <span>⚡ 84%</span>
+  </div>
+
+  <!-- Header -->
+  <div class="phone-header">
+    <div class="header-badge">OPS</div>
+    <div class="header-title">Command Center</div>
+    <div class="header-refresh">⟳ 2m ago</div>
+  </div>
+
+  <!-- Scrollable body -->
+  <div class="phone-body">
+
+    <!-- ==================== TAB 1: COMMAND OVERVIEW ==================== -->
+    <div class="tab active" id="tab1">
+
+      <!-- Readiness banner -->
+      <div class="readiness-banner" onclick="showTab('tab2')">
+        <div class="rb-top">
+          <div>
+            <div class="rb-score-wrap">
+              <span class="rb-score">78</span>
+              <span class="rb-denom">/100</span>
+            </div>
+            <div class="rb-status">APPROACHING GO</div>
+            <div class="rb-threshold">GO threshold: 90 · 12 pts needed</div>
+          </div>
+          <div class="rb-tap-hint">Tap for<br>full detail →</div>
+        </div>
+        <div class="rb-bars">
+          <div class="rb-bar-row">
+            <span class="rb-bar-label">P0 Feedback</span>
+            <div class="rb-bar-track"><div class="rb-bar-fill fill-green" style="width:88%"></div></div>
+            <span class="rb-bar-val val-green">88</span>
+          </div>
+          <div class="rb-bar-row">
+            <span class="rb-bar-label">Routes</span>
+            <div class="rb-bar-track"><div class="rb-bar-fill fill-green" style="width:97%"></div></div>
+            <span class="rb-bar-val val-green">97</span>
+          </div>
+          <div class="rb-bar-row">
+            <span class="rb-bar-label">Content</span>
+            <div class="rb-bar-track"><div class="rb-bar-fill fill-amber" style="width:74%"></div></div>
+            <span class="rb-bar-val val-amber">74</span>
+          </div>
+          <div class="rb-bar-row">
+            <span class="rb-bar-label">QA</span>
+            <div class="rb-bar-track"><div class="rb-bar-fill fill-green" style="width:91%"></div></div>
+            <span class="rb-bar-val val-green">91</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Critical alerts strip -->
+      <div class="section-pad" style="padding-bottom:8px;">
+        <div class="section-label">Critical Alerts</div>
+      </div>
+      <div class="alert-strip">
+        <div class="alert-item p0" onclick="showTab('tab4')">
+          <span style="font-size:13px;">🚨</span>
+          <span class="alert-text"><strong>P0 Blocker:</strong> 2 unresolved items</span>
+          <span class="alert-arrow">›</span>
+        </div>
+        <div class="alert-item warn" onclick="showTab('tab3')">
+          <span style="font-size:13px;">⚠️</span>
+          <span class="alert-text"><strong>Content:</strong> P2 coverage at 67%</span>
+          <span class="alert-arrow">›</span>
+        </div>
+        <div class="alert-item ok">
+          <span style="font-size:13px;">✅</span>
+          <span class="alert-text"><strong>Routes:</strong> All healthy — no incidents</span>
+          <span class="alert-arrow" style="color:#50e890;">✓</span>
+        </div>
+      </div>
+
+      <!-- Quick-action tiles -->
+      <div class="section-pad" style="padding-bottom:8px;">
+        <div class="section-label">Quick Actions</div>
+      </div>
+      <div class="action-grid">
+        <div class="action-tile at-red" onclick="showTab('tab4')">
+          <div class="at-emoji">🚨</div>
+          <div class="at-label">P0 Blockers</div>
+          <div class="at-count">2 active</div>
+          <div class="at-chevron">Tap to resolve ›</div>
+        </div>
+        <div class="action-tile at-green" onclick="showTab('tab3')">
+          <div class="at-emoji">🗺️</div>
+          <div class="at-label">Route Health</div>
+          <div class="at-count">All healthy</div>
+          <div class="at-chevron">View routes ›</div>
+        </div>
+        <div class="action-tile at-amber" onclick="showTab('tab3')">
+          <div class="at-emoji">💬</div>
+          <div class="at-label">Open Feedback</div>
+          <div class="at-count">14 open</div>
+          <div class="at-chevron">Review ›</div>
+        </div>
+        <div class="action-tile at-teal" onclick="showTab('tab4')">
+          <div class="at-emoji">📊</div>
+          <div class="at-label">Adoption</div>
+          <div class="at-count">78% avg</div>
+          <div class="at-chevron">View snapshot ›</div>
+        </div>
+      </div>
+
+    </div><!-- /tab1 -->
+
+    <!-- ==================== TAB 2: RELEASE READINESS ==================== -->
+    <div class="tab" id="tab2">
+
+      <div class="readiness-header-block">
+        <div>
+          <div class="rh-score-wrap">
+            <span class="rh-big">78</span>
+            <span class="rh-denom">/100</span>
+          </div>
+          <div style="font-size:10px;color:#7a90a8;margin-top:4px;">Readiness Score</div>
+        </div>
+        <div class="rh-status-block">
+          <div class="rh-status-pill">⛔ NOT GO</div>
+          <div class="rh-threshold">GO threshold: ≥ 90</div>
+          <div style="font-size:10px;color:#ff4444;margin-top:3px;">12 pts needed</div>
+        </div>
+      </div>
+
+      <!-- Score breakdown table -->
+      <div class="section-pad" style="padding-bottom:8px;">
+        <div class="section-label">Score Breakdown</div>
+      </div>
+      <div class="score-breakdown card">
+        <div class="sb-row">
+          <span class="sb-name">P0 Feedback</span>
+          <span class="sb-weight">×25</span>
+          <div class="sb-bar-wrap">
+            <div class="sb-bar-track"><div class="sb-bar-fill fill-green" style="width:88%"></div></div>
+          </div>
+          <span class="sb-pts val-green">22/25</span>
+          <span class="sb-icon">✅</span>
+        </div>
+        <div class="sb-row">
+          <span class="sb-name">Route Health</span>
+          <span class="sb-weight">×25</span>
+          <div class="sb-bar-wrap">
+            <div class="sb-bar-track"><div class="sb-bar-fill fill-green" style="width:97%"></div></div>
+          </div>
+          <span class="sb-pts val-green">24/25</span>
+          <span class="sb-icon">✅</span>
+        </div>
+        <div class="sb-row">
+          <span class="sb-name">Content Coverage</span>
+          <span class="sb-weight">×20</span>
+          <div class="sb-bar-wrap">
+            <div class="sb-bar-track"><div class="sb-bar-fill fill-amber" style="width:74%"></div></div>
+          </div>
+          <span class="sb-pts val-amber">15/20</span>
+          <span class="sb-icon">⚠️</span>
+        </div>
+        <div class="sb-row">
+          <span class="sb-name">QA Pass Rate</span>
+          <span class="sb-weight">×20</span>
+          <div class="sb-bar-wrap">
+            <div class="sb-bar-track"><div class="sb-bar-fill fill-green" style="width:91%"></div></div>
+          </div>
+          <span class="sb-pts val-green">18/20</span>
+          <span class="sb-icon">✅</span>
+        </div>
+        <div class="sb-row">
+          <span class="sb-name">Stakeholder Sign-off</span>
+          <span class="sb-weight">×10</span>
+          <div class="sb-bar-wrap">
+            <div class="sb-bar-track"><div class="sb-bar-fill fill-red" style="width:0%"></div></div>
+          </div>
+          <span class="sb-pts val-red">0/10</span>
+          <span class="sb-icon">❌</span>
+        </div>
+        <div class="sb-total-row">
+          <span class="sb-total-label">Total Score</span>
+          <span class="sb-total-score">79 / 100</span>
+        </div>
+      </div>
+
+      <!-- Blockers mini -->
+      <div class="section-pad" style="padding-bottom:8px;">
+        <div class="section-label">Blocking GO</div>
+      </div>
+      <div class="blockers-mini card">
+        <div class="bm-title">3 items blocking GO decision</div>
+        <div class="bm-item">
+          <div class="bm-dot bm-dot-red"></div>
+          <span class="bm-text">2 unresolved P0 bugs in feedback queue</span>
+        </div>
+        <div class="bm-item">
+          <div class="bm-dot bm-dot-amber"></div>
+          <span class="bm-text">Content coverage gap — P2 at 67% (target 60%+)</span>
+        </div>
+        <div class="bm-item">
+          <div class="bm-dot bm-dot-gray"></div>
+          <span class="bm-text">Stakeholder sign-off: 0/4 approvals received</span>
+        </div>
+      </div>
+
+      <!-- Launch checklist mini -->
+      <div class="section-pad" style="padding-bottom:8px;margin-top:4px;">
+        <div class="section-label">Launch Checklist</div>
+      </div>
+      <div class="launch-checklist-mini card">
+        <div class="lcm-title">Pre-launch items</div>
+        <div class="lc-row">
+          <span class="lc-icon">✅</span>
+          <span class="lc-text">All P0 routes healthy</span>
+          <span class="lc-status" style="color:#50e890;">DONE</span>
+        </div>
+        <div class="lc-row">
+          <span class="lc-icon">✅</span>
+          <span class="lc-text">QA pass rate ≥ 90%</span>
+          <span class="lc-status" style="color:#50e890;">DONE</span>
+        </div>
+        <div class="lc-row">
+          <span class="lc-icon">⏳</span>
+          <span class="lc-text">Content coverage ≥ 80%</span>
+          <span class="lc-status" style="color:#f0c030;">74%</span>
+        </div>
+        <div class="lc-row">
+          <span class="lc-icon">❌</span>
+          <span class="lc-text">P0 feedback resolved</span>
+          <span class="lc-status" style="color:#ff4444;">2 open</span>
+        </div>
+        <div class="lc-row">
+          <span class="lc-icon">❌</span>
+          <span class="lc-text">Stakeholder sign-off</span>
+          <span class="lc-status" style="color:#ff4444;">PENDING</span>
+        </div>
+      </div>
+
+      <div class="cta-row" style="padding-top:14px;">
+        <button class="btn-gold" disabled>Make GO Decision 🚀</button>
+        <button class="btn-outline">Full Checklist →</button>
+      </div>
+      <div class="mini-note">Score must reach 90 to enable GO decision</div>
+
+    </div><!-- /tab2 -->
+
+    <!-- ==================== TAB 3: ROUTE HEALTH + FEEDBACK ==================== -->
+    <div class="tab" id="tab3">
+
+      <!-- Routes header -->
+      <div class="routes-header">
+        <div>
+          <div class="routes-title">Route Health</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="margin-bottom:4px;"><span class="chip chip-ok">ALL HEALTHY ✅</span></div>
+          <div class="routes-last-check">Last checked: 2 min ago</div>
+        </div>
+      </div>
+
+      <!-- Route list -->
+      <div class="route-list">
+
+        <div class="route-row healthy">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/command/summary</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">38ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/readiness</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">42ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/routes</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">29ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/feedback/open</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">55ms</span>
+        </div>
+
+        <div class="route-row degraded">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/adoption/snapshot</span>
+          <div class="status-dot dot-amber"></div>
+          <span class="latency-chip slow">218ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-get">GET</span>
+          <span class="route-path">/owner/blockers</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">44ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-post">POST</span>
+          <span class="route-path">/owner/feedback/resolve</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">61ms</span>
+        </div>
+
+        <div class="route-row healthy">
+          <span class="method-chip method-delete">DEL</span>
+          <span class="route-path">/owner/blockers/:id</span>
+          <div class="status-dot dot-green"></div>
+          <span class="latency-chip">47ms</span>
+        </div>
+
+      </div>
+      <div class="mini-note" style="padding-top:4px;">⚠️ /adoption/snapshot elevated latency — monitor</div>
+
+      <hr class="divider" style="margin:8px 0;">
+
+      <!-- Feedback header -->
+      <div class="feedback-header">
+        <div class="feedback-title">Open Feedback</div>
+        <span class="chip chip-amber">14 open</span>
+      </div>
+
+      <!-- Filter chips -->
+      <div class="feedback-filter-row">
+        <div class="filter-chip active-all">All (14)</div>
+        <div class="filter-chip active-p0">P0 (2)</div>
+        <div class="filter-chip">P1 (5)</div>
+        <div class="filter-chip">P2 (4)</div>
+        <div class="filter-chip">P3 (3)</div>
+      </div>
+
+      <!-- Feedback list -->
+      <div class="feedback-list">
+
+        <div class="feedback-item p0-item">
+          <div class="fi-top">
+            <span class="chip chip-p0">P0</span>
+            <span class="fi-title">Auth token expiry causes session crash</span>
+          </div>
+          <div class="fi-bottom">
+            <span class="team-chip">@backend</span>
+            <span class="age-chip">4d old</span>
+            <span class="status-open">Open</span>
+          </div>
+        </div>
+
+        <div class="feedback-item p0-item">
+          <div class="fi-top">
+            <span class="chip chip-p0">P0</span>
+            <span class="fi-title">Progress map fails to save on iOS Safari</span>
+          </div>
+          <div class="fi-bottom">
+            <span class="team-chip">@mobile</span>
+            <span class="age-chip">2d old</span>
+            <span class="status-open">Open</span>
+          </div>
+        </div>
+
+        <div class="feedback-item p1-item">
+          <div class="fi-top">
+            <span class="chip chip-p1">P1</span>
+            <span class="fi-title">Teacher dashboard filters not persisting</span>
+          </div>
+          <div class="fi-bottom">
+            <span class="team-chip">@frontend</span>
+            <span class="age-chip">6d old</span>
+            <span class="status-inprog">In Progress</span>
+          </div>
+        </div>
+
+        <div class="feedback-item">
+          <div class="fi-top">
+            <span class="chip chip-p2">P2</span>
+            <span class="fi-title">Onboarding copy unclear for K-1 teachers</span>
+          </div>
+          <div class="fi-bottom">
+            <span class="team-chip">@content</span>
+            <span class="age-chip">8d old</span>
+            <span class="status-open">Open</span>
+          </div>
+        </div>
+
+        <div class="feedback-item">
+          <div class="fi-top">
+            <span class="chip chip-p3">P3</span>
+            <span class="fi-title">Dark mode inconsistency on parent hub</span>
+          </div>
+          <div class="fi-bottom">
+            <span class="team-chip">unassigned</span>
+            <span class="age-chip">11d old</span>
+            <span class="status-open">Open</span>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="tab3-cta">
+        <button class="btn-gold" style="font-size:11px;">Assign Unassigned →</button>
+        <button class="btn-outline">View All →</button>
+      </div>
+
+    </div><!-- /tab3 -->
+
+    <!-- ==================== TAB 4: ADOPTION + BLOCKERS ==================== -->
+    <div class="tab" id="tab4">
+
+      <!-- Adoption header -->
+      <div class="adoption-header">
+        <div class="adoption-title">Adoption Snapshot</div>
+        <div class="adoption-range">Launch +30d</div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="adoption-kpi-row">
+        <div class="kpi-chip">
+          <div class="kpi-val">🏠 847</div>
+          <div class="kpi-sub">Households</div>
+          <div class="kpi-trend">↑ +12%</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-val">👩‍🏫 73%</div>
+          <div class="kpi-sub">Teachers</div>
+          <div class="kpi-trend">↑ +5%</div>
+        </div>
+        <div class="kpi-chip">
+          <div class="kpi-val">👧 1,204</div>
+          <div class="kpi-sub">Daily Active</div>
+          <div class="kpi-trend">↑ +8%</div>
+        </div>
+      </div>
+
+      <!-- Band adoption bars -->
+      <div class="section-pad" style="padding-bottom:8px;">
+        <div class="section-label">Adoption by Priority Band</div>
+      </div>
+      <div class="band-adoption-bars card">
+        <div class="bab-row">
+          <span class="bab-label" style="color:#ffd166;">P0</span>
+          <div class="bab-track"><div class="bab-fill fill-gold" style="width:91%"></div></div>
+          <span class="bab-pct" style="color:#ffd166;">91%</span>
+          <span class="bab-target">≥80% ✅</span>
+        </div>
+        <div class="bab-row">
+          <span class="bab-label" style="color:#9b72ff;">P1</span>
+          <div class="bab-track"><div class="bab-fill" style="width:84%;background:#9b72ff;"></div></div>
+          <span class="bab-pct" style="color:#9b72ff;">84%</span>
+          <span class="bab-target">≥75% ✅</span>
+        </div>
+        <div class="bab-row">
+          <span class="bab-label" style="color:#58e8c1;">P2</span>
+          <div class="bab-track"><div class="bab-fill" style="width:67%;background:#58e8c1;"></div></div>
+          <span class="bab-pct" style="color:#58e8c1;">67%</span>
+          <span class="bab-target">≥60% ✅</span>
+        </div>
+        <div class="bab-row" style="border:1px solid #4a3800;border-radius:6px;background:#2a1e00;margin:4px 0;">
+          <span class="bab-label" style="color:#ff7b6b;">P3</span>
+          <div class="bab-track" style="background:#3a2a20;"><div class="bab-fill" style="width:43%;background:#ff7b6b;"></div></div>
+          <span class="bab-pct" style="color:#ff7b6b;">43%</span>
+          <span class="bab-target" style="color:#f0c030;">≥50% ⚠️</span>
+        </div>
+      </div>
+
+      <!-- Alert -->
+      <div class="adoption-alert" style="margin-top:10px;">
+        <span class="aa-icon">⚠️</span>
+        <span class="aa-text">P3 adoption at 43% — below 50% target. Review P3 features.</span>
+      </div>
+
+      <hr class="divider" style="margin:10px 0 0;">
+
+      <!-- Blockers header -->
+      <div class="blockers-header">
+        <div class="blockers-title">Top Blockers</div>
+        <span class="blockers-count-chip">3 items</span>
+      </div>
+
+      <!-- Blocker list -->
+      <div class="blocker-list">
+
+        <div class="blocker-card bc-p0">
+          <div class="bc-top">
+            <span class="chip chip-p0">P0</span>
+            <span class="bc-title">Auth crash on session token expiry</span>
+          </div>
+          <div class="bc-meta">
+            <span class="team-chip">@backend</span>
+            <span class="sla-chip sla-hot">SLA: 2h</span>
+            <span class="age-chip">4d old</span>
+          </div>
+          <div class="bc-actions">
+            <button class="bc-btn bc-btn-red">Escalate →</button>
+            <button class="bc-btn bc-btn-outline">View</button>
+          </div>
+        </div>
+
+        <div class="blocker-card bc-p1">
+          <div class="bc-top">
+            <span class="chip chip-p1">P1</span>
+            <span class="bc-title">Teacher filters not persisting across sessions</span>
+          </div>
+          <div class="bc-meta">
+            <span class="team-chip">@frontend</span>
+            <span class="sla-chip">SLA: 24h</span>
+            <span class="age-chip">6d old</span>
+          </div>
+          <div class="bc-actions">
+            <button class="bc-btn bc-btn-outline">View →</button>
+          </div>
+        </div>
+
+        <div class="blocker-card bc-warn">
+          <div class="bc-top">
+            <span class="chip chip-warn">WARN</span>
+            <span class="bc-title">Stakeholder sign-off: 0 of 4 approvals</span>
+          </div>
+          <div class="bc-meta">
+            <span class="team-chip">unassigned</span>
+            <span class="sla-chip">No SLA</span>
+          </div>
+          <div class="bc-actions">
+            <button class="bc-btn bc-btn-gold">Assign →</button>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="blocker-resolve-note">Resolve all P0s to reach GO threshold (score 78 → 90+)</div>
+
+    </div><!-- /tab4 -->
+
+    <!-- ==================== TAB 5: SPEC ==================== -->
+    <div class="tab" id="tab5">
+      <div class="spec-hint">
+        <h4>API Routes</h4>
+        <ul>
+          <li><code>GET /owner/command/summary</code> — overview payload</li>
+          <li><code>GET /owner/readiness</code> — score + component breakdown</li>
+          <li><code>GET /owner/routes</code> — route health list</li>
+          <li><code>GET /owner/feedback/open</code> — open feedback items</li>
+          <li><code>GET /owner/adoption/snapshot</code> — KPIs + band %s</li>
+          <li><code>GET /owner/blockers</code> — prioritized blocker list</li>
+        </ul>
+
+        <h4>GO Decision Logic</h4>
+        <ul>
+          <li>GO threshold: score <code>≥ 90 / 100</code></li>
+          <li>P0 Feedback resolved <code>+25 pts</code></li>
+          <li>Route Health <code>+25 pts</code></li>
+          <li>Content Coverage <code>+20 pts</code></li>
+          <li>QA Pass Rate <code>+20 pts</code></li>
+          <li>Stakeholder Sign-off <code>+10 pts</code></li>
+          <li>Current total: <code>79 / 100</code> → NOT GO</li>
+        </ul>
+
+        <h4>Blocker Severity</h4>
+        <ul>
+          <li><code>P0</code> = release blocked — SLA 2h, page on-call</li>
+          <li><code>P1</code> = release at risk — SLA 24h</li>
+          <li><code>WARN</code> = non-blocking, monitor</li>
+        </ul>
+
+        <h4>Adoption Targets</h4>
+        <ul>
+          <li>P0 ≥ 80% (current: 91% ✅)</li>
+          <li>P1 ≥ 75% (current: 84% ✅)</li>
+          <li>P2 ≥ 60% (current: 67% ✅)</li>
+          <li>P3 ≥ 50% (current: 43% ⚠️ BELOW TARGET)</li>
+        </ul>
+
+        <h4>Refresh Cadence</h4>
+        <ul>
+          <li>Readiness score + routes: <code>every 2 min</code></li>
+          <li>Feedback + adoption: <code>on demand</code></li>
+        </ul>
+
+        <h4>Design Tokens</h4>
+        <ul>
+          <li>bg <code>#0d1117</code> · card <code>#161d2a</code></li>
+          <li>border <code>#2a3548</code> · gold <code>#ffd166</code></li>
+          <li>P0 red <code>#ff4444</code> · P1 orange <code>#ff9900</code></li>
+          <li>ok green <code>#50e890</code> · warn amber <code>#f0c030</code></li>
+          <li>font: <code>Sora</code> · frame: <code>390px</code></li>
+        </ul>
+      </div>
+    </div><!-- /tab5 -->
+
+  </div><!-- /phone-body -->
+
+  <!-- Tab bar -->
+  <div class="tab-bar">
+    <button class="tab-item active" id="tb1" onclick="showTab('tab1')">
+      <span class="ti-icon">⚡</span>
+      <span class="ti-label">Overview</span>
+    </button>
+    <button class="tab-item" id="tb2" onclick="showTab('tab2')">
+      <span class="ti-icon">🚀</span>
+      <span class="ti-label">Readiness</span>
+    </button>
+    <button class="tab-item" id="tb3" onclick="showTab('tab3')">
+      <span class="ti-icon">🗺️</span>
+      <span class="ti-label">Routes</span>
+    </button>
+    <button class="tab-item" id="tb4" onclick="showTab('tab4')">
+      <span class="ti-icon">📊</span>
+      <span class="ti-label">Adoption</span>
+    </button>
+    <button class="tab-item" id="tb5" onclick="showTab('tab5')">
+      <span class="ti-icon">📋</span>
+      <span class="ti-label">Spec</span>
+    </button>
+  </div>
+
+</div><!-- /phone -->
+</div><!-- /phone-wrap -->
+
+<script>
+function showTab(id) {
+  // Hide all tabs
+  document.querySelectorAll('.tab').forEach(function(t) {
+    t.classList.remove('active');
+  });
+  // Deactivate all tab bar items
+  document.querySelectorAll('.tab-item').forEach(function(b) {
+    b.classList.remove('active');
+  });
+
+  // Show target tab
+  document.getElementById(id).classList.add('active');
+
+  // Activate corresponding tab bar button
+  var idx = parseInt(id.replace('tab', ''));
+  document.getElementById('tb' + idx).classList.add('active');
+
+  // Scroll phone body to top
+  var body = document.querySelector('.phone-body');
+  if (body) body.scrollTop = 0;
+}
+</script>
+
+</body>
+</html>

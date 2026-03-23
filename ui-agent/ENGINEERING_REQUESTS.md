@@ -2068,3 +2068,82 @@ Important:
     - batch generation review
     - gap identification
     - clear next-action buttons for content admins
+
+---
+## UI DELIVERY — BATCH 7
+**Delivered by:** UI Agent
+**Date:** 2026-03-22
+**Status:** ✅ ALL 6 FILES DELIVERED
+
+| File | Persona | Dimensions | Tabs | Status |
+|------|---------|------------|------|--------|
+| `child-achievement-hub-v2.html` | Child | 375px mobile | Achievement Hub Home / Badge Shelf+Trophies / World Unlocks / Streak+Replay / Spec | ✅ Done |
+| `parent-family-settings-desktop-v2.html` | Parent | Desktop 1024px | Linked Children / Notification Channels / Quiet Hours / Privacy & Trust / Spec | ✅ Done |
+| `teacher-student-detail-mobile-v2.html` | Teacher | 390px mobile | Student Snapshot / Skill Snapshot / Intervention History / Quick Actions / Spec | ✅ Done |
+| `teacher-assignment-creator-mobile-v2.html` | Teacher | 390px mobile | Skill Picker / Configure / Select Learners / Review & Send / Spec | ✅ Done |
+| `owner-release-readiness-detail-v2.html` | Owner | 390px mobile | Blocker Detail / Route Health Evidence / Feedback Severity / Decision+Signoff / Spec | ✅ Done |
+| `question-factory-workbench-v2.html` | Content-Admin | Desktop 1200px | Factory Overview / Question Queue / Batch Generation Review / Gap Identification / Spec | ✅ Done |
+
+**Design tokens applied:**
+- Child: Nunito 900, `#100b2e` bg — celebration-first achievement hub, badge+trophy+world+streak unified
+- Parent: Sora, `#f5f0e8` bg, `#2c7a6e` teal — desktop family settings, locked teacher-msg bypass, privacy promise
+- Teacher (mobile): Sora, `#f0f4f8` bg, `#2a5080` nav — compact student drilldown + 3-step mobile assignment flow
+- Owner: Sora, `#0d1117` bg, `#ffd166` gold — blocker SLA evidence, route detail, feedback severity, disabled launch gate
+- Content-Admin: Sora, `#10161e` bg, `#58c8f0` cyan — question queue with hard-block enforcement, batch review, gap chart
+
+**Polling:** UI Agent resuming 5-minute polling for Batch 8.
+---
+
+### 2026-03-22 22:18 CDT
+- completed:
+  - verified and preserved Batch 7 delivery:
+    - `child-achievement-hub-v2.html`
+    - `parent-family-settings-desktop-v2.html`
+    - `teacher-student-detail-mobile-v2.html`
+    - `teacher-assignment-creator-mobile-v2.html`
+    - `owner-release-readiness-detail-v2.html`
+    - `question-factory-workbench-v2.html`
+- current focus:
+  - start Batch 8 immediately
+- next batch:
+  - `child-session-resume-overlay-v2.html`
+  - `play-gentle-recovery-mobile-v2.html`
+  - `parent-home-practice-planner-v2.html`
+  - `teacher-support-queue-mobile-v2.html`
+  - `owner-live-incident-center-v2.html`
+  - `content-publish-readiness-detail-v2.html`
+- blockers:
+  - none
+- notes for UI agent:
+  - keep polling this file only
+  - `child-session-resume-overlay-v2.html` should be the fast return surface after a child re-enters:
+    - continue where they left off
+    - preview rewards waiting
+    - one-tap restart
+    - low-text, high-visual, no guilt language
+  - `play-gentle-recovery-mobile-v2.html` should focus on the in-session wrong-answer / hint / replay loop for small screens:
+    - visual prompt stays visible
+    - voice coach stays dominant
+    - correction is calm
+    - recovery CTA is obvious
+  - `parent-home-practice-planner-v2.html` should turn weekly insight into an actionable parent plan:
+    - 3 short activities
+    - optional reminders
+    - child-specific suggestions
+    - keep it calm and family-safe
+  - `teacher-support-queue-mobile-v2.html` should compress the support queue into a mobile-first teacher surface:
+    - urgency order
+    - learner detail entry
+    - intervention action
+    - no clutter
+  - `owner-live-incident-center-v2.html` should be the owner’s operational hot path during beta:
+    - route incident list
+    - deploy/runtime alerts
+    - severity/state filters
+    - quick triage actions
+  - `content-publish-readiness-detail-v2.html` should be the content-admin gate before beta publish:
+    - question count by band
+    - explainer coverage
+    - hard-block issues
+    - publish checklist
+    - visible pass/fail threshold treatment
