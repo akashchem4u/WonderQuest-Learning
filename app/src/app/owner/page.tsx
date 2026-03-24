@@ -1,11 +1,21 @@
 import Link from "next/link";
 import { AppFrame } from "@/components/app-frame";
-import { ShellCard, StatTile } from "@/components/ui";
+import { ShellCard } from "@/components/ui";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import { getOwnerOverview } from "@/lib/prototype-service";
 import OwnerGate from "./owner-gate";
 
 export const dynamic = "force-dynamic";
+
+type ReleaseCheck = {
+  detail: string;
+  label: string;
+  status: "fail" | "ok" | "warn";
+};
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function formatShare(value: number, total: number) {
   if (total <= 0) {
@@ -13,6 +23,18 @@ function formatShare(value: number, total: number) {
   }
 
   return `${Math.round((value / total) * 100)}%`;
+}
+
+function getToneLabel(status: "alert" | "good" | "watch") {
+  if (status === "good") {
+    return "Healthy";
+  }
+
+  if (status === "watch") {
+    return "Watch";
+  }
+
+  return "Attention";
 }
 
 export default async function OwnerPage() {
@@ -34,7 +56,11 @@ export default async function OwnerPage() {
             </div>
           </section>
 
-          <ShellCard className="shell-card-emphasis" eyebrow="Owner" title="Unlock owner console">
+          <ShellCard
+            className="shell-card-emphasis"
+            eyebrow="Owner"
+            title="Unlock owner console"
+          >
             <OwnerGate configured={configured} />
           </ShellCard>
         </main>
@@ -56,383 +82,608 @@ export default async function OwnerPage() {
         : "Owner view is not available.";
   }
 
-  const totalBandStudents = overview
-    ? overview.byBand.reduce((sum, band) => sum + band.studentCount, 0)
-    : 0;
-  const dominantBand = overview
-    ? [...overview.byBand].sort((left, right) => right.studentCount - left.studentCount)[0]
-    : null;
-  const primaryFeedback = overview?.recentFeedback[0] ?? null;
+  if (!overview) {
+    return (
+      <AppFrame audience="owner" currentPath="/owner">
+        <main className="page-shell owner-command-shell">
+          <ShellCard eyebrow="Owner" title="Owner data is not available yet">
+            <p>{error || "Owner view is not available yet."}</p>
+          </ShellCard>
+        </main>
+      </AppFrame>
+    );
+  }
+
+  const totalBandStudents = overview.byBand.reduce(
+    (sum, band) => sum + band.studentCount,
+    0,
+  );
+  const dominantBand = [...overview.byBand].sort(
+    (left, right) => right.studentCount - left.studentCount,
+  )[0];
+  const primaryFeedback = overview.recentFeedback[0] ?? null;
+  const feedbackHotspot = overview.feedbackByCategory[0] ?? null;
+  const reviewHotspot = overview.feedbackByReviewStatus[0] ?? null;
   const pendingReviewCount =
-    overview?.feedbackByReviewStatus.find((item) => item.reviewStatus === "pending")
-      ?.count ?? 0;
-  const ownerAlerts = overview
-    ? [
-        pendingReviewCount > 0
-          ? {
-              tone: "amber",
-              title: "Feedback still needs owner review",
-              detail: `${pendingReviewCount} items are still marked pending in the triage queue.`,
-            }
-          : null,
-        overview.counts.exampleItems < 12
-          ? {
-              tone: "red",
-              title: "Content coverage is still thin",
-              detail: `${overview.counts.exampleItems} example items are live. The alpha slice needs broader content density before heavier testing.`,
-            }
-          : null,
-        overview.counts.guardians === 0
-          ? {
-              tone: "amber",
-              title: "Parent adoption has not started yet",
-              detail: "No guardian profiles are linked, so parent-side signal is still incomplete.",
-            }
-          : null,
-        overview.counts.sessions >= 5 && pendingReviewCount === 0
-          ? {
-              tone: "green",
-              title: "Recent product loop is healthy",
-              detail: `${overview.counts.sessions} learner sessions have been recorded and the current triage queue is clear.`,
-            }
-          : null,
-      ].filter(Boolean) as { tone: string; title: string; detail: string }[]
-    : [];
-  const routeHealth = overview
-    ? [
-        {
-          route: "/child",
-          status: overview.counts.students > 0 ? "good" : "watch",
-          detail:
-            overview.counts.students > 0
-              ? `${overview.counts.students} live child profiles created`
-              : "No live child profiles yet",
-          badge: overview.counts.students > 0 ? "Live" : "Watch",
-        },
-        {
-          route: "/parent",
-          status: overview.counts.guardians > 0 ? "good" : "watch",
-          detail:
-            overview.counts.guardians > 0
-              ? `${overview.counts.guardians} linked parent accounts`
-              : "Parent linkage still needs live households",
-          badge: overview.counts.guardians > 0 ? "Live" : "Watch",
-        },
-        {
-          route: "/teacher",
-          status: overview.counts.sessions >= 3 ? "good" : "watch",
-          detail:
-            overview.counts.sessions >= 3
-              ? "Enough practice data exists to support class-level signals"
-              : "Teacher route still needs more session data",
-          badge: overview.counts.sessions >= 3 ? "Ready" : "Watch",
-        },
-        {
-          route: "/owner",
-          status: primaryFeedback ? "good" : "watch",
-          detail: primaryFeedback
-            ? `Latest queue item routes to ${primaryFeedback.routingTarget}`
-            : "Owner console has no recent feedback to triage yet",
-          badge: primaryFeedback ? "Triage live" : "Quiet",
-        },
-      ]
-    : [];
-  const contentHealth = overview
-    ? [
-        {
-          label: "Example items",
-          value: overview.counts.exampleItems,
-          target: 12,
-        },
-        {
-          label: "Explainers",
-          value: overview.counts.explainers,
-          target: 8,
-        },
-        {
-          label: "Feedback coverage",
-          value: overview.counts.feedbackItems,
-          target: 3,
-        },
-      ]
-    : [];
+    overview.feedbackByReviewStatus.find(
+      (item) => item.reviewStatus === "pending",
+    )?.count ?? 0;
+
+  const routeHealth = [
+    {
+      badge: overview.counts.students > 0 ? "Live" : "Watch",
+      detail:
+        overview.counts.students > 0
+          ? `${overview.counts.students} live child profiles created`
+          : "No live child profiles yet",
+      route: "/child",
+      status: overview.counts.students > 0 ? "good" : "watch",
+    },
+    {
+      badge: overview.counts.guardians > 0 ? "Live" : "Watch",
+      detail:
+        overview.counts.guardians > 0
+          ? `${overview.counts.guardians} linked parent accounts`
+          : "Parent linkage still needs live households",
+      route: "/parent",
+      status: overview.counts.guardians > 0 ? "good" : "watch",
+    },
+    {
+      badge: overview.counts.sessions >= 3 ? "Ready" : "Watch",
+      detail:
+        overview.counts.sessions >= 3
+          ? "Enough practice data exists to support class-level signals"
+          : "Teacher route still needs more session data",
+      route: "/teacher",
+      status: overview.counts.sessions >= 3 ? "good" : "watch",
+    },
+    {
+      badge: primaryFeedback ? "Triage live" : "Quiet",
+      detail: primaryFeedback
+        ? `Latest queue item routes to ${primaryFeedback.routingTarget}`
+        : "Owner console has no recent feedback to triage yet",
+      route: "/owner",
+      status: primaryFeedback ? "good" : "watch",
+    },
+  ] as const;
+
+  const contentHealth = [
+    {
+      label: "Question bank",
+      target: 100,
+      value: overview.counts.exampleItems,
+    },
+    {
+      label: "Explainers",
+      target: 12,
+      value: overview.counts.explainers,
+    },
+    {
+      label: "Feedback coverage",
+      target: 8,
+      value: overview.counts.feedbackItems,
+    },
+  ];
+
+  const degradedRoutes = routeHealth.filter((item) => item.status !== "good");
+  const contentGaps = contentHealth.filter((item) => item.value < item.target);
+
+  const releaseChecks: ReleaseCheck[] = [
+    {
+      detail:
+        pendingReviewCount === 0
+          ? "Queue is fully reviewed."
+          : `${pendingReviewCount} items still need owner review.`,
+      label: "Feedback queue under control",
+      status:
+        pendingReviewCount === 0 ? "ok" : pendingReviewCount <= 3 ? "warn" : "fail",
+    },
+    {
+      detail:
+        degradedRoutes.length === 0
+          ? "All major product paths are currently healthy."
+          : `${degradedRoutes.length} routes still need attention.`,
+      label: "Core routes healthy enough to trust",
+      status:
+        degradedRoutes.length === 0
+          ? "ok"
+          : degradedRoutes.length === 1
+            ? "warn"
+            : "fail",
+    },
+    {
+      detail:
+        overview.counts.exampleItems >= 100
+          ? `${overview.counts.exampleItems} questions are live.`
+          : `${overview.counts.exampleItems} questions live against the 100-question beta floor.`,
+      label: "Question bank has beta-ready density",
+      status: overview.counts.exampleItems >= 100 ? "ok" : "warn",
+    },
+    {
+      detail:
+        overview.counts.guardians > 0
+          ? `${overview.counts.guardians} parent accounts are linked.`
+          : "Parent-side visibility still has no live households.",
+      label: "Parent-side signal is present",
+      status: overview.counts.guardians > 0 ? "ok" : "warn",
+    },
+    {
+      detail:
+        overview.counts.sessions >= 10
+          ? `${overview.counts.sessions} sessions recorded so far.`
+          : `${overview.counts.sessions} sessions recorded so far.`,
+      label: "Session volume is meaningful",
+      status: overview.counts.sessions >= 10 ? "ok" : "warn",
+    },
+  ];
+
+  const blockers = [
+    pendingReviewCount > 0
+      ? {
+          detail: `${pendingReviewCount} items still need routing or a decision.`,
+          severity: pendingReviewCount > 3 ? "p0" : "p1",
+          title: "Feedback queue still needs owner review",
+        }
+      : null,
+    degradedRoutes[0]
+      ? {
+          detail: degradedRoutes[0].detail,
+          severity: degradedRoutes.length > 1 ? "p0" : "p1",
+          title: `${degradedRoutes.length} product paths need attention`,
+        }
+      : null,
+    contentGaps[0]
+      ? {
+          detail: `${contentGaps.length} content signals are still below target.`,
+          severity: "p1",
+          title: "Content density still has gaps",
+        }
+      : null,
+    overview.counts.guardians === 0
+      ? {
+          detail: "Parent-side reporting remains incomplete until households are linked.",
+          severity: "p2",
+          title: "No live parent households yet",
+        }
+      : null,
+  ].filter(Boolean) as {
+    detail: string;
+    severity: "p0" | "p1" | "p2";
+    title: string;
+  }[];
+
+  const readinessScore = clamp(
+    100 -
+      pendingReviewCount * 7 -
+      degradedRoutes.length * 16 -
+      contentGaps.length * 10 -
+      (overview.counts.guardians === 0 ? 8 : 0) -
+      (overview.counts.sessions < 10 ? 6 : 0),
+    42,
+    100,
+  );
+
+  const readinessTone =
+    readinessScore >= 90 && blockers.length === 0
+      ? "good"
+      : readinessScore >= 75
+        ? "watch"
+        : "alert";
+  const readinessLabel =
+    readinessTone === "good"
+      ? "Ready"
+      : readinessTone === "watch"
+        ? "Needs work"
+        : "Blocked";
+  const topBanner = blockers[0] ?? null;
+  const recentSessions = overview.latestSessions.slice(0, 4);
+  const recentFeedback = overview.recentFeedback.slice(0, 4);
 
   return (
     <AppFrame audience="owner" currentPath="/owner">
-      <main className="page-shell">
-        <section className="page-hero">
-          <div>
-            <span className="eyebrow">Owner route</span>
-            <h1>Product health and launch readiness in one owner console.</h1>
+      <main className="page-shell owner-command-shell">
+        <section className="owner-command-hero">
+          <div className="owner-command-copy">
+            <span className="shell-eyebrow">Owner ops</span>
+            <h1>Release readiness, triage pressure, and route trust in one command center.</h1>
             <p>
-              Separate owner-facing visibility for launch bands, learner growth,
-              content coverage, and recent play activity.
+              This route should tell you whether beta is safe to open, what still
+              needs attention, and where the next product decision belongs.
             </p>
             <div className="summary-chip-row">
-              <span className="summary-chip">Adoption by band</span>
-              <span className="summary-chip">Feedback triage</span>
-              <span className="summary-chip">Content + growth pulse</span>
+              <span className="summary-chip">Release gate first</span>
+              <span className="summary-chip">Feedback triage next</span>
+              <span className="summary-chip">Route + content health together</span>
             </div>
           </div>
-          <div className="hero-route-summary">
-            <StatTile
-              detail="Live child profiles"
-              label="Students"
-              value={`${overview?.counts.students ?? 0}`}
-            />
-            <StatTile
-              detail="Challenge sessions started"
-              label="Sessions"
-              value={`${overview?.counts.sessions ?? 0}`}
-            />
-            <StatTile
-              detail="Example items synced"
-              label="Content"
-              value={`${overview?.counts.exampleItems ?? 0}`}
-            />
+
+          <div className="owner-command-kpis">
+            <article className={`owner-kpi-card is-${readinessTone}`}>
+              <span className="owner-kpi-label">Release readiness</span>
+              <strong>{readinessScore}</strong>
+              <p>{readinessLabel} for beta opening</p>
+            </article>
+            <article className="owner-kpi-card">
+              <span className="owner-kpi-label">Feedback queue</span>
+              <strong>{overview.counts.feedbackItems}</strong>
+              <p>{pendingReviewCount} pending owner reviews</p>
+            </article>
+            <article className="owner-kpi-card">
+              <span className="owner-kpi-label">Question bank</span>
+              <strong>{overview.counts.exampleItems}</strong>
+              <p>Live synced questions</p>
+            </article>
+            <article className="owner-kpi-card">
+              <span className="owner-kpi-label">Active households</span>
+              <strong>{overview.counts.guardians}</strong>
+              <p>{overview.counts.sessions} learner sessions recorded</p>
+            </article>
           </div>
         </section>
 
-        {error ? (
-          <ShellCard eyebrow="Owner" title="Owner data is not available yet">
-            <p>{error}</p>
-          </ShellCard>
+        {topBanner ? (
+          <section className={`owner-priority-banner is-${topBanner.severity}`}>
+            <div>
+              <span className="owner-panel-kicker">Immediate owner signal</span>
+              <strong>{topBanner.title}</strong>
+              <p>{topBanner.detail}</p>
+            </div>
+            <Link className="owner-inline-link" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
+              Review now
+            </Link>
+          </section>
         ) : null}
 
-        {overview ? (
-          <>
-            {ownerAlerts.length ? (
-              <section className="tracks owner-grid">
-                <ShellCard className="shell-card-emphasis" eyebrow="Owner alerts" title="What is changing right now">
-                  <div className="owner-alert-stack">
-                    {ownerAlerts.map((alert) => (
-                      <article className={`owner-alert owner-alert-${alert.tone}`} key={`${alert.tone}-${alert.title}`}>
-                        <div className="owner-alert-icon" aria-hidden="true">
-                          {alert.tone === "green" ? "✓" : alert.tone === "amber" ? "!" : "⚠"}
-                        </div>
-                        <div>
-                          <strong>{alert.title}</strong>
-                          <p>{alert.detail}</p>
-                        </div>
-                      </article>
-                    ))}
-                  </div>
-                </ShellCard>
-              </section>
-            ) : null}
+        <section className="owner-command-layout">
+          <aside className="owner-command-rail owner-command-left">
+            <section className="owner-panel owner-release-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Release gate</span>
+                  <h2>Should beta open yet?</h2>
+                </div>
+                <span className={`owner-readiness-badge is-${readinessTone}`}>
+                  {readinessLabel}
+                </span>
+              </div>
 
-            <section className="tracks owner-grid">
-              <ShellCard className="shell-card-spotlight" eyebrow="Owner queue" title="What needs owner attention next">
-                {primaryFeedback ? (
-                  <div className="owner-workbench">
-                    <article className="owner-triage-card">
-                      <div className="owner-triage-header">
-                        <span className="parent-insight-label">
-                          {primaryFeedback.category}
-                        </span>
-                        <div className="summary-chip-row">
-                          <span className="summary-chip">
-                            {primaryFeedback.urgency}
-                          </span>
-                          <span className="summary-chip">
-                            {primaryFeedback.reviewStatus}
-                          </span>
-                        </div>
-                      </div>
-                      <strong>{primaryFeedback.summary}</strong>
-                      <p>{primaryFeedback.message}</p>
-                      <div className="summary-chip-row">
-                        <span className="summary-chip">
-                          Route to {primaryFeedback.routingTarget}
-                        </span>
-                        {primaryFeedback.impactedArea ? (
-                          <span className="summary-chip">
-                            Area: {primaryFeedback.impactedArea}
-                          </span>
-                        ) : null}
-                        {primaryFeedback.confidence !== null ? (
-                          <span className="summary-chip">
-                            {primaryFeedback.confidence}% confidence
-                          </span>
-                        ) : null}
+              <div className="owner-readiness-score">
+                <div className={`owner-readiness-ring is-${readinessTone}`}>
+                  {readinessScore}
+                </div>
+                <div className="owner-readiness-copy">
+                  <strong>{blockers.length} blocking signals</strong>
+                  <p>
+                    Beta target is 90+. Right now the console is optimizing for a
+                    calmer, fix-first launch.
+                  </p>
+                  <div className="owner-readiness-bar" aria-hidden="true">
+                    <span
+                      className={`is-${readinessTone}`}
+                      style={{ width: `${readinessScore}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="owner-release-checks">
+                {releaseChecks.map((check) => (
+                  <article className={`owner-release-check is-${check.status}`} key={check.label}>
+                    <span className="owner-release-status" aria-hidden="true">
+                      {check.status === "ok" ? "✓" : check.status === "warn" ? "!" : "×"}
+                    </span>
+                    <div className="owner-release-copy">
+                      <strong>{check.label}</strong>
+                      <p>{check.detail}</p>
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              {blockers.length ? (
+                <div className="owner-blocker-stack">
+                  {blockers.map((blocker) => (
+                    <article className={`owner-blocker-card is-${blocker.severity}`} key={`${blocker.severity}-${blocker.title}`}>
+                      <span className="owner-blocker-chip">{blocker.severity.toUpperCase()}</span>
+                      <div>
+                        <strong>{blocker.title}</strong>
+                        <p>{blocker.detail}</p>
                       </div>
                     </article>
-
-                    <div className="teacher-drilldown-metrics">
-                      <article className="teacher-drilldown-card">
-                        <span>Priority category</span>
-                        <strong>
-                          {overview.feedbackByCategory[0]?.category ?? "No feedback yet"}
-                        </strong>
-                        <p>
-                          {overview.feedbackByCategory[0]
-                            ? `${overview.feedbackByCategory[0].count} recent items in the busiest queue.`
-                            : "The feedback queue is still empty."}
-                        </p>
-                      </article>
-                      <article className="teacher-drilldown-card">
-                        <span>Pending review</span>
-                        <strong>{pendingReviewCount}</strong>
-                        <p>Items that still need an owner decision or routing move.</p>
-                      </article>
-                      <article className="teacher-drilldown-card">
-                        <span>Suggested owner move</span>
-                        <strong>
-                          {primaryFeedback.routingTarget
-                            ? `Review ${primaryFeedback.routingTarget}`
-                            : "Watch next feedback cycle"}
-                        </strong>
-                        <p>Use the latest routing target as the next product triage step.</p>
-                      </article>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="teacher-empty-state">
-                    <strong>No owner triage item is active yet</strong>
-                    <p>
-                      As feedback and testing volume rises, the owner queue will show
-                      the next item to route, review, and resolve.
-                    </p>
-                  </div>
-                )}
-              </ShellCard>
+                  ))}
+                </div>
+              ) : null}
             </section>
 
-            <section className="tracks owner-grid">
-              <ShellCard className="shell-card-emphasis" eyebrow="Route health" title="Which product paths are healthy enough to trust">
-                <div className="owner-route-list">
-                  {routeHealth.map((item) => (
-                    <article className="owner-route-row" key={item.route}>
+            <section className="owner-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Route health</span>
+                  <h2>Compact path trust</h2>
+                </div>
+                <span className="owner-muted-meta">{routeHealth.length} major routes</span>
+              </div>
+              <div className="owner-route-compact-list">
+                {routeHealth.map((item) => (
+                  <article className={`owner-route-compact-row is-${item.status}`} key={item.route}>
+                    <div className="owner-route-leading">
                       <span className={`owner-status-dot is-${item.status}`} aria-hidden="true" />
-                      <div className="owner-route-copy">
+                      <div>
                         <strong>{item.route}</strong>
                         <p>{item.detail}</p>
                       </div>
-                      <span className={`owner-route-badge is-${item.status}`}>
-                        {item.badge}
-                      </span>
-                    </article>
-                  ))}
-                </div>
-              </ShellCard>
-
-              <ShellCard className="shell-card-soft" eyebrow="Content health" title="Where content density still needs work">
-                <div className="owner-content-list">
-                  {contentHealth.map((item) => {
-                    const ratio = Math.min(item.value / Math.max(item.target, 1), 1);
-                    const tone = item.value >= item.target ? "good" : item.value >= item.target * 0.66 ? "watch" : "alert";
-
-                    return (
-                      <article className="owner-content-row" key={item.label}>
-                        <div className="owner-content-copy">
-                          <strong>{item.label}</strong>
-                          <p>
-                            {item.value} live now · target {item.target}
-                          </p>
-                        </div>
-                        <div className="owner-content-meter" aria-hidden="true">
-                          <span className={`is-${tone}`} style={{ width: `${ratio * 100}%` }} />
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </ShellCard>
-
-              <ShellCard className="shell-card-soft" eyebrow="Launch bands" title="Adoption by band">
-                <div className="owner-adoption-list">
-                  {overview.byBand.map((band) => (
-                    <article className="owner-adoption-row" key={band.code}>
-                      <div className="owner-adoption-header">
-                        <strong>{band.displayName}</strong>
-                        <span>
-                          {band.studentCount} learners · {formatShare(band.studentCount, totalBandStudents)}
-                        </span>
-                      </div>
-                      <div className="owner-adoption-track" aria-hidden="true">
-                        <span style={{ width: `${totalBandStudents > 0 ? (band.studentCount / totalBandStudents) * 100 : 0}%` }} />
-                      </div>
-                    </article>
-                  ))}
-                  {dominantBand ? (
-                    <p className="owner-adoption-note">
-                      Most active band right now: {dominantBand.displayName}.
-                    </p>
-                  ) : null}
-                </div>
-              </ShellCard>
+                    </div>
+                    <span className={`owner-route-badge is-${item.status}`}>
+                      {item.badge}
+                    </span>
+                  </article>
+                ))}
+              </div>
             </section>
 
-            <section className="tracks owner-grid">
-              <ShellCard className="shell-card-soft" eyebrow="Recent sessions" title="Latest play activity">
-                <div className="activity-list">
-                  {overview.latestSessions.map((session) => (
-                    <article className="activity-card" key={session.id}>
-                      <div className="activity-card-row">
-                        <strong>{session.displayName}</strong>
-                        <span>{session.sessionMode}</span>
-                      </div>
-                      <div className="summary-chip-row">
+            <section className="owner-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Adoption by band</span>
+                  <h2>Who is showing up?</h2>
+                </div>
+                <span className="owner-muted-meta">{totalBandStudents} learners</span>
+              </div>
+              <div className="owner-band-summary">
+                {overview.byBand.map((band) => (
+                  <article className="owner-band-row" key={band.code}>
+                    <div className="owner-band-copy">
+                      <strong>{band.displayName}</strong>
+                      <p>
+                        {band.studentCount} learners ·{" "}
+                        {formatShare(band.studentCount, totalBandStudents)}
+                      </p>
+                    </div>
+                    <div className="owner-adoption-track" aria-hidden="true">
+                      <span
+                        style={{
+                          width: `${
+                            totalBandStudents > 0
+                              ? (band.studentCount / totalBandStudents) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </div>
+                  </article>
+                ))}
+                {dominantBand ? (
+                  <p className="owner-support-note">
+                    Most active band right now: {dominantBand.displayName}.
+                  </p>
+                ) : null}
+              </div>
+            </section>
+          </aside>
+
+          <section className="owner-command-main">
+            <section className="owner-panel owner-panel-priority">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Feedback triage</span>
+                  <h2>What needs owner attention next?</h2>
+                </div>
+                <Link className="owner-inline-link" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
+                  Open detail
+                </Link>
+              </div>
+
+              {primaryFeedback ? (
+                <>
+                  <article className="owner-triage-focus">
+                    <div className="owner-triage-meta">
+                      <span className="summary-chip">{primaryFeedback.category}</span>
+                      <span className="summary-chip">{primaryFeedback.urgency}</span>
+                      <span className="summary-chip">{primaryFeedback.reviewStatus}</span>
+                    </div>
+                    <strong>{primaryFeedback.summary}</strong>
+                    <p>{primaryFeedback.message}</p>
+                    <div className="summary-chip-row">
+                      <span className="summary-chip">
+                        Route to {primaryFeedback.routingTarget}
+                      </span>
+                      {primaryFeedback.impactedArea ? (
                         <span className="summary-chip">
-                          {session.effectivenessScore === null
-                            ? "in progress"
-                            : `${session.effectivenessScore}% effective`}
+                          Area: {primaryFeedback.impactedArea}
                         </span>
+                      ) : null}
+                      {primaryFeedback.confidence !== null ? (
+                        <span className="summary-chip">
+                          {primaryFeedback.confidence}% confidence
+                        </span>
+                      ) : null}
+                    </div>
+                  </article>
+
+                  <div className="owner-micro-grid">
+                    <article className="owner-mini-stat">
+                      <span>Pending review</span>
+                      <strong>{pendingReviewCount}</strong>
+                      <p>Still waiting on owner action.</p>
+                    </article>
+                    <article className="owner-mini-stat">
+                      <span>Hottest category</span>
+                      <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
+                      <p>
+                        {feedbackHotspot
+                          ? `${feedbackHotspot.count} items in the busiest lane.`
+                          : "No category pressure yet."}
+                      </p>
+                    </article>
+                    <article className="owner-mini-stat">
+                      <span>Review state</span>
+                      <strong>{reviewHotspot?.reviewStatus ?? "quiet"}</strong>
+                      <p>
+                        {reviewHotspot
+                          ? `${reviewHotspot.count} items currently share this state.`
+                          : "No review-state signal yet."}
+                      </p>
+                    </article>
+                  </div>
+                </>
+              ) : (
+                <div className="teacher-empty-state">
+                  <strong>No owner triage item is active yet</strong>
+                  <p>
+                    As feedback and testing volume rises, the owner queue will show
+                    the next item to route, review, and resolve.
+                  </p>
+                </div>
+              )}
+
+              <div className="owner-feedback-list">
+                {recentFeedback.map((item) => (
+                  <article className="owner-feedback-item" key={item.id}>
+                    <div className="owner-feedback-topline">
+                      <strong>{item.summary}</strong>
+                      <span className="summary-chip">{item.urgency}</span>
+                    </div>
+                    <p>{item.category} · {item.routingTarget} · {item.reviewStatus}</p>
+                    <Link className="owner-inline-link" href={`/owner/triage/${item.id}`}>
+                      Open detail
+                    </Link>
+                  </article>
+                ))}
+              </div>
+            </section>
+
+            <div className="owner-main-grid">
+              <section className="owner-panel">
+                <div className="owner-panel-header">
+                  <div>
+                    <span className="owner-panel-kicker">Recent sessions</span>
+                    <h2>What happened in the latest play loops?</h2>
+                  </div>
+                </div>
+                <div className="owner-feedback-list">
+                  {recentSessions.map((session) => (
+                    <article className="owner-feedback-item" key={session.id}>
+                      <div className="owner-feedback-topline">
+                        <strong>{session.displayName}</strong>
+                        <span className="summary-chip">{session.sessionMode}</span>
                       </div>
+                      <p>
+                        {session.effectivenessScore === null
+                          ? "Still in progress"
+                          : `${session.effectivenessScore}% effective`}{" "}
+                        · session observed on owner route
+                      </p>
                     </article>
                   ))}
                 </div>
-              </ShellCard>
+              </section>
 
-              <ShellCard className="shell-card-soft" eyebrow="Feedback mix" title="Recent triage categories">
-                <div className="owner-feedback-status-grid">
-                  <article className="teacher-drilldown-card">
-                    <span>By category</span>
-                    <strong>{overview.feedbackByCategory[0]?.category ?? "Quiet"}</strong>
+              <section className="owner-panel">
+                <div className="owner-panel-header">
+                  <div>
+                    <span className="owner-panel-kicker">Feedback mix</span>
+                    <h2>Where is the product pressure clustering?</h2>
+                  </div>
+                </div>
+                <div className="owner-micro-grid">
+                  <article className="owner-mini-stat">
+                    <span>Top category</span>
+                    <strong>{feedbackHotspot?.category ?? "Quiet"}</strong>
                     <p>
-                      {overview.feedbackByCategory[0]
-                        ? `${overview.feedbackByCategory[0].count} items in the largest category.`
+                      {feedbackHotspot
+                        ? `${feedbackHotspot.count} recent items in the largest category.`
                         : "No feedback has been triaged yet."}
                     </p>
                   </article>
-                  <article className="teacher-drilldown-card">
-                    <span>Review state</span>
-                    <strong>
-                      {overview.feedbackByReviewStatus[0]?.reviewStatus ?? "pending"}
-                    </strong>
+                  <article className="owner-mini-stat">
+                    <span>Top review state</span>
+                    <strong>{reviewHotspot?.reviewStatus ?? "Quiet"}</strong>
                     <p>
-                      {overview.feedbackByReviewStatus[0]
-                        ? `${overview.feedbackByReviewStatus[0].count} items currently share this review state.`
-                        : "No review-state data yet."}
+                      {reviewHotspot
+                        ? `${reviewHotspot.count} items currently share this state.`
+                        : "No review-state signal yet."}
                     </p>
                   </article>
                 </div>
-              </ShellCard>
+              </section>
+            </div>
+          </section>
 
-              <ShellCard className="shell-card-spotlight" eyebrow="Feedback queue" title="Latest product feedback">
-                <div className="activity-list">
-                  {overview.recentFeedback.map((item) => (
-                    <article className="activity-card" key={item.id}>
-                      <div className="activity-card-row">
-                        <strong>{item.category}</strong>
-                        <span>{item.urgency}</span>
-                      </div>
-                      <div className="summary-chip-row">
-                        <span className="summary-chip">{item.routingTarget}</span>
-                        <span className="summary-chip">{item.sourceChannel}</span>
-                        <span className="summary-chip">{item.reviewStatus}</span>
-                        <Link className="summary-chip owner-detail-link" href={`/owner/triage/${item.id}`}>
-                          Open detail
-                        </Link>
-                      </div>
-                      <p>{item.summary}</p>
-                    </article>
-                  ))}
+          <aside className="owner-command-rail owner-command-right">
+            <section className="owner-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Content health</span>
+                  <h2>How dense is the learning bank?</h2>
                 </div>
-              </ShellCard>
+              </div>
+              <div className="owner-content-list">
+                {contentHealth.map((item) => {
+                  const ratio = Math.min(item.value / Math.max(item.target, 1), 1);
+                  const tone =
+                    item.value >= item.target
+                      ? "good"
+                      : item.value >= item.target * 0.66
+                        ? "watch"
+                        : "alert";
+
+                  return (
+                    <article className="owner-content-row" key={item.label}>
+                      <div className="owner-content-copy">
+                        <strong>{item.label}</strong>
+                        <p>
+                          {item.value} live now · target {item.target}
+                        </p>
+                      </div>
+                      <div className="owner-content-meter" aria-hidden="true">
+                        <span
+                          className={`is-${tone}`}
+                          style={{ width: `${ratio * 100}%` }}
+                        />
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
             </section>
-          </>
-        ) : null}
+
+            <section className="owner-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Quick actions</span>
+                  <h2>Where should the owner move next?</h2>
+                </div>
+              </div>
+              <div className="owner-quick-actions">
+                <Link className="owner-quick-action" href={primaryFeedback ? `/owner/triage/${primaryFeedback.id}` : "/owner"}>
+                  Review latest triage item
+                </Link>
+                <Link className="owner-quick-action" href="/teacher">
+                  Check teacher route health
+                </Link>
+                <Link className="owner-quick-action" href="/parent">
+                  Review parent-side signal
+                </Link>
+                <Link className="owner-quick-action" href="/child">
+                  Verify child entry path
+                </Link>
+              </div>
+            </section>
+
+            <section className="owner-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <span className="owner-panel-kicker">Launch note</span>
+                  <h2>Current beta opening posture</h2>
+                </div>
+              </div>
+              <p className="owner-support-note">
+                Keep beta closed until the release gate reaches 90+, the owner
+                queue is calmer, and parent-side signal includes real households.
+              </p>
+            </section>
+          </aside>
+        </section>
 
         <section className="entry-links">
           <Link className="primary-link" href="/child">
@@ -440,6 +691,9 @@ export default async function OwnerPage() {
           </Link>
           <Link className="secondary-link" href="/parent">
             Parent setup
+          </Link>
+          <Link className="secondary-link" href="/teacher">
+            Teacher view
           </Link>
         </section>
       </main>
