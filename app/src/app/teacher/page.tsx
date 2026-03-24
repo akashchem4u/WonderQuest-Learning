@@ -12,6 +12,8 @@ type TeacherPageProps = {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
+type TeacherQueueTier = "all" | "support" | "watch" | "strong";
+
 function getSingleSearchParam(value: string | string[] | undefined) {
   return typeof value === "string" ? value : value?.[0];
 }
@@ -41,11 +43,74 @@ function formatShortDate(value: string) {
   }).format(parsed);
 }
 
+function getTeacherQueueTier(masteryRate: number): Exclude<TeacherQueueTier, "all"> {
+  if (masteryRate >= 80) {
+    return "strong";
+  }
+
+  if (masteryRate >= 60) {
+    return "watch";
+  }
+
+  return "support";
+}
+
+function getTeacherQueueTierLabel(tier: Exclude<TeacherQueueTier, "all">) {
+  if (tier === "strong") {
+    return "Strong";
+  }
+
+  if (tier === "watch") {
+    return "Watch";
+  }
+
+  return "Flag";
+}
+
+function buildTeacherQueueSummary(
+  displayName: string,
+  tier: Exclude<TeacherQueueTier, "all">,
+  learnerCount: number,
+  remediationCount: number,
+) {
+  if (tier === "strong") {
+    return `${displayName} is a class confidence anchor. Reuse it as a warm-up before moving into the next support lane.`;
+  }
+
+  if (tier === "watch") {
+    return `${learnerCount} learners are close, but ${displayName} still needs one guided pass to steady first-try success.`;
+  }
+
+  return `${learnerCount} learners are still building ${displayName}. ${remediationCount} support triggers show it needs slower modeling and retries.`;
+}
+
+function buildTeacherQueueAction(
+  displayName: string,
+  tier: Exclude<TeacherQueueTier, "all">,
+) {
+  if (tier === "strong") {
+    return `Use ${displayName} as a quick confidence win.`;
+  }
+
+  if (tier === "watch") {
+    return `Run a short guided block for ${displayName}.`;
+  }
+
+  return `Plan a teacher-led retry loop for ${displayName}.`;
+}
+
 export default async function TeacherPage({ searchParams }: TeacherPageProps) {
   const configured = isTeacherAccessConfigured();
   const unlocked = await hasTeacherAccess();
   const resolvedSearchParams = searchParams ? await searchParams : {};
+  const selectedQueueTierParam = getSingleSearchParam(resolvedSearchParams.tier);
   const selectedSkillCode = getSingleSearchParam(resolvedSearchParams.skill);
+  const selectedQueueTier: TeacherQueueTier =
+    selectedQueueTierParam === "support" ||
+    selectedQueueTierParam === "watch" ||
+    selectedQueueTierParam === "strong"
+      ? selectedQueueTierParam
+      : "all";
 
   if (!unlocked) {
     return (
@@ -84,24 +149,89 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
         : "Teacher dashboard is not available.";
   }
 
-  const selectedSkill = overview
-    ? overview.skillSummary.find((skill) => skill.skillCode === selectedSkillCode) ??
-      overview.supportAreas[0] ??
-      overview.strengthAreas[0] ??
-      overview.skillSummary[0] ??
-      null
-    : null;
-  const skillChooser = overview
-    ? dedupeSkills([
-        ...overview.supportAreas.slice(0, 4),
-        ...overview.strengthAreas.slice(0, 4),
-      ]).slice(0, 8)
+  const buildTeacherRouteHref = (
+    skillCode?: string | null,
+    tier: TeacherQueueTier = selectedQueueTier,
+  ) => {
+    const params = new URLSearchParams();
+
+    if (tier !== "all") {
+      params.set("tier", tier);
+    }
+
+    if (skillCode) {
+      params.set("skill", skillCode);
+    }
+
+    const query = params.toString();
+    return query ? `/teacher?${query}` : "/teacher";
+  };
+  const queueItems = overview
+    ? [...overview.skillSummary]
+        .map((skill) => {
+          const tier = getTeacherQueueTier(skill.masteryRate);
+          const urgencyScore =
+            (100 - skill.masteryRate) * 2 +
+            skill.remediationCount * 5 +
+            skill.learnerCount * 4 +
+            Math.min(skill.attempts, 12);
+
+          return {
+            ...skill,
+            queueAction: buildTeacherQueueAction(skill.displayName, tier),
+            queueSummary: buildTeacherQueueSummary(
+              skill.displayName,
+              tier,
+              skill.learnerCount,
+              skill.remediationCount,
+            ),
+            tier,
+            tierLabel: getTeacherQueueTierLabel(tier),
+            urgencyScore,
+          };
+        })
+        .sort((left, right) => {
+          if (right.urgencyScore !== left.urgencyScore) {
+            return right.urgencyScore - left.urgencyScore;
+          }
+
+          if (left.masteryRate !== right.masteryRate) {
+            return left.masteryRate - right.masteryRate;
+          }
+
+          return right.learnerCount - left.learnerCount;
+        })
     : [];
+  const filteredQueue = queueItems.filter(
+    (skill) => selectedQueueTier === "all" || skill.tier === selectedQueueTier,
+  );
+  const selectedSkill =
+    filteredQueue.find((skill) => skill.skillCode === selectedSkillCode) ??
+    filteredQueue[0] ??
+    (selectedQueueTier === "all"
+      ? queueItems.find((skill) => skill.skillCode === selectedSkillCode) ??
+        queueItems[0] ??
+        null
+      : null) ??
+    null;
+  const queueNeighbors = dedupeSkills(
+    selectedSkill
+      ? [
+          selectedSkill,
+          ...filteredQueue.filter(
+            (skill) => skill.skillCode !== selectedSkill.skillCode,
+          ),
+        ]
+      : filteredQueue,
+  ).slice(0, 6);
   const selectedSkillFirstTryRate = selectedSkill
     ? Math.round(
         (selectedSkill.firstTryCount / Math.max(selectedSkill.attempts, 1)) * 100,
       )
     : 0;
+  const selectedSkillTier = selectedSkill
+    ? getTeacherQueueTier(selectedSkill.masteryRate)
+    : null;
   const selectedSkillTrendLabel = selectedSkill
     ? selectedSkill.masteryRate >= 80
       ? "class confidence is building"
@@ -137,7 +267,12 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
     overview && overview.counts.students > 0
       ? (overview.counts.sessions / overview.counts.students).toFixed(1)
       : "0.0";
-  const supportQueue = overview ? overview.supportAreas.slice(0, 4) : [];
+  const queueTierCounts = {
+    all: queueItems.length,
+    strong: queueItems.filter((skill) => skill.tier === "strong").length,
+    support: queueItems.filter((skill) => skill.tier === "support").length,
+    watch: queueItems.filter((skill) => skill.tier === "watch").length,
+  };
   const recentWins = overview ? overview.strengthAreas.slice(0, 3) : [];
   const recentSessions = overview ? overview.latestSessions.slice(0, 5) : [];
   const bandSnapshots = overview
@@ -295,33 +430,101 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 <section className="teacher-command-row">
                   <ShellCard
                     className="shell-card-emphasis teacher-support-queue-card"
-                    eyebrow="Support queue"
+                    eyebrow="Intervention queue"
                     title="What needs attention first"
                   >
-                    <div className="teacher-queue-list" id="teacher-support-queue">
-                      {supportQueue.map((skill) => (
-                        <article
-                          className="teacher-queue-item"
-                          key={`${skill.skillCode}-${skill.launchBandCode}`}
-                        >
-                          <div className="teacher-queue-copy">
-                            <span className="parent-insight-label">
-                              {skill.launchBandCode}
-                            </span>
-                            <strong>{skill.displayName}</strong>
-                            <p>
-                              {skill.masteryRate}% mastery · {skill.attempts} attempts ·{" "}
-                              {skill.remediationCount} support moments
-                            </p>
-                          </div>
+                    <div className="teacher-queue-toolbar">
+                      <div className="teacher-queue-filter-row" aria-label="Teacher intervention filters">
+                        {(
+                          [
+                            {
+                              count: queueTierCounts.all,
+                              label: "All",
+                              value: "all",
+                            },
+                            {
+                              count: queueTierCounts.support,
+                              label: "Flag",
+                              value: "support",
+                            },
+                            {
+                              count: queueTierCounts.watch,
+                              label: "Watch",
+                              value: "watch",
+                            },
+                            {
+                              count: queueTierCounts.strong,
+                              label: "Strong",
+                              value: "strong",
+                            },
+                          ] as const
+                        ).map((filter) => (
                           <Link
-                            className="secondary-link teacher-detail-link"
-                            href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
+                            className={`teacher-queue-filter-chip ${selectedQueueTier === filter.value ? "is-current" : ""}`}
+                            href={buildTeacherRouteHref(null, filter.value)}
+                            key={filter.value}
                           >
-                            Inspect
+                            {filter.label}
+                            <span>{filter.count}</span>
                           </Link>
-                        </article>
-                      ))}
+                        ))}
+                      </div>
+                      <p className="teacher-queue-hint">
+                        Filter by urgency, then keep the drilldown on this same route.
+                      </p>
+                    </div>
+                    <div className="teacher-queue-list" id="teacher-support-queue">
+                      {filteredQueue.length ? (
+                        filteredQueue.map((skill, index) => {
+                          const isSelected = selectedSkill?.skillCode === skill.skillCode;
+
+                          return (
+                            <article
+                              className={`teacher-queue-item is-${skill.tier} ${isSelected ? "is-selected" : ""}`}
+                              key={`${skill.skillCode}-${skill.launchBandCode}`}
+                            >
+                              <span className={`teacher-queue-severity is-${skill.tier}`} aria-hidden="true" />
+                              <div className="teacher-queue-copy">
+                                <div className="teacher-queue-topline">
+                                  <span className={`teacher-queue-badge is-${skill.tier}`}>
+                                    {skill.tierLabel}
+                                  </span>
+                                  <span className="teacher-queue-rank">
+                                    #{index + 1} in queue
+                                  </span>
+                                </div>
+                                <strong>{skill.displayName}</strong>
+                                <p>{skill.queueSummary}</p>
+                                <div className="summary-chip-row">
+                                  <span className="summary-chip">
+                                    {skill.launchBandCode}
+                                  </span>
+                                  <span className="summary-chip">
+                                    {skill.learnerCount} learners
+                                  </span>
+                                  <span className="summary-chip">
+                                    {skill.remediationCount} support triggers
+                                  </span>
+                                </div>
+                                <small className="teacher-queue-action-text">
+                                  {skill.queueAction}
+                                </small>
+                              </div>
+                              <Link
+                                className={`secondary-link teacher-detail-link ${isSelected ? "is-current" : ""}`}
+                                href={`${buildTeacherRouteHref(skill.skillCode)}#teacher-drilldown`}
+                              >
+                                {isSelected ? "Selected" : "Focus"}
+                              </Link>
+                            </article>
+                          );
+                        })
+                      ) : (
+                        <div className="teacher-empty-state">
+                          <strong>No queue items match this filter yet</strong>
+                          <p>Switch tiers or wait for more classroom activity to land.</p>
+                        </div>
+                      )}
                     </div>
                   </ShellCard>
 
@@ -350,6 +553,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                 <ShellCard
                   className="shell-card-spotlight teacher-drilldown-shell"
                   eyebrow="Skill drilldown"
+                  id="teacher-drilldown"
                   title={
                     selectedSkill
                       ? selectedSkill.displayName
@@ -360,21 +564,21 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                     <div className="teacher-drilldown-stack">
                       <div className="teacher-drilldown-topline">
                         <div>
-                          <span className="parent-insight-label">
-                            {selectedSkill.launchBandCode}
+                          <span className={`teacher-queue-badge is-${selectedSkillTier ?? "watch"}`}>
+                            {selectedSkillTier ? getTeacherQueueTierLabel(selectedSkillTier) : "Watch"}
                           </span>
-                          <strong>{selectedSkill.masteryRate}% mastery</strong>
-                          <p>{selectedSkillTrendLabel}</p>
+                          <strong>{selectedSkill.displayName}</strong>
+                          <p>{selectedSkill.queueAction}</p>
                         </div>
                         <div className="summary-chip-row">
+                          <span className="summary-chip">
+                            {selectedSkill.launchBandCode}
+                          </span>
                           <span className="summary-chip">
                             {selectedSkill.learnerCount} learners
                           </span>
                           <span className="summary-chip">
-                            {selectedSkill.attempts} attempts
-                          </span>
-                          <span className="summary-chip">
-                            {selectedSkill.averageSeconds.toFixed(1)}s avg response
+                            {selectedSkill.masteryRate}% mastery
                           </span>
                         </div>
                       </div>
@@ -404,24 +608,20 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         <div>
                           <strong>Suggested next move</strong>
                           <p>
-                            {selectedSkill.masteryRate >= 80
-                              ? `Use ${selectedSkill.displayName} as a confidence-building warm-up and then shift to the next support lane.`
-                              : selectedSkill.masteryRate >= 60
-                                ? `Run a short guided block for ${selectedSkill.displayName} and watch first-try success in the next session cycle.`
-                                : `Plan a slower teacher-led pass on ${selectedSkill.displayName} with one-step support and quick retries.`}
+                            {selectedSkill.queueSummary}
                           </p>
                         </div>
                       </div>
 
                       <div className="teacher-drilldown-switcher">
                         <span className="teacher-drilldown-switcher-label">
-                          Change focus
+                          Queue neighbors
                         </span>
                         <div className="summary-chip-row">
-                          {skillChooser.map((skill) => (
+                          {queueNeighbors.map((skill) => (
                             <Link
                               className={`summary-chip teacher-skill-link ${skill.skillCode === selectedSkill.skillCode ? "is-current" : ""}`}
-                              href={`/teacher/skills/${skill.launchBandCode}/${skill.skillCode}`}
+                              href={`${buildTeacherRouteHref(skill.skillCode)}#teacher-drilldown`}
                               key={skill.skillCode}
                             >
                               {skill.displayName}
@@ -478,14 +678,11 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                   <span className="teacher-rail-label">Quick actions</span>
                   <div className="teacher-quick-actions">
                     <Link className="primary-link" href="#teacher-support-queue">
-                      Review support queue
+                      Review intervention queue
                     </Link>
                     {selectedSkill ? (
-                      <Link
-                        className="secondary-link"
-                        href={`/teacher/skills/${selectedSkill.launchBandCode}/${selectedSkill.skillCode}`}
-                      >
-                        Open selected skill
+                      <Link className="secondary-link" href="#teacher-drilldown">
+                        Jump to selected drilldown
                       </Link>
                     ) : null}
                     <Link className="secondary-link" href="/parent">

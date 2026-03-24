@@ -1,15 +1,25 @@
-import type { ChangeEventHandler, ReactNode } from "react";
+import type {
+  ChangeEventHandler,
+  ComponentPropsWithoutRef,
+  ReactNode,
+} from "react";
 
-type CardProps = {
+type CardProps = ComponentPropsWithoutRef<"section"> & {
   title: string;
   eyebrow?: string;
   children: ReactNode;
   className?: string;
 };
 
-export function ShellCard({ title, eyebrow, children, className }: CardProps) {
+export function ShellCard({
+  title,
+  eyebrow,
+  children,
+  className,
+  ...props
+}: CardProps) {
   return (
-    <section className={`shell-card ${className ?? ""}`.trim()}>
+    <section {...props} className={`shell-card ${className ?? ""}`.trim()}>
       {eyebrow ? <span className="shell-eyebrow">{eyebrow}</span> : null}
       <h2>{title}</h2>
       {children}
