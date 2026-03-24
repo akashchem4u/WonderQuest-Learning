@@ -390,6 +390,15 @@ export default function ParentAccessPage() {
         ...activeChildDashboard.strengths,
       ])
     : [];
+  const supportSkillCodes = new Set(
+    activeChildDashboard?.supportAreas.map((skill) => skill.skillCode) ?? [],
+  );
+  const parentNextMilestoneSkills = activeSkillOptions.filter(
+    (skill) =>
+      !supportSkillCodes.has(skill.skillCode) &&
+      skill.masteryRate >= 65 &&
+      skill.masteryRate < 85,
+  );
   const activeSkill =
     activeSkillOptions.find((skill) => skill.skillCode === selectedSkillCode) ??
     activeChildDashboard?.supportAreas[0] ??
@@ -421,6 +430,49 @@ export default function ParentAccessPage() {
     : 0;
   const primaryStrength = activeChildDashboard?.strengths[0] ?? null;
   const primarySupport = activeChildDashboard?.supportAreas[0] ?? null;
+  const parentNextMilestone =
+    parentNextMilestoneSkills.find(
+      (skill) => skill.skillCode !== primaryStrength?.skillCode,
+    ) ??
+    activeSkillOptions.find(
+      (skill) =>
+        !supportSkillCodes.has(skill.skillCode) &&
+        skill.skillCode !== primaryStrength?.skillCode,
+    ) ??
+    null;
+  const parentSkillSnapshot = [
+    {
+      accent: "strength" as const,
+      detail: primaryStrength
+        ? `${primaryStrength.displayName} is feeling steady right now. Keep it easy and let WonderQuest stretch it naturally.`
+        : "Strength signals will appear after a few more sessions.",
+      label: "Strength",
+      skillCode: primaryStrength?.skillCode ?? null,
+      value: primaryStrength?.displayName ?? "Confidence is building",
+    },
+    {
+      accent: "support" as const,
+      detail: primarySupport
+        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
+        : "Keep the next practice short, calm, and focused on one clear success.",
+      label: "Building",
+      skillCode: primarySupport?.skillCode ?? null,
+      value: primarySupport?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next focus",
+    },
+    {
+      accent: "next" as const,
+      detail: parentNextMilestone
+        ? `${parentNextMilestone.displayName} looks close to the next unlock. Two or three short sessions should help it stick.`
+        : `A calmer run at ${activeChildDashboard?.recommendedFocus ?? "the next focus"} will set up the next milestone.`,
+      label: "Next milestone",
+      skillCode:
+        parentNextMilestone?.skillCode ??
+        primarySupport?.skillCode ??
+        primaryStrength?.skillCode ??
+        null,
+      value: parentNextMilestone?.displayName ?? activeChildDashboard?.recommendedFocus ?? "Next unlock",
+    },
+  ];
   const parentQuickLinks = [
     {
       detail: notifyWeekly ? "Weekly summary on" : "Weekly summary off",
@@ -1201,26 +1253,59 @@ export default function ParentAccessPage() {
                   </div>
                 </article>
 
-                <div className="parent-family-focus-grid">
-                  <article className="parent-family-focus-card is-strength">
-                    <span>Growing strength</span>
-                    <strong>{primaryStrength?.displayName ?? "A strength is forming"}</strong>
-                    <p>
-                      {primaryStrength
-                        ? `${primaryStrength.masteryRate}% mastery across ${primaryStrength.attempts} answered prompts.`
-                        : "Strength signals will appear after more completed sessions."}
-                    </p>
-                  </article>
-                  <article className="parent-family-focus-card is-support">
-                    <span>Best next support</span>
-                    <strong>{primarySupport?.displayName ?? activeChildDashboard.recommendedFocus}</strong>
-                    <p>
-                      {primarySupport
-                        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
-                        : "Keep the next practice short and centered on one calm success."}
-                    </p>
-                  </article>
-                </div>
+                <article className="parent-family-summary-card">
+                  <div className="parent-family-summary-header">
+                    <div>
+                      <div className="parent-family-panel-label">Skills snapshot</div>
+                      <h3>{activeChild.displayName}'s week at a glance</h3>
+                    </div>
+                    <a className="parent-family-summary-link" href="#parent-family-detail">
+                      See full progress map
+                    </a>
+                  </div>
+
+                  <div className="parent-family-sns-grid" aria-label="Selected child skills snapshot">
+                    <div className="parent-family-sns-cell is-strength">
+                      <span>Strengths</span>
+                      <strong>{activeChildDashboard.strengths.length}</strong>
+                      <small>Feeling steady</small>
+                    </div>
+                    <div className="parent-family-sns-cell is-support">
+                      <span>Building</span>
+                      <strong>{activeChildDashboard.supportAreas.length}</strong>
+                      <small>Needs one short follow-up</small>
+                    </div>
+                    <div className="parent-family-sns-cell is-next">
+                      <span>Almost there</span>
+                      <strong>{parentNextMilestone ? "1" : "0"}</strong>
+                      <small>Close to the next unlock</small>
+                    </div>
+                  </div>
+
+                  <div className="parent-family-skill-highlight-list">
+                    {parentSkillSnapshot.map((item) => (
+                      <button
+                        className={`parent-family-skill-highlight is-${item.accent}`}
+                        key={item.label}
+                        onClick={() => {
+                          setSelectedSkillCode(item.skillCode);
+                          document
+                            .getElementById("parent-family-detail")
+                            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                        }}
+                        type="button"
+                      >
+                        <span className="parent-family-skill-dot" aria-hidden="true" />
+                        <div className="parent-family-skill-copy">
+                          <small>{item.label}</small>
+                          <strong>{item.value}</strong>
+                          <p>{item.detail}</p>
+                        </div>
+                        <b>View</b>
+                      </button>
+                    ))}
+                  </div>
+                </article>
 
                 <article className="parent-family-practice-card">
                   <div className="parent-family-panel-label">Try this next</div>
