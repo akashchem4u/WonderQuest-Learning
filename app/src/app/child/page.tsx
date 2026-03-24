@@ -7,6 +7,7 @@ import { AppFrame } from "@/components/app-frame";
 import { FieldBlock, ShellCard, StatTile } from "@/components/ui";
 import { getAvatarsForBand } from "@/lib/launch-data";
 import { launchBands } from "@/lib/launch-plan";
+import { ChildBetaPanel } from "./child-beta-panel";
 
 type ChildAccessResponse = {
   created: boolean;
@@ -107,6 +108,8 @@ export default function ChildAccessPage() {
   const pinDigits = [0, 1, 2, 3];
   const selectedBandProfile = getBandProfile(selectedBand);
   const selectedAvatarSymbol = getAvatarSymbol(selectedAvatar);
+  const selectedAvatarLabel =
+    avatars.find((item) => item.avatar_key === selectedAvatar)?.display_name ?? "";
 
   useEffect(() => {
     if (!avatars.some((item) => item.avatar_key === selectedAvatar)) {
@@ -236,6 +239,19 @@ export default function ChildAccessPage() {
             />
           </div>
         </section>
+
+        <ChildBetaPanel
+          accessMode={accessMode}
+          earlyLearnerBand={earlyLearnerBand}
+          guidedOnlyMode={guidedOnlyMode}
+          pinLength={pin.length}
+          returningMode={returningMode}
+          selectedAvatarLabel={selectedAvatarLabel}
+          selectedAvatarSymbol={selectedAvatarSymbol}
+          selectedBandProfile={selectedBandProfile}
+          username={username}
+          displayName={displayName}
+        />
 
         <form className="route-grid route-grid-child" onSubmit={handleSubmit}>
           <ShellCard

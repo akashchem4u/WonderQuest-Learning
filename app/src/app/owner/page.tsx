@@ -4,6 +4,7 @@ import { ShellCard } from "@/components/ui";
 import { hasOwnerAccess, isOwnerAccessConfigured } from "@/lib/owner-access";
 import { getOwnerOverview } from "@/lib/prototype-service";
 import OwnerGate from "./owner-gate";
+import { OwnerBetaOps } from "./owner-beta-ops";
 
 export const dynamic = "force-dynamic";
 
@@ -320,6 +321,24 @@ export default async function OwnerPage() {
             </article>
           </div>
         </section>
+
+        <OwnerBetaOps
+          counts={overview.counts}
+          releaseChecks={releaseChecks}
+          routeHealth={routeHealth}
+          contentHealth={contentHealth}
+          feedbackByCategory={overview.feedbackByCategory}
+          feedbackByReviewStatus={overview.feedbackByReviewStatus}
+          recentFeedback={recentFeedback}
+          readinessLabel={readinessLabel}
+          readinessScore={readinessScore}
+          readinessTone={readinessTone}
+          pendingReviewCount={pendingReviewCount}
+          totalBandStudents={totalBandStudents}
+          dominantBand={dominantBand}
+          bands={overview.byBand}
+          blockerCount={blockers.length}
+        />
 
         {topBanner ? (
           <section className={`owner-priority-banner is-${topBanner.severity}`}>
