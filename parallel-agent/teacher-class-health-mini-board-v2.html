@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Class Health Mini Board — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Mini Board container */
+.mini-board{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:480px}
+.mb-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mb-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440}
+.mb-date{font-size:11px;color:#aaa;font-weight:600}
+.mb-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+
+/* Health indicator rows */
+.health-grid{display:flex;flex-direction:column;gap:10px}
+.hi-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:10px;background:#f8faff}
+.hi-icon{font-size:18px;flex-shrink:0;width:24px;text-align:center}
+.hi-body{flex:1}
+.hi-label{font-size:12px;font-weight:700;color:#1a1440;margin-bottom:2px}
+.hi-sub{font-size:11px;color:#666;line-height:1.3}
+.hi-badge{flex-shrink:0;font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px}
+.hb-green{background:#dcfce7;color:#15803d}
+.hb-amber{background:#fef3c7;color:#92400e}
+.hb-blue{background:#eff6ff;color:#2563eb}
+.hb-neutral{background:#f5f5f5;color:#555}
+
+/* Trend delta — amber only, never red */
+.delta{font-size:10px;font-weight:700;margin-left:4px}
+.delta-up{color:#22c55e}
+.delta-down{color:#f59e0b}
+
+/* Sparkbar */
+.spark-wrap{display:flex;gap:2px;align-items:flex-end;height:20px;margin-top:4px}
+.spark-bar{width:6px;border-radius:2px;background:#e0e7ff}
+.spark-bar.active{background:#2563eb}
+
+/* Expanded Board */
+.board-wrap{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:860px}
+.board-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:18px}
+.board-card{background:#f8faff;border-radius:12px;padding:14px 16px}
+.bc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bc-title{font-size:12px;font-weight:800;color:#1a1440}
+.bc-badge{font-size:11px;font-weight:800;padding:3px 10px;border-radius:8px}
+.bc-detail{font-size:11px;color:#555;line-height:1.6}
+.bc-action{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;margin-top:6px}
+
+/* Segment bar */
+.seg-bar{display:flex;gap:2px;height:8px;border-radius:4px;overflow:hidden;margin:6px 0}
+.seg{height:8px}
+.seg-green{background:#22c55e}
+.seg-amber{background:#f59e0b}
+.seg-blue{background:#2563eb}
+.seg-grey{background:#e0e0e0}
+.seg-legend{display:flex;gap:10px;flex-wrap:wrap}
+.sl-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#666}
+.sl-dot{width:8px;height:8px;border-radius:50%}
+
+/* Score ring (placeholder circle badge) */
+.score-ring{width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0}
+.sr-n{font-size:16px;font-weight:900;line-height:1}
+.sr-l{font-size:8px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.04em}
+
+/* Mobile strip */
+.health-strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;max-width:960px}
+.hs-tile{background:#fff;border-radius:12px;padding:12px 14px;flex-shrink:0;width:110px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.hs-icon{font-size:18px;margin-bottom:5px}
+.hs-label{font-size:11px;font-weight:700;color:#555;margin-bottom:3px}
+.hs-val{font-size:16px;font-weight:900;color:#1a1440}
+.hs-badge{font-size:10px;font-weight:700;padding:2px 6px;border-radius:5px;margin-top:4px;display:inline-block}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-class-health-mini-board-v2.html</strong><br>
+  Class health mini board — compact at-a-glance widget showing 4 class health dimensions on teacher home.<br>
+  <strong>Dimensions:</strong> Engagement (sessions/active students this week) | Mastery velocity (skills mastered vs last week) | Queue load (open support queue items) | Streak health (students maintaining active streaks).<br>
+  <strong>Colour rules:</strong> Green = healthy/good. Amber = attention needed (not alarming). Blue = informational/positive. Red = NEVER used here (red reserved for system errors only).<br>
+  <strong>Deltas:</strong> Week-over-week change. Down deltas always amber (never red).<br>
+  <strong>Placement:</strong> Embeddable panel on teacher home right column (below recommendations), or expanded card on Command Center / Class Overview.<br>
+  <strong>Not a deficit view:</strong> All language is neutral/supportive. "4 students in queue" not "4 struggling students".
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('mini')">Mini Board</button>
+  <button class="tab-btn" onclick="showTab('expanded')">Expanded</button>
+  <button class="tab-btn" onclick="showTab('mobile')">Mobile Strip</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Mini Board ─────────────────────────────────────────────────── -->
+<div id="tab-mini" class="screen active">
+  <p class="section-title">Class health mini board — right column panel</p>
+  <div class="mini-board">
+    <div class="mb-header">
+      <div class="mb-title">📊 Class Health</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="mb-date">This week</div>
+        <div class="mb-link">Full view</div>
+      </div>
+    </div>
+    <div class="health-grid">
+
+      <div class="hi-row">
+        <div class="hi-icon">🏃</div>
+        <div class="hi-body">
+          <div class="hi-label">Engagement</div>
+          <div class="hi-sub">22 of 28 students active this week <span class="delta delta-up">↑3</span></div>
+        </div>
+        <span class="hi-badge hb-green">Good</span>
+      </div>
+
+      <div class="hi-row">
+        <div class="hi-icon">💪</div>
+        <div class="hi-body">
+          <div class="hi-label">Mastery velocity</div>
+          <div class="hi-sub">12 skills mastered this week <span class="delta delta-down">↓2 vs last week</span></div>
+        </div>
+        <span class="hi-badge hb-amber">Watch</span>
+      </div>
+
+      <div class="hi-row">
+        <div class="hi-icon">⚠️</div>
+        <div class="hi-body">
+          <div class="hi-label">Support queue</div>
+          <div class="hi-sub">4 students need check-in</div>
+        </div>
+        <span class="hi-badge hb-amber">4 open</span>
+      </div>
+
+      <div class="hi-row">
+        <div class="hi-icon">🔥</div>
+        <div class="hi-body">
+          <div class="hi-label">Streak health</div>
+          <div class="hi-sub">16 students on active streak <span class="delta delta-up">↑4</span></div>
+        </div>
+        <span class="hi-badge hb-blue">Great</span>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Expanded ───────────────────────────────────────────────────── -->
+<div id="tab-expanded" class="screen">
+  <p class="section-title">Expanded class health board — command center / class overview</p>
+  <div class="board-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:14px;font-weight:800;color:#1a1440">📊 Class Health — This Week</div>
+      <div style="display:flex;gap:6px">
+        <button style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#eff6ff;color:#2563eb;border:none">This week</button>
+        <button style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#555;border:1.5px solid #e0e0e0">Last week</button>
+        <button style="padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:#fff;color:#555;border:1.5px solid #e0e0e0">4 weeks</button>
+      </div>
+    </div>
+    <div class="board-grid">
+
+      <div class="board-card">
+        <div class="bc-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🏃</span>
+            <div class="bc-title">Engagement</div>
+          </div>
+          <span class="bc-badge hb-green">Good</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="score-ring" style="background:#dcfce7">
+            <div class="sr-n" style="color:#15803d">22</div>
+            <div class="sr-l">Active</div>
+          </div>
+          <div class="bc-detail">
+            <strong>22 of 28</strong> students active this week<br>
+            ↑3 vs last week<br>
+            Avg 3.2 sessions/student
+          </div>
+        </div>
+        <div class="spark-wrap">
+          <div class="spark-bar" style="height:8px"></div>
+          <div class="spark-bar" style="height:12px"></div>
+          <div class="spark-bar active" style="height:10px"></div>
+          <div class="spark-bar" style="height:15px"></div>
+          <div class="spark-bar active" style="height:18px"></div>
+          <div class="spark-bar active" style="height:16px"></div>
+          <div class="spark-bar active" style="height:20px"></div>
+        </div>
+        <div class="bc-action">View student activity →</div>
+      </div>
+
+      <div class="board-card">
+        <div class="bc-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">💪</span>
+            <div class="bc-title">Mastery Velocity</div>
+          </div>
+          <span class="bc-badge hb-amber">Watch</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="score-ring" style="background:#fef3c7">
+            <div class="sr-n" style="color:#92400e">12</div>
+            <div class="sr-l">Skills</div>
+          </div>
+          <div class="bc-detail">
+            <strong>12 skills</strong> mastered this week<br>
+            ↓2 vs last week (14)<br>
+            Slight dip — typical mid-term
+          </div>
+        </div>
+        <div style="margin:6px 0">
+          <div class="seg-bar">
+            <div class="seg seg-green" style="flex:4"></div>
+            <div class="seg seg-amber" style="flex:2"></div>
+            <div class="seg seg-grey" style="flex:2"></div>
+          </div>
+          <div class="seg-legend">
+            <div class="sl-item"><div class="sl-dot" style="background:#22c55e"></div>Strong (4)</div>
+            <div class="sl-item"><div class="sl-dot" style="background:#f59e0b"></div>Building (6)</div>
+            <div class="sl-item"><div class="sl-dot" style="background:#e0e0e0"></div>Just started (2)</div>
+          </div>
+        </div>
+        <div class="bc-action">View skill breakdown →</div>
+      </div>
+
+      <div class="board-card">
+        <div class="bc-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">⚠️</span>
+            <div class="bc-title">Support Queue</div>
+          </div>
+          <span class="bc-badge hb-amber">4 open</span>
+        </div>
+        <div class="bc-detail" style="margin-bottom:8px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between">
+              <span>Confidence floor</span><span style="font-weight:700">2</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span>Absence follow-up</span><span style="font-weight:700">1</span>
+            </div>
+            <div style="display:flex;justify-content:space-between">
+              <span>Band ceiling</span><span style="font-weight:700">1</span>
+            </div>
+          </div>
+        </div>
+        <div class="bc-action" style="color:#d97706">Review queue →</div>
+      </div>
+
+      <div class="board-card">
+        <div class="bc-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="font-size:18px">🔥</span>
+            <div class="bc-title">Streak Health</div>
+          </div>
+          <span class="bc-badge hb-blue">Great</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <div class="score-ring" style="background:#eff6ff">
+            <div class="sr-n" style="color:#2563eb">16</div>
+            <div class="sr-l">Active</div>
+          </div>
+          <div class="bc-detail">
+            <strong>16 of 28</strong> on active streak<br>
+            ↑4 vs last week<br>
+            Longest: Ethan (7 days)
+          </div>
+        </div>
+        <div class="seg-bar">
+          <div class="seg seg-blue" style="flex:2"></div>
+          <div class="seg seg-green" style="flex:7"></div>
+          <div class="seg seg-grey" style="flex:4"></div>
+        </div>
+        <div class="seg-legend">
+          <div class="sl-item"><div class="sl-dot" style="background:#2563eb"></div>7+ days (2)</div>
+          <div class="sl-item"><div class="sl-dot" style="background:#22c55e"></div>3–6 days (7)</div>
+          <div class="sl-item"><div class="sl-dot" style="background:#e0e0e0"></div>No streak (12)</div>
+        </div>
+        <div class="bc-action">View streak breakdown →</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mobile Strip ───────────────────────────────────────────────── -->
+<div id="tab-mobile" class="screen">
+  <p class="section-title">Mobile horizontal scroll strip</p>
+  <div class="health-strip">
+    <div class="hs-tile">
+      <div class="hs-icon">🏃</div>
+      <div class="hs-label">Engagement</div>
+      <div class="hs-val">22<span style="font-size:11px;color:#aaa">/28</span></div>
+      <span class="hs-badge hb-green">Good</span>
+    </div>
+    <div class="hs-tile">
+      <div class="hs-icon">💪</div>
+      <div class="hs-label">Mastery</div>
+      <div class="hs-val">12 <span style="font-size:10px;color:#f59e0b">↓2</span></div>
+      <span class="hs-badge hb-amber">Watch</span>
+    </div>
+    <div class="hs-tile">
+      <div class="hs-icon">⚠️</div>
+      <div class="hs-label">Queue</div>
+      <div class="hs-val">4</div>
+      <span class="hs-badge hb-amber">Open</span>
+    </div>
+    <div class="hs-tile">
+      <div class="hs-icon">🔥</div>
+      <div class="hs-label">Streaks</div>
+      <div class="hs-val">16 <span style="font-size:10px;color:#22c55e">↑4</span></div>
+      <span class="hs-badge hb-blue">Great</span>
+    </div>
+    <div class="hs-tile">
+      <div class="hs-icon">⭐</div>
+      <div class="hs-label">Stars</div>
+      <div class="hs-val">1,847</div>
+      <span class="hs-badge" style="background:#fef3c7;color:#92400e">This week</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-class-health-mini-board-v2.html<br>
+      <strong>Data sources:</strong> Engagement = sessions_this_week / student_count. Mastery = count(mastery_transitions this week). Queue = count(support_queue WHERE status=open). Streaks = count(students WHERE current_streak_days>0).
+    </div>
+    <h2 class="spec-h2">Health Dimensions</h2>
+    <table class="spec-table">
+      <tr><th>Dimension</th><th>Metric</th><th>Green threshold</th><th>Amber threshold</th></tr>
+      <tr><td>Engagement</td><td>Active students / total students (this week)</td><td>≥70%</td><td>50–69%</td></tr>
+      <tr><td>Mastery velocity</td><td>Skills mastered this week vs last week</td><td>≥last week</td><td>&lt;last week by &gt;20%</td></tr>
+      <tr><td>Support queue</td><td>Open queue items</td><td>0</td><td>1–3 (amber), 4+ (deeper amber)</td></tr>
+      <tr><td>Streak health</td><td>Students on active streak / total</td><td>≥50%</td><td>30–49%</td></tr>
+    </table>
+    <h2 class="spec-h2">Colour Rules</h2>
+    <p class="spec-p">Green = healthy/positive. Amber = needs attention (not alarming). Blue = informational/positive. <strong>Red is NEVER used on this component</strong> — red is reserved for system errors only. Down deltas (↓) are always amber text, never red.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

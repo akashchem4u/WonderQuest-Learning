@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-i-dont-know-yet-state-v2.html
+  ======================================================
+  "I don't know yet" state — when child taps the IDK button.
+  Four tabs: IDK Response / With Hint Shown / Post-IDK Correct / Spec
+  - "Yet" is critical in button label — "I don't know YET" frames not-knowing as temporary
+  - IDK state: coach immediately offers a scaffolded hint (different from wrong state)
+  - Stars: IDK costs 0 stars — child is not penalized for admitting they don't know
+  - After IDK: question remains live, choices still active, coach gives a bigger hint
+  - If child then gets it correct after IDK: same star (+1⭐) — no penalty for having needed help
+  - Language: "That's okay — here's a clue!" NOT "It's okay you don't know"
+  - No shame: IDK is presented as a learning strategy, not a failure mode
+  - IDK button: ghost style with coral text (less prominent than Hint, but not hidden)
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · I Don't Know Yet State v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --idk: #c9a8ff; --idk-bg: #1a0a38;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--idk); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--idk); color: var(--idk); }
+  .tab-btn.active { background: var(--idk); border-color: var(--idk); color: #1a0a38; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .phone-frame {
+    width: 390px; min-height: 720px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #9b72ff22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .top-bar {
+    background: var(--card); padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(155,114,255,0.12); border: none;
+    color: var(--violet); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(155,114,255,0.15); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(155,114,255,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--violet);
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(155,114,255,0.2); }
+  .ps-seg.done { background: var(--violet); }
+  .ps-seg.active { background: rgba(155,114,255,0.5); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 16px 18px 12px; gap: 13px; overflow-y: auto;
+  }
+
+  /* IDK response banner — warm/supportive, not red */
+  .idk-banner {
+    background: var(--idk-bg); border: 2px solid var(--idk);
+    border-radius: 14px; padding: 13px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .idk-icon { font-size: 1.6rem; flex-shrink: 0; line-height: 1; }
+  .idk-body { flex: 1; }
+  .idk-headline { font-size: 0.92rem; font-weight: 900; color: var(--idk); margin-bottom: 3px; }
+  .idk-hint { font-size: 0.84rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+
+  /* Coach prompt card — bigger hint for IDK */
+  .coach-prompt {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(155,114,255,0.08); border-radius: 14px;
+    padding: 12px 14px; border: 1px solid rgba(155,114,255,0.2);
+  }
+  .cp-avatar {
+    width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    border: 2px solid var(--violet);
+    display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+  }
+  .cp-body { flex: 1; }
+  .cp-headline { font-size: 0.82rem; font-weight: 900; color: var(--violet); margin-bottom: 4px; }
+  .cp-hint { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+
+  /* Hint card (contextual) */
+  .hint-card {
+    background: rgba(155,114,255,0.06); border: 1px solid rgba(155,114,255,0.18);
+    border-radius: 12px; padding: 12px 14px;
+  }
+  .hint-card-label { font-size: 0.68rem; font-weight: 900; color: var(--violet);
+    text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 6px; }
+  .hint-card-body { font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.5; }
+  .hint-card-body .hl { color: var(--idk); }
+
+  /* Answer grid — still active after IDK */
+  .ac-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ac {
+    background: var(--card2); border: 3px solid #3a3060; border-radius: 14px;
+    cursor: pointer; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 14px 10px; gap: 6px; min-height: 88px;
+    position: relative; transition: border-color 0.15s;
+  }
+  .ac:hover { border-color: var(--violet); }
+  .ac-image { font-size: 2rem; }
+  .ac-text { font-size: 0.84rem; font-weight: 700; color: var(--text); text-align: center; }
+  .ac-letter { font-size: 2.2rem; font-weight: 900; font-family: 'Nunito', sans-serif; }
+  .ac-sub { font-size: 0.68rem; font-weight: 900; color: var(--muted); text-transform: uppercase; }
+
+  /* Correct after IDK */
+  .ac.correct {
+    background: var(--correct-bg); border-color: var(--correct);
+  }
+  .ac.correct .ac-letter, .ac.correct .ac-text { color: var(--correct); }
+  .ac.dimmed { opacity: 0.35; pointer-events: none; }
+  .ac-check { position: absolute; top: 5px; right: 6px; font-size: 0.8rem; font-weight: 900; color: var(--correct); display: none; }
+  .ac.correct .ac-check { display: block; }
+
+  /* Star bonus chip */
+  .star-bonus {
+    display: flex; align-items: center; justify-content: center;
+    gap: 6px; padding: 8px 16px;
+    background: rgba(80,232,144,0.1); border: 2px solid rgba(80,232,144,0.3);
+    border-radius: 20px; font-size: 0.88rem; font-weight: 900; color: var(--correct);
+    animation: pop-in 0.5s cubic-bezier(0.34,1.56,0.64,1) 0.1s backwards;
+  }
+  @keyframes pop-in {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* Bottom bar */
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #2a2050;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-base {
+    flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-replay { background: #2a2050; color: var(--violet); border: 1px solid #3a3060; }
+  .btn-hint { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+  .btn-idk-active { background: rgba(201,168,255,0.12); color: var(--idk); border: 2px solid rgba(201,168,255,0.3); }
+  .btn-idk-ghost { background: transparent; color: #5a4878; border: 2px solid #2a2050; cursor: default; }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    color: white; font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-idk { background: #c9a8ff; color: #1a0a38; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🤷 Play · I Don't Know Yet</h1>
+<p class="subtitle">v2 · Warm/supportive state · No penalty · "Yet" = growth mindset framing</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('idk')">IDK Response</button>
+  <button class="tab-btn" onclick="showTab('hint')">With Hint Shown</button>
+  <button class="tab-btn" onclick="showTab('correct')">Got It After IDK</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== IDK RESPONSE ===== -->
+<div id="tab-idk" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 8</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter">⭐ 8</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <!-- IDK banner — warm purple, not red -->
+      <div class="idk-banner">
+        <div class="idk-icon">💡</div>
+        <div class="idk-body">
+          <div class="idk-headline">That's okay — let's figure it out together!</div>
+          <div class="idk-hint">I'll give you a clue. You've got this — you just need a little help right now.</div>
+        </div>
+      </div>
+
+      <!-- Coach gives bigger hint on IDK -->
+      <div class="coach-prompt">
+        <div class="cp-avatar">🦁</div>
+        <div class="cp-body">
+          <div class="cp-headline">Coach Leo's clue:</div>
+          <div class="cp-hint">Say "bee" out loud slowly — what do your lips do first? That's your clue!</div>
+        </div>
+      </div>
+
+      <!-- Question still active — hero + choices -->
+      <div style="display:flex; justify-content:center;">
+        <div style="width:160px; height:120px; background: var(--card2); border-radius: 20px; border: 2px solid var(--violet); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px;">
+          <span style="font-size:56px;">🐝</span>
+          <span style="font-size:0.88rem; font-weight:900; color: var(--muted);">bee</span>
+        </div>
+      </div>
+
+      <div class="ac-grid-2x2">
+        <div class="ac"><span class="ac-letter">S</span><span class="ac-sub">sss</span></div>
+        <div class="ac"><span class="ac-letter">B</span><span class="ac-sub">buh</span></div>
+        <div class="ac"><span class="ac-letter">D</span><span class="ac-sub">duh</span></div>
+        <div class="ac"><span class="ac-letter">R</span><span class="ac-sub">rrr</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-base btn-replay">🔊 Replay</button>
+        <button class="btn-base btn-hint">💡 More hints</button>
+        <button class="btn-base btn-idk-ghost" disabled>🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — IDK costs nothing!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WITH HINT SHOWN ===== -->
+<div id="tab-hint" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 8</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter">⭐ 8</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="idk-banner">
+        <div class="idk-icon">💡</div>
+        <div class="idk-body">
+          <div class="idk-headline">Here's your hint — take a look!</div>
+          <div class="idk-hint">Use it to figure out the answer. You can still earn a full star!</div>
+        </div>
+      </div>
+
+      <!-- Contextual hint card (bigger than normal) -->
+      <div class="hint-card">
+        <div class="hint-card-label">💡 Phonics Hint</div>
+        <div class="hint-card-body">
+          When you say <span class="hl">"bee"</span>, your lips start by <span class="hl">pushing together then popping open</span>.<br>
+          That's the <span class="hl">B sound — "buh!"</span><br><br>
+          Which letter makes that sound?
+        </div>
+      </div>
+
+      <div class="ac-grid-2x2">
+        <div class="ac"><span class="ac-letter">S</span><span class="ac-sub">sss</span></div>
+        <div class="ac"><span class="ac-letter">B</span><span class="ac-sub">buh</span></div>
+        <div class="ac"><span class="ac-letter">D</span><span class="ac-sub">duh</span></div>
+        <div class="ac"><span class="ac-letter">R</span><span class="ac-sub">rrr</span></div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-base btn-replay">🔊 Replay</button>
+        <button class="btn-base btn-hint" style="opacity:0.5; cursor:default;" disabled>💡 Max hints</button>
+        <button class="btn-base btn-idk-ghost" disabled>🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — you still earn ⭐ for getting it!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== GOT IT AFTER IDK ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 9</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter" style="animation: star-bump 0.4s cubic-bezier(0.34,1.56,0.64,1);">⭐ 9</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="idk-banner" style="background: var(--correct-bg); border-color: var(--correct);">
+        <div class="idk-icon">⭐</div>
+        <div class="idk-body">
+          <div class="idk-headline" style="color: var(--correct);">✨ You figured it out — and earned a star!</div>
+          <div class="idk-hint">The hint helped this time. Next time you might remember it without one!</div>
+        </div>
+      </div>
+
+      <div class="coach-prompt" style="background: var(--correct-bg); border-color: var(--correct);">
+        <div class="cp-avatar" style="background: var(--correct-bg); border-color: var(--correct);">🦁</div>
+        <div class="cp-body">
+          <div class="cp-headline" style="color: var(--correct);">Coach Leo says:</div>
+          <div class="cp-hint">Buh-buh-bee! B makes that sound. Your brain just learned something new — that sticks! 🧠</div>
+        </div>
+      </div>
+
+      <div class="ac-grid-2x2">
+        <div class="ac dimmed"><span class="ac-letter">S</span><span class="ac-sub">sss</span></div>
+        <div class="ac correct"><span class="ac-letter">B</span><span class="ac-sub">buh ✓</span><div class="ac-check">✓</div></div>
+        <div class="ac dimmed"><span class="ac-letter">D</span><span class="ac-sub">duh</span></div>
+        <div class="ac dimmed"><span class="ac-letter">R</span><span class="ac-sub">rrr</span></div>
+      </div>
+
+      <div style="display:flex; justify-content:center;">
+        <div class="star-bonus">⭐ +1 Star — full credit!</div>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Sound ✨</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-i-dont-know-yet-state-v2 · Engineering Spec</h2>
+
+    <h3>Purpose and Philosophy</h3>
+    <ul>
+      <li><strong>"Yet"</strong> is non-negotiable in the button label — growth mindset framing</li>
+      <li>IDK is positioned as a learning strategy ("I need a hint") not a failure mode</li>
+      <li>No star penalty for IDK — child earns full +1⭐ if they get it right after using IDK</li>
+      <li>No penalty counter shown — child does not see how many times they tapped IDK</li>
+    </ul>
+
+    <h3>IDK State Elements (in order)</h3>
+    <ul>
+      <li>1. Warm purple (<span class="token tok-idk">#c9a8ff</span>) IDK banner replaces any existing wrong banner</li>
+      <li>2. Coach expands to larger card with a bigger, more complete hint than the normal 💡 Hint button gives</li>
+      <li>3. Question remains active — all answer cards still interactive</li>
+      <li>4. IDK button becomes ghost/disabled (cannot tap IDK twice)</li>
+      <li>5. 💡 Hint button still works — can chain IDK → Hint for maximum scaffolding</li>
+      <li>6. Star-safe shows "IDK costs nothing!" — explicit reassurance</li>
+    </ul>
+
+    <h3>IDK vs. 💡 Hint — Distinction</h3>
+    <ul>
+      <li><strong>💡 Hint:</strong> Small nudge — "Look at the highlighted part." Minimal scaffolding. First resort.</li>
+      <li><strong>🤷 IDK yet:</strong> Bigger scaffolding — full worked explanation of the strategy needed. Last resort before giving up.</li>
+      <li>IDK hint is more complete and empathetic in tone ("Let's figure it out together")</li>
+    </ul>
+
+    <h3>Post-IDK Correct State</h3>
+    <ul>
+      <li>IDK banner turns green on correct: "You figured it out — and earned a star!"</li>
+      <li>Coach message explicitly credits the hint: "The hint helped this time. Next time you might remember it without one!" — forward-looking, not praising luck</li>
+      <li>Full +1⭐ awarded — no partial credit, no reduced reward</li>
+    </ul>
+
+    <h3>Language Rules</h3>
+    <ul>
+      <li>✅ "That's okay — let's figure it out together!"</li>
+      <li>✅ "You can still earn a full star!"</li>
+      <li>✅ "IDK costs nothing!"</li>
+      <li>❌ "It's okay that you don't know" (condescending)</li>
+      <li>❌ "You should have studied more" (obviously never)</li>
+      <li>❌ Any implication that using IDK is cheating or less worthy</li>
+    </ul>
+
+    <h3>IDK Button Styling</h3>
+    <ul>
+      <li>Default state: ghost button — <code>background: transparent; color: #ff7b6b; border: 2px solid rgba(255,123,107,0.3)</code></li>
+      <li>Less prominent than the 🔊 Replay and 💡 Hint buttons</li>
+      <li>After tapped: grayed out ghost — <code>color: #5a4878; border-color: #2a2050</code>, <code>disabled</code> attribute</li>
+      <li>IDK button label: "🤷 IDK yet" (mobile) or "🤷 I don't know yet" (desktop)</li>
+    </ul>
+  </div>
+</div>
+
+<style>
+  @keyframes star-bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+</style>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

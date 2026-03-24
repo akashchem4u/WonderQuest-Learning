@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Comparison Card — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:560px;display:inline-block;vertical-align:top}
+.card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:14px}
+
+/* ── Child switcher within card ──────────────────────────────────── */
+.child-switcher-row{display:flex;align-items:center;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.child-tab{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;border:2px solid #ede9f8;background:#fff;color:#555;transition:all .15s}
+.child-tab.active{border-color:#9b72ff;background:#f8f4ff;color:#9b72ff}
+.child-tab-avatar{font-size:16px}
+.vs-text{font-size:11px;color:#ccc;font-weight:700}
+.period-select{padding:6px 12px;border-radius:20px;border:1.5px solid #ede9f8;font-size:12px;font-weight:700;color:#555;font-family:system-ui;background:#fff;cursor:pointer}
+
+/* ── Metric row ──────────────────────────────────────────────────── */
+.metric-row{display:flex;align-items:center;gap:8px;padding:12px 0;border-bottom:1px solid #f5f0ff}
+.metric-row:last-child{border-bottom:none;padding-bottom:0}
+.metric-label{font-size:12px;font-weight:600;color:#888;min-width:90px}
+.bars{flex:1;display:flex;gap:4px;align-items:center}
+.bar-a{height:8px;border-radius:4px 0 0 4px;background:#9b72ff;transition:width .3s}
+.bar-b{height:8px;border-radius:0 4px 4px 0;background:#58e8c1;transition:width .3s}
+.bar-divider{width:2px;height:16px;background:#f0ecf8;flex-shrink:0}
+.metric-vals{display:flex;gap:8px;min-width:80px;justify-content:flex-end}
+.val-a{font-size:12px;font-weight:800;color:#9b72ff}
+.val-b{font-size:12px;font-weight:800;color:#58e8c1}
+
+/* Legend */
+.legend{display:flex;gap:16px;margin-bottom:14px}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:#555;font-weight:600}
+.legend-dot{width:10px;height:10px;border-radius:50%}
+
+/* ── Warning card ─────────────────────────────────────────────────── */
+.warn-box{background:#fff8f0;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;line-height:1.5;margin-top:14px;border-left:3px solid #ffd166}
+
+/* ── Unavailable state ───────────────────────────────────────────── */
+.unavail{text-align:center;padding:32px 20px;color:#aaa}
+.unavail-icon{font-size:36px;margin-bottom:10px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-red{background:#fff0f0;color:#dc2626}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-comparison-card-v2.html</strong><br>
+  Sibling comparison card — shows metrics for two children side by side (Family plan only, 2+ children required).<br>
+  <strong>Available metrics:</strong> Stars this week | Sessions | Time spent | Streak | Skills in "Strong" status.<br>
+  <strong>NEVER shows:</strong> Accuracy % | Wrong answers | Which specific questions differed | Mastery score comparison.<br>
+  <strong>Critical framing rule:</strong> This is NOT a competition card. Never rank children or imply one is "better". Framing: "Side-by-side snapshot" not "who's winning".<br>
+  <strong>Access gate:</strong> Family plan only. Free plan shows upgrade prompt. 1 child = comparison unavailable.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('comparison')">Side-by-side</button>
+  <button class="tab-btn" onclick="showTab('one-child')">One Child (unavailable)</button>
+  <button class="tab-btn" onclick="showTab('free-plan')">Free Plan Gate</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Comparison ─────────────────────────────────────────────────── -->
+<div id="tab-comparison" class="screen active">
+  <p class="section-title">Two children — side-by-side snapshot</p>
+  <div class="card">
+    <div class="card-label">📊 Family snapshot this week</div>
+
+    <!-- Child selectors + period -->
+    <div class="child-switcher-row">
+      <div class="child-tab active"><span class="child-tab-avatar">🦊</span> Maya</div>
+      <span class="vs-text">vs</span>
+      <div class="child-tab active"><span class="child-tab-avatar">🐻</span> Liam</div>
+      <select class="period-select">
+        <option>This week</option>
+        <option>Last week</option>
+        <option>This month</option>
+      </select>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#9b72ff"></div>🦊 Maya</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#58e8c1"></div>🐻 Liam</div>
+    </div>
+
+    <!-- Metric rows -->
+    <div class="metric-row">
+      <span class="metric-label">⭐ Stars</span>
+      <div class="bars">
+        <div class="bar-a" style="width:47%"></div>
+        <div class="bar-divider"></div>
+        <div class="bar-b" style="width:22%"></div>
+      </div>
+      <div class="metric-vals"><span class="val-a">47</span><span class="val-b">22</span></div>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">📅 Sessions</span>
+      <div class="bars">
+        <div class="bar-a" style="width:42%"></div>
+        <div class="bar-divider"></div>
+        <div class="bar-b" style="width:28%"></div>
+      </div>
+      <div class="metric-vals"><span class="val-a">12</span><span class="val-b">8</span></div>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">⏱ Time</span>
+      <div class="bars">
+        <div class="bar-a" style="width:42%"></div>
+        <div class="bar-divider"></div>
+        <div class="bar-b" style="width:22%"></div>
+      </div>
+      <div class="metric-vals"><span class="val-a">1h24</span><span class="val-b">38m</span></div>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">🔥 Streak</span>
+      <div class="bars">
+        <div class="bar-a" style="width:35%"></div>
+        <div class="bar-divider"></div>
+        <div class="bar-b" style="width:18%"></div>
+      </div>
+      <div class="metric-vals"><span class="val-a">6d</span><span class="val-b">3d</span></div>
+    </div>
+    <div class="metric-row">
+      <span class="metric-label">💪 Skills</span>
+      <div class="bars">
+        <div class="bar-a" style="width:42%"></div>
+        <div class="bar-divider"></div>
+        <div class="bar-b" style="width:28%"></div>
+      </div>
+      <div class="metric-vals"><span class="val-a">3</span><span class="val-b">2</span></div>
+    </div>
+
+    <!-- Framing note (important) -->
+    <div class="warn-box">
+      💡 This snapshot shows <strong>activity levels</strong>, not ability. Maya and Liam are on different bands and covering different content — these numbers reflect their individual journeys.
+    </div>
+  </div>
+</div>
+
+<!-- ── One Child ───────────────────────────────────────────────────── -->
+<div id="tab-one-child" class="screen">
+  <p class="section-title">One child linked — comparison unavailable</p>
+  <div class="card" style="max-width:400px">
+    <div class="card-label">📊 Family snapshot</div>
+    <div class="unavail">
+      <div class="unavail-icon">👨‍👩‍👦</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1440;margin-bottom:6px">Add a second child to compare</div>
+      <div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:16px">The family snapshot shows both children's weekly activity side by side. Link another child to see it.</div>
+      <button style="padding:11px 22px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;font-family:system-ui;cursor:pointer">+ Link another child</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Free Plan Gate ──────────────────────────────────────────────── -->
+<div id="tab-free-plan" class="screen">
+  <p class="section-title">Free plan — upgrade prompt</p>
+  <div class="card" style="max-width:400px">
+    <div class="card-label">📊 Family snapshot</div>
+    <div class="unavail">
+      <div class="unavail-icon">👨‍👩‍👧‍👦</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1440;margin-bottom:6px">Family plan feature</div>
+      <div style="font-size:12px;color:#888;line-height:1.5;margin-bottom:16px">The family snapshot is available on the Family plan. Upgrade to link multiple children and compare their weekly activity.</div>
+      <button style="display:block;width:100%;padding:13px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer;margin-bottom:8px">Upgrade to Family — $7.99/mo</button>
+      <button style="display:block;width:100%;padding:12px;background:transparent;color:#aaa;border:none;font-size:13px;font-weight:600;cursor:pointer;font-family:system-ui">Maybe later</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-comparison-card-v2.html<br>
+      <strong>Access:</strong> Family plan only. Requires child_count >= 2 for this parent_id.<br>
+      Available metrics: stars, sessions, time_spent_seconds, current_streak_days, strong_skills_count.
+    </div>
+    <h2 class="spec-h2">What is and is NOT shown</h2>
+    <table class="spec-table">
+      <tr><th>Metric</th><th>Shown</th><th>Reason</th></tr>
+      <tr><td>Stars this week</td><td><span class="tag tag-green">YES</span></td><td>Child currency — safe to compare</td></tr>
+      <tr><td>Sessions count</td><td><span class="tag tag-green">YES</span></td><td>Activity metric — neutral</td></tr>
+      <tr><td>Time spent</td><td><span class="tag tag-green">YES</span></td><td>Engagement metric — neutral</td></tr>
+      <tr><td>Day streak</td><td><span class="tag tag-green">YES</span></td><td>Consistency metric — positive</td></tr>
+      <tr><td>Skills in "Strong" status count</td><td><span class="tag tag-green">YES</span></td><td>Achievement count — positive</td></tr>
+      <tr><td>Accuracy %</td><td><span class="tag tag-red">NEVER</span></td><td>Not comparable across bands — misleading</td></tr>
+      <tr><td>Mastery scores</td><td><span class="tag tag-red">NEVER</span></td><td>Not comparable across bands</td></tr>
+      <tr><td>"Better" / "ahead" ranking</td><td><span class="tag tag-red">NEVER</span></td><td>Anti-competitive framing rule</td></tr>
+    </table>
+    <h2 class="spec-h2">Framing Rules</h2>
+    <p class="spec-p">Must always include the disclaimer: "This shows activity levels, not ability. [Name A] and [Name B] are on different bands covering different content — these numbers reflect their individual journeys."</p>
+    <p class="spec-p">Never use "vs" in heading — use "side-by-side" or "snapshot". The "vs" is only acceptable in the child selector row as a brief separator (not a competitive label).</p>
+    <h2 class="spec-h2">Plan Gates</h2>
+    <table class="spec-table">
+      <tr><th>Condition</th><th>UI State</th></tr>
+      <tr><td>Free plan</td><td>Show upgrade prompt — "Family plan feature"</td></tr>
+      <tr><td>Family plan, 1 child</td><td>Show "Add a second child to compare" prompt</td></tr>
+      <tr><td>Family plan, 2+ children</td><td>Show full comparison card</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

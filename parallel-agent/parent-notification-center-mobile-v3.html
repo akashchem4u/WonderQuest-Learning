@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Notification Center — Mobile v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent notification center — Mobile variant               │
+  │  390px phone frame · Parent bg: #f5f0e8                    │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Notification List                                    │
+  │    2. Settings                                             │
+  │    3. Empty State                                          │
+  │    4. Spec                                                  │
+  │                                                            │
+  │  Mobile notes:                                             │
+  │  - Filter chips horizontal-scroll (no wrap)                │
+  │  - Swipe-to-dismiss implied (visual cue only)              │
+  │  - Full-width notification cards                           │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #2a2060; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 40px; }
+.tab-bar { display: flex; gap: 4px; padding: 0 0 12px; overflow-x: auto; scrollbar-width: none; width: 100%; max-width: 420px; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 14px; border: none; background: #3a3070; color: #b0a0e0; font: 600 0.72rem system-ui; cursor: pointer; border-radius: 8px; white-space: nowrap; flex-shrink: 0; transition: all 0.18s; }
+.tab-btn.active { background: #9b72ff; color: #fff; }
+.screen { display: none; width: 100%; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+.phone { width: 390px; max-width: 100%; background: #f5f0e8; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #9b72ff22; }
+.status-bar { height: 44px; display: flex; align-items: flex-end; padding: 0 20px 8px; justify-content: space-between; background: #f5f0e8; }
+.sb-time { font: 600 0.8rem system-ui; color: #1a1240; }
+.sb-icons { display: flex; gap: 4px; font-size: 0.8rem; color: #1a1240; }
+.home-indicator-bar { height: 28px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 120px; height: 5px; border-radius: 3px; background: #2a1a80; opacity: 0.2; }
+
+/* ─── Page Content ─── */
+.page-content { max-height: 660px; overflow-y: auto; }
+.page-header-m { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; }
+.page-title-m { font: 700 1.05rem system-ui; color: #1a1240; }
+.mark-all-btn { font: 500 0.72rem system-ui; color: #9b72ff; border: none; background: none; cursor: pointer; }
+
+/* ─── Filter Chips ─── */
+.filter-scroll { display: flex; gap: 6px; padding: 0 16px 12px; overflow-x: auto; scrollbar-width: none; }
+.filter-scroll::-webkit-scrollbar { display: none; }
+.filter-chip-m { flex-shrink: 0; padding: 5px 12px; border: 1.5px solid #d0c8e8; border-radius: 16px; font: 600 0.72rem system-ui; color: #4a3880; background: #fff; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.filter-chip-m.active { background: #9b72ff; color: #fff; border-color: #9b72ff; }
+.filter-badge-m { display: inline-block; background: #9b72ff; color: #fff; font: 700 0.58rem system-ui; padding: 1px 5px; border-radius: 8px; }
+.filter-chip-m.active .filter-badge-m { background: #fff; color: #9b72ff; }
+
+/* ─── Day Group ─── */
+.day-group-m { padding: 0 16px; margin-bottom: 16px; }
+.day-label-m { font: 600 0.66rem system-ui; color: #9080b0; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 8px; padding-left: 2px; }
+
+/* ─── Notif Items ─── */
+.notif-item-m { background: #fff; border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; border: 1px solid #e0d8f0; position: relative; }
+.notif-item-m.unread { background: #fbf8ff; border-left: 3px solid #9b72ff; }
+.notif-top-m { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 6px; }
+.notif-icon-m { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.95rem; flex-shrink: 0; }
+.notif-body-m { flex: 1; }
+.notif-title-m { font: 600 0.82rem system-ui; color: #1a1240; margin-bottom: 2px; }
+.notif-text-m { font: 400 0.75rem/1.4 system-ui; color: #5a5070; }
+.notif-meta-m { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
+.notif-time-m { font: 400 0.66rem system-ui; color: #b0a0c0; }
+.notif-child-m { font: 600 0.62rem system-ui; padding: 1px 7px; border-radius: 8px; background: #ede8ff; color: #4a2090; }
+.notif-action-m { display: flex; justify-content: flex-end; margin-top: 8px; }
+.notif-btn-m { padding: 5px 14px; background: #ede8ff; border: none; border-radius: 8px; font: 600 0.72rem system-ui; color: #4a2090; cursor: pointer; }
+.swipe-hint { font: 400 0.62rem system-ui; color: #c0b0d0; text-align: center; padding: 4px 0 2px; }
+
+/* ─── Settings ─── */
+.settings-section-m { padding: 14px 16px; background: #fff; border-bottom: 1px solid #f0e8f8; }
+.settings-title-m { font: 700 0.8rem system-ui; color: #1a1240; margin-bottom: 12px; }
+.settings-row-m { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid #f8f0f8; }
+.settings-row-m:last-child { border-bottom: none; }
+.notif-icon-sm { width: 28px; height: 28px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; flex-shrink: 0; }
+.settings-label-m { font: 600 0.78rem system-ui; color: #1a1240; flex: 1; }
+.settings-sub-m { font: 400 0.66rem system-ui; color: #9080a0; }
+.toggle-m { width: 36px; height: 20px; border-radius: 10px; background: #d0c8e8; cursor: pointer; position: relative; flex-shrink: 0; }
+.toggle-m.on { background: #9b72ff; }
+.toggle-m::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle-m.on::after { left: 18px; }
+
+/* ─── Empty ─── */
+.empty-m { padding: 48px 24px; text-align: center; }
+.empty-icon-m { font-size: 2.8rem; margin-bottom: 14px; }
+.empty-title-m { font: 700 1rem system-ui; color: #1a1240; margin-bottom: 8px; }
+.empty-sub-m { font: 400 0.78rem/1.5 system-ui; color: #6a5890; margin-bottom: 20px; }
+.empty-btn-m { padding: 12px 20px; background: #9b72ff; color: #fff; border: none; border-radius: 12px; font: 600 0.85rem system-ui; cursor: pointer; width: 100%; }
+
+/* ─── Spec ─── */
+#screen-spec-m { display: none; background: #f5f0e8; padding: 24px; }
+#screen-spec-m.active { display: block; }
+.spec-shell-m { background: #fff; border-radius: 16px; padding: 20px; }
+.spec-title-m { font: 700 0.95rem system-ui; color: #1a1240; margin-bottom: 14px; }
+.spec-table-m { width: 100%; border-collapse: collapse; font-size: 0.74rem; }
+.spec-table-m th { text-align: left; padding: 7px 10px; background: #ede8ff; color: #4a3880; font: 700 0.65rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table-m td { padding: 8px 10px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-rule-m { font-weight: 700; color: #1a1240; }
+.spec-detail-m { color: #6a5890; font-size: 0.7rem; line-height: 1.45; }
+.spec-section-m { font: 700 0.8rem system-ui; color: #3d2a8a; margin: 16px 0 8px; padding-left: 8px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('list')">🔔 List</button>
+  <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" onclick="showTab('empty')">📭 Empty</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- LIST -->
+<div class="screen active" id="screen-list">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m">
+        <div>
+          <div class="page-title-m">🔔 Notifications</div>
+          <div style="font:400 0.68rem system-ui;color:#6a5890;">5 unread</div>
+        </div>
+        <button class="mark-all-btn">Mark all read</button>
+      </div>
+
+      <div class="filter-scroll">
+        <div class="filter-chip-m active">All <span class="filter-badge-m">5</span></div>
+        <div class="filter-chip-m">🏅 Badges <span class="filter-badge-m">2</span></div>
+        <div class="filter-chip-m">⭐ Level-ups <span class="filter-badge-m">1</span></div>
+        <div class="filter-chip-m">📊 Reports <span class="filter-badge-m">1</span></div>
+        <div class="filter-chip-m">🎯 Sessions</div>
+      </div>
+
+      <div class="day-group-m">
+        <div class="day-label-m">Today</div>
+
+        <div class="notif-item-m unread">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#fff3e0;">🏅</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Maya earned "Rhyme Queen" badge!</div>
+              <div class="notif-text-m">Rare badge — rhyming mastery milestone. #6,241 of 9,999.</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">8:42 AM</span><span class="notif-child-m">Maya · K–1</span></div>
+          <div class="notif-action-m"><button class="notif-btn-m">See badge →</button></div>
+        </div>
+
+        <div class="notif-item-m unread">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#ede8ff;">⭐</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Maya leveled up to Star Explorer!</div>
+              <div class="notif-text-m">Level 2 in K–1 band. New perks unlocked.</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">8:43 AM</span><span class="notif-child-m">Maya · K–1</span></div>
+          <div class="notif-action-m"><button class="notif-btn-m">Dashboard →</button></div>
+        </div>
+        <div class="swipe-hint">← Swipe to dismiss</div>
+      </div>
+
+      <div class="day-group-m">
+        <div class="day-label-m">This Week</div>
+
+        <div class="notif-item-m unread">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#f0fdf8;">📊</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Maya's weekly report is ready</div>
+              <div class="notif-text-m">42 stars, 5-day streak, rhyming jumped to 88%!</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">Sunday 7:00 AM</span><span class="notif-child-m">Maya</span></div>
+          <div class="notif-action-m"><button class="notif-btn-m">Read →</button></div>
+        </div>
+
+        <div class="notif-item-m">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#fff3e0;">🏅</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Maya earned "Letter Explorer" badge</div>
+              <div class="notif-text-m">Common badge — 10 letter-sounds sessions.</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">Friday 3:15 PM</span><span class="notif-child-m">Maya</span></div>
+          <div class="notif-action-m"><button class="notif-btn-m">See badge →</button></div>
+        </div>
+
+        <div class="notif-item-m unread">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#faf8ff;">🔥</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Maya hit a 5-day streak!</div>
+              <div class="notif-text-m">A new personal record — great consistency!</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">Thursday 6 PM</span><span class="notif-child-m">Maya</span></div>
+        </div>
+      </div>
+
+      <div class="day-group-m">
+        <div class="day-label-m">Older</div>
+        <div class="notif-item-m">
+          <div class="notif-top-m">
+            <div class="notif-icon-m" style="background:#f5f0e8;">💬</div>
+            <div class="notif-body-m">
+              <div class="notif-title-m">Welcome to WonderQuest!</div>
+              <div class="notif-text-m">Maya's account is set up and ready.</div>
+            </div>
+          </div>
+          <div class="notif-meta-m"><span class="notif-time-m">March 17</span></div>
+        </div>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m"><div class="page-title-m">⚙️ Notification Settings</div></div>
+      <div class="settings-section-m">
+        <div class="settings-title-m">When Maya…</div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#fff3e0;">🏅</div><div style="flex:1;"><div class="settings-label-m">Earns a badge</div><div class="settings-sub-m">Any rarity</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#ede8ff;">⭐</div><div style="flex:1;"><div class="settings-label-m">Levels up</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#f0fdf8;">📊</div><div style="flex:1;"><div class="settings-label-m">Weekly report</div><div class="settings-sub-m">Every Sunday</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#faf8ff;">🎯</div><div style="flex:1;"><div class="settings-label-m">Session complete</div></div><div class="toggle-m" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#faf8ff;">🔥</div><div style="flex:1;"><div class="settings-label-m">Streak milestone</div><div class="settings-sub-m">3, 7, 14, 30 days</div></div><div class="toggle-m" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div class="notif-icon-sm" style="background:#fff8e0;">💬</div><div style="flex:1;"><div class="settings-label-m">Hasn't played in 2+ days</div></div><div class="toggle-m" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+      <div style="padding:12px 16px;background:#ede8ff;margin:0;font:400 0.72rem/1.5 system-ui;color:#3a2070;">
+        🔒 <strong>Privacy:</strong> Notifications never reveal wrong answers or accuracy %.
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- EMPTY -->
+<div class="screen" id="screen-empty">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div style="padding:0 16px 0;">
+      <div class="page-header-m"><div class="page-title-m">🔔 Notifications</div></div>
+      <div class="empty-m">
+        <div class="empty-icon-m">📭</div>
+        <div class="empty-title-m">All caught up!</div>
+        <div class="empty-sub-m">No new notifications. We'll tell you when Maya earns a badge, levels up, or has a weekly report ready.</div>
+        <button class="empty-btn-m">View Maya's dashboard →</button>
+      </div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="background:#f5f0e8;border-radius:20px;padding:24px;width:100%;max-width:420px;">
+    <div class="spec-shell-m">
+      <div class="spec-title-m">Notification Center Mobile — Spec</div>
+      <div class="spec-section-m">Mobile vs Desktop</div>
+      <table class="spec-table-m">
+        <thead><tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr></thead>
+        <tbody>
+          <tr><td class="spec-rule-m">Layout</td><td class="spec-detail-m">Full-width cards, single column</td><td class="spec-detail-m">Card list, max 720px</td></tr>
+          <tr><td class="spec-rule-m">Dismiss</td><td class="spec-detail-m">Swipe-to-dismiss (implied, visual hint)</td><td class="spec-detail-m">× button on hover</td></tr>
+          <tr><td class="spec-rule-m">Unread indicator</td><td class="spec-detail-m">Left violet border on card</td><td class="spec-detail-m">Violet dot at left edge</td></tr>
+          <tr><td class="spec-rule-m">Filter chips</td><td class="spec-detail-m">Horizontal-scroll (no wrap)</td><td class="spec-detail-m">Wrapped flex row</td></tr>
+          <tr><td class="spec-rule-m">Settings</td><td class="spec-detail-m">Separate tab in bottom nav</td><td class="spec-detail-m">In-page section</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Filter Bar — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Filter bar component (desktop) ──────────────────────────────── */
+.filter-bar{background:#fff;border-radius:12px;padding:12px 16px;box-shadow:0 2px 6px rgba(0,0,0,.07);max-width:900px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fb-label{font-size:11px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+.fb-divider{width:1px;height:20px;background:#e8ecf0;flex-shrink:0}
+
+/* Filter chips */
+.fc{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid #dbe7ff;color:#555;background:#fff;transition:all .15s;white-space:nowrap}
+.fc.active{background:#2563eb;color:#fff;border-color:#2563eb}
+.fc.amber{border-color:#f59e0b;color:#92400e;background:#fff8ed}
+.fc.amber.active{background:#f59e0b;color:#fff;border-color:#f59e0b}
+
+/* Band chips */
+.fc-p0.active{background:#ffd166;color:#7a5c00;border-color:#ffd166}
+.fc-p1.active{background:#9b72ff;color:#fff;border-color:#9b72ff}
+.fc-p2.active{background:#58e8c1;color:#0d5a45;border-color:#58e8c1}
+.fc-p3.active{background:#ff7b6b;color:#fff;border-color:#ff7b6b}
+
+/* Sort control */
+.sort-select{padding:5px 12px;border-radius:20px;border:1.5px solid #dbe7ff;font-size:12px;font-weight:700;color:#555;font-family:system-ui;background:#fff;cursor:pointer}
+
+/* Clear link */
+.clear-link{font-size:12px;font-weight:700;color:#2563eb;cursor:pointer;white-space:nowrap;margin-left:auto}
+
+/* Active filter summary */
+.filter-summary{background:#eff6ff;border-radius:8px;padding:8px 14px;font-size:12px;color:#1d4ed8;font-weight:600;display:flex;align-items:center;gap:8px;max-width:900px;margin-top:8px}
+.fs-chip{background:#dbe7ff;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:4px}
+.fs-x{font-size:10px;cursor:pointer;opacity:.6}
+
+/* Mobile filter row */
+.mobile-filter-row{display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:420px;padding:10px 0}
+.mobile-filter-row::-webkit-scrollbar{display:none}
+
+/* Dropdown filter panel */
+.filter-panel{background:#fff;border-radius:14px;padding:16px 18px;box-shadow:0 4px 20px rgba(0,0,0,.1);max-width:360px;border:1px solid #e8ecf0}
+.fp-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440;margin-bottom:12px}
+.fp-section{margin-bottom:14px}
+.fp-section-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin-bottom:8px}
+.fp-chips{display:flex;gap:6px;flex-wrap:wrap}
+.fp-actions{display:flex;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid #f5f7fa}
+.btn-apply{flex:1;padding:9px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+.btn-clear{padding:9px 14px;background:transparent;color:#aaa;border:1.5px solid #eee;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-filter-bar-v2.html</strong><br>
+  Reusable filter bar component — used across student list, support queue, and analytics tables in teacher portal.<br>
+  <strong>Filter dimensions:</strong> Band (P0/P1/P2/P3) | Activity (Active today / Needs check-in / Absent / All) | Status (All / In queue / Band ceiling) | Sort (Stars / Sessions / Streak / Name / Band).<br>
+  <strong>Variants:</strong> Desktop inline bar | Mobile horizontal chip scroll | Dropdown filter panel (triggered by "Filter" button).<br>
+  <strong>Active filter summary:</strong> Shows applied filters as removable chips below bar.<br>
+  <strong>Not a privacy concern</strong> — filter dimensions are teacher-visible data dimensions only.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('desktop')">Desktop Bar</button>
+  <button class="tab-btn" onclick="showTab('active-filters')">With Active Filters</button>
+  <button class="tab-btn" onclick="showTab('panel')">Filter Panel</button>
+  <button class="tab-btn" onclick="showTab('mobile')">Mobile</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Desktop ─────────────────────────────────────────────────────── -->
+<div id="tab-desktop" class="screen active">
+  <p class="section-title">Desktop inline filter bar — no active filters</p>
+  <div class="filter-bar">
+    <div class="fb-label">Band</div>
+    <div class="fc">All bands</div>
+    <div class="fc fc-p0">P0</div>
+    <div class="fc fc-p1">P1</div>
+    <div class="fc fc-p2 active">P2</div>
+    <div class="fc fc-p3">P3</div>
+    <div class="fb-divider"></div>
+    <div class="fb-label">Activity</div>
+    <div class="fc active">All</div>
+    <div class="fc">Active today</div>
+    <div class="fc amber">Needs check-in</div>
+    <div class="fb-divider"></div>
+    <select class="sort-select">
+      <option>Sort: Stars ↓</option>
+      <option>Sort: Sessions ↓</option>
+      <option>Sort: Streak ↓</option>
+      <option>Sort: Name A–Z</option>
+      <option>Sort: Band</option>
+    </select>
+    <div class="clear-link">Clear all</div>
+  </div>
+  <br>
+  <p class="section-title">Default state — all unfiltered</p>
+  <div class="filter-bar">
+    <div class="fb-label">Band</div>
+    <div class="fc active">All</div>
+    <div class="fc fc-p0">P0</div>
+    <div class="fc fc-p1">P1</div>
+    <div class="fc fc-p2">P2</div>
+    <div class="fc fc-p3">P3</div>
+    <div class="fb-divider"></div>
+    <div class="fb-label">Activity</div>
+    <div class="fc active">All</div>
+    <div class="fc">Active today</div>
+    <div class="fc amber">Needs check-in</div>
+    <div class="fc">Absent</div>
+    <div class="fb-divider"></div>
+    <select class="sort-select">
+      <option>Sort: Name A–Z</option>
+      <option>Sort: Stars ↓</option>
+      <option>Sort: Sessions ↓</option>
+    </select>
+  </div>
+</div>
+
+<!-- ── Active Filters ─────────────────────────────────────────────── -->
+<div id="tab-active-filters" class="screen">
+  <p class="section-title">Active filters — summary chips row below bar</p>
+  <div class="filter-bar">
+    <div class="fb-label">Band</div>
+    <div class="fc">All</div>
+    <div class="fc fc-p2 active">P2</div>
+    <div class="fc fc-p3 active">P3</div>
+    <div class="fb-divider"></div>
+    <div class="fb-label">Activity</div>
+    <div class="fc">All</div>
+    <div class="fc amber active">Needs check-in</div>
+    <div class="fb-divider"></div>
+    <select class="sort-select"><option>Sort: Stars ↓</option></select>
+    <div class="clear-link">Clear all</div>
+  </div>
+  <div class="filter-summary">
+    <span style="font-size:11px;font-weight:700">Filters:</span>
+    <span class="fs-chip">Band: P2 <span class="fs-x">✕</span></span>
+    <span class="fs-chip">Band: P3 <span class="fs-x">✕</span></span>
+    <span class="fs-chip">Needs check-in <span class="fs-x">✕</span></span>
+    <span style="margin-left:auto;font-size:11px;color:#2563eb;cursor:pointer;font-weight:700">Clear all</span>
+  </div>
+  <br>
+  <p style="font-size:12px;color:#8a7a6a;font-weight:600">→ Student table below would show only P2+P3 students who need check-in (4 results)</p>
+</div>
+
+<!-- ── Filter Panel ────────────────────────────────────────────────── -->
+<div id="tab-panel" class="screen">
+  <p class="section-title">Dropdown filter panel — triggered by "Filter" button on tablet/mobile</p>
+  <div class="filter-panel">
+    <div class="fp-title">Filter students</div>
+    <div class="fp-section">
+      <div class="fp-section-label">Band</div>
+      <div class="fp-chips">
+        <div class="fc">All bands</div>
+        <div class="fc fc-p0">P0 Pre-K</div>
+        <div class="fc fc-p1">P1 K–1</div>
+        <div class="fc fc-p2 active">P2 G2–3</div>
+        <div class="fc fc-p3">P3 G4–5</div>
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-section-label">Activity</div>
+      <div class="fp-chips">
+        <div class="fc active">All</div>
+        <div class="fc">Active today</div>
+        <div class="fc amber">Needs check-in</div>
+        <div class="fc">Absent 3+ days</div>
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-section-label">Queue status</div>
+      <div class="fp-chips">
+        <div class="fc active">All</div>
+        <div class="fc amber">In queue</div>
+        <div class="fc" style="background:#eff6ff;color:#2563eb;border-color:#3b82f6">Band ceiling</div>
+      </div>
+    </div>
+    <div class="fp-section">
+      <div class="fp-section-label">Sort by</div>
+      <select class="sort-select" style="width:100%;border-radius:8px;padding:8px 12px">
+        <option>Stars (highest first)</option>
+        <option>Sessions (highest first)</option>
+        <option>Streak (longest first)</option>
+        <option>Name (A–Z)</option>
+        <option>Band</option>
+      </select>
+    </div>
+    <div class="fp-actions">
+      <button class="btn-clear">Clear</button>
+      <button class="btn-apply">Apply filters</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mobile ─────────────────────────────────────────────────────── -->
+<div id="tab-mobile" class="screen">
+  <p class="section-title">Mobile — horizontal scroll chip row + Filter button</p>
+  <div style="background:#fff;border-radius:12px;padding:10px 14px;max-width:420px;box-shadow:0 2px 6px rgba(0,0,0,.07)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <div style="font-size:12px;font-weight:800;color:#1a1440;flex:1">28 students</div>
+      <button style="padding:6px 12px;background:#f0f7ff;border:1.5px solid #dbe7ff;border-radius:20px;font-size:11px;font-weight:700;color:#2563eb;cursor:pointer;font-family:system-ui">⚙️ Filter</button>
+      <select style="padding:5px 10px;border-radius:20px;border:1.5px solid #dbe7ff;font-size:11px;font-weight:700;color:#555;font-family:system-ui;background:#fff">
+        <option>Stars ↓</option>
+        <option>Name A–Z</option>
+      </select>
+    </div>
+    <div class="mobile-filter-row">
+      <div class="fc active" style="flex-shrink:0">All</div>
+      <div class="fc" style="flex-shrink:0">P0</div>
+      <div class="fc fc-p1" style="flex-shrink:0">P1</div>
+      <div class="fc fc-p2" style="flex-shrink:0">P2</div>
+      <div class="fc fc-p3" style="flex-shrink:0">P3</div>
+      <div class="fc amber" style="flex-shrink:0">⚠️ Queue</div>
+      <div class="fc" style="flex-shrink:0">Active today</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-filter-bar-v2.html<br>
+      <strong>Usage:</strong> Student list, Support queue, Analytics tables. Embeds above the data table/list.
+    </div>
+    <h2 class="spec-h2">Filter Dimensions</h2>
+    <table class="spec-table">
+      <tr><th>Dimension</th><th>Options</th><th>Multi-select?</th></tr>
+      <tr><td>Band</td><td>All / P0 / P1 / P2 / P3</td><td>Yes — can select multiple bands</td></tr>
+      <tr><td>Activity</td><td>All / Active today / Needs check-in / Absent 3+ days</td><td>Single select</td></tr>
+      <tr><td>Queue status</td><td>All / In queue / Band ceiling</td><td>Single select</td></tr>
+      <tr><td>Sort</td><td>Stars ↓ / Sessions ↓ / Streak ↓ / Name A–Z / Band</td><td>Single — sort control</td></tr>
+    </table>
+    <h2 class="spec-h2">Variants by Viewport</h2>
+    <table class="spec-table">
+      <tr><th>Viewport</th><th>Pattern</th></tr>
+      <tr><td>Desktop (≥1025px)</td><td>Full inline chip bar (all dimensions visible at once)</td></tr>
+      <tr><td>Tablet (768–1024px)</td><td>"Filter" button → dropdown panel; quick band chips visible inline</td></tr>
+      <tr><td>Mobile (≤767px)</td><td>"Filter" button + horizontal scroll chip row (band only inline; rest in panel)</td></tr>
+    </table>
+    <h2 class="spec-h2">Active Filter Summary Bar</h2>
+    <p class="spec-p">When any non-default filters are active, show a summary chips row below the filter bar. Each chip shows the filter label with an ✕ to remove. "Clear all" link on right. Summary bar disappears when all filters return to default.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

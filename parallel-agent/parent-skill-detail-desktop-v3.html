@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Skill Detail — Desktop v3 — WonderQuest</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:960px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Desktop page shell ──────────────────────────────────────────── */
+.page{background:#f5f0e8;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.page-inner{display:flex;min-height:680px}
+.sidebar{width:240px;background:#fff;border-right:1px solid #ede9f8;padding:20px 0;flex-shrink:0}
+.sidebar-logo{font-size:16px;font-weight:900;color:#9b72ff;padding:0 20px 16px;border-bottom:1px solid #ede9f8;margin-bottom:12px}
+.sidebar-nav{padding:0 8px}
+.nav-item{padding:9px 12px;font-size:13px;font-weight:600;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:8px}
+.nav-item.active{color:#9b72ff;background:#f8f4ff}
+.main{flex:1;padding:32px;overflow-y:auto}
+
+/* ── Breadcrumb ──────────────────────────────────────────────────── */
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:#aaa;margin-bottom:20px}
+.breadcrumb a{color:#9b72ff;font-weight:600;cursor:pointer;text-decoration:none}
+.breadcrumb span{color:#ccc}
+
+/* ── Page header ─────────────────────────────────────────────────── */
+.page-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:24px}
+.skill-icon-lg{width:60px;height:60px;border-radius:16px;background:#e6fef8;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0}
+.skill-name-lg{font-size:24px;font-weight:900;color:#1a1440;margin-bottom:4px}
+.skill-subject-tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.tag-reading{background:#e6fef8;color:#0e7360}
+.tag-math{background:#f0ebff;color:#7c3aed}
+.tag-spelling{background:#fffbf0;color:#a06000}
+.skill-status{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-left:8px}
+.status-strong{background:#ebfff3;color:#15803d}
+.status-building{background:#fff8f0;color:#d97706}
+.status-started{background:#fff0f5;color:#c2185b}
+
+/* ── Stat row ────────────────────────────────────────────────────── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.stat-box{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat-val{font-size:24px;font-weight:900;color:#1a1440;margin-bottom:2px}
+.stat-lbl{font-size:11px;font-weight:600;color:#aaa;text-transform:uppercase;letter-spacing:.06em}
+.stat-delta{font-size:11px;font-weight:700;margin-top:3px}
+.delta-up{color:#22c55e}
+.delta-same{color:#aaa}
+
+/* ── Mastery progress ────────────────────────────────────────────── */
+.mastery-section{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.section-h{font-size:14px;font-weight:800;color:#1a1440;margin-bottom:14px}
+.mastery-bar-wrap{margin-bottom:6px}
+.mastery-bar{height:14px;border-radius:7px;background:#f0ecf8;overflow:hidden}
+.mastery-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,#9b72ff,#58e8c1);transition:width .4s}
+.mastery-labels{display:flex;justify-content:space-between;font-size:11px;color:#aaa;margin-top:4px}
+
+/* ── Week-by-week sparkline ──────────────────────────────────────── */
+.spark-wrap{display:flex;align-items:flex-end;gap:4px;height:40px;margin-bottom:8px}
+.spark-bar{border-radius:3px 3px 0 0;background:#e0d8f0;transition:height .2s}
+.spark-bar.hi{background:#9b72ff}
+.spark-wk{display:flex;gap:4px;margin-top:2px}
+.spark-lbl{font-size:9px;color:#aaa;text-align:center;flex:1}
+
+/* ── Session log ─────────────────────────────────────────────────── */
+.session-log{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.log-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f0ff}
+.log-row:last-child{border-bottom:none;padding-bottom:0}
+.log-date{font-size:12px;color:#888;font-weight:600;min-width:80px}
+.log-stars{font-size:13px;font-weight:700;color:#1a1440}
+.log-duration{font-size:11px;color:#aaa;margin-left:auto}
+.perfect-badge{display:inline-flex;align-items:center;gap:3px;background:#fffbf0;border-radius:20px;padding:2px 8px;font-size:10px;font-weight:700;color:#d97706;margin-left:8px}
+
+/* ── Two column layout ─────────────────────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+
+/* ── Support tip ─────────────────────────────────────────────────── */
+.tip-card{background:#fffbf0;border-radius:14px;padding:18px;border-left:4px solid #ffd166}
+.tip-h{font-size:13px;font-weight:800;color:#92400e;margin-bottom:6px}
+.tip-text{font-size:12px;color:#666;line-height:1.6}
+
+/* ── Related skills ────────────────────────────────────────────────── */
+.related-card{background:#fff;border-radius:14px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.related-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f5f0ff;cursor:pointer}
+.related-row:last-child{border-bottom:none;padding-bottom:0}
+.related-icon{width:30px;height:30px;border-radius:8px;background:#f5f0ff;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.related-name{font-size:13px;font-weight:600;color:#1a1440}
+.related-chevron{margin-left:auto;color:#ccc;font-size:13px}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-red{background:#fff0f0;color:#dc2626}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-skill-detail-desktop-v3.html</strong><br>
+  Deep-dive page for a single skill — accessed by clicking a skill row in the parent weekly report Skills tab.<br>
+  Shows: skill name + subject + status badge | 4 key stats | mastery progress bar | week-by-week sparkline | session log for this skill | support tip | related skills.<br>
+  <strong>Privacy rules:</strong> Stars shown (child currency) — accuracy % never shown here. Session log shows stars/duration/perfect flag — never wrong answer count.<br>
+  <strong>"Perfect session" flag:</strong> session where child answered all questions correctly — shown as ⭐ gold badge. NOT shown as "100%" (no accuracy %).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('strong')">Strong Skill View</button>
+  <button class="tab-btn" onclick="showTab('building')">Building Skill View</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Strong Skill ───────────────────────────────────────────────── -->
+<div id="tab-strong" class="screen active">
+  <p class="section-title">Desktop — strong skill detail (Sight words)</p>
+  <div class="page">
+    <div class="page-inner">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav">
+          <div class="nav-item">🏠 Family overview</div>
+          <div class="nav-item active">📊 Weekly report</div>
+          <div class="nav-item">🏅 Badges</div>
+          <div class="nav-item">🔔 Notifications</div>
+          <div class="nav-item">⚙️ Settings</div>
+        </div>
+      </div>
+
+      <div class="main">
+        <!-- Breadcrumb -->
+        <div class="breadcrumb">
+          <a>Weekly report</a>
+          <span>›</span>
+          <a>Skills</a>
+          <span>›</span>
+          <span style="color:#555;font-weight:600">Sight words</span>
+        </div>
+
+        <!-- Header -->
+        <div class="page-header">
+          <div class="skill-icon-lg">📖</div>
+          <div>
+            <div class="skill-name-lg">Sight words</div>
+            <div>
+              <span class="skill-subject-tag tag-reading">🌿 Reading</span>
+              <span class="skill-status status-strong">⭐ Strong</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">⭐ 18</div>
+            <div class="stat-lbl">Stars this week</div>
+            <div class="stat-delta delta-up">↑ +6 vs last week</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">5</div>
+            <div class="stat-lbl">Sessions</div>
+            <div class="stat-delta delta-up">↑ +2 vs last week</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">38m</div>
+            <div class="stat-lbl">Time on skill</div>
+            <div class="stat-delta delta-same">→ Similar</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">🔥 4×</div>
+            <div class="stat-lbl">Perfect sessions</div>
+            <div class="stat-delta delta-up">↑ Most ever</div>
+          </div>
+        </div>
+
+        <!-- Mastery + sparkline -->
+        <div class="two-col">
+          <div class="mastery-section">
+            <div class="section-h">Mastery progress</div>
+            <div class="mastery-bar-wrap">
+              <div class="mastery-bar">
+                <div class="mastery-fill" style="width:88%"></div>
+              </div>
+              <div class="mastery-labels">
+                <span>0</span>
+                <span style="color:#1a1440;font-weight:800">88 / 100</span>
+                <span>100</span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:8px;line-height:1.5">Maya has mastered 88 out of 100 common sight words. She's approaching the top of this skill!</div>
+          </div>
+
+          <div class="mastery-section">
+            <div class="section-h">Week-by-week stars</div>
+            <div class="spark-wrap">
+              <div class="spark-bar" style="width:20px;height:14px"></div>
+              <div class="spark-bar" style="width:20px;height:18px"></div>
+              <div class="spark-bar" style="width:20px;height:22px"></div>
+              <div class="spark-bar" style="width:20px;height:20px"></div>
+              <div class="spark-bar hi" style="width:20px;height:36px"></div>
+            </div>
+            <div class="spark-wk">
+              <span class="spark-lbl">Mar 3</span>
+              <span class="spark-lbl">10</span>
+              <span class="spark-lbl">17</span>
+              <span class="spark-lbl">24</span>
+              <span class="spark-lbl">This wk</span>
+            </div>
+            <div style="font-size:11px;color:#22c55e;font-weight:600;margin-top:6px">↑ Best week so far!</div>
+          </div>
+        </div>
+
+        <!-- Session log -->
+        <div class="session-log">
+          <div class="section-h">Sessions this week</div>
+          <div class="log-row">
+            <div class="log-date">Today, 3:22pm</div>
+            <div class="log-stars">⭐ 4 stars</div>
+            <span class="perfect-badge">⭐ Perfect session</span>
+            <div class="log-duration">8 min</div>
+          </div>
+          <div class="log-row">
+            <div class="log-date">Mon, 4:10pm</div>
+            <div class="log-stars">⭐ 3 stars</div>
+            <div class="log-duration">7 min</div>
+          </div>
+          <div class="log-row">
+            <div class="log-date">Mon, 4:20pm</div>
+            <div class="log-stars">⭐ 4 stars</div>
+            <span class="perfect-badge">⭐ Perfect session</span>
+            <div class="log-duration">8 min</div>
+          </div>
+          <div class="log-row">
+            <div class="log-date">Sun, 5:15pm</div>
+            <div class="log-stars">⭐ 4 stars</div>
+            <span class="perfect-badge">⭐ Perfect session</span>
+            <div class="log-duration">9 min</div>
+          </div>
+          <div class="log-row">
+            <div class="log-date">Sat, 5:05pm</div>
+            <div class="log-stars">⭐ 3 stars</div>
+            <div class="log-duration">6 min</div>
+          </div>
+        </div>
+
+        <!-- Related skills -->
+        <div class="two-col">
+          <div class="related-card">
+            <div class="section-h">Related skills</div>
+            <div class="related-row">
+              <div class="related-icon">🔤</div>
+              <span class="related-name">Blending sounds</span>
+              <span class="related-chevron">›</span>
+            </div>
+            <div class="related-row">
+              <div class="related-icon">📝</div>
+              <span class="related-name">CVC spelling</span>
+              <span class="related-chevron">›</span>
+            </div>
+          </div>
+
+          <!-- No tip for strong skills -->
+          <div style="background:#f0fdf4;border-radius:14px;padding:18px;border-left:4px solid #22c55e">
+            <div style="font-size:13px;font-weight:800;color:#15803d;margin-bottom:6px">🎉 Great work on this skill!</div>
+            <div style="font-size:12px;color:#444;line-height:1.6">Maya is very strong here. Keep encouraging her to read aloud to you — it reinforces all sight words naturally.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Building Skill ──────────────────────────────────────────────── -->
+<div id="tab-building" class="screen">
+  <p class="section-title">Desktop — building skill detail (Blending sounds)</p>
+  <div class="page">
+    <div class="page-inner">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav">
+          <div class="nav-item">🏠 Family overview</div>
+          <div class="nav-item active">📊 Weekly report</div>
+          <div class="nav-item">🏅 Badges</div>
+          <div class="nav-item">🔔 Notifications</div>
+          <div class="nav-item">⚙️ Settings</div>
+        </div>
+      </div>
+
+      <div class="main">
+        <div class="breadcrumb">
+          <a>Weekly report</a><span>›</span>
+          <a>Skills</a><span>›</span>
+          <span style="color:#555;font-weight:600">Blending sounds</span>
+        </div>
+
+        <div class="page-header">
+          <div class="skill-icon-lg" style="background:#fff8f0">🔤</div>
+          <div>
+            <div class="skill-name-lg">Blending sounds</div>
+            <div>
+              <span class="skill-subject-tag tag-reading">🌿 Reading</span>
+              <span class="skill-status status-building">🌱 Building</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-box">
+            <div class="stat-val">⭐ 6</div>
+            <div class="stat-lbl">Stars this week</div>
+            <div class="stat-delta delta-up">↑ +2</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">2</div>
+            <div class="stat-lbl">Sessions</div>
+            <div class="stat-delta delta-same">→ Same</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">16m</div>
+            <div class="stat-lbl">Time on skill</div>
+            <div class="stat-delta delta-up">↑ +6m</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-val">0×</div>
+            <div class="stat-lbl">Perfect sessions</div>
+            <div class="stat-delta delta-same">Building up</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="mastery-section">
+            <div class="section-h">Mastery progress</div>
+            <div class="mastery-bar-wrap">
+              <div class="mastery-bar">
+                <div class="mastery-fill" style="width:48%;background:linear-gradient(90deg,#ffd166,#ffb347)"></div>
+              </div>
+              <div class="mastery-labels">
+                <span>0</span>
+                <span style="color:#d97706;font-weight:800">48 / 100</span>
+                <span>100</span>
+              </div>
+            </div>
+            <div style="font-size:12px;color:#888;margin-top:8px;line-height:1.5">Maya is about halfway through building this skill. Consistent practice over 2–3 more weeks will help it "click".</div>
+          </div>
+          <div class="mastery-section">
+            <div class="section-h">Week-by-week stars</div>
+            <div class="spark-wrap">
+              <div class="spark-bar" style="width:20px;height:0px"></div>
+              <div class="spark-bar" style="width:20px;height:8px"></div>
+              <div class="spark-bar" style="width:20px;height:12px"></div>
+              <div class="spark-bar" style="width:20px;height:16px"></div>
+              <div class="spark-bar hi" style="width:20px;height:24px"></div>
+            </div>
+            <div class="spark-wk">
+              <span class="spark-lbl">Mar 3</span>
+              <span class="spark-lbl">10</span>
+              <span class="spark-lbl">17</span>
+              <span class="spark-lbl">24</span>
+              <span class="spark-lbl">This wk</span>
+            </div>
+            <div style="font-size:11px;color:#22c55e;font-weight:600;margin-top:6px">↑ Improving week over week</div>
+          </div>
+        </div>
+
+        <div class="session-log">
+          <div class="section-h">Sessions this week</div>
+          <div class="log-row">
+            <div class="log-date">Today, 3:40pm</div>
+            <div class="log-stars">⭐ 3 stars</div>
+            <div class="log-duration">9 min</div>
+          </div>
+          <div class="log-row">
+            <div class="log-date">Mon, 4:55pm</div>
+            <div class="log-stars">⭐ 3 stars</div>
+            <div class="log-duration">7 min</div>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="tip-card">
+            <div class="tip-h">💡 Support tip for Blending sounds</div>
+            <div class="tip-text">Try reading picture books aloud together and pausing at new words. Ask Maya "what sounds do you hear?" before reading the word — this mirrors exactly what WonderQuest is teaching.</div>
+          </div>
+          <div class="related-card">
+            <div class="section-h">Related skills</div>
+            <div class="related-row">
+              <div class="related-icon">📖</div>
+              <span class="related-name">Sight words</span>
+              <span class="related-chevron">›</span>
+            </div>
+            <div class="related-row">
+              <div class="related-icon">📝</div>
+              <span class="related-name">CVC spelling</span>
+              <span class="related-chevron">›</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-skill-detail-desktop-v3.html<br>
+      Route: /parent/report/skills/:skill_id<br>
+      Data: skill metadata + child_skill_progress for this child_id + session_skills for session log.
+    </div>
+    <h2 class="spec-h2">Page Sections</h2>
+    <table class="spec-table">
+      <tr><th>Section</th><th>Content</th><th>Privacy rule</th></tr>
+      <tr><td>Header</td><td>Skill name, subject tag, status badge (Strong/Building/Just started)</td><td>—</td></tr>
+      <tr><td>Stats row (4 boxes)</td><td>Stars this week, Sessions, Time on skill, Perfect sessions count</td><td>No accuracy %</td></tr>
+      <tr><td>Mastery bar</td><td>mastery_score / 100 shown as progress bar — NOT percentage text</td><td>Score shown as "N/100" not "%"</td></tr>
+      <tr><td>Sparkline (5 weeks)</td><td>Star counts per week for this skill</td><td>Stars only — no correct/wrong</td></tr>
+      <tr><td>Session log</td><td>Date, stars, duration, perfect flag — per session</td><td>No wrong answer count, no accuracy</td></tr>
+      <tr><td>Support tip</td><td>At-home activity suggestion (only if status=Building/Just started)</td><td>Positive framing</td></tr>
+      <tr><td>Related skills</td><td>2 skills from same subject with similar skill_ids</td><td>Clickable — navigates to their detail page</td></tr>
+    </table>
+    <h2 class="spec-h2">Perfect Session Flag</h2>
+    <p class="spec-p">"Perfect session" = child answered all questions correctly in that session for this skill. Shown as ⭐ gold badge in session log. NOT shown as "100%" — child language (stars) is preserved for parent too.</p>
+    <h2 class="spec-h2">Support Tip Display</h2>
+    <p class="spec-p">Tip card shown only if skill status = Building (mastery 40–64) or Just started (< 40). Strong skills (>= 65) show a celebration card instead. Same tip library as parent-home-practice-planner-v3.</p>
+    <h2 class="spec-h2">Privacy: What is NEVER shown</h2>
+    <table class="spec-table">
+      <tr><th>Item</th><th>Rule</th></tr>
+      <tr><td>Accuracy %</td><td><span class="tag tag-red">NEVER</span> — not on this page, not on dashboard. Weekly report skills TABLE only.</td></tr>
+      <tr><td>Wrong answer count</td><td><span class="tag tag-red">NEVER</span></td></tr>
+      <tr><td>Which specific questions were wrong</td><td><span class="tag tag-red">NEVER</span></td></tr>
+      <tr><td>Hint usage count</td><td><span class="tag tag-red">NEVER</span></td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

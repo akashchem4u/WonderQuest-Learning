@@ -3,278 +3,457 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WonderQuest · Play Session Complete Desktop v3</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@900&family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<title>play-session-complete-desktop-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-session-complete-desktop-v3.html   ║
+     ║                                                              ║
+     ║  Session complete screen (DESKTOP layout, 1200px+ viewport).  ║
+     ║  Shown after child finishes all 5 session questions.         ║
+     ║                                                              ║
+     ║  STATES / TABS IN THIS FILE                                  ║
+     ║  Tab 1 — Normal Complete  : standard session end             ║
+     ║  Tab 2 — Perfect Session  : all 5 correct (bonus animation)  ║
+     ║  Tab 3 — With New Badge   : session + badge earned           ║
+     ║  Tab 4 — Star-Safe Replay : replay overlay (stars safe)      ║
+     ║  Tab 5 — Spec             : layout, star-safe, rules         ║
+     ║                                                              ║
+     ║  DESKTOP LAYOUT                                               ║
+     ║  • Max-width 960px centered                                   ║
+     ║  • 2-col grid: hero area (left) + summary card (right)       ║
+     ║  • No phone frame — browser/tablet native layout              ║
+     ║  • Band theme applied to card gradient + confetti colors      ║
+     ║  • Stars NEVER decrease — star-safe badge on replay          ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Nunito', sans-serif; font-weight: 900; background: #0a0820; color: #e8e0ff; min-height: 100vh; padding: 20px; }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
 
-.tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
-.tab { padding: 8px 18px; border-radius: 20px; border: 1.5px solid #3a2888; background: #1e1060; color: #c0a8ff; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 12px; cursor: pointer; transition: all .2s; }
-.tab.active { background: #9b72ff; color: #fff; border-color: #9b72ff; }
-.tab:hover:not(.active) { background: #2a1880; }
-.panel { display: none; }
-.panel.active { display: block; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
 
-.hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 10px; padding: 12px 16px; max-width: 820px; margin: 0 auto 24px; font-size: 11px; color: #5a4000; line-height: 1.7; font-family: 'Sora', sans-serif; }
-.hint strong { color: #3a2800; display: block; margin-bottom: 3px; font-size: 12px; }
-.hint code { background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 3px; font-family: monospace; font-size: 10px; }
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
 
-/* Complete screen shell */
-.complete-shell { max-width: 640px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 40px 24px 60px; position: relative; }
+  /* ── Desktop session complete frame ── */
+  .desktop-frame {
+    width: 100%; max-width: 960px;
+    background: #100b2e; border: 2px solid #2a1f60; border-radius: 24px;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    overflow: hidden; position: relative;
+  }
 
-/* Shimmer bg for session complete */
-@keyframes shimmer { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
-.shimmer-bg { position: fixed; inset: 0; z-index: -1; background: linear-gradient(135deg, #0a0820, #1a0848, #0d1a40, #0a0820); background-size: 400% 400%; animation: shimmer 8s ease infinite; }
+  /* Confetti layer */
+  .confetti-field {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1;
+  }
+  .c-dot {
+    position: absolute; border-radius: 50%;
+    animation: c-fall linear infinite;
+  }
+  @keyframes c-fall {
+    0%   { transform: translateY(-10px) rotate(0); opacity: 0.9; }
+    100% { transform: translateY(600px) rotate(720deg); opacity: 0; }
+  }
 
-/* Trophy */
-@keyframes spin-bounce { 0%{transform:scale(0) rotate(-180deg)} 60%{transform:scale(1.15) rotate(8deg)} 80%{transform:scale(.95) rotate(-4deg)} 100%{transform:scale(1) rotate(0)} }
-.trophy { font-size: 80px; animation: spin-bounce .8s ease forwards; display: block; margin-bottom: 8px; }
+  /* Main 2-col grid */
+  .sc-grid { display: grid; grid-template-columns: 1fr 380px; min-height: 480px; position: relative; z-index: 2; }
 
-/* Heading */
-.complete-heading { font-size: 36px; font-weight: 900; margin-bottom: 8px; }
-.complete-sub { font-size: 16px; font-weight: 900; color: rgba(255,255,255,.7); margin-bottom: 24px; font-family: 'Sora', sans-serif; font-weight: 400; }
+  /* ── Left hero panel ── */
+  .sc-hero {
+    padding: 48px 40px; display: flex; flex-direction: column;
+    align-items: flex-start; justify-content: center; gap: 20px;
+    border-right: 1px solid #1e1850;
+  }
+  .sc-band-chip {
+    font-size: 0.72rem; font-weight: 900; letter-spacing: 0.1em; text-transform: uppercase;
+    border-radius: 20px; padding: 4px 12px; background: #221960; color: #9b72ff; border: 1px solid #9b72ff44;
+  }
+  .sc-headline { font-size: 2.4rem; font-weight: 900; line-height: 1.15; color: #fff; }
+  .sc-sub { font-size: 1rem; font-weight: 700; color: #b0a0e0; line-height: 1.5; }
 
-/* Reward chips */
-@keyframes chip-pop { 0%{transform:scale(0) translateY(10px);opacity:0} 70%{transform:scale(1.08) translateY(-2px)} 100%{transform:scale(1) translateY(0);opacity:1} }
-.reward-chips { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; }
-.reward-chip { padding: 10px 18px; border-radius: 14px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 15px; opacity: 0; animation: chip-pop .4s ease forwards; }
-.rc-stars { background: linear-gradient(135deg, #2a1800, #3a2a00); color: #ffd166; border: 1.5px solid #ffd16644; animation-delay: .2s; }
-.rc-xp { background: linear-gradient(135deg, #1a2a1a, #1a3a2a); color: #58e8c1; border: 1.5px solid #58e8c144; animation-delay: .35s; }
-.rc-badge { background: linear-gradient(135deg, #1a0a2a, #2a1a40); color: #c090ff; border: 1.5px solid #c090ff44; animation-delay: .5s; }
-.rc-streak { background: linear-gradient(135deg, #2a1500, #3a1500); color: #ff9040; border: 1.5px solid #ff904044; animation-delay: .65s; }
+  .sc-star-big { display: flex; align-items: center; gap: 10px; }
+  .sc-star-emoji { font-size: 3rem; }
+  .sc-star-count { font-size: 2.8rem; font-weight: 900; color: #ffd166; line-height: 1; }
+  .sc-star-label { font-size: 0.88rem; font-weight: 700; color: #9080c0; }
 
-/* CTA buttons */
-.cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 8px; }
-.btn-primary { background: #9b72ff; color: #fff; border: none; border-radius: 14px; padding: 14px 28px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; cursor: pointer; transition: transform .15s; }
-.btn-primary:hover { transform: scale(1.04); }
-.btn-ghost { background: rgba(155,114,255,.15); color: #c090ff; border: 1.5px solid #9b72ff44; border-radius: 14px; padding: 14px 28px; font-family: 'Nunito', sans-serif; font-weight: 900; font-size: 16px; cursor: pointer; }
+  .sc-segs { display: flex; gap: 5px; width: 100%; }
+  .sc-seg { flex: 1; height: 8px; border-radius: 4px; }
+  .sc-seg.done { background: #9b72ff; }
+  .sc-seg.done.gold { background: #ffd166; }
 
-/* Mascot message */
-.mascot-msg { background: rgba(155,114,255,.15); border: 1.5px solid #9b72ff44; border-radius: 14px; padding: 14px 20px; font-size: 14px; color: #e0d0ff; margin: 20px 0; font-family: 'Sora', sans-serif; font-weight: 600; max-width: 420px; }
+  .sc-cta-row { display: flex; gap: 12px; width: 100%; }
+  .sc-cta-primary {
+    height: 52px; border-radius: 26px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; padding: 0 24px;
+  }
+  .sc-cta-secondary {
+    height: 52px; border-radius: 26px;
+    background: #1a1440; border: 1.5px solid #2a1f60; color: #b89eff;
+    font-size: 0.95rem; font-weight: 900; cursor: pointer; padding: 0 20px;
+  }
 
-/* Confetti */
-.confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
-.confetti-dot { position: absolute; top: 50%; left: 50%; width: 10px; height: 10px; border-radius: 50%; animation: confetti-burst 1.2s ease forwards; opacity: 0; }
-@keyframes confetti-burst { 0%{transform:translate(-50%,-50%) scale(0);opacity:1} 100%{transform:translate(calc(-50% + var(--tx)),calc(-50% + var(--ty))) scale(1);opacity:0} }
+  /* ── Right summary card ── */
+  .sc-summary { padding: 32px 28px; display: flex; flex-direction: column; gap: 16px; background: #0e0a28; }
+  .sc-summary-title { font-size: 0.78rem; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; color: #6050a0; }
+  .sc-stat-list { display: flex; flex-direction: column; gap: 10px; }
+  .sc-stat {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: #1a1440; border: 1.5px solid #2a2060; border-radius: 12px;
+  }
+  .sc-stat-label { font-size: 0.84rem; font-weight: 700; color: #9080c0; display: flex; align-items: center; gap: 7px; }
+  .sc-stat-val { font-size: 1rem; font-weight: 900; color: #fff; }
 
-/* World progress bar */
-.world-progress { width: 100%; max-width: 400px; background: rgba(255,255,255,.1); border-radius: 10px; height: 10px; overflow: hidden; margin: 16px auto; }
-.world-progress-fill { height: 100%; border-radius: 10px; background: linear-gradient(90deg, #9b72ff, #58e8c1); animation: fill-bar 1s ease .8s both; }
-@keyframes fill-bar { from{width:0} }
+  .sc-coach {
+    display: flex; align-items: flex-start; gap: 10px; margin-top: auto;
+    background: #1a1440; border: 1.5px solid #9b72ff33; border-radius: 12px; padding: 12px 14px;
+  }
+  .sc-coach-avatar { font-size: 1.5rem; flex-shrink: 0; }
+  .sc-coach-text { font-size: 0.82rem; font-weight: 700; color: #c8bef0; line-height: 1.4; }
+  .sc-coach-name { font-size: 0.68rem; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 2px; }
 
-/* Level up flash */
-@keyframes level-blast { 0%{transform:scale(0);opacity:1} 80%{transform:scale(2.5);opacity:.3} 100%{transform:scale(3);opacity:0} }
-.level-blast { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, #ff7b6b44 0%, transparent 70%); animation: level-blast .6s ease forwards; pointer-events: none; }
+  /* ── Perfect session badge ── */
+  .perfect-badge {
+    background: linear-gradient(135deg, #3a2000, #1a1000); border: 2px solid #ffd166;
+    border-radius: 14px; padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px; box-shadow: 0 0 16px #ffd16633;
+  }
+  .perfect-icon { font-size: 1.8rem; }
+  .perfect-text { font-size: 0.88rem; font-weight: 900; color: #ffe08a; }
+  .perfect-text span { color: #fff; display: block; font-size: 0.76rem; font-weight: 700; }
 
-/* Replay overlay */
-.replay-overlay { position: fixed; inset: 0; background: rgba(10,8,32,.88); display: flex; align-items: center; justify-content: center; z-index: 50; display: none; }
-.replay-overlay.open { display: flex; }
-.replay-card { background: #1a1060; border: 2px solid #9b72ff66; border-radius: 20px; padding: 32px; text-align: center; max-width: 380px; }
+  /* ── Star-safe replay overlay ── */
+  .replay-overlay {
+    position: absolute; inset: 0; z-index: 30;
+    background: rgba(8,5,20,0.9);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px;
+  }
+  .star-safe-big {
+    background: #1a2a15; border: 2px solid #50e890; border-radius: 20px;
+    padding: 16px 28px; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .ss-title { font-size: 1.4rem; font-weight: 900; color: #50e890; }
+  .ss-desc { font-size: 0.88rem; font-weight: 700; color: #a0e890; text-align: center; }
+  .replay-cta-row { display: flex; gap: 12px; }
+  .btn-replay {
+    height: 52px; border-radius: 26px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer; padding: 0 24px;
+  }
+  .btn-no-replay {
+    height: 52px; border-radius: 26px;
+    background: #1a1440; border: 1.5px solid #2a1f60; color: #9080c0;
+    font-size: 0.9rem; font-weight: 700; cursor: pointer; padding: 0 20px;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 760px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
 </style>
 </head>
 <body>
-<div class="shimmer-bg"></div>
+
+<p class="page-title">play-session-complete-desktop-v3 · WonderQuest Design System</p>
 
 <div class="tabs">
-  <button class="tab active" onclick="show('p1')">1 · K–1 Complete (violet)</button>
-  <button class="tab" onclick="show('p0')">2 · Pre-K (gold)</button>
-  <button class="tab" onclick="show('p2')">3 · G2–3 (mint)</button>
-  <button class="tab" onclick="show('p3')">4 · G4–5 (coral)</button>
-  <button class="tab" onclick="show('replay')">5 · Replay State</button>
-  <button class="tab" onclick="show('spec')">6 · Spec</button>
+  <button class="tab-btn active" onclick="showTab('t1')">Normal Complete</button>
+  <button class="tab-btn" onclick="showTab('t2')">Perfect Session</button>
+  <button class="tab-btn" onclick="showTab('t3')">With New Badge</button>
+  <button class="tab-btn" onclick="showTab('t4')">Star-Safe Replay</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
 </div>
 
-<!-- TAB 1 — K–1 Complete -->
-<div id="p1" class="panel active">
-  <div class="confetti-layer" id="confetti1"></div>
-  <div class="hint"><strong>Tab 1 — Session Complete · K–1 · P1 Violet · Desktop</strong>
-    No accuracy %, no questions-right count. Reward chips only. Mascot message is forward-looking. "Play Again" is always safe — stars never decrease.
-    <code>POST /play/session/complete</code> · <code>GET /play/next-quest</code>
+<!-- ── Tab 1: Normal Complete ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Normal Complete — Desktop 2-Col Layout (K-1 Violet)</h4>
+    Left: headline + star tally + session segs (all filled) + CTAs.
+    Right: summary card (questions / stars / XP / streak / coach).
+    No accuracy %. Stars only. Forward-looking coach message.
   </div>
-  <div class="complete-shell">
-    <div class="trophy">🏆</div>
-    <div class="complete-heading" style="color:#c090ff;">Quest Complete! ⭐</div>
-    <div class="complete-sub">You explored Phonics Forest · Node 4</div>
-    <div class="reward-chips">
-      <div class="reward-chip rc-stars">⭐ +3 Stars</div>
-      <div class="reward-chip rc-xp">+40 XP</div>
-      <div class="reward-chip rc-badge">🏅 Badge Earned</div>
-      <div class="reward-chip rc-streak">🔥 Streak 5</div>
-    </div>
-    <div class="world-progress">
-      <div class="world-progress-fill" style="width:60%;"></div>
-    </div>
-    <div style="font-size:12px;font-family:'Sora',sans-serif;color:rgba(255,255,255,.5);margin-bottom:8px;">Phonics Forest — 60% explored</div>
-    <div class="mascot-msg">🦉 You found 3 new sight words today! The forest is getting bigger — keep going!</div>
-    <div class="cta-row">
-      <button class="btn-primary" onclick="document.getElementById('confetti1') && burstConfetti('confetti1','#9b72ff')">Next Quest →</button>
-      <button class="btn-ghost">🏠 Home</button>
-    </div>
-    <div style="font-size:12px;font-family:'Sora',sans-serif;color:rgba(255,255,255,.4);margin-top:16px;cursor:pointer;" onclick="document.getElementById('replayOverlay').classList.add('open')">🔄 Play Again</div>
-  </div>
-</div>
-
-<!-- TAB 2 — Pre-K Gold -->
-<div id="p0" class="panel">
-  <div class="hint"><strong>Tab 2 — Session Complete · Pre-K · P0 Gold · Desktop</strong>
-    Bigger trophy, simpler chips, larger CTA for pre-reader. No accuracy. "Play Again" prominent — zero penalty.
-  </div>
-  <div class="complete-shell">
-    <div style="font-size:100px;animation:spin-bounce .8s ease forwards;display:block;margin-bottom:8px;">🌟</div>
-    <div class="complete-heading" style="color:#ffd166;">You did it! 🎉</div>
-    <div class="complete-sub" style="font-size:18px;">Amazing work today!</div>
-    <div class="reward-chips">
-      <div class="reward-chip" style="background:linear-gradient(135deg,#2a1800,#3a2a00);color:#ffd166;border:1.5px solid #ffd16644;animation-delay:.2s;opacity:0;animation:chip-pop .4s ease .2s forwards;font-size:18px;">⭐ +2 Stars</div>
-      <div class="reward-chip" style="background:linear-gradient(135deg,#1a0a2a,#2a1a40);color:#c090ff;border:1.5px solid #c090ff44;animation-delay:.4s;opacity:0;animation:chip-pop .4s ease .4s forwards;font-size:18px;">🎨 Badge Earned!</div>
-      <div class="reward-chip" style="background:linear-gradient(135deg,#2a1500,#3a1500);color:#ff9040;border:1.5px solid #ff904044;animation-delay:.6s;opacity:0;animation:chip-pop .4s ease .6s forwards;font-size:18px;">🔥 Day Streak</div>
-    </div>
-    <div class="mascot-msg" style="font-size:16px;">🦊 You played all the shapes today! You're a shape explorer!</div>
-    <div class="cta-row">
-      <button class="btn-primary" style="background:#ffd166;color:#2a1800;font-size:18px;padding:16px 36px;">Keep Going! →</button>
-      <button class="btn-ghost" style="font-size:18px;padding:16px 36px;border-color:#ffd16644;color:#ffd166;">🔄 Play Again</button>
-    </div>
-  </div>
-</div>
-
-<!-- TAB 3 — G2–3 Mint -->
-<div id="p2" class="panel">
-  <div class="hint"><strong>Tab 3 — Session Complete · G2–3 · P2 Mint · Desktop</strong>
-    More reward chips visible. World progress shown. No accuracy metric.
-  </div>
-  <div class="complete-shell">
-    <div style="font-size:80px;animation:spin-bounce .8s ease forwards;display:block;margin-bottom:8px;">🏆</div>
-    <div class="complete-heading" style="color:#58e8c1;">Quest Complete! ✨</div>
-    <div class="complete-sub">Phonics Forest · Chapter 3 cleared</div>
-    <div class="reward-chips">
-      <div class="reward-chip" style="background:linear-gradient(135deg,#0a2a20,#1a3a28);color:#58e8c1;border:1.5px solid #58e8c144;animation-delay:.15s;opacity:0;animation:chip-pop .4s ease .15s forwards;">⭐ +4 Stars</div>
-      <div class="reward-chip rc-xp" style="animation-delay:.3s;">+55 XP</div>
-      <div class="reward-chip rc-streak" style="animation-delay:.45s;">🔥 Streak 8</div>
-      <div class="reward-chip" style="background:linear-gradient(135deg,#1a0a2a,#2a1a40);color:#c090ff;border:1.5px solid #c090ff44;animation-delay:.6s;opacity:0;animation:chip-pop .4s ease .6s forwards;">🗺️ Node Unlocked</div>
-    </div>
-    <div class="world-progress">
-      <div class="world-progress-fill" style="width:75%;background:linear-gradient(90deg,#58e8c1,#2c7a6e);"></div>
-    </div>
-    <div style="font-size:12px;font-family:'Sora',sans-serif;color:rgba(255,255,255,.5);margin-bottom:8px;">Phonics Forest — 75% explored</div>
-    <div class="mascot-msg" style="border-color:#58e8c144;background:rgba(88,232,193,.1);color:#a0f0e0;">🌿 You unlocked a new path in Phonics Forest — the adventure continues!</div>
-    <div class="cta-row">
-      <button class="btn-primary" style="background:#58e8c1;color:#0a2a20;">Next Challenge →</button>
-      <button class="btn-ghost" style="border-color:#58e8c144;color:#58e8c1;">Practice More</button>
-    </div>
-  </div>
-</div>
-
-<!-- TAB 4 — G4–5 Coral -->
-<div id="p3" class="panel">
-  <div class="hint"><strong>Tab 4 — Session Complete · G4–5 · P3 Coral · Desktop</strong>
-    Level-up moment included. XP/badge/streak chips. "Keep the streak" CTA.
-  </div>
-  <div class="complete-shell" style="position:relative;">
-    <div class="level-blast"></div>
-    <div style="font-size:80px;animation:spin-bounce .8s ease forwards;display:block;margin-bottom:8px;">🏆</div>
-    <div class="complete-heading" style="color:#ff7b6b;">Level Up! 🚀</div>
-    <div class="complete-sub">You reached Explorer Level 7 — Word Wizards</div>
-    <div class="reward-chips">
-      <div class="reward-chip" style="background:linear-gradient(135deg,#2a1800,#3a2a00);color:#ffd166;border:1.5px solid #ffd16644;animation-delay:.1s;opacity:0;animation:chip-pop .4s ease .1s forwards;">⭐ +5 Stars</div>
-      <div class="reward-chip rc-xp" style="animation-delay:.25s;">+70 XP</div>
-      <div class="reward-chip" style="background:linear-gradient(135deg,#2a0a00,#3a1a00);color:#ff7b6b;border:1.5px solid #ff7b6b44;animation-delay:.4s;opacity:0;animation:chip-pop .4s ease .4s forwards;">🏅 New Badge</div>
-      <div class="reward-chip rc-streak" style="animation-delay:.55s;">🔥 Streak 12</div>
-    </div>
-    <div class="world-progress">
-      <div class="world-progress-fill" style="width:88%;background:linear-gradient(90deg,#ff7b6b,#ff4040);"></div>
-    </div>
-    <div style="font-size:12px;font-family:'Sora',sans-serif;color:rgba(255,255,255,.5);margin-bottom:8px;">Word Wizards — 88% mastered</div>
-    <div class="mascot-msg" style="border-color:#ff7b6b44;background:rgba(255,123,107,.1);color:#ffb0a0;">🧙 You reached Level 7 — the hardest quests are unlocking now!</div>
-    <div class="cta-row">
-      <button class="btn-primary" style="background:#ff7b6b;color:#fff;">Keep the Streak →</button>
-      <button class="btn-ghost" style="border-color:#ff7b6b44;color:#ff7b6b;">🏠 Home</button>
-    </div>
-  </div>
-</div>
-
-<!-- TAB 5 — Replay State -->
-<div id="replay" class="panel">
-  <div class="hint"><strong>Tab 5 — Replay / Play Again State</strong>
-    Shows when child taps "Play Again" from the complete screen. Stars are always safe — replay cannot lose stars. Warm, zero-penalty language.
-  </div>
-  <div class="complete-shell" style="opacity:.5;pointer-events:none;">
-    <div class="trophy">🏆</div>
-    <div class="complete-heading" style="color:#c090ff;">Quest Complete! ⭐</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.4);font-family:'Sora',sans-serif;">Session complete screen (dimmed)</div>
-  </div>
-  <div style="position:relative;max-width:420px;margin:-200px auto 0;z-index:10;">
-    <div style="background:#1a1060;border:2px solid #9b72ff66;border-radius:20px;padding:32px;text-align:center;">
-      <div style="font-size:40px;margin-bottom:12px;">🔄</div>
-      <div style="font-size:22px;font-weight:900;color:#c090ff;margin-bottom:8px;">Ready to play again? ⭐</div>
-      <div style="font-size:13px;font-family:'Sora',sans-serif;color:rgba(255,255,255,.65);margin-bottom:16px;">Your stars are always safe — playing again never takes anything away.</div>
-      <div style="display:inline-flex;align-items:center;gap:6px;background:rgba(88,232,193,.15);border:1px solid #58e8c144;border-radius:10px;padding:6px 14px;font-size:12px;font-family:'Sora',sans-serif;color:#58e8c1;font-weight:700;margin-bottom:20px;">🔒 Your stars are safe!</div>
-      <div style="display:flex;gap:10px;justify-content:center;">
-        <button class="btn-primary" style="font-size:15px;padding:12px 24px;">Yes, play again!</button>
-        <button class="btn-ghost" style="font-size:15px;padding:12px 24px;">Back to home</button>
+  <div class="desktop-frame">
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="sc-band-chip">K-1 · Beginning Sounds</div>
+        <div class="sc-headline">Session<br>Complete! 🎉</div>
+        <div class="sc-sub">You finished all 5 questions today — great work!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count">7</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary">Continue →</button>
+          <button class="sc-cta-secondary">Play Again</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+7</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⚡ XP Earned</div><div class="sc-stat-val" style="color:#9b72ff;">+55 XP</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">🔥 Streak</div><div class="sc-stat-val">3 sessions 🔥</div></div>
+        </div>
+        <div class="sc-coach">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text">
+            <div class="sc-coach-name">Coach Leo</div>
+            You're getting really good at beginning sounds! Keep it up tomorrow!
+          </div>
+        </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- TAB 6 — Spec -->
-<div id="spec" class="panel">
-  <div class="hint" style="font-family:'Sora',sans-serif;"><strong>Tab 6 — Spec</strong>
-    Routes, reward chip triggers, confetti rules, band theme switching, replay safety rules, design tokens.
+<!-- ── Tab 2: Perfect Session ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Perfect Session — Gold Segs, Bonus Stars</h4>
+    Gold "Perfect!" badge above headline. Segs fill gold.
+    Confetti particles. Perfect bonus +3 ⭐ shown as separate stat row.
+    Primary CTA is gold gradient. No accuracy % shown.
   </div>
-  <div style="max-width:820px;margin:0 auto;font-family:'Sora',sans-serif;">
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">API Routes</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;">
-      <thead><tr style="background:#161d2a;"><th style="padding:7px 10px;text-align:left;color:#7a90a8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;">Method</th><th style="padding:7px 10px;text-align:left;color:#7a90a8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;">Route</th><th style="padding:7px 10px;text-align:left;color:#7a90a8;font-size:10px;text-transform:uppercase;letter-spacing:.05em;">Purpose</th></tr></thead>
-      <tbody>
-        <tr style="border-bottom:1px solid #1e2a3a;"><td style="padding:7px 10px;color:#c0ccd8;">POST</td><td style="padding:7px 10px;font-family:monospace;color:#c0ccd8;">/play/session/complete</td><td style="padding:7px 10px;color:#c0ccd8;">Submit session results, receive reward package</td></tr>
-        <tr><td style="padding:7px 10px;color:#c0ccd8;">GET</td><td style="padding:7px 10px;font-family:monospace;color:#c0ccd8;">/play/next-quest</td><td style="padding:7px 10px;color:#c0ccd8;">Recommended next quest for this child</td></tr>
-      </tbody>
-    </table>
+  <div class="desktop-frame">
+    <div class="confetti-field">
+      <div class="c-dot" style="width:6px;height:6px;background:#ffd166;left:5%;animation-duration:2.2s;animation-delay:0s;"></div>
+      <div class="c-dot" style="width:5px;height:5px;background:#9b72ff;left:20%;animation-duration:2.6s;animation-delay:0.3s;"></div>
+      <div class="c-dot" style="width:7px;height:4px;border-radius:2px;background:#58e8c1;left:38%;animation-duration:2.0s;animation-delay:0.1s;"></div>
+      <div class="c-dot" style="width:5px;height:5px;background:#ff7b6b;left:55%;animation-duration:2.4s;animation-delay:0.5s;"></div>
+      <div class="c-dot" style="width:6px;height:6px;background:#ffd166;left:70%;animation-duration:2.1s;animation-delay:0.2s;"></div>
+      <div class="c-dot" style="width:4px;height:4px;background:#9b72ff;left:84%;animation-duration:2.8s;animation-delay:0.7s;"></div>
+    </div>
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="perfect-badge">
+          <div class="perfect-icon">🏆</div>
+          <div class="perfect-text">Perfect Session!<span>Every single question — nailed it!</span></div>
+        </div>
+        <div class="sc-headline">Session<br>Complete! 🌟</div>
+        <div class="sc-sub">You got every question right — incredible!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count" style="color:#ffd166;">10</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div><div class="sc-seg done gold"></div>
+          <div class="sc-seg done gold"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">Continue →</button>
+          <button class="sc-cta-secondary">Play Again</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+10 ⭐</div></div>
+          <div class="sc-stat" style="border-color:#ffd16655;background:#2a1800;">
+            <div class="sc-stat-label" style="color:#ffe08a;">🏆 Perfect Bonus</div>
+            <div class="sc-stat-val" style="color:#ffd166;">+3 ⭐</div>
+          </div>
+          <div class="sc-stat"><div class="sc-stat-label">⚡ XP Earned</div><div class="sc-stat-val" style="color:#9b72ff;">+80 XP</div></div>
+        </div>
+        <div class="sc-coach" style="background:#2a1800;border-color:#ffd16633;">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text" style="color:#ffe8a0;">
+            <div class="sc-coach-name" style="color:#ffd166;">Coach Leo</div>
+            PERFECT! You got every one right — you're on 🔥 today!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Reward Chip Triggers</div>
-    <table style="width:100%;border-collapse:collapse;font-size:12px;margin-bottom:20px;">
-      <thead><tr style="background:#161d2a;"><th style="padding:7px 10px;text-align:left;color:#7a90a8;font-size:10px;text-transform:uppercase;">Chip</th><th style="padding:7px 10px;text-align:left;color:#7a90a8;font-size:10px;text-transform:uppercase;">Trigger</th></tr></thead>
-      <tbody>
-        <tr style="border-bottom:1px solid #1e2a3a;"><td style="padding:7px 10px;color:#ffd166;">⭐ Stars</td><td style="padding:7px 10px;color:#c0ccd8;">Always shown — stars earned this session</td></tr>
-        <tr style="border-bottom:1px solid #1e2a3a;"><td style="padding:7px 10px;color:#58e8c1;">XP</td><td style="padding:7px 10px;color:#c0ccd8;">Always shown — XP earned this session</td></tr>
-        <tr style="border-bottom:1px solid #1e2a3a;"><td style="padding:7px 10px;color:#c090ff;">🏅 Badge</td><td style="padding:7px 10px;color:#c0ccd8;">Only if badge unlocked this session</td></tr>
-        <tr style="border-bottom:1px solid #1e2a3a;"><td style="padding:7px 10px;color:#ff9040;">🔥 Streak</td><td style="padding:7px 10px;color:#c0ccd8;">Always shown — current streak count</td></tr>
-        <tr><td style="padding:7px 10px;color:#c090ff;">🗺️ Node</td><td style="padding:7px 10px;color:#c0ccd8;">Only if new node unlocked this session</td></tr>
-      </tbody>
-    </table>
+<!-- ── Tab 3: With New Badge ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>With New Badge — Badge Earned This Session</h4>
+    Badge earned chip shown as highlighted stat row in summary.
+    Primary CTA becomes "See Your Badge →" in gold gradient.
+    Badge preview: 36px badge icon + name in stat row.
+  </div>
+  <div class="desktop-frame">
+    <div class="sc-grid">
+      <div class="sc-hero">
+        <div class="sc-band-chip">K-1 · Beginning Sounds</div>
+        <div class="sc-headline">Session<br>Complete! 🎉</div>
+        <div class="sc-sub">You finished all 5 questions — and earned a badge!</div>
+        <div class="sc-star-big">
+          <div class="sc-star-emoji">⭐</div>
+          <div>
+            <div class="sc-star-count">9</div>
+            <div class="sc-star-label">Stars earned today</div>
+          </div>
+        </div>
+        <div class="sc-segs">
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div><div class="sc-seg done"></div>
+          <div class="sc-seg done"></div>
+        </div>
+        <div class="sc-cta-row">
+          <button class="sc-cta-primary" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a0c00;">See Your Badge →</button>
+          <button class="sc-cta-secondary">Continue</button>
+        </div>
+      </div>
+      <div class="sc-summary">
+        <div class="sc-summary-title">Session Summary</div>
+        <div class="sc-stat-list">
+          <div class="sc-stat"><div class="sc-stat-label">📝 Questions</div><div class="sc-stat-val">5 of 5</div></div>
+          <div class="sc-stat"><div class="sc-stat-label">⭐ Stars Earned</div><div class="sc-stat-val" style="color:#ffd166;">+9</div></div>
+          <div class="sc-stat" style="border-color:#ffd16655;background:linear-gradient(135deg,#2a1800,#1a1200);">
+            <div class="sc-stat-label" style="color:#ffe08a;">🏅 New Badge!</div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:36px;height:36px;border-radius:8px;background:linear-gradient(135deg,#3a2000,#1a1000);border:1.5px solid #ffd166;display:flex;align-items:center;justify-content:center;font-size:1.2rem;">🦁</div>
+              <div style="font-size:0.8rem;font-weight:900;color:#ffd166;">Comeback Kid</div>
+            </div>
+          </div>
+        </div>
+        <div class="sc-coach">
+          <div class="sc-coach-avatar">🦁</div>
+          <div class="sc-coach-text">
+            <div class="sc-coach-name">Coach Leo</div>
+            You earned a rare badge! Tap "See Your Badge" to check it out!
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
-    <div style="font-size:11px;font-weight:700;color:#7a90a8;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">Rules</div>
-    <div style="background:#1e2a3a;border-left:3px solid #ffd166;border-radius:0 6px 6px 0;padding:7px 12px;margin-bottom:6px;font-size:12px;color:#c0ccd8;">NEVER show accuracy %, questions-right count, or grade comparisons</div>
-    <div style="background:#1e2a3a;border-left:3px solid #ffd166;border-radius:0 6px 6px 0;padding:7px 12px;margin-bottom:6px;font-size:12px;color:#c0ccd8;">Replay is always safe — stars cannot decrease from playing again</div>
-    <div style="background:#1e2a3a;border-left:3px solid #ffd166;border-radius:0 6px 6px 0;padding:7px 12px;margin-bottom:6px;font-size:12px;color:#c0ccd8;">Confetti: 16 CSS-only dots, radiate from center via --tx/--ty vars, no JS animation library</div>
-    <div style="background:#1e2a3a;border-left:3px solid #ffd166;border-radius:0 6px 6px 0;padding:7px 12px;font-size:12px;color:#c0ccd8;">Band theme: P0=gold #ffd166 / P1=violet #9b72ff / P2=mint #58e8c1 / P3=coral #ff7b6b</div>
+<!-- ── Tab 4: Star-Safe Replay ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Star-Safe Replay Overlay</h4>
+    When child taps "Play Again," overlay confirms stars are protected.
+    Star-safe badge prominently shown. Two CTAs: "Yes, replay" / "No thanks."
+    Stars NEVER lost by replaying — overlay informs, not warns.
+  </div>
+  <div class="desktop-frame" style="position:relative;">
+    <div style="filter:brightness(0.3);">
+      <div class="sc-grid">
+        <div class="sc-hero">
+          <div class="sc-headline">Session<br>Complete! 🎉</div>
+          <div class="sc-star-big"><div class="sc-star-emoji">⭐</div><div><div class="sc-star-count">7</div></div></div>
+        </div>
+        <div class="sc-summary"><div class="sc-summary-title">Session Summary</div></div>
+      </div>
+    </div>
+    <div class="replay-overlay">
+      <div class="star-safe-big">
+        <div class="ss-title">🛡 Your stars are safe!</div>
+        <div class="ss-desc">Playing again won't reduce your ⭐ 7 stars.<br>You keep every star you've earned.</div>
+      </div>
+      <div style="font-size:0.9rem;font-weight:700;color:#9080c0;text-align:center;">Ready to practice the same questions again?</div>
+      <div class="replay-cta-row">
+        <button class="btn-replay">Yes, let's play again!</button>
+        <button class="btn-no-replay">No thanks</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Desktop Layout</h4>
+      <ul>
+        <li>Frame: max-width 960px, border-radius 24px</li>
+        <li>Grid: <code>grid-template-columns: 1fr 380px</code></li>
+        <li>Left hero min-height: 480px (right col matches)</li>
+        <li>Right summary bg: <code>#0e0a28</code> (slightly darker)</li>
+        <li>Border between cols: <code>1px solid #1e1850</code></li>
+        <li>Session segs: 8px height (larger than mobile 6px)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star-Safe Rules</h4>
+      <ul>
+        <li>Stars NEVER decrease on any action on this screen</li>
+        <li>"Play Again" triggers star-safe overlay before replay</li>
+        <li>Star counter shows POST-session total (already credited)</li>
+        <li class="dont">❌ Never say "You got X/5 correct" — stars only</li>
+        <li class="dont">❌ Never show accuracy % anywhere on this screen</li>
+        <li class="dont">❌ Never show wrong-answer count in summary</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Summary Card Rules</h4>
+      <ul>
+        <li>Stats: Questions (always "5 of 5"), Stars, XP, Streak</li>
+        <li>No "wrong answers" stat ever</li>
+        <li>Perfect bonus: separate highlighted stat row</li>
+        <li>Badge earned: separate highlighted stat row (gold tint)</li>
+        <li>Coach: band-specific, positive, forward-looking</li>
+        <li>CTA changes when badge earned: "See Your Badge →" primary</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Band Variants</h4>
+      <ul>
+        <li>Band chip: Pre-K gold, K-1 violet, G2-3 mint, G4-5 coral</li>
+        <li>Segs fill: band accent (gold on perfect session always)</li>
+        <li>Primary CTA gradient: band-specific</li>
+        <li>Perfect session: primary CTA always gold regardless of band</li>
+        <li>Badge earned CTA: always gold (badge is special)</li>
+      </ul>
+    </div>
   </div>
 </div>
 
 <script>
-function show(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   event.target.classList.add('active');
 }
-function burstConfetti(layerId, color) {
-  const layer = document.getElementById(layerId);
-  if (!layer) return;
-  layer.innerHTML = '';
-  const colors = [color, '#ffd166', '#58e8c1', '#ff7b6b', '#ffffff'];
-  for (let i = 0; i < 16; i++) {
-    const dot = document.createElement('div');
-    dot.className = 'confetti-dot';
-    const angle = (i / 16) * 360;
-    const dist = 120 + Math.random() * 80;
-    const tx = Math.cos(angle * Math.PI / 180) * dist + 'px';
-    const ty = Math.sin(angle * Math.PI / 180) * dist + 'px';
-    dot.style.cssText = `--tx:${tx};--ty:${ty};background:${colors[i%colors.length]};animation-delay:${i*0.04}s;`;
-    layer.appendChild(dot);
-  }
-}
-document.addEventListener('DOMContentLoaded', () => burstConfetti('confetti1', '#9b72ff'));
 </script>
 </body>
 </html>

@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Home Practice Planner — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Plan card shell ─────────────────────────────────────────────── */
+.plan-card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:520px;display:inline-block;vertical-align:top}
+.plan-h{font-size:17px;font-weight:800;color:#1a1440;margin-bottom:4px}
+.plan-sub{font-size:13px;color:#888;margin-bottom:18px}
+
+/* ── Activity card ────────────────────────────────────────────────── */
+.activity-card{border:2px solid #ede9f8;border-radius:14px;padding:16px;margin-bottom:10px;cursor:pointer;transition:border-color .15s,background .15s}
+.activity-card:hover{border-color:#9b72ff;background:#faf8ff}
+.activity-card.selected{border-color:#9b72ff;background:#f8f4ff}
+.activity-header{display:flex;align-items:flex-start;gap:12px}
+.activity-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.activity-name{font-size:14px;font-weight:700;color:#1a1440;margin-bottom:2px}
+.activity-desc{font-size:12px;color:#666;line-height:1.5}
+.activity-skill{font-size:11px;font-weight:700;color:#9b72ff;margin-top:4px}
+.activity-duration{font-size:10px;color:#aaa;font-weight:600;margin-left:auto;flex-shrink:0}
+.activity-check{width:20px;height:20px;border-radius:50%;border:2px solid #ddd;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;margin-left:8px;transition:all .15s}
+.activity-card.selected .activity-check{border-color:#9b72ff;background:#9b72ff;color:#fff}
+
+/* ── Subject filter chips ─────────────────────────────────────────── */
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid #ede9f8;background:#fff;color:#555;transition:all .15s}
+.chip.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+
+/* ── Info box ─────────────────────────────────────────────────────── */
+.info-violet{background:#f5f0ff;border-left:4px solid #9b72ff;border-radius:0 10px 10px 0;padding:12px 14px;font-size:12px;color:#6d28d9;line-height:1.5;margin-bottom:14px}
+
+/* ── Summary row ──────────────────────────────────────────────────── */
+.summary-row{display:flex;gap:8px;background:#f8f6ff;border-radius:12px;padding:12px 14px;margin-top:14px;flex-wrap:wrap}
+.sum-item{font-size:12px;color:#555;font-weight:600}
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+.btn-primary{width:100%;padding:14px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-top:14px;transition:background .15s}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-home-practice-planner-v3.html</strong><br>
+  At-home supplementary activity planner — distinct from parent-practice-planner-v2 (which is the in-app session schedule).<br>
+  This component suggests 2–5 offline/at-home activities per week tied to the child's current support areas (skills building toward mastery).<br>
+  <strong>Activities are curated per skill-band</strong> — not AI generated per child. Activities require no special materials unless stated.<br>
+  Parent can "save" activities to a checklist. Completion is manually checked off — not tracked in the system.<br>
+  Shown in: parent weekly report "Suggestions" tab and parent-support-areas-card "See activity suggestions" link.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('planner')">Home Planner</button>
+  <button class="tab-btn" onclick="showTab('checklist')">Saved Checklist</button>
+  <button class="tab-btn" onclick="showTab('empty')">No activities</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Main Planner ───────────────────────────────────────────────── -->
+<div id="tab-planner" class="screen active">
+  <p class="section-title">At-home activity suggestions (based on Maya's support areas)</p>
+  <div class="plan-card">
+    <div class="plan-h">At-home practice</div>
+    <div class="plan-sub">Ideas to support Maya's learning this week — no prep needed</div>
+
+    <div class="info-violet">
+      These suggestions are tied to <strong>Blending sounds</strong> and <strong>Skip counting</strong> — skills Maya is building toward this week.
+    </div>
+
+    <!-- Filter chips -->
+    <div class="filter-chips">
+      <span class="chip active">All</span>
+      <span class="chip">🌿 Reading</span>
+      <span class="chip">➗ Math</span>
+      <span class="chip">⏱ 5 min</span>
+      <span class="chip">⏱ 10 min</span>
+    </div>
+
+    <!-- Activities -->
+    <div class="activity-card selected">
+      <div class="activity-header">
+        <div class="activity-icon" style="background:#e6fef8">📖</div>
+        <div>
+          <div class="activity-name">Sound safari walk</div>
+          <div class="activity-desc">On your next walk, point to 5 things and sound out the first letter together: "tree → /t/". Then blend: "t-r-ee!"</div>
+          <div class="activity-skill">Blending sounds · Reading</div>
+        </div>
+        <div class="activity-duration">5 min</div>
+        <div class="activity-check">✓</div>
+      </div>
+    </div>
+
+    <div class="activity-card">
+      <div class="activity-header">
+        <div class="activity-icon" style="background:#e6fef8">📚</div>
+        <div>
+          <div class="activity-name">Read-aloud pause game</div>
+          <div class="activity-desc">Read any picture book and pause on unfamiliar words. Ask Maya "what sound does it start with?" before reading it aloud.</div>
+          <div class="activity-skill">Blending sounds · Reading</div>
+        </div>
+        <div class="activity-duration">10 min</div>
+        <div class="activity-check"></div>
+      </div>
+    </div>
+
+    <div class="activity-card selected">
+      <div class="activity-header">
+        <div class="activity-icon" style="background:#f0ebff">🔢</div>
+        <div>
+          <div class="activity-name">Skip count the stairs</div>
+          <div class="activity-desc">Every time you climb stairs together, count by 2s: "2, 4, 6, 8…" — first race to 20. Mix in 5s when she's ready.</div>
+          <div class="activity-skill">Skip counting · Math</div>
+        </div>
+        <div class="activity-duration">2 min</div>
+        <div class="activity-check">✓</div>
+      </div>
+    </div>
+
+    <div class="activity-card">
+      <div class="activity-header">
+        <div class="activity-icon" style="background:#f0ebff">🛒</div>
+        <div>
+          <div class="activity-name">Grocery skip count</div>
+          <div class="activity-desc">At the shop, ask Maya to count items in groups of 2 or 5. "How many apples? Count by 2s!"</div>
+          <div class="activity-skill">Skip counting · Math</div>
+        </div>
+        <div class="activity-duration">5 min</div>
+        <div class="activity-check"></div>
+      </div>
+    </div>
+
+    <div class="activity-card">
+      <div class="activity-header">
+        <div class="activity-icon" style="background:#fffbf0">🎵</div>
+        <div>
+          <div class="activity-name">Skip count song</div>
+          <div class="activity-desc">Look up a "skip counting by 2s" song on YouTube (Numberblocks, etc.) — 3 minutes of silly singing beats a worksheet any day!</div>
+          <div class="activity-skill">Skip counting · Math</div>
+        </div>
+        <div class="activity-duration">3 min</div>
+        <div class="activity-check"></div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="summary-row">
+      <span class="sum-item">✅ 2 saved · 3 not saved</span>
+      <span class="sum-item">·</span>
+      <span class="sum-item">⏱ ~7 min total</span>
+    </div>
+
+    <button class="btn-primary">Save selected to checklist</button>
+  </div>
+</div>
+
+<!-- ── Saved Checklist ─────────────────────────────────────────────── -->
+<div id="tab-checklist" class="screen">
+  <p class="section-title">Saved checklist — this week's activities</p>
+  <div class="plan-card" style="max-width:440px">
+    <div class="plan-h">This week's checklist</div>
+    <div class="plan-sub">Mar 17–23 · For Maya</div>
+
+    <!-- Checklist items -->
+    <div style="margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f0ff">
+        <div style="width:22px;height:22px;border-radius:6px;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:#fff">✓</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a1440;text-decoration:line-through;opacity:.6">Sound safari walk</div>
+          <div style="font-size:11px;color:#aaa">Reading · 5 min · Done Mon</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid #f5f0ff">
+        <div style="width:22px;height:22px;border-radius:6px;background:#22c55e;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;color:#fff">✓</div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a1440;text-decoration:line-through;opacity:.6">Skip count the stairs</div>
+          <div style="font-size:11px;color:#aaa">Math · 2 min · Done Tue</div>
+        </div>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 0">
+        <div style="width:22px;height:22px;border-radius:6px;border:2px solid #ddd;flex-shrink:0;cursor:pointer"></div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:#1a1440">Read-aloud pause game</div>
+          <div style="font-size:11px;color:#aaa">Reading · 10 min · Not done yet</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#f0fdf4;border-radius:10px;padding:10px 14px;font-size:12px;color:#15803d;line-height:1.5">
+      🎉 2 of 3 activities done this week! Great support for Maya's learning.
+    </div>
+
+    <div style="margin-top:14px">
+      <a style="font-size:12px;color:#9b72ff;font-weight:700;cursor:pointer;text-decoration:none">+ Add more activities</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── No Activities ───────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">No activities — all skills strong this week</p>
+  <div class="plan-card" style="max-width:400px">
+    <div class="plan-h">At-home practice</div>
+    <div class="plan-sub">Suggestions based on support areas</div>
+    <div style="text-align:center;padding:32px 16px;color:#aaa">
+      <div style="font-size:40px;margin-bottom:10px">🌟</div>
+      <div style="font-size:14px;font-weight:700;color:#1a1440;margin-bottom:6px">Maya's looking strong this week!</div>
+      <div style="font-size:12px;color:#888;line-height:1.5">No specific support areas to suggest activities for right now. Check back as Maya explores new skills.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-home-practice-planner-v3.html<br>
+      <strong>Distinct from:</strong> parent-practice-planner-v2 (which is the in-app session schedule/limit settings).<br>
+      This is the offline supplementary activity planner — curated tips tied to support areas.
+    </div>
+    <h2 class="spec-h2">How Activities are Selected</h2>
+    <p class="spec-p">1. Fetch child's current support_areas (max 3 skills with mastery &lt; 65).</p>
+    <p class="spec-p">2. Query activity_library WHERE skill_id IN (support_area_skill_ids) AND band_id = child.band_id ORDER BY rating DESC LIMIT 5.</p>
+    <p class="spec-p">3. Parent sees 2–5 suggestions; can save any to their weekly checklist.</p>
+    <h2 class="spec-h2">Activity Library Requirements</h2>
+    <table class="spec-table">
+      <tr><th>Requirement</th><th>Detail</th></tr>
+      <tr><td>Free / no materials</td><td>Default filter. Activities requiring materials are tagged and shown last.</td></tr>
+      <tr><td>Short duration</td><td>Under 10 minutes by default; 15+ minute activities tagged "longer".</td></tr>
+      <tr><td>Positive framing</td><td>Never "drill" or "test" — always "play", "explore", "discover".</td></tr>
+      <tr><td>Band-appropriate</td><td>P0 Pre-K / P1 K–1 / P2 G2–3 / P3 G4–5 activity sets separately curated.</td></tr>
+      <tr><td>Skill-linked</td><td>Each activity maps to 1–2 skill IDs for filtering.</td></tr>
+    </table>
+    <h2 class="spec-h2">Checklist Tracking</h2>
+    <p class="spec-p">Checklist is parent-only, manually checked. Items do NOT sync to child's in-app progress. No gamification on the parent side for checklist completion. Weekly summary note is celebratory, not a score.</p>
+    <h2 class="spec-h2">Difference from parent-practice-planner-v2</h2>
+    <table class="spec-table">
+      <tr><th>Component</th><th>What it configures</th></tr>
+      <tr><td>parent-practice-planner-v2</td><td>In-app session schedule: which days, how many sessions, reminder push times</td></tr>
+      <tr><td>parent-home-practice-planner-v3</td><td>Offline at-home activity suggestions tied to current support areas — parent checklist</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

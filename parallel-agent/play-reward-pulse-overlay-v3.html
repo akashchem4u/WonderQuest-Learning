@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-reward-pulse-overlay-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-reward-pulse-overlay-v3.html       ║
+     ║                                                              ║
+     ║  Full-screen overlay for special reward moments:            ║
+     ║  • Boss node correct                                         ║
+     ║  • Streak milestone (5-in-a-row)                            ║
+     ║  • Session complete bonus                                    ║
+     ║                                                              ║
+     ║  NOT shown on every correct answer — reserved for moments    ║
+     ║  that feel genuinely special. Normal correct = card turns    ║
+     ║  green + star bump (play-correct-state-v3.html).            ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Boss Correct  : gold burst, boss node completed     ║
+     ║  Tab 2 — Streak 5      : violet chain burst, "On fire!"      ║
+     ║  Tab 3 — Session Bonus : confetti, all 5 segs filled         ║
+     ║  Tab 4 — Star Milestone: first 10 stars / level up           ║
+     ║  Tab 5 — Spec          : trigger rules, animations           ║
+     ║                                                              ║
+     ║  CRITICAL RULES                                              ║
+     ║  • Overlay dismisses on tap OR after 2.5s auto              ║
+     ║  • Never blocks child > 3s (auto-dismiss safety)            ║
+     ║  • Star counter always visible (top of overlay)             ║
+     ║  • Stars still star-safe (never decrease in overlay)        ║
+     ║  • Coach celebrates but does NOT speak during overlay        ║
+     ║    (speech bubble only, no TTS during reward pulse)          ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  /* Phone frame */
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  /* ── Base question under overlay (dimmed) ── */
+  .q-behind {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; padding: 20px 16px 16px; gap: 14px;
+    filter: brightness(0.3) blur(1px);
+  }
+  .topbar { display: flex; align-items: center; justify-content: space-between; }
+  .progress-segs { display: flex; gap: 4px; flex: 1; }
+  .seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .seg.filled { background: #9b72ff; }
+  .seg.gold-fill { background: #ffd166; }
+  .star-badge-behind {
+    background: #1a1440; border: 1.5px solid #9b72ff55; border-radius: 20px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px;
+  }
+  .q-hero-behind {
+    background: #1a1440; border: 2px solid #9b72ff66; border-radius: 16px; padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .q-choices-behind { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .ac-behind {
+    background: #1a1440; border: 2px solid #2a1f60; border-radius: 14px;
+    height: 76px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.8rem; font-weight: 900; color: #e8e0ff;
+  }
+  .ac-behind.correct-behind { border-color: #50e890; background: #0d2018; }
+
+  /* ── Overlay base ── */
+  .reward-overlay {
+    position: absolute; inset: 0; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 16px; padding: 20px;
+  }
+
+  /* Tap-to-continue hint */
+  .tap-hint {
+    position: absolute; bottom: 36px; left: 0; right: 0;
+    text-align: center; font-size: 0.78rem; font-weight: 700; color: rgba(255,255,255,0.45);
+    animation: tap-hint-pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes tap-hint-pulse { 0%,100%{opacity:0.45;} 50%{opacity:0.8;} }
+
+  /* Star counter (always visible at top of overlay) */
+  .overlay-star {
+    position: absolute; top: 24px; right: 20px;
+    background: rgba(10,5,30,0.75);
+    border: 1.5px solid #9b72ff66; border-radius: 20px;
+    padding: 5px 12px; font-size: 0.9rem; font-weight: 900; color: #c0a8ff;
+    animation: star-bump 0.5s 0.2s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes star-bump {
+    from { transform: scale(0.7); opacity: 0; }
+    60% { transform: scale(1.3); }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  /* ── Boss correct overlay — gold ── */
+  .boss-bg {
+    background: radial-gradient(ellipse at center, rgba(60,40,0,0.95) 0%, rgba(16,11,46,0.98) 70%);
+  }
+
+  /* Burst rings */
+  .burst-ring {
+    position: absolute; border-radius: 50%; pointer-events: none;
+    animation: burst-out 0.8s ease-out forwards;
+    opacity: 0;
+  }
+  @keyframes burst-out {
+    0%  { transform: scale(0.3); opacity: 0.7; }
+    100%{ transform: scale(2.8); opacity: 0; }
+  }
+  .br1 { width: 160px; height: 160px; border: 2px solid #ffd16688; animation-delay: 0s; }
+  .br2 { width: 160px; height: 160px; border: 2px solid #ff9b2044; animation-delay: 0.15s; }
+  .br3 { width: 160px; height: 160px; border: 2px solid #ffd16633; animation-delay: 0.3s; }
+
+  /* Hero emoji */
+  .reward-hero {
+    font-size: 5rem; position: relative; z-index: 2;
+    animation: hero-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards;
+  }
+  @keyframes hero-pop {
+    from { transform: scale(0.3); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    to   { transform: scale(1); }
+  }
+
+  .reward-title {
+    font-size: 1.6rem; font-weight: 900; color: #fff; text-align: center; position: relative; z-index: 2;
+    animation: fade-up 0.4s 0.2s ease-out both;
+  }
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .reward-sub {
+    font-size: 0.95rem; font-weight: 700; text-align: center; position: relative; z-index: 2;
+    animation: fade-up 0.4s 0.35s ease-out both;
+  }
+
+  /* Star chip */
+  .reward-chip {
+    border-radius: 24px; padding: 8px 24px;
+    font-size: 1rem; font-weight: 900; color: #fff;
+    position: relative; z-index: 2;
+    animation: chip-pop 0.45s 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  @keyframes chip-pop {
+    from { transform: scale(0.4); opacity: 0; }
+    60% { transform: scale(1.15); }
+    to { transform: scale(1); opacity: 1; }
+  }
+
+  .gold-chip { background: linear-gradient(135deg, #ffd166, #f0a000); color: #1a0c00; }
+  .violet-chip { background: linear-gradient(135deg, #9b72ff, #7248e8); }
+  .mint-chip { background: linear-gradient(135deg, #58e8c1, #30b090); color: #051a14; }
+
+  /* Coach celebrate row */
+  .coach-celebrate {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(26,16,64,0.85);
+    border: 1.5px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 10px 14px;
+    position: relative; z-index: 2; width: 100%;
+    animation: fade-up 0.4s 0.55s ease-out both;
+  }
+  .coach-avatar { font-size: 1.6rem; flex-shrink: 0; }
+  .coach-speech { font-size: 0.88rem; font-weight: 700; line-height: 1.4; }
+
+  /* ── Streak 5 — violet ── */
+  .streak-bg {
+    background: radial-gradient(ellipse at center, rgba(30,10,80,0.95) 0%, rgba(16,11,46,0.98) 70%);
+  }
+  .streak-chain {
+    display: flex; gap: 6px; z-index: 2;
+    animation: fade-up 0.4s 0.1s ease-out both;
+  }
+  .streak-dot {
+    width: 14px; height: 14px; border-radius: 50%; background: #9b72ff;
+    animation: dot-pop 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .streak-dot:nth-child(1){animation-delay:0.05s;}
+  .streak-dot:nth-child(2){animation-delay:0.12s;}
+  .streak-dot:nth-child(3){animation-delay:0.19s;}
+  .streak-dot:nth-child(4){animation-delay:0.26s;}
+  .streak-dot:nth-child(5){animation-delay:0.33s;background:#ffd166;}
+  @keyframes dot-pop { from{transform:scale(0);}60%{transform:scale(1.3);}to{transform:scale(1);} }
+
+  /* ── Session bonus — confetti ── */
+  .session-bg {
+    background: radial-gradient(ellipse at center, rgba(10,30,50,0.95) 0%, rgba(16,11,46,0.98) 70%);
+  }
+  .confetti-field {
+    position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 1;
+  }
+  .confetti-dot {
+    position: absolute; width: 6px; height: 6px; border-radius: 50%;
+    animation: confetti-fall linear infinite;
+  }
+  @keyframes confetti-fall {
+    0%   { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(700px) rotate(720deg); opacity: 0; }
+  }
+
+  /* ── Level-up milestone ── */
+  .level-bg {
+    background: radial-gradient(ellipse at center, rgba(20,20,60,0.95) 0%, rgba(16,11,46,0.98) 70%);
+  }
+  .level-badge {
+    width: 100px; height: 100px; border-radius: 50%;
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    font-size: 2.5rem;
+    box-shadow: 0 0 0 8px rgba(155,114,255,0.15), 0 0 0 16px rgba(155,114,255,0.06);
+    animation: hero-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    position: relative; z-index: 2;
+  }
+  .xp-bar-wrap {
+    width: 100%; z-index: 2;
+    animation: fade-up 0.4s 0.4s ease-out both;
+  }
+  .xp-bar-label { font-size: 0.72rem; font-weight: 700; color: #8070b0; margin-bottom: 4px; display: flex; justify-content: space-between; }
+  .xp-track { height: 10px; background: #1a1440; border-radius: 5px; overflow: hidden; }
+  .xp-fill {
+    height: 100%; background: linear-gradient(90deg, #9b72ff, #ffd166);
+    border-radius: 5px;
+    animation: xp-grow 0.6s 0.5s ease-out both;
+    transform-origin: left;
+  }
+  @keyframes xp-grow { from{width:0} to{width:78%} }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-reward-pulse-overlay-v3 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Boss Correct</button>
+  <button class="tab-btn" onclick="showTab('t2')">Streak 5</button>
+  <button class="tab-btn" onclick="showTab('t3')">Session Bonus</button>
+  <button class="tab-btn" onclick="showTab('t4')">Star Milestone</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Boss Correct ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Boss Correct — Gold Burst</h4>
+    Shown when child answers the boss question (last question, hard/milestone).
+    Gold radial gradient bg, 3 burst rings, big ⭐ hero emoji.
+    "+2 ⭐ Boss!" chip (boss earns double stars). Coach celebrates inline.
+    Auto-dismiss after 2.5s or on tap.
+  </div>
+  <div class="phone">
+    <!-- Dimmed question behind -->
+    <div class="q-behind">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg gold-fill"></div>
+        </div>
+        <div class="star-badge-behind">⭐ 8</div>
+      </div>
+      <div class="q-hero-behind"><div style="font-size:2.5rem">🐝</div></div>
+      <div class="q-choices-behind">
+        <div class="ac-behind correct-behind">B</div>
+        <div class="ac-behind">S</div>
+        <div class="ac-behind">D</div>
+        <div class="ac-behind">R</div>
+      </div>
+    </div>
+
+    <!-- Gold overlay -->
+    <div class="reward-overlay boss-bg">
+      <div class="burst-ring br1"></div>
+      <div class="burst-ring br2"></div>
+      <div class="burst-ring br3"></div>
+
+      <!-- Star counter top-right -->
+      <div class="overlay-star" style="border-color:#ffd16666;color:#ffe08a;">⭐ 10</div>
+
+      <div class="reward-hero">⭐</div>
+      <div class="reward-title" style="color:#ffd166;">Boss Complete!</div>
+      <div class="reward-sub" style="color:#ffe8a0;">That was the hardest one — you nailed it!</div>
+      <div class="reward-chip gold-chip">+2 ⭐ Boss Bonus!</div>
+
+      <div class="coach-celebrate" style="border-color:#ffd16633;">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-speech" style="color:#ffe8a0;">You were amazing on that one! 🎉</div>
+      </div>
+
+      <div class="tap-hint">Tap to continue</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Streak 5 ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Streak 5 — "On Fire!" Violet Burst</h4>
+    5 correct answers in a row. Violet radial gradient.
+    5-dot chain animates in (last dot gold). Flame hero emoji.
+    "+1 ⭐ Streak!" chip. No extra stars beyond normal — chip is motivational.
+    Coach: "You're on a roll!" Auto-dismiss 2.5s or tap.
+  </div>
+  <div class="phone">
+    <div class="q-behind">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div>
+        </div>
+        <div class="star-badge-behind">⭐ 9</div>
+      </div>
+      <div class="q-hero-behind"><div style="font-size:2.5rem">🔢</div></div>
+      <div class="q-choices-behind">
+        <div class="ac-behind">6</div><div class="ac-behind correct-behind">7</div>
+        <div class="ac-behind">8</div><div class="ac-behind">5</div>
+      </div>
+    </div>
+    <div class="reward-overlay streak-bg">
+      <div class="overlay-star">⭐ 10</div>
+      <!-- Burst rings violet -->
+      <div class="burst-ring" style="width:160px;height:160px;border-color:#9b72ff88;animation-delay:0s;"></div>
+      <div class="burst-ring" style="width:160px;height:160px;border-color:#9b72ff44;animation-delay:0.15s;"></div>
+
+      <div class="streak-chain">
+        <div class="streak-dot"></div><div class="streak-dot"></div>
+        <div class="streak-dot"></div><div class="streak-dot"></div>
+        <div class="streak-dot"></div>
+      </div>
+
+      <div class="reward-hero" style="animation-delay:0.15s;">🔥</div>
+      <div class="reward-title">On Fire!</div>
+      <div class="reward-sub" style="color:#c9a8ff;">5 in a row — you're unstoppable!</div>
+      <div class="reward-chip violet-chip">🔥 Streak Bonus!</div>
+
+      <div class="coach-celebrate">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-speech" style="color:#d0c8f8;">You're on a roll! Keep it going! 🚀</div>
+      </div>
+      <div class="tap-hint">Tap to continue</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Session Bonus ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Session Bonus — All 5 Questions Complete</h4>
+    Shown after completing all 5 session questions (not every session — only when a bonus condition is met).
+    Confetti particles, trophy emoji, green "Session Complete!" chip.
+    Usually leads directly to session complete screen after 2.5s.
+    Stars counter shows final tally.
+  </div>
+  <div class="phone">
+    <div class="q-behind">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div>
+        </div>
+        <div class="star-badge-behind">⭐ 12</div>
+      </div>
+    </div>
+    <div class="reward-overlay session-bg">
+      <!-- Confetti -->
+      <div class="confetti-field">
+        <div class="confetti-dot" style="background:#ffd166;left:8%;animation-duration:2.1s;animation-delay:0s;"></div>
+        <div class="confetti-dot" style="background:#9b72ff;left:18%;animation-duration:1.8s;animation-delay:0.2s;"></div>
+        <div class="confetti-dot" style="background:#58e8c1;left:30%;animation-duration:2.3s;animation-delay:0.1s;"></div>
+        <div class="confetti-dot" style="background:#ff7b6b;left:45%;animation-duration:1.9s;animation-delay:0.35s;"></div>
+        <div class="confetti-dot" style="background:#ffd166;left:60%;animation-duration:2.0s;animation-delay:0.05s;"></div>
+        <div class="confetti-dot" style="background:#9b72ff;left:72%;animation-duration:2.2s;animation-delay:0.28s;"></div>
+        <div class="confetti-dot" style="background:#58e8c1;left:85%;animation-duration:1.85s;animation-delay:0.15s;"></div>
+        <div class="confetti-dot" style="background:#ff7b6b;left:92%;animation-duration:2.05s;animation-delay:0.4s;"></div>
+        <div class="confetti-dot" style="width:8px;height:8px;background:#ffd166;left:25%;animation-duration:2.4s;animation-delay:0.6s;"></div>
+        <div class="confetti-dot" style="width:5px;height:5px;background:#9b72ff;left:55%;animation-duration:1.7s;animation-delay:0.8s;"></div>
+        <div class="confetti-dot" style="width:7px;height:3px;border-radius:2px;background:#58e8c1;left:70%;animation-duration:2.15s;animation-delay:0.3s;"></div>
+      </div>
+
+      <div class="overlay-star" style="border-color:#50e89044;color:#50e890;">⭐ 12</div>
+
+      <div class="reward-hero" style="animation-delay:0.05s;">🏆</div>
+      <div class="reward-title" style="color:#fff;">Session Complete!</div>
+      <div class="reward-sub" style="color:#b0e8d0;">You finished all 5 questions — amazing!</div>
+      <div class="reward-chip" style="background:linear-gradient(135deg,#50e890,#30b060);color:#051a10;">✓ All 5 Done!</div>
+
+      <div class="coach-celebrate" style="border-color:#50e89033;background:rgba(10,30,20,0.85);">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-speech" style="color:#a0e8b8;">Awesome session! See you next time! 🎊</div>
+      </div>
+      <div class="tap-hint">Tap to see your results</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Star Milestone ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Star Milestone — First 10 Stars / Level Up</h4>
+    Triggered when child crosses a star milestone (10, 25, 50, 100…).
+    Level badge with emoji, XP bar fills in. "You leveled up!" message.
+    Chip shows new level name. XP bar animation: width 0 → 78% (partial next level).
+    Leads to level-up overlay screen after tap.
+  </div>
+  <div class="phone">
+    <div class="q-behind">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div><div class="seg filled"></div>
+          <div class="seg filled"></div>
+        </div>
+        <div class="star-badge-behind">⭐ 10</div>
+      </div>
+    </div>
+    <div class="reward-overlay level-bg">
+      <div class="overlay-star">⭐ 10</div>
+      <!-- Burst rings -->
+      <div class="burst-ring" style="width:140px;height:140px;border-color:#9b72ff66;animation-delay:0s;"></div>
+      <div class="burst-ring" style="width:140px;height:140px;border-color:#ffd16633;animation-delay:0.2s;"></div>
+
+      <div class="level-badge">🌟</div>
+      <div class="reward-title">Level Up!</div>
+      <div class="reward-sub" style="color:#c9a8ff;">You reached <strong style="color:#ffd166;">Star Explorer</strong>!</div>
+      <div class="reward-chip violet-chip">⭐ 10 Stars Earned!</div>
+
+      <div class="xp-bar-wrap">
+        <div class="xp-bar-label">
+          <span>Explorer → Adventurer</span>
+          <span style="color:#9b72ff;">78 / 100 XP</span>
+        </div>
+        <div class="xp-track">
+          <div class="xp-fill" style="width:78%;"></div>
+        </div>
+      </div>
+
+      <div class="coach-celebrate">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-speech" style="color:#d0c8f8;">You're a Star Explorer now! Next: Adventurer! ⚔️</div>
+      </div>
+      <div class="tap-hint">Tap to see your badge</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Trigger Conditions</h4>
+      <ul>
+        <li>Boss correct: last question of session was boss type and answered correctly</li>
+        <li>Streak 5: 5 correct answers in a row (session-scoped)</li>
+        <li>Session bonus: all 5 done + any bonus condition (boss/streak/milestone)</li>
+        <li>Star milestone: star count crosses 10/25/50/100/250…</li>
+        <li class="dont">❌ Never show on normal correct answers</li>
+        <li class="dont">❌ Never stack two overlays back-to-back</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Dismiss Rules</h4>
+      <ul>
+        <li>Auto-dismiss: 2.5s after animation peak (not from start)</li>
+        <li>Safety cap: always dismiss ≤3s regardless</li>
+        <li>Tap-to-dismiss: fires immediately on any tap</li>
+        <li>"Tap to continue" hint: pulsing, appears after 0.8s delay</li>
+        <li>On dismiss: transition to next screen (session complete / next Q)</li>
+        <li class="dont">❌ Never block child longer than 3s</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star Counter</h4>
+      <ul>
+        <li>Always visible at top-right of overlay</li>
+        <li>Shows POST-reward total (already incremented)</li>
+        <li><code>star-bump</code> animation at 0.2s delay</li>
+        <li>Background: semi-transparent dark pill</li>
+        <li>Boss node star badge: gold border + gold text</li>
+        <li class="dont">❌ Never shows decremented or old count</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Animations</h4>
+      <ul>
+        <li>Hero emoji: <code>hero-pop</code> — scale 0.3→1.15→1, 0.5s spring</li>
+        <li>Burst rings: <code>burst-out</code> — scale 0.3→2.8, opacity 0.7→0, 0.8s</li>
+        <li>Chip: <code>chip-pop</code> — scale 0.4→1.15→1, 0.45s spring, 0.4s delay</li>
+        <li>Coach row: <code>fade-up</code> — 0.4s, 0.55s delay</li>
+        <li>Confetti: <code>confetti-fall</code> — 1.7–2.4s per dot, infinite</li>
+        <li>XP bar: <code>xp-grow</code> — width 0→target, 0.6s, 0.5s delay</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Boss Star Award</h4>
+      <ul>
+        <li>Boss correct = +2 ⭐ (double the normal +1)</li>
+        <li>Chip reads "+2 ⭐ Boss Bonus!" — explicit about amount</li>
+        <li>XP also doubled for boss completion</li>
+        <li>Streak bonus chip is motivational — no extra stars (still +1)</li>
+        <li>Session complete chip: no extra stars — celebrates completion</li>
+        <li>Star milestone: no extra stars — celebrates cumulative total</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Coach in Overlay</h4>
+      <ul>
+        <li>Coach: speech bubble + emoji only — NO TTS during overlay</li>
+        <li>TTS would clash with transition animation + be too long</li>
+        <li>After overlay: normal coach behavior resumes</li>
+        <li>4 personas: same text different emoji (Leo/Buddy/Whisper/Zap)</li>
+        <li>Coach row: semi-transparent bg, glass-morphism feel</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

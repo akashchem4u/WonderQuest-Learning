@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Linking Recovery v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Error / recovery states when parent tries to link a child │
+  │  and something goes wrong.                                 │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Child Already Linked (to another account)            │
+  │    2. Duplicate Child (same name in account)               │
+  │    3. Plan Limit (free plan, add 2nd child blocked)        │
+  │    4. Network Error / Retry                                │
+  │    5. Spec                                                  │
+  │                                                            │
+  │  Key rules:                                                │
+  │  - Parent bg #f5f0e8                                       │
+  │  - Never accusatory ("You already have…") — use neutral    │
+  │    "It looks like…" framing                                │
+  │  - Always provide a clear next action                      │
+  │  - Plan upsell: warm, not pushy                            │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #ece8e0; color: #1a1a2e; min-height: 100vh;
+}
+.tab-bar {
+  display: flex; gap: 4px; padding: 16px 24px 0;
+  border-bottom: 1px solid #d8d0c0; overflow-x: auto; scrollbar-width: none;
+  background: #f5f0e8;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 9px 18px; border: none; background: transparent;
+  color: #8a7a6a; font: 600 0.82rem system-ui; cursor: pointer;
+  border-radius: 8px 8px 0 0; white-space: nowrap; transition: all 0.18s;
+}
+.tab-btn.active { color: #3d2a8a; background: #ece8e0; border-bottom: 2px solid #9b72ff; }
+.screen { display: none; min-height: 90vh; background: #f5f0e8; }
+.screen.active { display: flex; flex-direction: column; align-items: center; padding: 48px 24px 80px; }
+
+/* ─── Recovery Card ─── */
+.recovery-card {
+  width: 100%; max-width: 500px;
+  background: #fff; border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 40px rgba(100,60,200,0.1);
+  border: 1px solid #e0d8f8;
+}
+.rec-icon-wrap {
+  width: 72px; height: 72px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; margin: 0 auto 24px;
+}
+.rec-eyebrow { font: 600 0.72rem system-ui; text-transform: uppercase; letter-spacing: 0.08em; text-align: center; margin-bottom: 8px; }
+.rec-title { font: 700 1.4rem system-ui; color: #1a1240; text-align: center; margin-bottom: 10px; }
+.rec-sub { font: 400 0.88rem/1.6 system-ui; color: #5a5070; text-align: center; margin-bottom: 28px; }
+.info-box {
+  border-radius: 12px; padding: 16px 18px; margin-bottom: 24px;
+  font: 400 0.82rem/1.5 system-ui;
+}
+.info-box strong { display: block; font-size: 0.84rem; margin-bottom: 4px; }
+.btn-primary {
+  width: 100%; padding: 14px;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  color: #fff; border: none; border-radius: 12px;
+  font: 700 0.95rem system-ui; cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-bottom: 12px;
+}
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.btn-secondary {
+  width: 100%; padding: 13px;
+  background: #fff; color: #4a3880;
+  border: 1.5px solid #d0c8e8; border-radius: 12px;
+  font: 600 0.9rem system-ui; cursor: pointer;
+  transition: background 0.15s;
+  margin-bottom: 12px;
+}
+.btn-secondary:hover { background: #f5f0ff; }
+.btn-danger-ghost {
+  width: 100%; padding: 12px;
+  background: transparent; color: #c02020;
+  border: 1.5px solid #f0c0c0; border-radius: 12px;
+  font: 600 0.85rem system-ui; cursor: pointer;
+}
+.help-link { display: block; text-align: center; margin-top: 14px; font: 500 0.78rem system-ui; color: #9b72ff; }
+
+/* ─── Plan Limit Upgrade Card ─── */
+.upgrade-card {
+  background: linear-gradient(135deg, #ede8ff, #e0d8ff);
+  border-radius: 16px; padding: 24px;
+  border: 1.5px solid #c0b0f0; margin-bottom: 24px;
+}
+.upgrade-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px; background: #9b72ff; border-radius: 20px;
+  font: 700 0.72rem system-ui; color: #fff; margin-bottom: 12px;
+}
+.upgrade-title { font: 700 1.1rem system-ui; color: #1a1240; margin-bottom: 8px; }
+.upgrade-list { list-style: none; display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.upgrade-list li { display: flex; align-items: center; gap: 8px; font: 400 0.82rem system-ui; color: #3a2070; }
+.upgrade-list li::before { content: '✓'; color: #9b72ff; font-weight: 700; }
+.upgrade-price { font: 700 1.1rem system-ui; color: #1a1240; margin-bottom: 4px; }
+.upgrade-price span { font: 400 0.78rem system-ui; color: #6a5890; }
+
+/* ─── Retry Screen ─── */
+.retry-detail {
+  background: #faf8ff; border: 1px solid #e0d8f0;
+  border-radius: 10px; padding: 14px 16px;
+  font: 400 0.78rem monospace; color: #6a5890;
+  margin-bottom: 20px; word-break: break-all;
+}
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spinner { display: inline-block; animation: spin 1s linear infinite; }
+
+/* ─── Spec ─── */
+.spec-shell { max-width: 680px; width: 100%; }
+.spec-title { font: 700 1.1rem system-ui; color: #1a1240; margin-bottom: 18px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.79rem; margin-bottom: 20px; }
+.spec-table th { text-align: left; padding: 8px 12px; background: #ede8ff; color: #4a3880; font: 700 0.7rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.74rem; line-height: 1.5; }
+.spec-section { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 22px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+.tag { display: inline-block; padding: 2px 7px; border-radius: 4px; font: 700 0.62rem system-ui; margin-right: 4px; }
+.tag-crit { background: #ffe8e8; color: #c02020; border: 1px solid #f0c0c0; }
+.tag-note { background: #e8ffe8; color: #207020; border: 1px solid #c0e8c0; }
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('already-linked')">🔗 Already Linked</button>
+  <button class="tab-btn" onclick="showTab('duplicate')">👯 Duplicate Name</button>
+  <button class="tab-btn" onclick="showTab('plan-limit')">🔒 Plan Limit</button>
+  <button class="tab-btn" onclick="showTab('network')">📡 Network Error</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- ═════════ ALREADY LINKED ═════════ -->
+<div class="screen active" id="screen-already-linked">
+  <div class="recovery-card">
+    <div class="rec-icon-wrap" style="background:#fff3e0;">🔗</div>
+    <div class="rec-eyebrow" style="color:#d07020;">Hmm, a small issue</div>
+    <div class="rec-title">This child may already be linked</div>
+    <div class="rec-sub">
+      It looks like a child named <strong>"Maya"</strong> is already linked to a different WonderQuest account. This can happen if your child was previously set up by a co-parent or family member.
+    </div>
+
+    <div class="info-box" style="background:#fff8e8; border:1px solid #f0d080;">
+      <strong style="color:#8a5000;">What this usually means:</strong>
+      <span style="color:#6a4010;">A co-parent, grandparent, or caregiver created a WonderQuest account for this child first. You can join their family group, or contact us to transfer the child to your account.</span>
+    </div>
+
+    <button class="btn-primary">📩 Send join request to existing account</button>
+    <button class="btn-secondary">Add a different child instead</button>
+    <button class="btn-secondary">🔄 I made a typo — go back</button>
+    <a class="help-link" href="#">Contact support to transfer account ownership →</a>
+  </div>
+</div>
+
+<!-- ═════════ DUPLICATE NAME ═════════ -->
+<div class="screen" id="screen-duplicate">
+  <div class="recovery-card">
+    <div class="rec-icon-wrap" style="background:#fff3e0;">👯</div>
+    <div class="rec-eyebrow" style="color:#d07020;">Name already in use</div>
+    <div class="rec-title">You already have a "Maya" in your account</div>
+    <div class="rec-sub">
+      You have another child named Maya in your family. To keep their adventures separate, give this child a different name or nickname.
+    </div>
+
+    <div class="info-box" style="background:#ede8ff; border:1px solid #c0b0f0;">
+      <strong style="color:#4a2090;">Current family members named "Maya":</strong>
+      <div style="display:flex; align-items:center; gap:10px; margin-top:8px;">
+        <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#5a30d0);display:flex;align-items:center;justify-content:center;font-size:0.9rem;">🦁</div>
+        <div>
+          <div style="font:600 0.82rem system-ui;color:#1a1240;">Maya (K–1)</div>
+          <div style="font:400 0.72rem system-ui;color:#8070a0;">Added March 2025</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:20px;">
+      <label style="display:block;font:600 0.78rem system-ui;color:#4a3880;margin-bottom:7px;">New name or nickname for this child</label>
+      <input style="width:100%;padding:13px 16px;border:1.5px solid #d8d0f0;border-radius:10px;font:400 0.95rem system-ui;color:#1a1240;background:#faf8ff;outline:none;" type="text" placeholder="e.g. Maya J., Little Maya, Baby Maya…">
+    </div>
+
+    <button class="btn-primary">Use this nickname →</button>
+    <button class="btn-secondary">← Go back and change name</button>
+  </div>
+</div>
+
+<!-- ═════════ PLAN LIMIT ═════════ -->
+<div class="screen" id="screen-plan-limit">
+  <div class="recovery-card">
+    <div class="rec-icon-wrap" style="background:#ede8ff;">👨‍👩‍👧‍👦</div>
+    <div class="rec-eyebrow" style="color:#9b72ff;">Free plan limit</div>
+    <div class="rec-title">Your free plan supports 1 child</div>
+    <div class="rec-sub">
+      Your current plan includes 1 child profile. Upgrade to add unlimited children and get extra benefits for your whole family.
+    </div>
+
+    <div class="upgrade-card">
+      <div class="upgrade-badge">✨ WonderQuest Family</div>
+      <div class="upgrade-title">Unlimited learning for every child</div>
+      <ul class="upgrade-list">
+        <li>Unlimited child profiles</li>
+        <li>Unlimited daily sessions</li>
+        <li>Advanced weekly reports</li>
+        <li>Priority support</li>
+        <li>Early access to new features</li>
+      </ul>
+      <div class="upgrade-price">$9.99/month <span>or $79/year (save 34%)</span></div>
+    </div>
+
+    <button class="btn-primary">✨ Upgrade to Family plan →</button>
+    <button class="btn-secondary">Maybe later — stay on free plan</button>
+
+    <div style="margin-top:16px;text-align:center;font:400 0.72rem/1.5 system-ui;color:#9080a0;">
+      Free plan: 1 child, 3 sessions/day. All core learning features included.
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ NETWORK ERROR ═════════ -->
+<div class="screen" id="screen-network">
+  <div class="recovery-card">
+    <div class="rec-icon-wrap" style="background:#fff0f0;">📡</div>
+    <div class="rec-eyebrow" style="color:#c04040;">Connection issue</div>
+    <div class="rec-title">Couldn't save right now</div>
+    <div class="rec-sub">
+      It looks like something interrupted the connection while we were saving Maya's profile. Your information wasn't lost — nothing was submitted yet.
+    </div>
+
+    <div class="info-box" style="background:#fff8f8; border:1px solid #f0c0c0; color:#6a2020;">
+      <strong style="color:#a03030;">What happened:</strong>
+      Network timeout on profile save request. Error code: <code style="background:#f8e8e8;padding:1px 4px;border-radius:3px;">PROFILE_SAVE_TIMEOUT</code>. Your data was NOT saved to our servers.
+    </div>
+
+    <div class="retry-detail">
+      Request: POST /api/children/create<br>
+      Status: 408 Request Timeout<br>
+      Time: 2026-03-24 09:41:23 UTC<br>
+      Session: abc123...xyz (safe to retry)
+    </div>
+
+    <button class="btn-primary" id="retry-btn" onclick="simulateRetry()">
+      <span class="spinner">↺</span> Try again
+    </button>
+    <button class="btn-secondary">← Go back and check my info</button>
+
+    <div style="margin-top:16px; padding:12px 14px; background:#f5f0e8; border-radius:10px; font:400 0.75rem/1.5 system-ui; color:#8070a0; text-align:center;">
+      If this keeps happening, try a different network or <a href="#" style="color:#9b72ff;">contact support</a>.
+    </div>
+  </div>
+</div>
+
+<!-- ═════════ SPEC ═════════ -->
+<div class="screen" id="screen-spec">
+  <div class="spec-shell">
+    <div class="spec-title">Parent Linking Recovery — Spec</div>
+
+    <div class="spec-section">Error States</div>
+    <table class="spec-table">
+      <thead><tr><th>Error</th><th>Trigger</th><th>Primary Action</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule">Already Linked</td>
+          <td class="spec-detail">Child name + age matches profile in another account (fuzzy match on server)</td>
+          <td class="spec-detail">"Send join request" to existing account's owner. Or add different child. Or contact support for transfer.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Duplicate Name</td>
+          <td class="spec-detail">Same first name already exists in current parent's account</td>
+          <td class="spec-detail">Prompt for nickname/differentiator. Keep current entry — don't lose parent's work.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Plan Limit</td>
+          <td class="spec-detail">Free plan parent tries to add 2nd child profile</td>
+          <td class="spec-detail">Show upgrade card. "Maybe later" returns to dashboard with only 1 child.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule">Network Error</td>
+          <td class="spec-detail">Save request fails (timeout / 5xx)</td>
+          <td class="spec-detail">Show retry button. Explain data was NOT saved (reassure parent). Allow back + re-check.</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="spec-section">Tone Rules</div>
+    <table class="spec-table">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-crit">CRITICAL</span> Not accusatory</td>
+          <td class="spec-detail">Never "You already have…" — always "It looks like…" / "Your current plan…". Neutral framing.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-crit">CRITICAL</span> Clear next action</td>
+          <td class="spec-detail">Every error screen must have at least one clear primary action button. Never leave parent stranded.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-note">NOTE</span> Upsell tone</td>
+          <td class="spec-detail">Plan limit screen shows upgrade as opportunity, not penalty. "Maybe later" always visible — never force upgrade.</td>
+        </tr>
+        <tr>
+          <td class="spec-rule"><span class="tag tag-note">NOTE</span> Network error detail</td>
+          <td class="spec-detail">Show error code + safe-to-retry confirmation in collapsed detail box. Engineers can log; parents aren't confused.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+function simulateRetry() {
+  const btn = document.getElementById('retry-btn');
+  btn.innerHTML = '<span class="spinner" style="display:inline-block;animation:spin 1s linear infinite;">↺</span> Retrying…';
+  btn.disabled = true;
+  setTimeout(() => {
+    btn.innerHTML = '✓ Saved! Redirecting…';
+    btn.style.background = 'linear-gradient(135deg,#50e890,#30b060)';
+  }, 2000);
+}
+</script>
+</body>
+</html>

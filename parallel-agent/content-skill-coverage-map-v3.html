@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Skill Coverage Map — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui;background:rgba(255,255,255,.07);color:#f0f6ff}
+
+/* Filter bar */
+.filter-bar{background:#080c12;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fb-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-right:2px}
+.fb-chip{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+
+/* Coverage map body */
+.map-body{padding:20px 24px;display:flex;flex-direction:column;gap:20px}
+
+/* Band row */
+.band-section{}
+.band-hdr{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.band-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.band-name{font-size:13px;font-weight:800;color:#f0f6ff}
+.band-count{font-size:11px;color:rgba(255,255,255,.35)}
+.band-gap{font-size:10px;font-weight:700;margin-left:auto;padding:2px 8px;border-radius:4px}
+.bg-none{background:rgba(80,232,144,.1);color:#50e890}
+.bg-some{background:rgba(245,158,11,.1);color:#f59e0b}
+.bg-major{background:rgba(248,81,73,.1);color:#f85149}
+
+/* Subject grid */
+.subject-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+
+/* Subject column */
+.subject-col{}
+.sc-header{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);margin-bottom:6px;padding-bottom:4px;border-bottom:1px solid rgba(255,255,255,.05)}
+
+/* Coverage cell */
+.cov-cell{border-radius:6px;padding:8px 10px;margin-bottom:4px;cursor:pointer;position:relative;border:1px solid transparent;transition:border-color .12s}
+.cov-cell:hover{border-color:rgba(255,255,255,.1)}
+.cc-topic{font-size:10px;font-weight:700;color:#f0f6ff;line-height:1.3;margin-bottom:3px}
+.cc-count{font-size:9px;color:rgba(255,255,255,.4)}
+.cc-bar{height:2px;border-radius:1px;margin-top:5px}
+
+/* Coverage fill levels */
+.cc-full{background:rgba(80,232,144,.12);border-color:rgba(80,232,144,.08)}
+.cc-full .cc-bar{background:#50e890;width:100%}
+.cc-full .cc-count{color:#50e890}
+
+.cc-good{background:rgba(80,232,144,.07)}
+.cc-good .cc-bar{background:#50e890;width:70%}
+
+.cc-partial{background:rgba(245,158,11,.06)}
+.cc-partial .cc-bar{background:#f59e0b;width:40%}
+.cc-partial .cc-count{color:#f59e0b}
+
+.cc-thin{background:rgba(248,81,73,.06)}
+.cc-thin .cc-bar{background:#f85149;width:20%}
+.cc-thin .cc-count{color:#f85149}
+
+.cc-gap{background:rgba(248,81,73,.04);border:1px dashed rgba(248,81,73,.2)}
+.cc-gap .cc-topic{color:rgba(255,255,255,.4)}
+.cc-gap .cc-count{color:#f85149}
+
+/* Coverage badge on cell */
+.cc-badge{position:absolute;top:4px;right:4px;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px}
+.ccb-new{background:rgba(80,232,144,.2);color:#50e890}
+.ccb-gap{background:rgba(248,81,73,.2);color:#f85149}
+
+/* Stats row */
+.stats-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.stats-cell{background:#080c12;padding:12px 16px}
+.sc-val{font-size:20px;font-weight:900;color:#f0f6ff;line-height:1}
+.sc-lbl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+
+/* Coverage legend */
+.cov-legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 24px;border-top:1px solid rgba(255,255,255,.06);background:#080c12}
+.cl-item{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.4)}
+.cl-sq{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+
+/* Topic detail panel */
+.topic-detail{background:#161c26;border-radius:10px;padding:14px 16px;border:1px solid rgba(255,255,255,.06);margin-top:4px}
+.td-hdr{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:4px}
+.td-sub{font-size:10px;color:rgba(255,255,255,.4);margin-bottom:8px}
+.td-skills{display:flex;flex-direction:column;gap:3px}
+.td-skill{display:flex;align-items:center;gap:8px;font-size:10px}
+.tds-id{color:rgba(255,255,255,.25);min-width:52px}
+.tds-title{color:#f0f6ff;flex:1}
+.tds-status{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.tdss-live{background:rgba(80,232,144,.1);color:#50e890}
+.tdss-draft{background:rgba(255,255,255,.08);color:rgba(255,255,255,.4)}
+.tdss-blocked{background:rgba(248,81,73,.1);color:#f85149}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-skill-coverage-map-v3.html</strong><br>
+  Visual coverage map showing which curriculum topics have adequate skill coverage across all bands and subjects.<br>
+  <strong>Axes:</strong> Band (P0–P3 rows) × Subject area (Maths / Literacy / Science / Social Studies / Arts columns) × Topic (cells within each column).<br>
+  <strong>Coverage levels:</strong> Full (≥8 skills) · Good (5–7) · Partial (3–4) · Thin (1–2) · Gap (0 — topic not covered at all).<br>
+  <strong>Purpose:</strong> Used by curriculum team to identify content gaps for new skill authoring. P3 G4–5 is historically underserved — identified as target for v2.6 batch.<br>
+  <strong>Click a cell:</strong> Expands to show specific skills in that topic, with status (Live/Draft/Blocked). Clicking a skill navigates to the skill detail / publish readiness screen.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('map')">Coverage Map</button>
+  <button class="tab-btn" onclick="showTab('gaps')">Gap Analysis</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Coverage Map ───────────────────────────────────────── -->
+<div id="tab-map" class="screen active">
+  <p class="section-title">Skill coverage map — all bands, all subjects</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">🗺 Skill Coverage Map</div>
+      <div class="sh-right">
+        <button class="sh-btn">↓ Export</button>
+        <button class="sh-btn" style="background:rgba(80,232,144,.12);color:#50e890">+ Commission Skills</button>
+      </div>
+    </div>
+
+    <!-- Stats row -->
+    <div class="stats-row">
+      <div class="stats-cell"><div class="sc-val">284</div><div class="sc-lbl">Total Skills</div></div>
+      <div class="stats-cell"><div class="sc-val" style="color:#50e890">198</div><div class="sc-lbl">Full/Good Coverage</div></div>
+      <div class="stats-cell"><div class="sc-val" style="color:#f59e0b">42</div><div class="sc-lbl">Partial Coverage</div></div>
+      <div class="stats-cell"><div class="sc-val" style="color:#f85149">28</div><div class="sc-lbl">Thin (1–2 skills)</div></div>
+      <div class="stats-cell"><div class="sc-val" style="color:#f85149">16</div><div class="sc-lbl">Gaps (0 skills)</div></div>
+      <div class="stats-cell"><div class="sc-val">74%</div><div class="sc-lbl">Overall Coverage</div></div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <div class="fb-label">Band</div>
+      <button class="fb-chip fc-a">All Bands</button>
+      <button class="fb-chip fc-i" style="color:#ffd166">P0 Pre-K</button>
+      <button class="fb-chip fc-i" style="color:#9b72ff">P1 K–1</button>
+      <button class="fb-chip fc-i" style="color:#58e8c1">P2 G2–3</button>
+      <button class="fb-chip fc-i" style="color:#ff7b6b">P3 G4–5</button>
+      <div style="width:1px;height:16px;background:rgba(255,255,255,.07);margin:0 4px"></div>
+      <div class="fb-label">Show</div>
+      <button class="fb-chip fc-a">All Topics</button>
+      <button class="fb-chip fc-i" style="color:#f85149">Gaps Only</button>
+      <button class="fb-chip fc-i" style="color:#f59e0b">Thin + Gaps</button>
+    </div>
+
+    <div class="map-body">
+
+      <!-- P0 Pre-K row -->
+      <div class="band-section">
+        <div class="band-hdr">
+          <div class="band-dot" style="background:#ffd166"></div>
+          <div class="band-name">P0 Pre-K</div>
+          <div class="band-count">68 skills · 8 topics</div>
+          <span class="band-gap bg-none">Good coverage</span>
+        </div>
+        <div class="subject-grid">
+          <!-- Maths -->
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,209,102,.15)">📐 Maths</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Counting &amp; Numbers</div><div class="cc-count">12 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Shapes</div><div class="cc-count">8 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Sorting &amp; Patterns</div><div class="cc-count">6 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <!-- Literacy -->
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,209,102,.15)">📝 Literacy</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Phonics — Initial</div><div class="cc-count">14 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Rhyming</div><div class="cc-count">5 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Letter Recognition</div><div class="cc-count">7 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <!-- Science -->
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,209,102,.15)">🔬 Science</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Animals</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Plants</div><div class="cc-count">3 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Weather</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <!-- Social Studies -->
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,209,102,.15)">🌍 Social Studies</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Family &amp; Community</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Feelings</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <!-- Arts -->
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,209,102,.15)">🎨 Arts</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Colours &amp; Art</div><div class="cc-count">3 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Music Basics</div><div class="cc-count">1 skill</div><div class="cc-bar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P1 K–1 row -->
+      <div class="band-section">
+        <div class="band-hdr">
+          <div class="band-dot" style="background:#9b72ff"></div>
+          <div class="band-name">P1 K–1</div>
+          <div class="band-count">82 skills · 10 topics</div>
+          <span class="band-gap bg-some">2 gaps identified</span>
+        </div>
+        <div class="subject-grid">
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(155,114,255,.15)">📐 Maths</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Addition (to 20)</div><div class="cc-count">11 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Subtraction (to 20)</div><div class="cc-count">10 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Place Value (tens)</div><div class="cc-count">7 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Measurement</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(155,114,255,.15)">📝 Literacy</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Phonics — Blends</div><div class="cc-count">16 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Sight Words</div><div class="cc-count">6 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Simple Sentences</div><div class="cc-count">5 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Grammar Basics</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(155,114,255,.15)">🔬 Science</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Living &amp; Non-Living</div><div class="cc-count">3 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Senses</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Materials &amp; Properties</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(155,114,255,.15)">🌍 Social Studies</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Maps &amp; Directions</div><div class="cc-count">3 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Traditions &amp; Culture</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(155,114,255,.15)">🎨 Arts</div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Drawing &amp; Craft</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P2 G2–3 row -->
+      <div class="band-section">
+        <div class="band-hdr">
+          <div class="band-dot" style="background:#58e8c1"></div>
+          <div class="band-name">P2 G2–3</div>
+          <div class="band-count">96 skills · 12 topics</div>
+          <span class="band-gap bg-some">3 gaps, 4 thin</span>
+        </div>
+        <div class="subject-grid">
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(88,232,193,.12)">📐 Maths</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Fractions</div><div class="cc-count">14 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Multiplication</div><div class="cc-count">12 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Division Intro</div><div class="cc-count">7 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">Geometry (2D)</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Time &amp; Money</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(88,232,193,.12)">📝 Literacy</div>
+            <div class="cov-cell cc-full"><div class="cc-topic">Reading Comprehension</div><div class="cc-count">11 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Punctuation</div><div class="cc-count">6 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Vocabulary</div><div class="cc-count">7 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Creative Writing</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(88,232,193,.12)">🔬 Science</div>
+            <div class="cov-cell cc-partial"><div class="cc-topic">States of Matter</div><div class="cc-count">4 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Forces &amp; Motion</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Habitats &amp; Ecosystems</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(88,232,193,.12)">🌍 Social Studies</div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Local History</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Government Basics</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(88,232,193,.12)">🎨 Arts</div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Visual Arts</div><div class="cc-count">1 skill</div><div class="cc-bar"></div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- P3 G4–5 row (most gaps) -->
+      <div class="band-section">
+        <div class="band-hdr">
+          <div class="band-dot" style="background:#ff7b6b"></div>
+          <div class="band-name">P3 G4–5</div>
+          <div class="band-count">38 skills · target: 60+ skills</div>
+          <span class="band-gap bg-major">⚠ Major gaps — v2.6 content target</span>
+        </div>
+        <div class="subject-grid">
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,123,107,.15)">📐 Maths</div>
+            <div class="cov-cell cc-good"><div class="cc-badge ccb-new">+11 new</div><div class="cc-topic">Fractions Advanced</div><div class="cc-count" style="color:#f59e0b">5 + 11 draft</div><div class="cc-bar" style="width:40%;background:#f59e0b"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Division: Multi-digit</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Algebra Intro</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Statistics &amp; Data</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Geometry (3D)</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,123,107,.15)">📝 Literacy</div>
+            <div class="cov-cell cc-good"><div class="cc-topic">Reading: Inference</div><div class="cc-count">5 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Essay Writing</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Advanced Grammar</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Persuasive Texts</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,123,107,.15)">🔬 Science</div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">Earth &amp; Space</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Human Body</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Energy &amp; Electricity</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,123,107,.15)">🌍 Social Studies</div>
+            <div class="cov-cell cc-thin"><div class="cc-topic">World Geography</div><div class="cc-count">2 skills</div><div class="cc-bar"></div></div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Ancient Civilisations</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+          <div class="subject-col">
+            <div class="sc-header" style="border-bottom-color:rgba(255,123,107,.15)">🎨 Arts</div>
+            <div class="cov-cell cc-gap"><div class="cc-badge ccb-gap">Gap</div><div class="cc-topic">Art Appreciation</div><div class="cc-count" style="color:#f85149">0 skills</div><div class="cc-bar" style="width:0;background:#f85149"></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Legend -->
+    <div class="cov-legend">
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(80,232,144,.25)"></div>Full (≥8 skills)</div>
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(80,232,144,.12)"></div>Good (5–7)</div>
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(245,158,11,.18)"></div>Partial (3–4)</div>
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(248,81,73,.12)"></div>Thin (1–2)</div>
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(248,81,73,.06);border:1px dashed rgba(248,81,73,.3)"></div>Gap (0 skills)</div>
+      <div class="cl-item"><div class="cl-sq" style="background:rgba(80,232,144,.3)"></div>+N new Draft skills (v2.6)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Gap Analysis ───────────────────────────────────────── -->
+<div id="tab-gaps" class="screen">
+  <p class="section-title">Gap analysis — prioritised by impact</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">🗺 Gap Analysis — 16 Unserved Topics</div>
+      <div class="sh-right">
+        <button class="sh-btn" style="background:rgba(80,232,144,.12);color:#50e890">Commission All →</button>
+      </div>
+    </div>
+    <div style="padding:16px 24px;display:flex;flex-direction:column;gap:8px">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);display:grid;grid-template-columns:40px 1fr 80px 80px 80px 100px;gap:8px;padding:0 0 8px;border-bottom:1px solid rgba(255,255,255,.06)">
+        <span>Band</span><span>Topic</span><span>Subject</span><span>MAU impact</span><span>Priority</span><span>Action</span>
+      </div>
+      <!-- P3 gaps first (highest impact given school churn risk) -->
+      <div style="display:grid;grid-template-columns:40px 1fr 80px 80px 80px 100px;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center">
+        <span style="font-size:9px;font-weight:700;color:#ff7b6b">P3</span>
+        <div><div style="font-size:11px;font-weight:700;color:#f0f6ff">Maths: Algebra Intro</div><div style="font-size:9px;color:rgba(255,255,255,.3)">0 skills · G4–5 core curriculum</div></div>
+        <span style="font-size:10px;color:rgba(255,255,255,.4)">Maths</span>
+        <span style="font-size:11px;font-weight:700;color:#f85149">High</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(248,81,73,.12);color:#f85149">Critical</span>
+        <button style="background:rgba(80,232,144,.12);border:none;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer">Commission</button>
+      </div>
+      <div style="display:grid;grid-template-columns:40px 1fr 80px 80px 80px 100px;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center">
+        <span style="font-size:9px;font-weight:700;color:#ff7b6b">P3</span>
+        <div><div style="font-size:11px;font-weight:700;color:#f0f6ff">Maths: Statistics &amp; Data</div><div style="font-size:9px;color:rgba(255,255,255,.3)">0 skills · G4–5 core curriculum</div></div>
+        <span style="font-size:10px;color:rgba(255,255,255,.4)">Maths</span>
+        <span style="font-size:11px;font-weight:700;color:#f85149">High</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(248,81,73,.12);color:#f85149">Critical</span>
+        <button style="background:rgba(80,232,144,.12);border:none;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer">Commission</button>
+      </div>
+      <div style="display:grid;grid-template-columns:40px 1fr 80px 80px 80px 100px;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center">
+        <span style="font-size:9px;font-weight:700;color:#ff7b6b">P3</span>
+        <div><div style="font-size:11px;font-weight:700;color:#f0f6ff">Science: Human Body</div><div style="font-size:9px;color:rgba(255,255,255,.3)">0 skills · Popular with grade 4–5 teachers</div></div>
+        <span style="font-size:10px;color:rgba(255,255,255,.4)">Science</span>
+        <span style="font-size:11px;font-weight:700;color:#f85149">High</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(248,81,73,.12);color:#f85149">Critical</span>
+        <button style="background:rgba(80,232,144,.12);border:none;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer">Commission</button>
+      </div>
+      <div style="display:grid;grid-template-columns:40px 1fr 80px 80px 80px 100px;gap:8px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04);align-items:center">
+        <span style="font-size:9px;font-weight:700;color:#ff7b6b">P3</span>
+        <div><div style="font-size:11px;font-weight:700;color:#f0f6ff">Literacy: Persuasive Texts</div><div style="font-size:9px;color:rgba(255,255,255,.3)">0 skills · G4–5 curriculum standard</div></div>
+        <span style="font-size:10px;color:rgba(255,255,255,.4)">Literacy</span>
+        <span style="font-size:11px;font-weight:700;color:#f59e0b">Med</span>
+        <span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(245,158,11,.1);color:#f59e0b">High</span>
+        <button style="background:rgba(80,232,144,.12);border:none;border-radius:6px;padding:5px 10px;font-size:10px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer">Commission</button>
+      </div>
+      <div style="padding:8px 0;font-size:10px;color:rgba(255,255,255,.25);text-align:center">… 12 more gap topics · P2 and P1 gaps shown below · Commission All button above queues all 16 for authoring sprint</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-skill-coverage-map-v3.html<br>
+      <strong>Curriculum coverage heatmap.</strong> Band (P0–P3) rows × Subject columns × Topic cells. 5 coverage levels (Full/Good/Partial/Thin/Gap). P3 G4–5 is historically underserved — v2.6 target. Gap analysis tab with prioritised gap list.
+    </div>
+    <h2 class="spec-h2">Coverage Calculation</h2>
+    <p class="spec-p">Coverage per topic cell = COUNT(skills WHERE band=B AND topic=T AND review_status IN ('Published', 'Draft')). Levels: Full ≥ 8, Good 5–7, Partial 3–4, Thin 1–2, Gap 0. Draft skills count towards coverage to show in-progress work. Blocked skills are excluded from coverage count (they are not deliverable).</p>
+    <h2 class="spec-h2">P3 G4–5 Priority</h2>
+    <p class="spec-p">P3 G4–5 has the worst coverage (38 skills vs target 60+). This directly contributes to the P3 D30 retention problem (52% vs target 65%) — students exhaust available content. The v2.6 "Band Expansion" batch import targets 11 new P3 Maths skills. Gap analysis tab shows the remaining 16 topics with zero coverage, prioritised by curriculum alignment and teacher request data from feedback items.</p>
+    <h2 class="spec-h2">Commission Action</h2>
+    <p class="spec-p">Clicking "Commission" on a gap topic creates a content_commissions record with: topic, band, subject, target skill count, due date, assigned curriculum writer. Commissions appear in the curriculum team's sprint board. Once skills are authored and imported, the coverage cell updates automatically.</p>
+    <h2 class="spec-h2">New Draft Badge</h2>
+    <p class="spec-p">When Draft skills exist for a topic (from a recent import), the cell shows a green "+N new" badge with the draft count. This helps curriculum team see in-progress work without counting it as full coverage. The cell colour reflects published skills only for the coverage assessment; the badge shows the pipeline.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

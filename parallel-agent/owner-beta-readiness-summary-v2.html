@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Beta Readiness Summary — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.sh-status{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+
+/* Hero readiness bar */
+.readiness-hero{padding:24px;border-bottom:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:1fr 200px;gap:24px;align-items:center}
+.rh-left{}
+.rh-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);margin-bottom:10px}
+.rh-score-row{display:flex;align-items:baseline;gap:10px;margin-bottom:12px}
+.rh-score{font-size:52px;font-weight:900;line-height:1;color:#f0f6ff}
+.rh-total{font-size:20px;font-weight:700;color:rgba(255,255,255,.3);align-self:flex-end;margin-bottom:4px}
+.rh-verdict{font-size:13px;font-weight:800;color:#f59e0b;display:flex;align-items:center;gap:6px}
+.rh-verdict.pass{color:#50e890}
+.rh-bar-track{height:8px;background:rgba(255,255,255,.07);border-radius:4px;overflow:hidden;margin-bottom:6px}
+.rh-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#50e890,#a8ffcc);transition:width .4s}
+.rh-bar-fill.warn{background:linear-gradient(90deg,#f59e0b,#ffd166)}
+.rh-threshold{font-size:10px;color:rgba(255,255,255,.3)}
+
+/* Readiness ring (SVG placeholder) */
+.rh-ring{display:flex;flex-direction:column;align-items:center;gap:8px}
+.ring-svg{width:100px;height:100px}
+.ring-label{font-size:10px;color:rgba(255,255,255,.35);font-weight:700;text-align:center}
+
+/* Category scores */
+.cat-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.cat-cell{background:#010409;padding:14px 16px}
+.cat-icon{font-size:18px;margin-bottom:6px}
+.cat-name{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.cat-score-row{display:flex;align-items:baseline;gap:4px}
+.cat-val{font-size:20px;font-weight:900;color:#f0f6ff}
+.cat-max{font-size:11px;color:rgba(255,255,255,.3)}
+.cat-bar-track{height:4px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:6px;overflow:hidden}
+.cat-bar-fill{height:100%;border-radius:2px}
+.cat-blockers{font-size:9px;color:#f85149;margin-top:4px;font-weight:700}
+.cat-ok{font-size:9px;color:#50e890;margin-top:4px;font-weight:700}
+
+/* Detail sections */
+.detail-grid{display:grid;grid-template-columns:1fr 320px;gap:0;border-bottom:1px solid rgba(255,255,255,.06)}
+.detail-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.detail-sidebar{padding:20px 24px}
+.sec-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.25);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* Checklist */
+.checklist{display:flex;flex-direction:column;gap:6px;margin-bottom:16px}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,.02)}
+.cl-check{width:18px;height:18px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px}
+.cl-pass{background:rgba(80,232,144,.15);color:#50e890}
+.cl-fail{background:rgba(248,81,73,.15);color:#f85149}
+.cl-warn{background:rgba(245,158,11,.12);color:#f59e0b}
+.cl-body{flex:1}
+.cl-title{font-size:12px;font-weight:700;color:#f0f6ff}
+.cl-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4}
+
+/* Beta school list */
+.school-list{display:flex;flex-direction:column;gap:6px}
+.school-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.02);border-radius:7px}
+.sr-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sr-green{background:#50e890}
+.sr-amber{background:#f59e0b}
+.sr-red{background:#f85149}
+.sr-name{font-size:11px;font-weight:700;color:#f0f6ff;flex:1}
+.sr-band{font-size:10px;color:rgba(255,255,255,.4)}
+.sr-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px}
+.ss-ready{background:rgba(80,232,144,.12);color:#50e890}
+.ss-setup{background:rgba(245,158,11,.1);color:#f59e0b}
+.ss-blocked{background:rgba(248,81,73,.1);color:#f85149}
+
+/* Sign-off */
+.signoff-list{display:flex;flex-direction:column;gap:8px}
+.so-row{display:flex;align-items:center;gap:10px}
+.so-avatar{width:28px;height:28px;border-radius:8px;background:#161b22;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.so-name{font-size:12px;font-weight:700;color:#f0f6ff;flex:1}
+.so-role{font-size:10px;color:rgba(255,255,255,.35)}
+.so-badge{font-size:9px;font-weight:700;padding:2px 8px;border-radius:4px}
+.sb-done{background:rgba(80,232,144,.12);color:#50e890}
+.sb-pending{background:rgba(245,158,11,.1);color:#f59e0b}
+
+/* Launch block */
+.launch-block{padding:16px 24px;background:#010409;border-top:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:16px}
+.lb-text{font-size:12px;color:rgba(255,255,255,.5)}
+.lb-note{font-size:11px;font-weight:700;color:#f59e0b}
+.lb-btn{background:#50e890;color:#0d1117;font-size:13px;font-weight:800;padding:10px 24px;border-radius:8px;border:none;cursor:pointer;font-family:system-ui;opacity:.4}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-beta-readiness-summary-v2.html</strong><br>
+  Pre-launch beta readiness dashboard. Aggregates quality, performance, content, privacy, and sign-off signals into a single readiness score before a staged beta rollout.<br>
+  <strong>Score:</strong> Same 5-category gate as Release Gate (Quality 25 / Performance 25 / Content 20 / Privacy 20 / Sign-off 10 = 100). Beta threshold = 80 (lower than full release threshold of 90).<br>
+  <strong>Beta cohort:</strong> 3–5 trusted pilot schools. Owner selects schools. Beta flag per school in DB.<br>
+  <strong>Purpose:</strong> Used for staged beta rollout before full release gate. Different from the Release Gate (which is pre-GA). Beta readiness = "safe to open to pilot schools". Release Gate = "safe to open to all schools".<br>
+  <strong>Launch button:</strong> Disabled until score ≥ 80 AND all sign-offs collected. Triggers beta_flag=true for cohort schools.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('not-ready')">Not Ready (74)</button>
+  <button class="tab-btn" onclick="showTab('ready')">Ready (83)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Not Ready ───────────────────────────────────────────── -->
+<div id="tab-not-ready" class="screen active">
+  <p class="section-title">Beta readiness summary — v2.6 not yet ready (score 74 / threshold 80)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">🧪 Beta Readiness — v2.6 "Band Expansion"</div>
+        <div class="sh-sub">Staged beta · 4 pilot schools</div>
+      </div>
+      <div class="sh-status">
+        <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b"></div>
+        <span style="color:#f59e0b">Not Ready</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="readiness-hero">
+      <div class="rh-left">
+        <div class="rh-label">Beta Readiness Score</div>
+        <div class="rh-score-row">
+          <div class="rh-score">74</div>
+          <div class="rh-total">/ 100</div>
+        </div>
+        <div class="rh-verdict">⚠️ Below beta threshold (80). 2 blockers outstanding.</div>
+        <div style="height:12px"></div>
+        <div class="rh-bar-track">
+          <div class="rh-bar-fill warn" style="width:74%"></div>
+        </div>
+        <div class="rh-threshold">Beta threshold: 80 · Full release threshold: 90</div>
+      </div>
+      <div class="rh-ring">
+        <svg class="ring-svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#f59e0b" stroke-width="10"
+            stroke-dasharray="184.6" stroke-dashoffset="48" stroke-linecap="round"
+            transform="rotate(-90 50 50)"/>
+          <text x="50" y="55" text-anchor="middle" fill="#f0f6ff" font-size="20" font-weight="800" font-family="system-ui">74</text>
+        </svg>
+        <div class="ring-label">6 points to beta</div>
+      </div>
+    </div>
+
+    <!-- Category scores -->
+    <div class="cat-grid">
+      <div class="cat-cell">
+        <div class="cat-icon">🧪</div>
+        <div class="cat-name">Quality</div>
+        <div class="cat-score-row"><span class="cat-val">20</span><span class="cat-max">/25</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:80%;background:#50e890"></div></div>
+        <div class="cat-blockers">1 blocker: crash on empty state</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">⚡</div>
+        <div class="cat-name">Performance</div>
+        <div class="cat-score-row"><span class="cat-val">22</span><span class="cat-max">/25</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:88%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ p95 &lt; 180ms</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">📚</div>
+        <div class="cat-name">Content</div>
+        <div class="cat-score-row"><span class="cat-val">13</span><span class="cat-max">/20</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:65%;background:#f59e0b"></div></div>
+        <div class="cat-blockers">1 blocker: 7 skills under review</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">🔒</div>
+        <div class="cat-name">Privacy</div>
+        <div class="cat-score-row"><span class="cat-val">19</span><span class="cat-max">/20</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:95%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ FERPA/COPPA clear</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">✍️</div>
+        <div class="cat-name">Sign-off</div>
+        <div class="cat-score-row"><span class="cat-val">0</span><span class="cat-max">/10</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:0%;background:#f85149"></div></div>
+        <div class="cat-blockers">0/3 approvals</div>
+      </div>
+    </div>
+
+    <!-- Detail + sidebar -->
+    <div class="detail-grid">
+      <div class="detail-main">
+        <div class="sec-hdr">Beta Readiness Checklist</div>
+        <div class="checklist">
+          <div class="cl-item">
+            <div class="cl-check cl-fail">✕</div>
+            <div class="cl-body">
+              <div class="cl-title">Bulk assignment — empty state crash (P1)</div>
+              <div class="cl-sub">Crash when teacher has zero existing assignments. Repro rate 100%. Fix in progress — ETA Apr 17.</div>
+            </div>
+          </div>
+          <div class="cl-item">
+            <div class="cl-check cl-fail">✕</div>
+            <div class="cl-body">
+              <div class="cl-title">G4–5 content — 7 skills still under curriculum review</div>
+              <div class="cl-sub">Skills will be locked (delivery_locked=true) during beta. Beta schools on P3 band will have reduced skill pool. Curriculum review ETA Apr 18.</div>
+            </div>
+          </div>
+          <div class="cl-item">
+            <div class="cl-check cl-warn">~</div>
+            <div class="cl-body">
+              <div class="cl-title">Parent PDF export — rendering gap on iOS Safari</div>
+              <div class="cl-sub">PDF renders correctly on Chrome/desktop. iOS Safari shows clipped footer. Workaround: browser download instead of in-app. Tagged as known issue for beta notes.</div>
+            </div>
+          </div>
+          <div class="cl-item">
+            <div class="cl-check cl-pass">✓</div>
+            <div class="cl-body">
+              <div class="cl-title">Performance: p95 &lt; 200ms on all routes</div>
+              <div class="cl-sub">Bulk assignment route p95 = 178ms on staging (load test: 200 concurrent). Assignment engine p95 = 142ms.</div>
+            </div>
+          </div>
+          <div class="cl-item">
+            <div class="cl-check cl-pass">✓</div>
+            <div class="cl-body">
+              <div class="cl-title">Privacy review: no new PII fields in beta features</div>
+              <div class="cl-sub">Bulk assignment and parent PDF export reviewed. No new PII collected. FERPA covered entity check passed.</div>
+            </div>
+          </div>
+          <div class="cl-item">
+            <div class="cl-check cl-pass">✓</div>
+            <div class="cl-body">
+              <div class="cl-title">Beta school DPAs signed — 3 of 4 schools</div>
+              <div class="cl-sub">Cedar Valley, Riverside, Maplewood signed. Lincoln Elementary DPA pending legal review (expected Apr 16).</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="detail-sidebar">
+        <div class="sec-hdr">Beta Pilot Schools</div>
+        <div class="school-list">
+          <div class="school-row">
+            <div class="sr-dot sr-green"></div>
+            <div class="sr-name">Cedar Valley Prep</div>
+            <div class="sr-band" style="font-size:9px;color:#9b72ff">P1–P2</div>
+            <span class="sr-status ss-ready">Ready</span>
+          </div>
+          <div class="school-row">
+            <div class="sr-dot sr-green"></div>
+            <div class="sr-name">Riverside Elementary</div>
+            <div class="sr-band" style="font-size:9px;color:#58e8c1">P2</div>
+            <span class="sr-status ss-ready">Ready</span>
+          </div>
+          <div class="school-row">
+            <div class="sr-dot sr-amber"></div>
+            <div class="sr-name">Maplewood Academy</div>
+            <div class="sr-band" style="font-size:9px;color:#ff7b6b">P3</div>
+            <span class="sr-status ss-setup">Limited (P3 skills locked)</span>
+          </div>
+          <div class="school-row">
+            <div class="sr-dot sr-red"></div>
+            <div class="sr-name">Lincoln Elementary</div>
+            <div class="sr-band" style="font-size:9px;color:#ffd166">P0–P1</div>
+            <span class="sr-status ss-blocked">DPA pending</span>
+          </div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="sec-hdr">Sign-off Required</div>
+          <div class="signoff-list">
+            <div class="so-row">
+              <div class="so-avatar">👤</div>
+              <div>
+                <div class="so-name">Owner</div>
+                <div class="so-role">Final beta approval</div>
+              </div>
+              <span class="so-badge sb-pending">Pending</span>
+            </div>
+            <div class="so-row">
+              <div class="so-avatar">⚙️</div>
+              <div>
+                <div class="so-name">Eng Lead</div>
+                <div class="so-role">Technical sign-off</div>
+              </div>
+              <span class="so-badge sb-pending">Pending</span>
+            </div>
+            <div class="so-row">
+              <div class="so-avatar">📚</div>
+              <div>
+                <div class="so-name">Curriculum Lead</div>
+                <div class="so-role">Content sign-off</div>
+              </div>
+              <span class="so-badge sb-pending">Pending</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Launch block -->
+    <div class="launch-block">
+      <div>
+        <div class="lb-text">Launch beta for 4 pilot schools → sets beta_flag=true, enables new features behind feature flag</div>
+        <div class="lb-note">⚠️ Score 74 / 80 minimum required · 2 blockers must be resolved first</div>
+      </div>
+      <button class="lb-btn" disabled>🚀 Launch Beta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Ready ───────────────────────────────────────────── -->
+<div id="tab-ready" class="screen">
+  <p class="section-title">Beta readiness summary — v2.6 ready (score 83 / threshold 80)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">🧪 Beta Readiness — v2.6 "Band Expansion"</div>
+        <div class="sh-sub">Staged beta · 4 pilot schools</div>
+      </div>
+      <div class="sh-status">
+        <div style="width:8px;height:8px;border-radius:50%;background:#50e890"></div>
+        <span style="color:#50e890">Ready for Beta</span>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="readiness-hero">
+      <div class="rh-left">
+        <div class="rh-label">Beta Readiness Score</div>
+        <div class="rh-score-row">
+          <div class="rh-score">83</div>
+          <div class="rh-total">/ 100</div>
+        </div>
+        <div class="rh-verdict pass">✓ Ready for beta launch. All blockers resolved. All sign-offs collected.</div>
+        <div style="height:12px"></div>
+        <div class="rh-bar-track">
+          <div class="rh-bar-fill" style="width:83%"></div>
+        </div>
+        <div class="rh-threshold">Beta threshold: 80 ✓ · Full release threshold: 90 (not yet reached)</div>
+      </div>
+      <div class="rh-ring">
+        <svg class="ring-svg" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.07)" stroke-width="10"/>
+          <circle cx="50" cy="50" r="40" fill="none" stroke="#50e890" stroke-width="10"
+            stroke-dasharray="184.6" stroke-dashoffset="31.4" stroke-linecap="round"
+            transform="rotate(-90 50 50)"/>
+          <text x="50" y="55" text-anchor="middle" fill="#50e890" font-size="20" font-weight="800" font-family="system-ui">83</text>
+        </svg>
+        <div class="ring-label">Beta ready ✓</div>
+      </div>
+    </div>
+
+    <!-- Category scores (ready state) -->
+    <div class="cat-grid">
+      <div class="cat-cell">
+        <div class="cat-icon">🧪</div>
+        <div class="cat-name">Quality</div>
+        <div class="cat-score-row"><span class="cat-val">22</span><span class="cat-max">/25</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:88%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ Empty state fix deployed</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">⚡</div>
+        <div class="cat-name">Performance</div>
+        <div class="cat-score-row"><span class="cat-val">22</span><span class="cat-max">/25</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:88%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ p95 &lt; 180ms</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">📚</div>
+        <div class="cat-name">Content</div>
+        <div class="cat-score-row"><span class="cat-val">18</span><span class="cat-max">/20</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:90%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ 5/7 skills cleared</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">🔒</div>
+        <div class="cat-name">Privacy</div>
+        <div class="cat-score-row"><span class="cat-val">19</span><span class="cat-max">/20</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:95%;background:#50e890"></div></div>
+        <div class="cat-ok">✓ FERPA/COPPA clear</div>
+      </div>
+      <div class="cat-cell">
+        <div class="cat-icon">✍️</div>
+        <div class="cat-name">Sign-off</div>
+        <div class="cat-score-row"><span class="cat-val">2</span><span class="cat-max">/10</span></div>
+        <div class="cat-bar-track"><div class="cat-bar-fill" style="width:20%;background:#f59e0b"></div></div>
+        <div class="cat-warn" style="font-size:9px;color:#f59e0b;margin-top:4px;font-weight:700">2/3 — owner sign-off needed</div>
+      </div>
+    </div>
+
+    <!-- Launch block (active) -->
+    <div class="launch-block" style="background:rgba(80,232,144,.04);border-top-color:rgba(80,232,144,.15)">
+      <div>
+        <div class="lb-text" style="color:#f0f6ff">Ready to launch beta for 4 pilot schools → sets beta_flag=true for Cedar Valley, Riverside, Maplewood, Lincoln</div>
+        <div class="lb-note" style="color:#50e890">✓ Score 83 / 80 minimum met · All blockers resolved · 2/3 sign-offs collected</div>
+      </div>
+      <button class="lb-btn" style="opacity:1">🚀 Launch Beta</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-beta-readiness-summary-v2.html<br>
+      <strong>Pre-beta launch checklist + scoring.</strong> 5 categories (Quality/Performance/Content/Privacy/Sign-off = 100). Beta threshold = 80. Full release threshold = 90. 3–5 pilot schools.
+    </div>
+    <h2 class="spec-h2">Beta vs Full Release Gate</h2>
+    <p class="spec-p">Beta Readiness = staged rollout to 3–5 trusted pilot schools. Lower bar (80) than full release gate (90) because: (1) pilot schools are pre-vetted and aware of beta status; (2) feedback loop is tighter; (3) impact of a bug is contained. Beta launches gate behind feature flag per school. Full Release Gate (≥90) must still be passed before GA rollout.</p>
+    <h2 class="spec-h2">Sign-off Flow</h2>
+    <p class="spec-p">Three sign-offs required: Owner (final), Eng Lead (technical), Curriculum Lead (content). Each sign-off is a timestamp + email confirmation. Sign-offs are recorded in release_signoffs table and are part of the governance log. Launch button remains disabled until score ≥ 80 AND 3/3 sign-offs.</p>
+    <h2 class="spec-h2">Beta School Selection</h2>
+    <p class="spec-p">Owner selects beta schools in Settings → Beta Cohort. Beta schools must have signed DPA with beta clause. beta_flag=true in schools table. Beta features are exposed via feature_flags.beta_enabled joined with school context. Schools can be added/removed from beta cohort without a deploy.</p>
+    <h2 class="spec-h2">Known Issues</h2>
+    <p class="spec-p">Known issues (warnings, not blockers) are listed in the checklist with amber status. These are communicated to beta school admins in the beta launch email. Pilot school admins have a direct Slack channel for beta feedback.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

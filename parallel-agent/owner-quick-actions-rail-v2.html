@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Quick Actions Rail — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Demo page wrapper */
+.demo-page{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:56px 1fr;min-height:500px;max-width:1100px}
+
+/* Quick Actions Rail — left sidebar strip */
+.qa-rail{background:#010409;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+.qa-item{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;flex-shrink:0}
+.qa-item:hover{background:rgba(255,255,255,.06)}
+.qa-item.active{background:rgba(80,232,144,.12)}
+.qa-item.active .qa-icon{color:#50e890}
+.qa-icon{font-size:16px;color:rgba(255,255,255,.35)}
+.qa-badge{position:absolute;top:4px;right:4px;min-width:14px;height:14px;border-radius:7px;background:#f85149;font-size:8px;font-weight:800;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 2px}
+.qa-divider{width:28px;height:1px;background:rgba(255,255,255,.07);margin:4px 0}
+.qa-tooltip{position:absolute;left:50px;top:50%;transform:translateY(-50%);background:#161b22;border:1px solid rgba(255,255,255,.12);border-radius:6px;padding:4px 10px;font-size:11px;font-weight:700;color:#f0f6ff;white-space:nowrap;pointer-events:none;z-index:10;opacity:0}
+.qa-item:hover .qa-tooltip{opacity:1}
+
+/* Main content area (placeholder) */
+.qa-content{padding:24px;display:flex;flex-direction:column;gap:16px}
+.qac-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.qac-sub{font-size:11px;color:rgba(255,255,255,.3)}
+
+/* Inline mini cards showing what each rail item does */
+.rail-doc-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:8px}
+.rdc{background:#161b22;border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)}
+.rdc-icon{font-size:18px;margin-bottom:6px}
+.rdc-title{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.rdc-sub{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}
+.rdc-badge{display:inline-block;margin-top:4px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(248,81,73,.15);color:#f85149}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-quick-actions-rail-v2.html</strong><br>
+  Persistent left-side icon rail on the owner desktop console. Provides one-click navigation to all major owner sections + contextual badge counts.<br>
+  <strong>Position:</strong> Fixed left, 56px wide. Sits between the browser chrome and the main content area. Always visible on desktop.<br>
+  <strong>Badges:</strong> Feedback queue count (P0+P1 open). Release gate status dot. Incident count (red when >0). Route health dot.<br>
+  <strong>Active state:</strong> Current page item highlighted in green. Tooltip on hover (hidden by default, shows on pointer hover).<br>
+  <strong>Mobile:</strong> Rail not shown on mobile — replaced by bottom tab bar.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('all-clear')">All Clear</button>
+  <button class="tab-btn" onclick="showTab('incident')">With Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── All Clear ───────────────────────────────────────────── -->
+<div id="tab-all-clear" class="screen active">
+  <p class="section-title">Quick actions rail — all clear state (Home active)</p>
+  <div class="demo-page">
+    <div class="qa-rail">
+      <div class="qa-item active">
+        <div class="qa-icon">🏠</div>
+        <div class="qa-tooltip">Home</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item">
+        <div class="qa-icon">📡</div>
+        <div class="qa-tooltip">Route Health</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">💬</div>
+        <div class="qa-badge">6</div>
+        <div class="qa-tooltip">Feedback (6 open)</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">🚀</div>
+        <div class="qa-tooltip">Release Gate</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📚</div>
+        <div class="qa-tooltip">Content Health</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item">
+        <div class="qa-icon">📊</div>
+        <div class="qa-tooltip">Command Center</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">🗺</div>
+        <div class="qa-tooltip">Roadmap</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📅</div>
+        <div class="qa-tooltip">Release Calendar</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📋</div>
+        <div class="qa-tooltip">Governance Log</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item">
+        <div class="qa-icon">⚙️</div>
+        <div class="qa-tooltip">Settings</div>
+      </div>
+    </div>
+    <div class="qa-content">
+      <div>
+        <div class="qac-title">Owner Quick Actions Rail — All Clear</div>
+        <div class="qac-sub">Main content area (active page = Home). Rail on left. Badge on Feedback shows 6 open items.</div>
+      </div>
+      <div class="rail-doc-grid">
+        <div class="rdc">
+          <div class="rdc-icon">🏠</div>
+          <div class="rdc-title">Home</div>
+          <div class="rdc-sub">Daily ops overview. Route health card, feedback queue, release gate status, DAU chart.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">📡</div>
+          <div class="rdc-title">Route Health</div>
+          <div class="rdc-sub">Full monitoring page. All 10 routes. p95/p99/uptime. Incident declaration.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">💬</div>
+          <div class="rdc-title">Feedback</div>
+          <div class="rdc-sub">Feedback workbench. Queue triage. P0–Feature items. Owner reply. Badge = P0+P1 open count.</div>
+          <span class="rdc-badge">6 open</span>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">🚀</div>
+          <div class="rdc-title">Release Gate</div>
+          <div class="rdc-sub">Full gate scoring. 5 categories. Blocker details. Launch button. Green dot = gate open.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">📚</div>
+          <div class="rdc-title">Content Health</div>
+          <div class="rdc-sub">Skill review queue. Blocked skills. Error reports by subject. Auto-flag thresholds.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">📊</div>
+          <div class="rdc-title">Command Center</div>
+          <div class="rdc-sub">MAU/MRR/ARR. School cohorts. Band adoption. Retention by cohort. Period selector.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">🗺</div>
+          <div class="rdc-title">Roadmap</div>
+          <div class="rdc-sub">Kanban board. Now/Next/Later/Won't Build. Evidence counts. Quarter selector.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">📅</div>
+          <div class="rdc-title">Release Calendar</div>
+          <div class="rdc-sub">Monthly calendar. Releases, hotfixes, freezes, gates, post-mortems.</div>
+        </div>
+        <div class="rdc">
+          <div class="rdc-icon">📋</div>
+          <div class="rdc-title">Governance Log</div>
+          <div class="rdc-sub">Immutable audit log. Privacy/FERPA actions. Content changes. Ops events. 7-year retention.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── With Incident ───────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">Quick actions rail — P0 incident active (Route Health active)</p>
+  <div class="demo-page" style="border-color:rgba(248,81,73,.2)">
+    <div class="qa-rail" style="background:rgba(10,2,3,1)">
+      <div class="qa-item">
+        <div class="qa-icon">🏠</div>
+        <div class="qa-tooltip">Home</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item active" style="background:rgba(248,81,73,.1)">
+        <div class="qa-icon" style="color:#f85149">📡</div>
+        <div class="qa-badge" style="background:#f85149">1</div>
+        <div class="qa-tooltip">Route Health (1 DOWN)</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">💬</div>
+        <div class="qa-badge" style="background:#f85149">8</div>
+        <div class="qa-tooltip">Feedback (8 open)</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">🚀</div>
+        <div class="qa-tooltip">Release Gate</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📚</div>
+        <div class="qa-tooltip">Content Health</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item">
+        <div class="qa-icon">📊</div>
+        <div class="qa-tooltip">Command Center</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">🗺</div>
+        <div class="qa-tooltip">Roadmap</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📅</div>
+        <div class="qa-tooltip">Release Calendar</div>
+      </div>
+      <div class="qa-item">
+        <div class="qa-icon">📋</div>
+        <div class="qa-tooltip">Governance Log</div>
+      </div>
+      <div class="qa-divider"></div>
+      <div class="qa-item">
+        <div class="qa-icon">⚙️</div>
+        <div class="qa-tooltip">Settings</div>
+      </div>
+    </div>
+    <div class="qa-content">
+      <div>
+        <div class="qac-title" style="color:#f85149">Route Health — P0 Incident Active</div>
+        <div class="qac-sub">Route Health rail item is active (red). Badge "1" shows 1 route down. Feedback badge jumped from 6 to 8 (teacher reports from affected schools).</div>
+      </div>
+      <div style="background:rgba(248,81,73,.07);border:1px solid rgba(248,81,73,.2);border-radius:10px;padding:12px 14px">
+        <div style="font-size:11px;font-weight:800;color:#f85149;margin-bottom:4px">🚨 P0 INCIDENT: Assignment Engine Down</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.5)">Rail item "Route Health" turns red + badge shows down count. Home icon in rail also shows a red indicator dot. Feedback badge increases as teacher reports come in.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-quick-actions-rail-v2.html<br>
+      <strong>Persistent left icon rail.</strong> 56px wide. Always visible on desktop. 9 destinations + dividers. Badge counts. Active state. Tooltip on hover.
+    </div>
+    <h2 class="spec-h2">Badge Logic</h2>
+    <p class="spec-p">Feedback badge: count of P0+P1 open items. Route Health badge: count of DOWN routes (red badge); degraded routes shown as amber dot on icon. Release Gate: green dot (gate open) or amber dot (gate score &lt; 90) — no number badge. Content Health: amber dot if any blocked skills. Governance/Roadmap/Calendar: no badge.</p>
+    <h2 class="spec-h2">Active State</h2>
+    <p class="spec-p">Current page's rail item highlighted: background rgba(80,232,144,.12), icon color #50e890. During P0 incident: Route Health item turns red (background rgba(248,81,73,.1), icon color #f85149). These states can co-exist (e.g., active = Route Health + P0 incident → red active state).</p>
+    <h2 class="spec-h2">Tooltip</h2>
+    <p class="spec-p">Tooltip appears 200ms after pointer enters the icon. Disappears immediately on pointer leave. Tooltip text includes badge context (e.g., "Feedback (6 open)" not just "Feedback"). Tooltips are suppressed if the section label is already visible (wider layout).</p>
+    <h2 class="spec-h2">Mobile</h2>
+    <p class="spec-p">Rail is not shown on mobile — replaced by bottom tab bar (5 items: Home / Routes / Feedback / Release / More). The "More" tab contains the items not in the primary 4: Content Health / Command Center / Roadmap / Calendar / Governance Log / Settings.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

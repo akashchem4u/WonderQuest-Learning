@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-grade45-reading-scene-v2.html
+  ======================================================
+  Grade 4–5 reading play scene. Coral (#ff7b6b) theme.
+  Four tabs: Active (Inference Question) / Correct / Wrong / Spec
+  - Longer passage (5–7 sentences), inference-level question (not just literal recall)
+  - Two question types shown: inference + vocabulary-in-context
+  - Answer choices (4 options, full sentence) - G4-5 must infer from clues, not just find verbatim text
+  - Hint: coach asks guiding question ("What does the character's action tell us about how they felt?")
+  - Correct: correct choice green, coach explains WHY it's the right answer using evidence
+  - Wrong: "Look for clues in the passage — what does [detail] suggest?"
+  - No timer, no accuracy %, stars never decrease
+  - Re-read button (not Replay) — text-primary interaction
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · G4-5 Reading Scene v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --coral: #ff7b6b; --coral-bg: #2a0e0a;
+    --violet: #9b72ff; --mint: #58e8c1; --gold: #ffd166;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--coral); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--coral); color: var(--coral); }
+  .tab-btn.active { background: var(--coral); border-color: var(--coral); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .phone-frame {
+    width: 390px; min-height: 840px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #ff7b6b22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #2a1818;
+  }
+  .top-bar {
+    background: var(--card); padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #2a1818;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(255,123,107,0.12); border: none;
+    color: var(--coral); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(255,123,107,0.12); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(255,123,107,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--coral);
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #2a1818;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,123,107,0.15); }
+  .ps-seg.done { background: var(--coral); }
+  .ps-seg.active { background: rgba(255,123,107,0.5); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 14px 16px 10px; gap: 12px; overflow-y: auto;
+  }
+
+  .coach-inline {
+    display: flex; align-items: flex-start; gap: 8px;
+    background: rgba(255,123,107,0.07); border-radius: 14px;
+    padding: 10px 12px; border: 1px solid rgba(255,123,107,0.18);
+  }
+  .coach-avatar-sm {
+    width: 30px; height: 30px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a0e0a, #ff7b6b44);
+    border: 2px solid var(--coral);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem; flex-shrink: 0;
+  }
+  .coach-bubble { flex: 1; font-size: 0.8rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .coach-bubble .hint-text { color: var(--coral); font-weight: 900; }
+
+  .passage-card {
+    background: var(--card2); border-radius: 16px; border: 2px solid #2a1818;
+    padding: 14px 16px;
+  }
+  .passage-title {
+    font-size: 0.72rem; font-weight: 900; color: var(--coral);
+    text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px;
+  }
+  .passage-text {
+    font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.65;
+  }
+  .passage-text .clue { background: rgba(255,123,107,0.15); border-radius: 3px; padding: 0 2px; }
+  .passage-text .clue.correct-hl { background: rgba(80,232,144,0.2); }
+
+  /* Question type badge */
+  .q-type-badge {
+    display: inline-block; font-size: 0.68rem; font-weight: 900;
+    background: rgba(255,123,107,0.15); color: var(--coral);
+    border-radius: 6px; padding: 2px 8px; margin-bottom: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+
+  .question-text { font-size: 0.92rem; font-weight: 900; color: var(--text); line-height: 1.4; }
+
+  .answer-list { display: flex; flex-direction: column; gap: 7px; }
+  .choice-btn {
+    width: 100%; padding: 11px 12px;
+    background: var(--card2); border: 2px solid #2a1818;
+    border-radius: 12px; cursor: pointer; text-align: left;
+    font-family: 'Nunito', sans-serif; font-size: 0.86rem;
+    font-weight: 700; color: var(--text); line-height: 1.4;
+    transition: all 0.15s;
+    animation: slide-in 0.35s ease-out backwards;
+  }
+  .choice-btn:nth-child(1) { animation-delay: 0.04s; }
+  .choice-btn:nth-child(2) { animation-delay: 0.08s; }
+  .choice-btn:nth-child(3) { animation-delay: 0.12s; }
+  .choice-btn:nth-child(4) { animation-delay: 0.16s; }
+  .choice-btn:hover { border-color: var(--coral); background: rgba(255,123,107,0.07); }
+  .choice-btn.selected-correct {
+    background: var(--correct-bg); border-color: var(--correct); color: var(--correct);
+  }
+  .choice-btn.selected-wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    animation: shake 0.5s ease-out;
+  }
+  .choice-btn.dimmed { opacity: 0.35; pointer-events: none; }
+
+  @keyframes slide-in {
+    0% { opacity: 0; transform: translateX(-10px); }
+    100% { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-8px); }
+    75% { transform: translateX(8px); }
+  }
+
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #2a1818;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-reread, .btn-hint, .btn-idk {
+    flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-reread { background: #1a0e0a; color: var(--coral); border: 1px solid rgba(255,123,107,0.2); }
+  .btn-hint { background: rgba(255,123,107,0.1); color: var(--coral); border: 1px solid rgba(255,123,107,0.25); }
+  .btn-idk { background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #ff7b6b, #d04a38);
+    color: white; font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .wrong-banner {
+    background: var(--wrong-bg); border: 2px solid var(--wrong);
+    border-radius: 12px; padding: 10px 12px;
+    display: flex; align-items: flex-start; gap: 8px;
+  }
+  .wrong-banner .w-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .wrong-banner .w-text { font-size: 0.82rem; font-weight: 700; color: var(--wrong); line-height: 1.35; }
+  .wrong-banner .w-text span { color: var(--text); }
+
+  /* Correct explanation box */
+  .correct-explain {
+    background: var(--correct-bg); border: 2px solid var(--correct);
+    border-radius: 12px; padding: 10px 12px;
+    font-size: 0.82rem; font-weight: 700; color: var(--correct); line-height: 1.4;
+  }
+  .correct-explain .ev-label {
+    font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+    margin-bottom: 4px; opacity: 0.8;
+  }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-coral { background: #ff7b6b; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: white; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>📚 Play · G4–5 Reading Scene</h1>
+<p class="subtitle">v2 · Coral G4–5 theme · 4 states · Inference + evidence-based comprehension</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('active')">Active (Inference)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== ACTIVE STATE ===== -->
+<div id="tab-active" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 41</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Reading Quest</span>
+      <div class="star-counter">⭐ 41</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline">
+        <div class="coach-avatar-sm">🦁</div>
+        <div class="coach-bubble">
+          <span class="hint-text">The answer isn't always stated — you have to infer!</span><br>
+          Look for clues in how the character acts or speaks.
+        </div>
+      </div>
+
+      <div class="passage-card">
+        <div class="passage-title">📖 Read this</div>
+        <div class="passage-text">
+          When the results were posted on the bulletin board, <span class="clue">Dani walked slowly to her seat without saying a word.</span> She stared at her paper for a long time. Her friend Priya asked if she wanted to go to recess, but <span class="clue">Dani shook her head and kept her eyes down.</span> Later at lunch, Dani pushed her food around without eating. Priya sat beside her quietly.
+        </div>
+      </div>
+
+      <div class="q-type-badge">🔍 Inference</div>
+      <div class="question-text">How was Dani most likely feeling after seeing the results?</div>
+
+      <div class="answer-list">
+        <button class="choice-btn">She was bored and wanted to go home.</button>
+        <button class="choice-btn">She was excited and couldn't wait to tell her parents.</button>
+        <button class="choice-btn">She was upset or disappointed about the results.</button>
+        <button class="choice-btn">She was confused about what the results meant.</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-reread">📖 Re-read</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — keep trying!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORRECT STATE ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 42</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Reading Quest</span>
+      <div class="star-counter">⭐ 42</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline" style="border-color:#50e890; background:#0d2a1a;">
+        <div class="coach-avatar-sm" style="border-color:#50e890;">🦁</div>
+        <div class="coach-bubble">
+          <span style="color:#50e890; font-size:0.9rem;">✨ You read between the lines!</span><br>
+          The clues (slow walk, eyes down, not eating) all point to disappointment.
+        </div>
+      </div>
+
+      <div class="passage-card" style="border-color:#50e890;">
+        <div class="passage-title" style="color:#50e890;">📖 Evidence in the passage</div>
+        <div class="passage-text">
+          When the results were posted on the bulletin board, <span class="clue correct-hl">Dani walked slowly to her seat without saying a word.</span> She stared at her paper for a long time. Her friend Priya asked if she wanted to go to recess, but <span class="clue correct-hl">Dani shook her head and kept her eyes down.</span> Later at lunch, Dani pushed her food around without eating. Priya sat beside her quietly.
+        </div>
+      </div>
+
+      <div class="correct-explain">
+        <div class="ev-label">📌 Evidence</div>
+        "Walked slowly," "kept her eyes down," and "pushed her food around without eating" are clues that show Dani was upset or disappointed.
+      </div>
+
+      <div class="answer-list">
+        <button class="choice-btn dimmed">She was bored and wanted to go home.</button>
+        <button class="choice-btn dimmed">She was excited and couldn't wait to tell her parents.</button>
+        <button class="choice-btn selected-correct">She was upset or disappointed about the results. ✓</button>
+        <button class="choice-btn dimmed">She was confused about what the results meant.</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Passage ✨ +1⭐</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WRONG STATE ===== -->
+<div id="tab-wrong" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 41</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Reading Quest</span>
+      <div class="star-counter">⭐ 41</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <span class="w-icon">🔍</span>
+        <div class="w-text">
+          Not quite — look at the highlighted clues.<br>
+          <span>What do Dani's actions (slow walk, eyes down, not eating) tell you about how she felt?</span>
+        </div>
+      </div>
+
+      <div class="passage-card">
+        <div class="passage-title">📖 Look for the clues</div>
+        <div class="passage-text">
+          When the results were posted on the bulletin board, <span class="clue">Dani walked slowly to her seat without saying a word.</span> She stared at her paper for a long time. Her friend Priya asked if she wanted to go to recess, but <span class="clue">Dani shook her head and kept her eyes down.</span> Later at lunch, Dani pushed her food around without eating. Priya sat beside her quietly.
+        </div>
+      </div>
+
+      <div class="q-type-badge">🔍 Inference</div>
+      <div class="question-text">How was Dani most likely feeling after seeing the results?</div>
+
+      <div class="answer-list">
+        <button class="choice-btn selected-wrong">She was bored and wanted to go home.</button>
+        <button class="choice-btn">She was excited and couldn't wait to tell her parents.</button>
+        <button class="choice-btn">She was upset or disappointed about the results.</button>
+        <button class="choice-btn">She was confused about what the results meant.</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-reread">📖 Re-read</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-grade45-reading-scene-v2 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>G4–5 reading comprehension scene with inference-level questions — child reads between the lines</li>
+      <li>Harder than G2-3 (literal recall) — requires synthesizing multiple clues into a conclusion</li>
+      <li>On correct: evidence explanation box shown — teaches reasoning, not just confirms "right"</li>
+      <li>Coral theme. No timer, no accuracy %, stars never decrease.</li>
+    </ul>
+
+    <h3>Tabs / States</h3>
+    <ul>
+      <li><span class="token tok-muted">Active</span> Longer passage with subtle clue highlights, question type badge, 4 full-sentence choices</li>
+      <li><span class="token tok-green">Correct</span> Clues get green highlight, evidence explanation box appears below passage, choice → green, coral CTA</li>
+      <li><span class="token tok-red">Wrong</span> Wrong choice shakes, banner directs to specific clues in passage ("slow walk, eyes down…")</li>
+      <li><span class="token tok-muted">Spec</span> This document</li>
+    </ul>
+
+    <h3>Passage</h3>
+    <ul>
+      <li>5–7 sentences, 0.88rem, line-height 1.65</li>
+      <li>Clue sentences have <code>.clue</code> class → subtle coral background (not obvious — hints, not gives away answer)</li>
+      <li>On correct: <code>.correct-hl</code> added → green highlight to show evidence</li>
+    </ul>
+
+    <h3>Question Type Badge</h3>
+    <ul>
+      <li>Small badge above question: "🔍 Inference" / "📖 Vocabulary" / "🗺️ Main Idea" / "⚡ Cause & Effect"</li>
+      <li>Teaches metacognitive reading skill labels — G4-5 students beginning to learn skill names</li>
+    </ul>
+
+    <h3>Evidence Explanation (Correct Only)</h3>
+    <ul>
+      <li>Green box with "📌 Evidence" label + explanation of WHY the answer is correct</li>
+      <li>Uses textual evidence vocabulary: "This shows…", "Clues include…", "We can infer because…"</li>
+      <li>This is the KEY difference from G2-3 scene — not just "correct!" but explains reasoning</li>
+    </ul>
+
+    <h3>Question Types (G4–5)</h3>
+    <ul>
+      <li>Inference: what the character feels/thinks, not explicitly stated</li>
+      <li>Vocabulary in context: "What does 'reluctantly' most likely mean in paragraph 2?"</li>
+      <li>Main idea: "What is the passage mainly about?"</li>
+      <li>Cause and effect: "Why did Priya sit quietly beside Dani?"</li>
+    </ul>
+
+    <h3>Design Tokens (G4–5 Coral Theme)</h3>
+    <ul>
+      <li>Coral: <code>#ff7b6b</code> — progress segs, passage title, clue highlight, q-type badge, CTA</li>
+      <li>Clue active: <code>rgba(255,123,107,0.15)</code> bg</li>
+      <li>Clue correct: <code>rgba(80,232,144,0.2)</code> bg</li>
+      <li>Evidence box: <code>#0d2a1a</code> bg / <code>#50e890</code> border + text</li>
+      <li>CTA: <code>linear-gradient(135deg, #ff7b6b, #d04a38)</code>, white text</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

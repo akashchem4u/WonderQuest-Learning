@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Home Recommendation Card — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Recommendation card */
+.rec-card{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:480px;margin-bottom:20px}
+.rc-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.rc-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440}
+.rc-count{font-size:11px;font-weight:700;background:#2563eb;color:#fff;padding:2px 8px;border-radius:8px;margin-left:6px}
+.rc-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+
+/* Rec item */
+.rec-item{display:flex;align-items:flex-start;gap:12px;padding:11px 0;border-bottom:1px solid #f5f7fa}
+.rec-item:last-child{border-bottom:none;padding-bottom:0}
+.rec-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:3px}
+.rec-dot-blue{background:#2563eb}
+.rec-dot-amber{background:#f59e0b}
+.rec-dot-green{background:#22c55e}
+.rec-dot-violet{background:#9b72ff}
+.rec-body{flex:1}
+.rec-headline{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:2px;line-height:1.3}
+.rec-sub{font-size:11px;color:#666;line-height:1.4}
+.rec-cta{display:flex;gap:6px;margin-top:7px}
+.rec-btn{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui}
+.rec-btn-primary{background:#2563eb;color:#fff;border:none}
+.rec-btn-outline{background:#fff;color:#2563eb;border:1.5px solid #dbe7ff}
+.rec-btn-amber{background:#fff;color:#d97706;border:1.5px solid #fde68a}
+.rec-dismiss{color:#ccc;background:none;border:none;font-size:14px;cursor:pointer;padding:2px 4px;align-self:flex-start;flex-shrink:0}
+.rec-type-badge{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;margin-bottom:4px;display:inline-block}
+.rtb-action{background:#eff6ff;color:#2563eb}
+.rtb-info{background:#f0fdf4;color:#15803d}
+.rtb-attention{background:#fffbeb;color:#d97706}
+.rtb-advancement{background:#f5f3ff;color:#6d28d9}
+
+/* Compact variant */
+.rec-compact{background:#fff;border-radius:16px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:480px;margin-bottom:12px}
+.rc-compact-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f5f7fa}
+.rc-compact-row:last-child{border-bottom:none;padding-bottom:0}
+.rc-compact-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.rc-compact-text{flex:1;font-size:12px;font-weight:700;color:#1a1440}
+.rc-compact-btn{font-size:11px;font-weight:700;color:#2563eb;background:none;border:none;cursor:pointer;font-family:system-ui;white-space:nowrap}
+
+/* Wide variant */
+.rec-wide{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:900px;margin-bottom:20px}
+.rec-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.rec-grid-item{background:#f8faff;border-radius:12px;padding:14px 16px}
+.rgi-type{font-size:10px;font-weight:700;margin-bottom:6px}
+.rgi-title{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:4px;line-height:1.3}
+.rgi-sub{font-size:11px;color:#666;margin-bottom:8px;line-height:1.4}
+.rgi-btn{font-size:11px;font-weight:700;color:#2563eb;background:none;border:none;cursor:pointer;font-family:system-ui;padding:0}
+
+/* Empty state */
+.empty-rec{text-align:center;padding:28px 20px}
+.er-icon{font-size:34px;margin-bottom:10px}
+.er-title{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:5px}
+.er-sub{font-size:11px;color:#888;line-height:1.5}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-home-recommendation-card-v2.html</strong><br>
+  System-generated recommendations for teacher action on home screen.<br>
+  <strong>Placement:</strong> Right column on teacher home (desktop), below stat row on tablet/mobile. Part of the teacher dashboard right-rail alongside Watchlist and Recent Wins.<br>
+  <strong>Rec types:</strong> band_advancement (N students ready) | support_needed (struggling pattern detected) | skill_assign (suggest assign next skill) | streak_at_risk (engagement dropping) | class_milestone (celebratory).<br>
+  <strong>Priority ordering:</strong> Support &gt; Advancement &gt; Skill suggestion &gt; Milestone. Max 4 recs shown at once.<br>
+  <strong>Dismissal:</strong> Teacher can dismiss individual recs. Dismissed recs won't reappear for 7 days unless trigger re-fires.<br>
+  <strong>Not alarmist:</strong> Recs use neutral/positive framing. No "failing", "at risk", "urgent". Instead: "may need support", "ready to advance", "keeping an eye on".
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('standard')">Standard Card</button>
+  <button class="tab-btn" onclick="showTab('compact')">Compact</button>
+  <button class="tab-btn" onclick="showTab('wide')">Wide Grid</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Standard Card ─────────────────────────────────────────────── -->
+<div id="tab-standard" class="screen active">
+  <p class="section-title">Recommendation card — right column (desktop home)</p>
+  <div class="rec-card">
+    <div class="rc-header">
+      <div style="display:flex;align-items:center">
+        <div class="rc-title">💡 Recommendations</div>
+        <span class="rc-count">4</span>
+      </div>
+      <div class="rc-link">See all</div>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-dot rec-dot-blue"></div>
+      <div class="rec-body">
+        <span class="rec-type-badge rtb-advancement">Band advancement</span>
+        <div class="rec-headline">3 students ready for P3</div>
+        <div class="rec-sub">Marcus, Bella, and Aarav are consistently hitting P2 ceiling. Review their progress before advancing.</div>
+        <div class="rec-cta">
+          <button class="rec-btn rec-btn-primary">Review students</button>
+          <button class="rec-btn rec-btn-outline">Dismiss</button>
+        </div>
+      </div>
+      <button class="rec-dismiss">✕</button>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-dot rec-dot-amber"></div>
+      <div class="rec-body">
+        <span class="rec-type-badge rtb-attention">Support needed</span>
+        <div class="rec-headline">Jordan may need support with Fractions</div>
+        <div class="rec-sub">Confidence floor reached 3× on Fractions: Adding. Visual model or teacher check-in suggested.</div>
+        <div class="rec-cta">
+          <button class="rec-btn rec-btn-amber">View queue item</button>
+          <button class="rec-btn rec-btn-outline">Dismiss</button>
+        </div>
+      </div>
+      <button class="rec-dismiss">✕</button>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-dot rec-dot-violet"></div>
+      <div class="rec-body">
+        <span class="rec-type-badge rtb-action">Skill suggestion</span>
+        <div class="rec-headline">Consider assigning Long Division next</div>
+        <div class="rec-sub">18 students have mastered Multiplication and are ready for the next P3 skill in sequence.</div>
+        <div class="rec-cta">
+          <button class="rec-btn rec-btn-primary">Assign skill</button>
+          <button class="rec-btn rec-btn-outline">Not now</button>
+        </div>
+      </div>
+      <button class="rec-dismiss">✕</button>
+    </div>
+
+    <div class="rec-item">
+      <div class="rec-dot rec-dot-green"></div>
+      <div class="rec-body">
+        <span class="rec-type-badge rtb-info">Class milestone</span>
+        <div class="rec-headline">Class 4B hit 1,800 stars this week!</div>
+        <div class="rec-sub">Best weekly total this term. Consider a class shoutout.</div>
+        <div class="rec-cta">
+          <button class="rec-btn rec-btn-outline">Dismiss</button>
+        </div>
+      </div>
+      <button class="rec-dismiss">✕</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Compact ───────────────────────────────────────────────────── -->
+<div id="tab-compact" class="screen">
+  <p class="section-title">Compact variant — sidebar-squeezed or narrow column</p>
+  <div class="rec-compact">
+    <div class="rc-header" style="margin-bottom:10px">
+      <div style="display:flex;align-items:center">
+        <div class="rc-title">💡 Recommendations</div>
+        <span class="rc-count">4</span>
+      </div>
+    </div>
+    <div class="rc-compact-row">
+      <div class="rc-compact-icon">🚀</div>
+      <div class="rc-compact-text">3 students ready for P3 advancement</div>
+      <button class="rc-compact-btn">Review →</button>
+    </div>
+    <div class="rc-compact-row">
+      <div class="rc-compact-icon">⚠️</div>
+      <div class="rc-compact-text">Jordan needs support with Fractions</div>
+      <button class="rc-compact-btn">View →</button>
+    </div>
+    <div class="rc-compact-row">
+      <div class="rc-compact-icon">📋</div>
+      <div class="rc-compact-text">Suggest assigning Long Division</div>
+      <button class="rc-compact-btn">Assign →</button>
+    </div>
+    <div class="rc-compact-row">
+      <div class="rc-compact-icon">⭐</div>
+      <div class="rc-compact-text">Class hit 1,800 stars this week!</div>
+      <button class="rc-compact-btn">Dismiss</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Wide Grid ─────────────────────────────────────────────────── -->
+<div id="tab-wide" class="screen">
+  <p class="section-title">Wide 3-column grid — command center / analytics page</p>
+  <div class="rec-wide">
+    <div class="rc-header">
+      <div style="display:flex;align-items:center">
+        <div class="rc-title">💡 Recommendations for this week</div>
+        <span class="rc-count">4</span>
+      </div>
+      <div class="rc-link">See all</div>
+    </div>
+    <div class="rec-grid">
+      <div class="rec-grid-item">
+        <div class="rgi-type rtb-advancement rec-type-badge">🚀 Band advancement</div>
+        <div class="rgi-title">3 students ready for P3</div>
+        <div class="rgi-sub">Marcus, Bella, Aarav consistently hitting P2 ceiling. Review before advancing.</div>
+        <button class="rgi-btn">Review students →</button>
+      </div>
+      <div class="rec-grid-item">
+        <div class="rgi-type rtb-attention rec-type-badge">⚠️ Support needed</div>
+        <div class="rgi-title">Jordan: Fractions support</div>
+        <div class="rgi-sub">Confidence floor hit 3×. Visual model or direct check-in suggested this week.</div>
+        <button class="rgi-btn">View queue item →</button>
+      </div>
+      <div class="rec-grid-item">
+        <div class="rgi-type rtb-action rec-type-badge">📋 Skill suggestion</div>
+        <div class="rgi-title">Assign Long Division next</div>
+        <div class="rgi-sub">18 students mastered Multiplication and are ready for the next P3 skill.</div>
+        <button class="rgi-btn">Assign skill →</button>
+      </div>
+      <div class="rec-grid-item">
+        <div class="rgi-type rtb-info rec-type-badge">⭐ Milestone</div>
+        <div class="rgi-title">Class hit 1,800 stars!</div>
+        <div class="rgi-sub">Best weekly total this term. Class 4B is on a roll.</div>
+        <button class="rgi-btn">Dismiss</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty State ───────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty state — no recommendations right now</p>
+  <div class="rec-card">
+    <div class="rc-header">
+      <div class="rc-title">💡 Recommendations</div>
+    </div>
+    <div class="empty-rec">
+      <div class="er-icon">🌿</div>
+      <div class="er-title">All clear for now</div>
+      <div class="er-sub">No recommendations right now. Check back after students complete more sessions this week.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-home-recommendation-card-v2.html<br>
+      <strong>Placement:</strong> Right column teacher home desktop (below watchlist), below stat row mobile.<br>
+      <strong>Max:</strong> 4 recs shown. Ranked by priority. Dismissed recs excluded for 7 days.
+    </div>
+    <h2 class="spec-h2">Recommendation Types</h2>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Trigger condition</th><th>CTA</th><th>Color</th></tr>
+      <tr><td>band_advancement</td><td>≥2 students at band ceiling for 3+ sessions</td><td>Review students</td><td>Blue dot</td></tr>
+      <tr><td>support_needed</td><td>Same as queue trigger: confidence_floor ≥3 / absence / hint pattern</td><td>View queue item</td><td>Amber dot</td></tr>
+      <tr><td>skill_assign</td><td>≥50% of class mastered prerequisite skill</td><td>Assign skill</td><td>Violet dot</td></tr>
+      <tr><td>streak_at_risk</td><td>≥3 students with 6-day streaks approaching break</td><td>Remind students</td><td>Amber dot</td></tr>
+      <tr><td>class_milestone</td><td>Class star threshold reached; class skill mastery milestone</td><td>Dismiss</td><td>Green dot</td></tr>
+    </table>
+    <h2 class="spec-h2">Framing Rules</h2>
+    <p class="spec-p">All recs use positive/neutral language. NEVER use: "failing", "at risk", "urgent", "falling behind", "not meeting expectations". Instead use: "may need support", "ready to advance", "worth keeping an eye on". Support-type recs always link to the existing queue item — never duplicate the queue entry.</p>
+    <h2 class="spec-h2">Priority Order</h2>
+    <p class="spec-p">1. support_needed → 2. band_advancement → 3. skill_assign / streak_at_risk → 4. class_milestone. Maximum 4 shown. Items beyond 4 are accessible via "See all".</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

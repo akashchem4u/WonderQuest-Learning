@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Adoption by Band Desktop — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-period{display:flex;gap:6px}
+.sp-chip{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.sp-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.sp-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.sh-export{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Top stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.stat-cell{background:#0d1117;padding:16px 20px}
+.sc-n{font-size:22px;font-weight:900}
+.sc-l{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-top:2px}
+.sc-d{font-size:11px;font-weight:700;margin-top:4px}
+.dg{color:#50e890}.da{color:#f59e0b}
+
+/* Body */
+.body-layout{display:grid;grid-template-columns:1fr 320px;gap:0}
+.body-main{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06)}
+.body-side{padding:18px 20px}
+
+/* Section headers */
+.sec-hdr{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+.card{background:#161b22;border-radius:12px;padding:16px 18px;margin-bottom:14px;border:1px solid rgba(255,255,255,.05)}
+.card-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:12px}
+
+/* Band cards grid */
+.band-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+.band-card{border-radius:12px;padding:16px 18px;border:1px solid rgba(255,255,255,.06);background:#161b22}
+.bc-header{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.bc-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.bc-name{font-size:11px;font-weight:800;color:#f0f6ff}
+.bc-mau{font-size:22px;font-weight:900;margin-bottom:2px}
+.bc-mau-l{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.04em}
+.bc-delta{font-size:11px;font-weight:700;margin-top:4px}
+.bc-bar-bg{background:rgba(255,255,255,.08);border-radius:3px;height:4px;margin-top:8px}
+.bc-bar-fill{height:4px;border-radius:3px}
+.bc-pct{font-size:9px;color:rgba(255,255,255,.3);margin-top:3px}
+
+/* MAU chart — stacked bands */
+.stacked-chart{height:120px;display:flex;gap:4px;align-items:flex-end;margin-bottom:8px}
+.sc-col{flex:1;display:flex;flex-direction:column;justify-content:flex-end;border-radius:2px 2px 0 0;overflow:hidden}
+.scc-month{font-size:8px;color:rgba(255,255,255,.25);font-weight:600;text-align:center;margin-top:3px}
+
+/* Retention table */
+.ret-table{width:100%;border-collapse:collapse}
+.ret-table th{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);padding:5px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,.06)}
+.ret-table td{font-size:11px;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle}
+.ret-table tr:last-child td{border-bottom:none}
+.band-tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:4px}
+.ret-bar{width:80px;background:rgba(255,255,255,.07);border-radius:3px;height:5px;display:inline-block}
+.ret-fill{height:5px;border-radius:3px;display:inline-block}
+.ret-val{font-weight:700}
+
+/* Side panels */
+.side-panel{background:#161b22;border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid rgba(255,255,255,.05)}
+.sp-title{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em;margin-bottom:10px}
+.sp-row{display:flex;justify-content:space-between;padding:4px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.sp-row:last-child{border-bottom:none}
+.spr-label{color:rgba(255,255,255,.4)}
+.spr-val{color:#f0f6ff;font-weight:600}
+.insight-item{padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:11px;color:rgba(255,255,255,.5);line-height:1.4}
+.insight-item:last-child{border-bottom:none}
+.ii-tag{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-right:4px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-adoption-by-band-desktop-v2.html</strong><br>
+  Band-level adoption analytics for the owner. Shows MAU, session depth, retention, and advancement rates per curriculum band.<br>
+  <strong>Bands:</strong> P0 Pre-K (#ffd166 gold) / P1 K–1 (#9b72ff violet) / P2 G2–3 (#58e8c1 mint) / P3 G4–5 (#ff7b6b coral).<br>
+  <strong>Key metric:</strong> Band advancement rate — % of students who advance to the next band within a term. Proxy for curriculum effectiveness.<br>
+  <strong>Data source:</strong> analytics warehouse (daily snapshots). Period selector: 30d / 90d / Term / All time.<br>
+  <strong>Privacy:</strong> All data is aggregate (band-level or school-cohort level). No individual student data.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('overview')">Band Overview</button>
+  <button class="tab-btn" onclick="showTab('advancement')">Advancement</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Band Overview ───────────────────────────────────────── -->
+<div id="tab-overview" class="screen active">
+  <p class="section-title">Adoption by band — 30-day overview</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📊 Adoption by Band</div>
+        <div class="sh-period">
+          <button class="sp-chip sp-a">30d</button>
+          <button class="sp-chip sp-i">90d</button>
+          <button class="sp-chip sp-i">Term</button>
+          <button class="sp-chip sp-i">All time</button>
+        </div>
+      </div>
+      <div class="sh-export">↓ Export CSV</div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-cell"><div class="sc-n" style="color:#f0f6ff">4,820</div><div class="sc-l">Total MAU</div><div class="sc-d dg">↑12% MoM</div></div>
+      <div class="stat-cell"><div class="sc-n" style="color:#50e890">68%</div><div class="sc-l">D30 Retention</div><div class="sc-d dg">↑4pp</div></div>
+      <div class="stat-cell"><div class="sc-n" style="color:#f0f6ff">3.2</div><div class="sc-l">Avg Sessions/Week</div><div class="sc-d dg">↑0.3</div></div>
+      <div class="stat-cell"><div class="sc-n" style="color:#9b72ff">22%</div><div class="sc-l">Band Advancement Rate</div><div class="sc-d dg">↑3pp this term</div></div>
+    </div>
+    <div class="body-layout">
+      <div class="body-main">
+        <div class="sec-hdr">MAU by Band</div>
+        <div class="band-cards">
+          <div class="band-card">
+            <div class="bc-header"><div class="bc-dot" style="background:#ffd166"></div><div class="bc-name">P0 Pre-K</div></div>
+            <div class="bc-mau" style="color:#ffd166">820</div>
+            <div class="bc-mau-l">MAU</div>
+            <div class="bc-delta dg">↑8% MoM</div>
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:17%;background:#ffd166"></div></div>
+            <div class="bc-pct">17% of total MAU</div>
+          </div>
+          <div class="band-card">
+            <div class="bc-header"><div class="bc-dot" style="background:#9b72ff"></div><div class="bc-name">P1 K–1</div></div>
+            <div class="bc-mau" style="color:#9b72ff">1,780</div>
+            <div class="bc-mau-l">MAU</div>
+            <div class="bc-delta dg">↑15% MoM</div>
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:37%;background:#9b72ff"></div></div>
+            <div class="bc-pct">37% of total MAU</div>
+          </div>
+          <div class="band-card">
+            <div class="bc-header"><div class="bc-dot" style="background:#58e8c1"></div><div class="bc-name">P2 G2–3</div></div>
+            <div class="bc-mau" style="color:#58e8c1">3,020</div>
+            <div class="bc-mau-l">MAU</div>
+            <div class="bc-delta dg">↑18% MoM</div>
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:63%;background:#58e8c1"></div></div>
+            <div class="bc-pct">63% of total MAU · Largest band</div>
+          </div>
+          <div class="band-card">
+            <div class="bc-header"><div class="bc-dot" style="background:#ff7b6b"></div><div class="bc-name">P3 G4–5</div></div>
+            <div class="bc-mau" style="color:#ff7b6b">1,200</div>
+            <div class="bc-mau-l">MAU</div>
+            <div class="bc-delta da">↑4% MoM</div>
+            <div class="bc-bar-bg"><div class="bc-bar-fill" style="width:25%;background:#ff7b6b"></div></div>
+            <div class="bc-pct">25% of total MAU · Slowest growth</div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">MAU Growth — Stacked by Band (8 months)</div>
+        <div class="card">
+          <div class="card-title">Monthly stacked bar — all bands</div>
+          <div class="stacked-chart">
+            <!-- Each column is a stacked bar: P0/P1/P2/P3 stacked -->
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:6px;background:#ff7b6b;opacity:.7"></div>
+                <div style="height:20px;background:#58e8c1;opacity:.7"></div>
+                <div style="height:12px;background:#9b72ff;opacity:.7"></div>
+                <div style="height:5px;background:#ffd166;opacity:.7"></div>
+              </div>
+              <div class="scc-month">Aug</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:7px;background:#ff7b6b;opacity:.7"></div>
+                <div style="height:22px;background:#58e8c1;opacity:.7"></div>
+                <div style="height:13px;background:#9b72ff;opacity:.7"></div>
+                <div style="height:5px;background:#ffd166;opacity:.7"></div>
+              </div>
+              <div class="scc-month">Sep</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:7px;background:#ff7b6b;opacity:.75"></div>
+                <div style="height:24px;background:#58e8c1;opacity:.75"></div>
+                <div style="height:14px;background:#9b72ff;opacity:.75"></div>
+                <div style="height:5px;background:#ffd166;opacity:.7"></div>
+              </div>
+              <div class="scc-month">Oct</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:8px;background:#ff7b6b;opacity:.75"></div>
+                <div style="height:26px;background:#58e8c1;opacity:.75"></div>
+                <div style="height:15px;background:#9b72ff;opacity:.75"></div>
+                <div style="height:5px;background:#ffd166;opacity:.7"></div>
+              </div>
+              <div class="scc-month">Nov</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:9px;background:#ff7b6b;opacity:.8"></div>
+                <div style="height:29px;background:#58e8c1;opacity:.8"></div>
+                <div style="height:16px;background:#9b72ff;opacity:.8"></div>
+                <div style="height:6px;background:#ffd166;opacity:.75"></div>
+              </div>
+              <div class="scc-month">Dec</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:9px;background:#ff7b6b;opacity:.8"></div>
+                <div style="height:32px;background:#58e8c1;opacity:.8"></div>
+                <div style="height:17px;background:#9b72ff;opacity:.8"></div>
+                <div style="height:6px;background:#ffd166;opacity:.75"></div>
+              </div>
+              <div class="scc-month">Jan</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:10px;background:#ff7b6b;opacity:.85"></div>
+                <div style="height:36px;background:#58e8c1;opacity:.85"></div>
+                <div style="height:18px;background:#9b72ff;opacity:.85"></div>
+                <div style="height:7px;background:#ffd166;opacity:.8"></div>
+              </div>
+              <div class="scc-month">Feb</div>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+              <div style="width:32px;display:flex;flex-direction:column;border-radius:2px 2px 0 0;overflow:hidden">
+                <div style="height:10px;background:#ff7b6b"></div>
+                <div style="height:40px;background:#58e8c1"></div>
+                <div style="height:18px;background:#9b72ff"></div>
+                <div style="height:7px;background:#ffd166"></div>
+              </div>
+              <div class="scc-month">Mar</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:14px;margin-top:6px">
+            <span style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#ffd166">■</span> P0 Pre-K</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#9b72ff">■</span> P1 K–1</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#58e8c1">■</span> P2 G2–3</span>
+            <span style="font-size:10px;color:rgba(255,255,255,.4)"><span style="color:#ff7b6b">■</span> P3 G4–5</span>
+          </div>
+        </div>
+
+        <div class="sec-hdr">D7 / D30 Retention by Band</div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <table class="ret-table">
+            <thead>
+              <tr>
+                <th>Band</th>
+                <th>MAU</th>
+                <th>D7 Retention</th>
+                <th>D30 Retention</th>
+                <th>Avg sessions/week</th>
+                <th>Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="band-tag" style="background:rgba(255,209,102,.12);color:#ffd166">P0 Pre-K</span></td>
+                <td>820</td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:80%;background:#ffd166"></div></div><span class="ret-val" style="color:#ffd166">80%</span></div></td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:58%;background:#ffd166;opacity:.7"></div></div><span class="ret-val" style="color:#f59e0b">58%</span></div></td>
+                <td>2.8</td>
+                <td class="dg">↑ Growing</td>
+              </tr>
+              <tr>
+                <td><span class="band-tag" style="background:rgba(155,114,255,.12);color:#9b72ff">P1 K–1</span></td>
+                <td>1,780</td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:82%;background:#9b72ff"></div></div><span class="ret-val" style="color:#9b72ff">82%</span></div></td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:72%;background:#9b72ff;opacity:.7"></div></div><span class="ret-val" style="color:#50e890">72%</span></div></td>
+                <td>3.4</td>
+                <td class="dg">↑ Growing</td>
+              </tr>
+              <tr>
+                <td><span class="band-tag" style="background:rgba(88,232,193,.1);color:#58e8c1">P2 G2–3</span></td>
+                <td>3,020</td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:85%;background:#58e8c1"></div></div><span class="ret-val" style="color:#58e8c1">85%</span></div></td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:74%;background:#58e8c1;opacity:.7"></div></div><span class="ret-val" style="color:#50e890">74%</span></div></td>
+                <td>3.8</td>
+                <td class="dg">↑ Best performing</td>
+              </tr>
+              <tr>
+                <td><span class="band-tag" style="background:rgba(255,123,107,.1);color:#ff7b6b">P3 G4–5</span></td>
+                <td>1,200</td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:64%;background:#ff7b6b"></div></div><span class="ret-val" style="color:#f59e0b">64%</span></div></td>
+                <td><div style="display:flex;align-items:center;gap:6px"><div class="ret-bar"><div class="ret-fill" style="width:52%;background:#ff7b6b;opacity:.7"></div></div><span class="ret-val" style="color:#f59e0b">52%</span></div></td>
+                <td>2.4</td>
+                <td class="da">↓ Needs attention</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="body-side">
+        <div class="side-panel">
+          <div class="sp-title">Band Mix Health</div>
+          <div class="sp-row"><div class="spr-label">P2 dominance</div><div class="spr-val">63%</div></div>
+          <div class="sp-row"><div class="spr-label">P1 momentum</div><div class="spr-val" style="color:#50e890">Strong ↑15%</div></div>
+          <div class="sp-row"><div class="spr-label">P3 growth gap</div><div class="spr-val" style="color:#f59e0b">Slow ↑4%</div></div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:8px">P3 retention lowest — fewer available skills at G4–5. Expanding P3 catalogue is highest-impact content investment.</div>
+        </div>
+        <div class="side-panel">
+          <div class="sp-title">Product Insights</div>
+          <div class="insight-item"><span class="ii-tag" style="background:rgba(88,232,193,.12);color:#58e8c1">P2</span>G2–3 is the core product-market fit zone. School adoption driven primarily by P2 teachers.</div>
+          <div class="insight-item"><span class="ii-tag" style="background:rgba(155,114,255,.12);color:#9b72ff">P1</span>K–1 growing fastest (15% MoM) — early childhood expansion is working.</div>
+          <div class="insight-item"><span class="ii-tag" style="background:rgba(255,123,107,.1);color:#ff7b6b">P3</span>G4–5 retention (52% D30) significantly below P2 (74%). Fewer content options + harder skills → lower stickiness.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Advancement ─────────────────────────────────────────── -->
+<div id="tab-advancement" class="screen">
+  <p class="section-title">Adoption by band — band advancement analytics</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📊 Band Advancement</div>
+        <div class="sh-period">
+          <button class="sp-chip sp-i">30d</button>
+          <button class="sp-chip sp-a">Term</button>
+          <button class="sp-chip sp-i">All time</button>
+        </div>
+      </div>
+      <div class="sh-export">↓ Export CSV</div>
+    </div>
+    <div style="padding:24px">
+      <div class="card" style="max-width:760px">
+        <div class="card-title">📈 Band Advancement Rate — This Term</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:11px;font-weight:700;color:#ffd166">P0 Pre-K → P1 K–1</div>
+              <div style="font-size:11px;font-weight:700;color:#50e890">18%</div>
+            </div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px"><div style="width:18%;height:10px;border-radius:4px;background:#ffd166"></div></div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">148 students advanced this term</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:11px;font-weight:700;color:#9b72ff">P1 K–1 → P2 G2–3</div>
+              <div style="font-size:11px;font-weight:700;color:#50e890">24%</div>
+            </div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px"><div style="width:24%;height:10px;border-radius:4px;background:#9b72ff"></div></div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">427 students advanced this term</div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+              <div style="font-size:11px;font-weight:700;color:#58e8c1">P2 G2–3 → P3 G4–5</div>
+              <div style="font-size:11px;font-weight:700;color:#50e890">22%</div>
+            </div>
+            <div style="background:rgba(255,255,255,.07);border-radius:4px;height:10px"><div style="width:22%;height:10px;border-radius:4px;background:#58e8c1"></div></div>
+            <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:3px">664 students advanced this term</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:12px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px">Advancement = student's band_level increases in the students table (triggered when mastery_status = Strong across ≥ 70% of band skills AND teacher confirms readiness). Average time in band: P0 = 1 term, P1 = 2 terms, P2 = 4 terms (longest), P3 = ongoing.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-adoption-by-band-desktop-v2.html<br>
+      <strong>Band-level adoption analytics.</strong> MAU, retention, advancement rates per curriculum band. Stacked growth chart. Band advancement funnel.
+    </div>
+    <h2 class="spec-h2">Band Advancement Definition</h2>
+    <p class="spec-p">A student advances to the next band when mastery_status = Strong across ≥ 70% of the current band's skills AND the teacher confirms readiness. The advancement is recorded in the students table (band_level field). Not time-based — mastery-driven.</p>
+    <h2 class="spec-h2">Retention Benchmark</h2>
+    <p class="spec-p">Target D7: 80%. Target D30: 70%. P2 leads at 74% D30 — core product-market fit. P3 at 52% is the gap to close with additional content. P0 D30 of 58% is partially explained by lower school device access for Pre-K students.</p>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">All data is aggregate band/school-cohort level. No individual student data. MAU counts include all students in the band who had at least 1 session in the period.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

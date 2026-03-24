@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-grade23-math-scene-v2.html
+  ===================================================
+  Grade 2–3 math play scene. Mint (#58e8c1) theme throughout.
+  Four tabs: Active (Multiplication) / Correct / Wrong / Spec
+  - Math prompt: equation display — no object counting scaffolding at this level
+  - Answer choice: 4-option button row (larger numbers)
+  - Also covers: two-digit addition, subtraction, basic multiplication (2–5 × table)
+  - Hint: number line or visual array shown when 💡 Hint tapped
+  - Coach: "Think — 3 groups of 4 — how many total?" — no counting-on, encourages recall
+  - Correct: answer button turns green, equation solves, mint CTA
+  - Wrong: "Think of 3 groups of 4 — or try skip counting by 4s: 4, 8, 12…"
+  - No timer, no accuracy %, stars never decrease
+  - Star-safe badge always visible
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · G2-3 Math Scene v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --mint: #58e8c1; --mint-dim: #2a7060; --mint-bg: #0a2a22;
+    --violet: #9b72ff; --gold: #ffd166; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--mint); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--mint); color: var(--mint); }
+  .tab-btn.active { background: var(--mint); border-color: var(--mint); color: #0a2a22; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .phone-frame {
+    width: 390px; min-height: 780px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #58e8c122, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #1a3030;
+  }
+  .top-bar {
+    background: var(--card); padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #1a3030;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(88,232,193,0.12); border: none;
+    color: var(--mint); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(88,232,193,0.12); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(88,232,193,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--mint);
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #1a3030;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(88,232,193,0.15); }
+  .ps-seg.done { background: var(--mint); }
+  .ps-seg.active { background: rgba(88,232,193,0.5); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 18px 20px 12px; gap: 16px; overflow-y: auto;
+  }
+
+  .coach-inline {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(88,232,193,0.07); border-radius: 14px;
+    padding: 12px 14px; border: 1px solid rgba(88,232,193,0.18);
+  }
+  .coach-avatar-sm {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #0a2a22, #58e8c144);
+    border: 2px solid var(--mint);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .coach-bubble { flex: 1; font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .coach-bubble .hint-text { color: var(--mint); font-size: 0.95rem; font-weight: 900; }
+
+  /* Big equation display */
+  .equation-card {
+    background: var(--card2); border-radius: 20px; border: 2px solid #2a4040;
+    padding: 28px 24px;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+  }
+  .eq-part {
+    font-family: 'Nunito', sans-serif;
+    font-size: 3.5rem; font-weight: 900; color: var(--text); line-height: 1;
+  }
+  .eq-op { font-size: 2.8rem; font-weight: 900; color: var(--muted); }
+  .eq-eq { font-size: 2.8rem; font-weight: 900; color: var(--muted); }
+  .eq-blank {
+    font-size: 3.5rem; font-weight: 900; color: var(--mint);
+    animation: mint-pulse 1.5s ease-in-out infinite;
+    border-bottom: 4px solid var(--mint);
+    min-width: 60px; text-align: center;
+  }
+  .eq-answer { font-size: 3.5rem; font-weight: 900; color: var(--correct); }
+
+  @keyframes mint-pulse {
+    0%,100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Skip-count hint strip */
+  .skip-hint {
+    background: rgba(88,232,193,0.08); border: 1px solid rgba(88,232,193,0.2);
+    border-radius: 12px; padding: 10px 14px;
+    font-size: 0.88rem; font-weight: 700; color: var(--mint);
+    text-align: center; display: none;
+  }
+  .skip-hint.visible { display: block; }
+  .skip-hint .skip-num {
+    display: inline-block; background: rgba(88,232,193,0.15);
+    border-radius: 6px; padding: 2px 8px; margin: 2px;
+  }
+  .skip-hint .skip-num.target { background: var(--mint); color: #0a2a22; }
+
+  /* Array visual */
+  .array-visual {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px;
+    background: rgba(88,232,193,0.06); border-radius: 12px;
+    border: 1px solid rgba(88,232,193,0.15); display: none;
+  }
+  .array-visual.visible { display: flex; }
+  .array-row { display: flex; gap: 6px; }
+  .array-dot { width: 24px; height: 24px; border-radius: 50%; background: rgba(88,232,193,0.4); border: 2px solid var(--mint); }
+
+  /* Hint section label */
+  .hint-label {
+    font-size: 0.72rem; font-weight: 700; color: var(--mint);
+    text-transform: uppercase; letter-spacing: 0.06em; text-align: center;
+    margin-bottom: -6px;
+  }
+
+  /* Answer buttons */
+  .answer-row { display: flex; gap: 10px; }
+  .ans-btn {
+    flex: 1; height: 68px;
+    background: var(--card2); border: 3px solid #2a4040;
+    border-radius: 14px; cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 1.8rem; font-weight: 900; color: var(--text);
+    transition: all 0.15s;
+    animation: pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1) backwards;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ans-btn:nth-child(1) { animation-delay: 0.04s; }
+  .ans-btn:nth-child(2) { animation-delay: 0.08s; }
+  .ans-btn:nth-child(3) { animation-delay: 0.12s; }
+  .ans-btn:nth-child(4) { animation-delay: 0.16s; }
+  .ans-btn:hover { border-color: var(--mint); color: var(--mint); transform: translateY(-3px); }
+  .ans-btn.selected-correct {
+    background: var(--correct-bg); border-color: var(--correct);
+    color: var(--correct); animation: none;
+  }
+  .ans-btn.selected-wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    color: var(--wrong); animation: shake 0.5s ease-out;
+  }
+  .ans-btn.dimmed { opacity: 0.35; pointer-events: none; }
+
+  @keyframes pop-in {
+    0% { opacity: 0; transform: scale(0.6) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #1a3030;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-replay, .btn-hint, .btn-idk {
+    flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-replay { background: #162a22; color: var(--mint); border: 1px solid rgba(88,232,193,0.2); }
+  .btn-hint { background: rgba(88,232,193,0.1); color: var(--mint); border: 1px solid rgba(88,232,193,0.25); }
+  .btn-idk { background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #58e8c1, #30b090);
+    color: #0a2a22; font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .wrong-banner {
+    background: var(--wrong-bg); border: 2px solid var(--wrong);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .wrong-banner .w-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .wrong-banner .w-text { font-size: 0.88rem; font-weight: 700; color: var(--wrong); line-height: 1.3; }
+  .wrong-banner .w-text span { color: var(--text); }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-mint { background: #58e8c1; color: #0a2a22; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: #2a0a00; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>✖️ Play · G2–3 Math Scene</h1>
+<p class="subtitle">v2 · Mint G2–3 theme · 4 states · Multiplication + skip counting hint</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('active')">Active (3 × 4 = ?)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== ACTIVE STATE ===== -->
+<div id="tab-active" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 22</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Multiplication Quest</span>
+      <div class="star-counter">⭐ 22</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline">
+        <div class="coach-avatar-sm">🦁</div>
+        <div class="coach-bubble">
+          <span class="hint-text">3 groups of 4!</span><br>
+          How many total? Recall it or skip count — you've got this!
+        </div>
+      </div>
+
+      <div class="equation-card">
+        <span class="eq-part">3</span>
+        <span class="eq-op">×</span>
+        <span class="eq-part">4</span>
+        <span class="eq-eq">=</span>
+        <span class="eq-blank">?</span>
+      </div>
+
+      <!-- Hint: array (hidden until 💡 tapped — shown here for UI demo) -->
+      <div class="hint-label">💡 Array hint</div>
+      <div class="array-visual visible">
+        <div class="array-row">
+          <div class="array-dot"></div><div class="array-dot"></div>
+          <div class="array-dot"></div><div class="array-dot"></div>
+        </div>
+        <div class="array-row">
+          <div class="array-dot"></div><div class="array-dot"></div>
+          <div class="array-dot"></div><div class="array-dot"></div>
+        </div>
+        <div class="array-row">
+          <div class="array-dot"></div><div class="array-dot"></div>
+          <div class="array-dot"></div><div class="array-dot"></div>
+        </div>
+      </div>
+
+      <div class="answer-row">
+        <button class="ans-btn">9</button>
+        <button class="ans-btn">12</button>
+        <button class="ans-btn">16</button>
+        <button class="ans-btn">15</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — keep trying!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORRECT STATE ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 23</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Multiplication Quest</span>
+      <div class="star-counter">⭐ 23</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline" style="border-color:#50e890; background:#0d2a1a;">
+        <div class="coach-avatar-sm" style="border-color:#50e890;">🦁</div>
+        <div class="coach-bubble">
+          <span style="color:#50e890; font-size:1rem;">✨ 3 × 4 = 12! Nailed it!</span><br>
+          4, 8, 12 — three groups of four. Your multiplication brain is ON! 🧠
+        </div>
+      </div>
+
+      <div class="equation-card" style="border-color:#50e890;">
+        <span class="eq-part">3</span>
+        <span class="eq-op">×</span>
+        <span class="eq-part">4</span>
+        <span class="eq-eq">=</span>
+        <span class="eq-answer">12</span>
+      </div>
+
+      <div class="answer-row">
+        <button class="ans-btn dimmed">9</button>
+        <button class="ans-btn selected-correct">12</button>
+        <button class="ans-btn dimmed">16</button>
+        <button class="ans-btn dimmed">15</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Problem ✨ +1⭐</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WRONG STATE ===== -->
+<div id="tab-wrong" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 22</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Multiplication Quest</span>
+      <div class="star-counter">⭐ 22</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <span class="w-icon">🔢</span>
+        <div class="w-text">
+          Not quite — try skip counting by 4s.<br>
+          <span>4… 8… 12… keep going until you count 3 jumps!</span>
+        </div>
+      </div>
+
+      <div class="equation-card">
+        <span class="eq-part">3</span>
+        <span class="eq-op">×</span>
+        <span class="eq-part">4</span>
+        <span class="eq-eq">=</span>
+        <span class="eq-blank">?</span>
+      </div>
+
+      <!-- Skip count hint visible after wrong -->
+      <div class="hint-label">Skip count by 4:</div>
+      <div class="skip-hint visible">
+        <span class="skip-num">4</span>
+        <span class="skip-num">8</span>
+        <span class="skip-num target">12</span>
+        <span class="skip-num" style="opacity:0.4;">16</span>
+        <span class="skip-num" style="opacity:0.4;">20</span>
+      </div>
+
+      <div class="answer-row">
+        <button class="ans-btn">9</button>
+        <button class="ans-btn">12</button>
+        <button class="ans-btn">16</button>
+        <button class="ans-btn selected-wrong">15</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-grade23-math-scene-v2 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>G2–3 math scene for multiplication (×2–×5 tables), two-digit addition, and subtraction</li>
+      <li>No object counting scaffolding — children encouraged to recall or use skip-counting strategy</li>
+      <li>Hint system reveals array (for multiplication) or skip-count strip (procedural scaffold)</li>
+      <li>Mint (#58e8c1) G2–3 theme. No timer, no accuracy %, stars never decrease.</li>
+    </ul>
+
+    <h3>Tabs / States</h3>
+    <ul>
+      <li><span class="token tok-muted">Active</span> Large equation display, hint array shown (toggled by 💡 button), 4 answer buttons</li>
+      <li><span class="token tok-green">Correct</span> "?" replaced with answer numeral in green, button highlighted, mint CTA</li>
+      <li><span class="token tok-red">Wrong</span> Wrong button shakes + red, skip-count hint strip revealed automatically, star-safe shown</li>
+      <li><span class="token tok-muted">Spec</span> This document</li>
+    </ul>
+
+    <h3>Equation Display</h3>
+    <ul>
+      <li>Flexrow: [left operand] [op symbol] [right operand] [=] [blank/answer]</li>
+      <li>Nunito 900, 3.5rem operands — large enough for at-a-glance recall</li>
+      <li>Blank (?) has <code>mint-pulse</code> animation and mint underline border</li>
+      <li>On correct: blank replaced with numeral in <code>#50e890</code></li>
+    </ul>
+
+    <h3>Hint System</h3>
+    <ul>
+      <li><strong>Array visual:</strong> 3 rows × 4 cols of mint dots (for 3×4). Toggled by 💡 Hint button. Hidden by default.</li>
+      <li><strong>Skip-count strip:</strong> Revealed automatically after first wrong answer. Shows sequence (4, 8, <strong>12</strong>, 16…) with target number highlighted in solid mint.</li>
+      <li>Both hints are cognitive scaffolds — they support strategy, not just give the answer</li>
+    </ul>
+
+    <h3>Answer Buttons</h3>
+    <ul>
+      <li>4 buttons, flex:1 each, 68px tall, Nunito 900, 1.8rem</li>
+      <li>Distractors: ±3 adjacent plausible answers (e.g. 9, 12, 15, 16 for 3×4)</li>
+      <li>Wrong: shake + red border, other choices remain active for retry</li>
+      <li>Correct: green border, others dimmed</li>
+    </ul>
+
+    <h3>Math Scope (G2–3)</h3>
+    <ul>
+      <li>Multiplication: ×2, ×3, ×4, ×5 tables — products up to 25</li>
+      <li>Two-digit addition: 12+17, 24+38 (with/without carrying)</li>
+      <li>Subtraction: two-digit, no negative results</li>
+      <li>No division at this level</li>
+    </ul>
+
+    <h3>Coach Language (G2–3)</h3>
+    <ul>
+      <li>Active: "3 groups of 4! How many total? Recall it or skip count — you've got this!"</li>
+      <li>Correct: "3 × 4 = 12! 4, 8, 12 — three groups of four. Your multiplication brain is ON!"</li>
+      <li>Wrong: "Not quite — try skip counting by 4s. 4… 8… 12… count 3 jumps!"</li>
+      <li>More sophisticated framing than K-1 ("recall" / "skip count" / "groups of") — matches cognitive level</li>
+    </ul>
+
+    <h3>Design Tokens (G2–3 Mint Theme)</h3>
+    <ul>
+      <li>Mint: <code>#58e8c1</code> — progress segs, equation blank, array dots, skip-count target, CTA</li>
+      <li>CTA: <code>linear-gradient(135deg, #58e8c1, #30b090)</code>, text <code>#0a2a22</code></li>
+      <li>Phone frame shadow: <code>0 0 0 2px #58e8c122</code></li>
+      <li>Correct: <code>#50e890</code> / <code>#0d2a1a</code> bg</li>
+      <li>Star-safe badge: always shown on active + wrong states</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

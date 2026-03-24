@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Bulk Import Review — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.sh-btn-pri{background:#50e890;color:#080c12}
+.sh-btn-sec{background:rgba(255,255,255,.07);color:#f0f6ff}
+.sh-btn-red{background:rgba(248,81,73,.15);color:#f85149}
+
+/* Progress / status strip */
+.status-strip{background:#080c12;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;align-items:center;gap:16px}
+.ss-step{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700}
+.ss-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.ssc-done{background:#50e890;color:#080c12}
+.ssc-active{background:#2563eb;color:#fff}
+.ssc-idle{background:rgba(255,255,255,.1);color:rgba(255,255,255,.4)}
+.ss-label-done{color:#50e890}
+.ss-label-active{color:#f0f6ff}
+.ss-label-idle{color:rgba(255,255,255,.3)}
+.ss-arrow{color:rgba(255,255,255,.2);font-size:12px}
+
+/* Summary row */
+.summary-row{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06)}
+.sr-cell{background:#080c12;padding:12px 16px}
+.src-val{font-size:20px;font-weight:900;color:#f0f6ff;line-height:1}
+.src-lbl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:4px}
+.src-ok{color:#50e890}
+.src-err{color:#f85149}
+.src-warn{color:#f59e0b}
+
+/* Body layout */
+.body-layout{display:grid;grid-template-columns:1fr 320px;min-height:500px}
+.main-pane{border-right:1px solid rgba(255,255,255,.06);padding:16px 24px;display:flex;flex-direction:column;gap:12px}
+.sidebar-pane{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+
+/* Section header */
+.sec-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+
+/* Import table */
+.import-table{width:100%;border-collapse:collapse}
+.it-hdr td{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.2);padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.it-row td{padding:9px 10px;font-size:11px;color:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.04);vertical-align:top}
+.it-row:hover td{background:rgba(255,255,255,.015)}
+.it-row.row-err td:first-child{border-left:2px solid #f85149;padding-left:8px}
+.it-row.row-warn td:first-child{border-left:2px solid #f59e0b;padding-left:8px}
+.it-row.row-ok td:first-child{border-left:2px solid rgba(80,232,144,.3);padding-left:8px}
+
+/* Row status icons */
+.row-status{font-size:11px}
+
+/* Issue tags */
+.issue-tag{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;display:inline-block;margin-top:2px}
+.it-err{background:rgba(248,81,73,.12);color:#f85149}
+.it-warn{background:rgba(245,158,11,.1);color:#f59e0b}
+.it-ok{background:rgba(80,232,144,.1);color:#50e890}
+
+/* Skill name (editable-looking) */
+.cell-name{font-weight:700;color:#f0f6ff}
+.cell-sub{font-size:9px;color:rgba(255,255,255,.3);margin-top:2px}
+
+/* Band pill */
+.band-pill{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.bp-p0{background:rgba(255,209,102,.1);color:#ffd166}
+.bp-p1{background:rgba(155,114,255,.1);color:#9b72ff}
+.bp-p2{background:rgba(88,232,193,.08);color:#58e8c1}
+.bp-p3{background:rgba(255,123,107,.1);color:#ff7b6b}
+
+/* Resolve action cell */
+.resolve-cell{display:flex;flex-direction:column;gap:4px}
+.resolve-btn{font-size:9px;font-weight:700;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;font-family:system-ui;width:fit-content}
+.rb-fix{background:rgba(80,232,144,.12);color:#50e890}
+.rb-skip{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
+.rb-block{background:rgba(248,81,73,.1);color:#f85149}
+
+/* Sidebar items */
+.sidebar-card{background:#161c26;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)}
+.sc-title{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:6px}
+.sc-sub{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}
+.sc-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.sc-stat{background:#0f1118;border-radius:6px;padding:6px 8px;border:1px solid rgba(255,255,255,.04)}
+.sc-stat-val{font-size:13px;font-weight:800;color:#f0f6ff}
+.sc-stat-lbl{font-size:8px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
+
+/* Error item */
+.error-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.error-item:last-child{border-bottom:none}
+.ei-row{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);flex-shrink:0;min-width:40px}
+.ei-body{flex:1}
+.ei-type{font-size:9px;font-weight:700;color:#f85149;margin-bottom:2px}
+.ei-text{font-size:10px;color:rgba(255,255,255,.5);line-height:1.4}
+
+/* Warning item */
+.warn-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.warn-item:last-child{border-bottom:none}
+.wi-row{font-size:10px;font-weight:700;color:rgba(255,255,255,.4);flex-shrink:0;min-width:40px}
+.wi-type{font-size:9px;font-weight:700;color:#f59e0b;margin-bottom:2px}
+.wi-text{font-size:10px;color:rgba(255,255,255,.5);line-height:1.4}
+
+/* Footer action bar */
+.footer-bar{background:#080c12;border-top:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.fb-note{font-size:11px;color:rgba(255,255,255,.4)}
+.fb-actions{display:flex;gap:8px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-bulk-import-review-v3.html</strong><br>
+  Review step for bulk CSV/spreadsheet import of new skills and questions. Shows validation results, field-level errors, and warnings before confirming the import.<br>
+  <strong>Import flow:</strong> Upload CSV → Parse + validate → Review (this screen) → Confirm → Skills created as Draft → Curriculum review → Publish.<br>
+  <strong>Error types:</strong> Blocking errors (import cannot proceed until fixed) · Warnings (can proceed but flagged for review) · Info (metadata auto-filled).<br>
+  <strong>CSV fields:</strong> skill_title · subject · band · question_text · answer_a/b/c/d · correct_answers · question_type · difficulty (optional) · asset_url (optional).<br>
+  <strong>Skills imported as Draft:</strong> Never published directly. Must go through curriculum review → owner publish flow. Auto-flag thresholds do not apply to Draft skills (no delivery yet).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('review')">Import Review</button>
+  <button class="tab-btn" onclick="showTab('success')">Post-Import</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Import Review ──────────────────────────────────────── -->
+<div id="tab-review" class="screen active">
+  <p class="section-title">Bulk import review — 18 skills / 92 questions, 3 errors, 4 warnings</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">📥 Bulk Import Review — G4–5 Maths v2.6 Content Pack</div>
+      <div class="sh-right">
+        <button class="sh-btn sh-btn-sec">← Back to Upload</button>
+        <button class="sh-btn sh-btn-red">Discard Import</button>
+      </div>
+    </div>
+
+    <!-- Progress steps -->
+    <div class="status-strip">
+      <div class="ss-step"><div class="ss-circle ssc-done">✓</div><span class="ss-label-done">Upload</span></div>
+      <div class="ss-arrow">›</div>
+      <div class="ss-step"><div class="ss-circle ssc-done">✓</div><span class="ss-label-done">Parse</span></div>
+      <div class="ss-arrow">›</div>
+      <div class="ss-step"><div class="ss-circle ssc-done">✓</div><span class="ss-label-done">Validate</span></div>
+      <div class="ss-arrow">›</div>
+      <div class="ss-step"><div class="ss-circle ssc-active">4</div><span class="ss-label-active">Review</span></div>
+      <div class="ss-arrow">›</div>
+      <div class="ss-step"><div class="ss-circle ssc-idle">5</div><span class="ss-label-idle">Confirm</span></div>
+      <div class="ss-arrow">›</div>
+      <div class="ss-step"><div class="ss-circle ssc-idle">6</div><span class="ss-label-idle">Draft Created</span></div>
+    </div>
+
+    <!-- Summary row -->
+    <div class="summary-row">
+      <div class="sr-cell">
+        <div class="src-val">18</div>
+        <div class="src-lbl">Skills to import</div>
+      </div>
+      <div class="sr-cell">
+        <div class="src-val">92</div>
+        <div class="src-lbl">Questions total</div>
+      </div>
+      <div class="sr-cell">
+        <div class="src-val src-ok">11</div>
+        <div class="src-lbl">Skills valid</div>
+      </div>
+      <div class="sr-cell">
+        <div class="src-val src-err">3</div>
+        <div class="src-lbl">Blocking errors</div>
+      </div>
+      <div class="sr-cell">
+        <div class="src-val src-warn">4</div>
+        <div class="src-lbl">Warnings</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body-layout">
+      <div class="main-pane">
+        <div>
+          <div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:8px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:12px">
+            <span style="font-size:14px">⚠️</span>
+            <div>
+              <div style="font-size:11px;font-weight:800;color:#f85149">3 blocking errors — import cannot proceed until resolved</div>
+              <div style="font-size:10px;color:rgba(255,255,255,.5);margin-top:2px">Fix errors in your source CSV file and re-upload, or use "Fix inline" to correct specific rows below.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sec-hdr">Skills & Questions — 18 rows</div>
+
+        <table class="import-table">
+          <tr class="it-hdr">
+            <td>Row</td>
+            <td>Skill Title</td>
+            <td>Band</td>
+            <td>Questions</td>
+            <td>Status</td>
+            <td>Issues</td>
+            <td>Action</td>
+          </tr>
+
+          <!-- Errors first -->
+          <tr class="it-row row-err">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">1</td>
+            <td><div class="cell-name">Algebra: Variables &amp; Expressions</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>6</td>
+            <td><span class="row-status">❌</span></td>
+            <td>
+              <span class="issue-tag it-err">No correct answer set — Q4</span>
+              <span class="issue-tag it-err">Answer text empty — Q6</span>
+            </td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Fix inline</button>
+              <button class="resolve-btn rb-skip">Skip skill</button>
+            </td>
+          </tr>
+          <tr class="it-row row-err">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">7</td>
+            <td><div class="cell-name">Geometry: Area &amp; Perimeter</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>5</td>
+            <td><span class="row-status">❌</span></td>
+            <td><span class="issue-tag it-err">Duplicate QID — QID already exists in DB</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Assign new ID</button>
+              <button class="resolve-btn rb-skip">Skip skill</button>
+            </td>
+          </tr>
+          <tr class="it-row row-err">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">14</td>
+            <td><div class="cell-name">Data: Mean, Median, Mode</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>7</td>
+            <td><span class="row-status">❌</span></td>
+            <td><span class="issue-tag it-err">Unknown band value "P4" — not a valid band</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Set band to P3</button>
+              <button class="resolve-btn rb-skip">Skip skill</button>
+            </td>
+          </tr>
+
+          <!-- Warnings -->
+          <tr class="it-row row-warn">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">3</td>
+            <td><div class="cell-name">Fractions: Decimal Equivalents</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>5</td>
+            <td><span class="row-status">⚠️</span></td>
+            <td><span class="issue-tag it-warn">Possible duplicate title — SK-0208 "Fractions: Decimals" exists</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Keep (new skill)</button>
+              <button class="resolve-btn rb-skip">Skip / merge</button>
+            </td>
+          </tr>
+          <tr class="it-row row-warn">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">9</td>
+            <td><div class="cell-name">Measurement: Volume (Litres)</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>6</td>
+            <td><span class="row-status">⚠️</span></td>
+            <td><span class="issue-tag it-warn">Asset URL unreachable — img_vol_01.png (404)</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Upload asset</button>
+              <button class="resolve-btn rb-skip">Import without asset</button>
+            </td>
+          </tr>
+          <tr class="it-row row-warn">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">12</td>
+            <td><div class="cell-name">Statistics: Tally Charts</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>4</td>
+            <td><span class="row-status">⚠️</span></td>
+            <td><span class="issue-tag it-warn">Only 4 questions (minimum recommended: 5)</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Import anyway</button>
+            </td>
+          </tr>
+          <tr class="it-row row-warn">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">17</td>
+            <td><div class="cell-name">Geometry: Angles</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>6</td>
+            <td><span class="row-status">⚠️</span></td>
+            <td><span class="issue-tag it-warn">Difficulty field missing — will default to Medium</span></td>
+            <td class="resolve-cell">
+              <button class="resolve-btn rb-fix">Accept default</button>
+            </td>
+          </tr>
+
+          <!-- Valid rows -->
+          <tr class="it-row row-ok">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">2</td>
+            <td><div class="cell-name">Multiplication: Multi-Digit</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>6</td>
+            <td><span class="row-status">✅</span></td>
+            <td><span class="issue-tag it-ok">Valid</span></td>
+            <td></td>
+          </tr>
+          <tr class="it-row row-ok">
+            <td style="font-size:9px;font-weight:700;color:rgba(255,255,255,.3)">4</td>
+            <td><div class="cell-name">Division: Long Division</div><div class="cell-sub">Maths · G4–5</div></td>
+            <td><span class="band-pill bp-p3">P3</span></td>
+            <td>7</td>
+            <td><span class="row-status">✅</span></td>
+            <td><span class="issue-tag it-ok">Valid</span></td>
+            <td></td>
+          </tr>
+          <tr class="it-row" style="opacity:.5">
+            <td colspan="7" style="text-align:center;font-size:10px;color:rgba(255,255,255,.3);padding:10px">… 9 more valid rows (rows 5, 6, 8, 10, 11, 13, 15, 16, 18)</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar-pane">
+        <div class="sidebar-card">
+          <div class="sc-title">Import Summary</div>
+          <div class="sc-sub">18 skills · 92 questions · G4–5 Maths v2.6 content pack · Uploaded Mar 24</div>
+          <div class="sc-stat-row">
+            <div class="sc-stat"><div class="sc-stat-val" style="color:#50e890">11</div><div class="sc-stat-lbl">Valid</div></div>
+            <div class="sc-stat"><div class="sc-stat-val" style="color:#f85149">3</div><div class="sc-stat-lbl">Errors</div></div>
+            <div class="sc-stat"><div class="sc-stat-val" style="color:#f59e0b">4</div><div class="sc-stat-lbl">Warnings</div></div>
+            <div class="sc-stat"><div class="sc-stat-val">0</div><div class="sc-stat-lbl">Duplicates</div></div>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sc-title" style="color:#f85149">🔴 Blocking Errors (3)</div>
+          <div style="margin-top:6px">
+            <div class="error-item">
+              <div class="ei-row">Row 1</div>
+              <div>
+                <div class="ei-type">No correct answer set</div>
+                <div class="ei-text">Q4 in "Algebra: Variables" has no is_correct=true answer. At least one answer must be marked correct per question.</div>
+              </div>
+            </div>
+            <div class="error-item">
+              <div class="ei-row">Row 7</div>
+              <div>
+                <div class="ei-type">Duplicate QID</div>
+                <div class="ei-text">QID-4000 already exists in content_questions table. Use auto-assign or provide a unique ID.</div>
+              </div>
+            </div>
+            <div class="error-item">
+              <div class="ei-row">Row 14</div>
+              <div>
+                <div class="ei-type">Invalid band value</div>
+                <div class="ei-text">"P4" is not a valid band. Valid values: P0, P1, P2, P3.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-card">
+          <div class="sc-title" style="color:#f59e0b">🟡 Warnings (4)</div>
+          <div style="margin-top:6px">
+            <div class="warn-item">
+              <div class="wi-row">Row 3</div>
+              <div><div class="wi-type">Possible duplicate title</div><div class="wi-text">Similar skill SK-0208 found. Will create new skill; check for unintended overlap.</div></div>
+            </div>
+            <div class="warn-item">
+              <div class="wi-row">Row 9</div>
+              <div><div class="wi-type">Asset 404</div><div class="wi-text">img_vol_01.png unreachable. Skill can import without asset but question will show placeholder.</div></div>
+            </div>
+            <div class="warn-item">
+              <div class="wi-row">Row 12</div>
+              <div><div class="wi-type">Question count low</div><div class="wi-text">4 questions (recommended min: 5). Skill can be imported but may feel thin.</div></div>
+            </div>
+            <div class="warn-item">
+              <div class="wi-row">Row 17</div>
+              <div><div class="wi-type">Missing field</div><div class="wi-text">Difficulty field blank — will default to Medium.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="sidebar-card" style="border-color:rgba(80,232,144,.15)">
+          <div class="sc-title">After import</div>
+          <div class="sc-sub">Skills created as <strong style="color:#f0f6ff">Draft</strong> (delivery_locked=true, review_status=Draft). Not delivered until curriculum review + owner publish. Draft skills appear in content browser with Draft status.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-bar">
+      <div class="fb-note">⚠ Cannot confirm import while 3 blocking errors remain. Resolve all errors first.</div>
+      <div class="fb-actions">
+        <button class="sh-btn sh-btn-sec">Fix errors &amp; re-validate</button>
+        <button class="sh-btn sh-btn-pri" style="opacity:.4" disabled>✓ Confirm Import (11 valid skills)</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Post-Import ────────────────────────────────────────── -->
+<div id="tab-success" class="screen">
+  <p class="section-title">Bulk import — success state (11 skills imported as Draft)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">📥 Import Complete — 11 Draft Skills Created</div>
+      <div class="sh-right"><button class="sh-btn sh-btn-pri">Go to Content Home</button></div>
+    </div>
+    <div style="padding:32px 24px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="font-size:36px;margin-bottom:12px">✅</div>
+      <div style="font-size:18px;font-weight:800;color:#f0f6ff;margin-bottom:6px">11 skills imported as Draft</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);max-width:500px;margin:0 auto;line-height:1.5">Skills are now in Draft status. They will not be delivered to students until curriculum review is complete and the owner publishes them. 3 skills with errors were skipped.</div>
+    </div>
+    <div style="padding:20px 24px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div class="sidebar-card" style="text-align:center">
+        <div style="font-size:24px;font-weight:900;color:#50e890">11</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Draft skills created</div>
+      </div>
+      <div class="sidebar-card" style="text-align:center">
+        <div style="font-size:24px;font-weight:900;color:#f0f6ff">57</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Questions added</div>
+      </div>
+      <div class="sidebar-card" style="text-align:center">
+        <div style="font-size:24px;font-weight:900;color:#f85149">3</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em;margin-top:4px">Skills skipped (errors)</div>
+      </div>
+    </div>
+    <div style="padding:0 24px 20px;display:flex;gap:10px">
+      <button class="sh-btn sh-btn-pri" style="flex:1;padding:12px;font-size:13px">Review Draft Skills →</button>
+      <button class="sh-btn sh-btn-sec" style="flex:1;padding:12px;font-size:13px">Fix &amp; Re-import 3 Skipped Skills</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-bulk-import-review-v3.html<br>
+      <strong>Bulk import validation + review screen.</strong> Step indicator. Summary row. Error/warning/valid classification per row. Inline fix actions. Skills imported as Draft. Post-import success state.
+    </div>
+    <h2 class="spec-h2">Import Flow</h2>
+    <p class="spec-p">Upload CSV → Parse (detect encoding, delimiters) → Validate (field types, required fields, duplicate check, band values, asset URL check) → Review (this screen, show errors/warnings) → Confirm (import valid rows) → Draft skills created in content_skills table (review_status=Draft, delivery_locked=true) → Curriculum review workflow → Owner publish (review_status=Published, delivery_locked=false).</p>
+    <h2 class="spec-h2">Error vs Warning</h2>
+    <p class="spec-p"><strong>Blocking errors:</strong> Import cannot proceed for that row. Must fix or skip. Examples: no correct answer set, duplicate QID, invalid band value, empty required field. <strong>Warnings:</strong> Import can proceed but issue is flagged. Examples: possible duplicate title, asset 404 (skill imports without image), question count below minimum, missing optional field (defaults applied). Warnings are tracked in import_warnings log for post-import review.</p>
+    <h2 class="spec-h2">Draft Status</h2>
+    <p class="spec-p">All imported skills start as Draft. delivery_locked=true prevents delivery to any student. Auto-flag thresholds do not apply to Draft skills (no sessions, no error reports). Draft skills appear in the content browser with a "Draft" badge. They require: (1) Curriculum team review and approval, (2) Owner publish action, before becoming Published (delivery_locked=false).</p>
+    <h2 class="spec-h2">CSV Format</h2>
+    <p class="spec-p">Required columns: skill_title, subject, band (P0/P1/P2/P3), question_text, answer_a, answer_b, answer_c, answer_d, correct_answers (comma-separated letters, e.g. "A,C"), question_type (MCQ/TrueFalse/Sort/Match). Optional: difficulty (Easy/Medium/Hard), asset_url, explanation_text, curriculum_standard_ref. Template downloadable from Content → Settings → Import Template.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

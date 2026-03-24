@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-support-hint-bar-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-support-hint-bar-v2.html           ║
+     ║                                                              ║
+     ║  The persistent hint bar that sits at the bottom of the      ║
+     ║  play screen. Shows: 💡 Hint, 🔊 Replay (or 📖 Re-read),    ║
+     ║  and "I don't know yet" (IDK) button.                        ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Default       : all buttons available (K-1 violet)  ║
+     ║  Tab 2 — Hint Shown    : hint open inline, button dims       ║
+     ║  Tab 3 — Pre-K         : 2 buttons only (Replay + IDK)       ║
+     ║  Tab 4 — Band Variants : all 4 band color themes             ║
+     ║  Tab 5 — Spec          : sizing, rules, adaptive behavior     ║
+     ║                                                              ║
+     ║  BUTTON RULES                                                 ║
+     ║  • Hint: dims after tap (max 1 hint per question)            ║
+     ║  • IDK: dims after tap (max 1 IDK per question)              ║
+     ║  • Replay: never dims — always re-tappable                   ║
+     ║  • Pre-K: no 💡 Hint button (too abstract)                   ║
+     ║  • G2-3 + G4-5: "📖 Re-read" instead of "🔊 Replay"         ║
+     ║  • After IDK: Hint also dims (max scaffolding reached)       ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 20px 16px 0; gap: 14px;
+  }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .progress-segs { display: flex; gap: 4px; flex: 1; }
+  .seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .seg.filled { background: #9b72ff; }
+  .star-badge {
+    background: #1a1440; border: 1.5px solid #9b72ff55; border-radius: 20px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px;
+  }
+
+  /* Question hero */
+  .q-hero {
+    background: #1a1440; border: 2px solid #9b72ff44; border-radius: 16px; padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    flex-shrink: 0;
+  }
+  .q-emoji { font-size: 3.2rem; }
+  .q-label { font-size: 0.9rem; font-weight: 900; color: #b89eff; }
+  .q-text { font-size: 1.1rem; font-weight: 900; color: #fff; }
+
+  /* Answer choices */
+  .q-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
+  .ac {
+    background: #1a1440; border: 2px solid #2a1f60; border-radius: 14px;
+    height: 76px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; font-size: 2rem; font-weight: 900; color: #e8e0ff;
+  }
+  .ac .ph { font-size: 0.7rem; font-weight: 700; color: #9080c0; }
+
+  /* ── The hint bar itself ── */
+  .hint-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #0d0a20;
+    border-top: 1.5px solid #1e1850;
+    padding: 12px 16px 28px;
+    display: flex; flex-direction: column; gap: 10px;
+    z-index: 10;
+  }
+
+  /* Hint bar buttons row */
+  .hb-row { display: flex; gap: 8px; align-items: stretch; }
+
+  /* Replay / Re-read button */
+  .hb-btn-replay {
+    flex: 2; height: 52px; border-radius: 14px;
+    background: #1a1440; border: 1.5px solid #9b72ff44;
+    color: #b89eff; font-size: 0.88rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    transition: opacity 0.15s;
+  }
+  .hb-btn-replay:active { opacity: 0.8; }
+
+  /* Hint button */
+  .hb-btn-hint {
+    flex: 1; height: 52px; border-radius: 14px;
+    background: #1a1440; border: 1.5px solid #9b72ff44;
+    color: #b89eff; font-size: 0.88rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    transition: opacity 0.15s;
+  }
+  .hb-btn-hint.dimmed { opacity: 0.35; pointer-events: none; }
+  .hb-btn-hint:active { opacity: 0.8; }
+
+  /* IDK button */
+  .hb-btn-idk {
+    flex: 1; height: 52px; border-radius: 14px;
+    background: #1a1040; border: 1.5px solid #4a3080;
+    color: #c9a8ff; font-size: 0.82rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.15s; text-align: center; line-height: 1.2; padding: 4px 8px;
+  }
+  .hb-btn-idk.dimmed { opacity: 0.35; pointer-events: none; }
+  .hb-btn-idk:active { opacity: 0.8; }
+
+  /* Inline hint panel (expanded) */
+  .hint-panel {
+    background: #1e1040; border: 1.5px solid #9b72ff44; border-radius: 12px;
+    padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px;
+    animation: slide-hint 0.2s ease-out;
+  }
+  @keyframes slide-hint {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hint-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .hint-text {
+    font-size: 0.84rem; font-weight: 700; color: #c8bef0; line-height: 1.5;
+  }
+  .hint-text strong { color: #d8c8ff; }
+
+  /* ── Band color variants ── */
+  /* Pre-K gold */
+  .prek .hint-bar { background: #0e0b00; border-top-color: #2a2000; }
+  .prek .hb-btn-replay { background: #1e1200; border-color: #ffd16644; color: #ffe08a; }
+  .prek .hb-btn-idk { background: #1a0c00; border-color: #ffd16633; color: #ffd166; }
+  .prek .seg.filled { background: #ffd166; }
+  .prek .star-badge { border-color: #ffd16655; color: #ffe08a; }
+  .prek .q-hero { background: #1e1200; border-color: #ffd16644; }
+  .prek .q-label { color: #ffe08a; }
+  .prek .hint-panel { background: #2a1a00; border-color: #ffd16633; }
+  .prek .hint-text { color: #ffe8b0; }
+
+  /* G2-3 mint */
+  .mint .hint-bar { background: #050f0c; border-top-color: #0f2820; }
+  .mint .hb-btn-replay { background: #0a1e18; border-color: #58e8c144; color: #7af0d0; }
+  .mint .hb-btn-hint { background: #0a1e18; border-color: #58e8c144; color: #7af0d0; }
+  .mint .hb-btn-idk { background: #081a14; border-color: #58e8c133; color: #58e8c1; }
+  .mint .seg.filled { background: #58e8c1; }
+  .mint .star-badge { border-color: #58e8c144; color: #7af0d0; }
+  .mint .q-hero { background: #0d2018; border-color: #58e8c144; }
+  .mint .q-label { color: #7af0d0; }
+  .mint .hint-panel { background: #0d2018; border-color: #58e8c133; }
+  .mint .hint-text { color: #a0e8d8; }
+
+  /* G4-5 coral */
+  .coral .hint-bar { background: #110700; border-top-color: #2a1000; }
+  .coral .hb-btn-replay { background: #1e0e08; border-color: #ff7b6b44; color: #ffa090; }
+  .coral .hb-btn-hint { background: #1e0e08; border-color: #ff7b6b44; color: #ffa090; }
+  .coral .hb-btn-idk { background: #1a0800; border-color: #ff7b6b33; color: #ff7b6b; }
+  .coral .seg.filled { background: #ff7b6b; }
+  .coral .star-badge { border-color: #ff7b6b44; color: #ffa090; }
+  .coral .q-hero { background: #1e0e08; border-color: #ff7b6b44; }
+  .coral .q-label { color: #ffa090; }
+  .coral .hint-panel { background: #2a0e08; border-color: #ff7b6b33; }
+  .coral .hint-text { color: #f0b0a0; }
+
+  /* ── Dual phone layout for band variants tab ── */
+  .dual-wrap { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+  .phone-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .phone-wrap .phone { width: 310px; height: 560px; border-radius: 32px; }
+  .phone-label { font-size: 0.76rem; font-weight: 700; color: #6050a0; }
+  .phone-label.gold-lbl { color: #ffd166; }
+  .phone-label.violet-lbl { color: #9b72ff; }
+  .phone-label.mint-lbl { color: #58e8c1; }
+  .phone-label.coral-lbl { color: #ff7b6b; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+  .spec-card code { background: #f0e090; border-radius: 4px; padding: 1px 4px; font-size: 0.74rem; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-support-hint-bar-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Default</button>
+  <button class="tab-btn" onclick="showTab('t2')">Hint Shown</button>
+  <button class="tab-btn" onclick="showTab('t3')">Pre-K</button>
+  <button class="tab-btn" onclick="showTab('t4')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Default ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Default — All Buttons Available (K-1 Violet)</h4>
+    3 buttons in a row: 🔊 Replay (flex 2) · 💡 Hint (flex 1) · IDK (flex 1).
+    Hint bar sits at the very bottom of the phone frame, always visible.
+    Replay never dims. Hint and IDK dim after one tap each.
+    Padding-bottom 28px accounts for home indicator area.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 6</div>
+      </div>
+      <div class="q-hero">
+        <div class="q-emoji">🐸</div>
+        <div class="q-label">What letter does "frog" start with?</div>
+      </div>
+      <div class="q-choices">
+        <div class="ac">F <span class="ph">fff</span></div>
+        <div class="ac">T <span class="ph">tuh</span></div>
+        <div class="ac">G <span class="ph">guh</span></div>
+        <div class="ac">P <span class="ph">puh</span></div>
+      </div>
+    </div>
+    <!-- Hint Bar -->
+    <div class="hint-bar">
+      <div class="hb-row">
+        <button class="hb-btn-replay">🔊 Replay</button>
+        <button class="hb-btn-hint">💡 Hint</button>
+        <button class="hb-btn-idk">I don't<br>know yet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Hint Shown ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Hint Shown — Panel Inline, Hint Button Dimmed</h4>
+    After tapping 💡 Hint: hint panel slides in above the button row.
+    Hint button dims (opacity 0.35, pointer-events none).
+    IDK button remains active (child may still use it).
+    After IDK is also used: IDK dims too (max scaffolding reached).
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 6</div>
+      </div>
+      <div class="q-hero">
+        <div class="q-emoji">🐸</div>
+        <div class="q-label">What letter does "frog" start with?</div>
+      </div>
+      <div class="q-choices">
+        <div class="ac">F <span class="ph">fff</span></div>
+        <div class="ac">T <span class="ph">tuh</span></div>
+        <div class="ac">G <span class="ph">guh</span></div>
+        <div class="ac">P <span class="ph">puh</span></div>
+      </div>
+    </div>
+    <!-- Hint Bar — hint shown -->
+    <div class="hint-bar">
+      <!-- Hint panel -->
+      <div class="hint-panel">
+        <div class="hint-icon">💡</div>
+        <div class="hint-text">
+          Say "frog" slowly out loud. What's the <strong>very first</strong> sound you hear?<br>It sounds like <strong>"fff"</strong> — find the letter that makes that sound!
+        </div>
+      </div>
+      <div class="hb-row">
+        <button class="hb-btn-replay">🔊 Replay</button>
+        <button class="hb-btn-hint dimmed">💡 Hint</button>
+        <button class="hb-btn-idk">I don't<br>know yet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Pre-K ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Pre-K — 2 Buttons Only (Replay + IDK)</h4>
+    Pre-K removes 💡 Hint — too abstract for Pre-K learners.
+    Replay is flex:2, IDK is flex:1.
+    Gold theme. IDK label: "I don't know yet" — same as other bands.
+    No hint panel in Pre-K (no hint button to trigger it).
+  </div>
+  <div class="phone prek">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 3</div>
+      </div>
+      <div class="q-hero">
+        <div class="q-emoji" style="font-size:3.5rem;">⭕</div>
+        <div class="q-label">Find the circle!</div>
+      </div>
+      <div class="q-choices">
+        <div class="ac" style="background:#1e1200;border-color:#3a2400;">
+          <svg width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="16" fill="none" stroke="#ffd166" stroke-width="3"/></svg>
+        </div>
+        <div class="ac" style="background:#1e1200;border-color:#3a2400;">
+          <svg width="40" height="40" viewBox="0 0 40 40"><polygon points="20,3 37,35 3,35" fill="none" stroke="#9080c0" stroke-width="3"/></svg>
+        </div>
+        <div class="ac" style="background:#1e1200;border-color:#3a2400;">
+          <svg width="40" height="40" viewBox="0 0 40 40"><rect x="4" y="4" width="32" height="32" fill="none" stroke="#9080c0" stroke-width="3" rx="3"/></svg>
+        </div>
+        <div class="ac" style="background:#1e1200;border-color:#3a2400;">
+          <svg width="40" height="40" viewBox="0 0 40 40"><polygon points="20,1 24,14 38,14 27,22 31,36 20,28 9,36 13,22 2,14 16,14" fill="none" stroke="#9080c0" stroke-width="3"/></svg>
+        </div>
+      </div>
+    </div>
+    <!-- Pre-K Hint Bar — 2 buttons only -->
+    <div class="hint-bar prek" style="background:#0e0b00;border-top-color:#2a2000;">
+      <div class="hb-row">
+        <button class="hb-btn-replay" style="background:#1e1200;border-color:#ffd16644;color:#ffe08a;flex:2;">🔊 Replay</button>
+        <button class="hb-btn-idk" style="background:#1a0c00;border-color:#ffd16633;color:#ffd166;flex:1;">I don't<br>know yet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Band Variants ── -->
+<div class="screen" id="t4">
+  <div class="anno" style="max-width:760px;">
+    <h4>Band Variants — All 4 Theme Colors</h4>
+    Each band uses its accent color for button borders, text, and hint panel tint.
+    Button structure stays the same (Pre-K = 2 buttons, others = 3 buttons).
+    G2-3 and G4-5 replace "🔊 Replay" with "📖 Re-read".
+  </div>
+  <div class="dual-wrap">
+
+    <!-- Pre-K Gold -->
+    <div class="phone-wrap">
+      <div class="phone-label gold-lbl">Pre-K · Gold</div>
+      <div class="phone prek">
+        <div class="phone-inner">
+          <div class="topbar"><div class="progress-segs"><div class="seg filled"></div><div class="seg"></div><div class="seg"></div></div><div class="star-badge">⭐ 2</div></div>
+          <div class="q-hero"><div class="q-emoji" style="font-size:3rem;">🔺</div><div class="q-label">Find the triangle!</div></div>
+          <div class="q-choices">
+            <div class="ac" style="background:#1e1200;border-color:#3a2400;font-size:1.8rem;">🔺</div>
+            <div class="ac" style="background:#1e1200;border-color:#3a2400;font-size:1.8rem;">⭕</div>
+            <div class="ac" style="background:#1e1200;border-color:#3a2400;font-size:1.8rem;">🟦</div>
+            <div class="ac" style="background:#1e1200;border-color:#3a2400;font-size:1.8rem;">⭐</div>
+          </div>
+        </div>
+        <div class="hint-bar" style="background:#0e0b00;border-top-color:#2a2000;">
+          <div class="hb-row">
+            <button class="hb-btn-replay" style="background:#1e1200;border-color:#ffd16644;color:#ffe08a;flex:2;">🔊 Replay</button>
+            <button class="hb-btn-idk" style="background:#1a0c00;border-color:#ffd16633;color:#ffd166;flex:1;">I don't<br>know yet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- K-1 Violet -->
+    <div class="phone-wrap">
+      <div class="phone-label violet-lbl">K-1 · Violet</div>
+      <div class="phone">
+        <div class="phone-inner">
+          <div class="topbar"><div class="progress-segs"><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div></div><div class="star-badge">⭐ 7</div></div>
+          <div class="q-hero"><div class="q-emoji">🐝</div><div class="q-label">Starts with?</div></div>
+          <div class="q-choices">
+            <div class="ac">B<span class="ph">buh</span></div><div class="ac">S<span class="ph">sss</span></div>
+            <div class="ac">D<span class="ph">duh</span></div><div class="ac">R<span class="ph">rrr</span></div>
+          </div>
+        </div>
+        <div class="hint-bar">
+          <div class="hb-row">
+            <button class="hb-btn-replay">🔊 Replay</button>
+            <button class="hb-btn-hint">💡 Hint</button>
+            <button class="hb-btn-idk">I don't<br>know yet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- G2-3 Mint -->
+    <div class="phone-wrap">
+      <div class="phone-label mint-lbl">G2-3 · Mint</div>
+      <div class="phone mint">
+        <div class="phone-inner">
+          <div class="topbar"><div class="progress-segs"><div class="seg filled"></div><div class="seg filled"></div><div class="seg"></div></div><div class="star-badge">⭐ 12</div></div>
+          <div class="q-hero" style="background:#0d2018;border-color:#58e8c144;"><div style="font-size:2.4rem;font-weight:900;color:#7af0d0;">3 × 4 = ?</div></div>
+          <div class="q-choices">
+            <div class="ac" style="background:#0d2018;border-color:#1a3028;font-size:1.8rem;color:#e8e0ff;">9</div>
+            <div class="ac" style="background:#0d2018;border-color:#1a3028;font-size:1.8rem;color:#e8e0ff;">12</div>
+            <div class="ac" style="background:#0d2018;border-color:#1a3028;font-size:1.8rem;color:#e8e0ff;">15</div>
+            <div class="ac" style="background:#0d2018;border-color:#1a3028;font-size:1.8rem;color:#e8e0ff;">7</div>
+          </div>
+        </div>
+        <div class="hint-bar" style="background:#050f0c;border-top-color:#0f2820;">
+          <div class="hb-row">
+            <button class="hb-btn-replay" style="background:#0a1e18;border-color:#58e8c144;color:#7af0d0;flex:2;">📖 Re-read</button>
+            <button class="hb-btn-hint" style="background:#0a1e18;border-color:#58e8c144;color:#7af0d0;">💡 Hint</button>
+            <button class="hb-btn-idk" style="background:#081a14;border-color:#58e8c133;color:#58e8c1;">I don't<br>know yet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- G4-5 Coral -->
+    <div class="phone-wrap">
+      <div class="phone-label coral-lbl">G4-5 · Coral</div>
+      <div class="phone coral">
+        <div class="phone-inner">
+          <div class="topbar"><div class="progress-segs"><div class="seg filled"></div><div class="seg filled"></div><div class="seg filled"></div></div><div class="star-badge">⭐ 19</div></div>
+          <div class="q-hero" style="background:#1e0e08;border-color:#ff7b6b44;font-size:0.88rem;text-align:left;padding:14px;"><div style="font-size:0.7rem;font-weight:900;color:#ff7b6b;margin-bottom:6px;">📖 PASSAGE</div>Maya walked slowly, staring at her shoes the whole way. How does Maya feel?</div>
+          <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0;">
+            <div style="background:#1e0e08;border:1.5px solid #3a1408;border-radius:10px;padding:10px 12px;font-size:0.8rem;font-weight:700;color:#e8e0ff;">A) Excited</div>
+            <div style="background:#1e0e08;border:1.5px solid #3a1408;border-radius:10px;padding:10px 12px;font-size:0.8rem;font-weight:700;color:#e8e0ff;">B) Sad or tired</div>
+            <div style="background:#1e0e08;border:1.5px solid #3a1408;border-radius:10px;padding:10px 12px;font-size:0.8rem;font-weight:700;color:#e8e0ff;">C) Scared</div>
+          </div>
+        </div>
+        <div class="hint-bar" style="background:#110700;border-top-color:#2a1000;">
+          <div class="hb-row">
+            <button class="hb-btn-replay" style="background:#1e0e08;border-color:#ff7b6b44;color:#ffa090;flex:2;">📖 Re-read</button>
+            <button class="hb-btn-hint" style="background:#1e0e08;border-color:#ff7b6b44;color:#ffa090;">💡 Hint</button>
+            <button class="hb-btn-idk" style="background:#1a0800;border-color:#ff7b6b33;color:#ff7b6b;">I don't<br>know yet</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Button Structure</h4>
+      <ul>
+        <li>Hint bar: <code>position: absolute; bottom: 0</code></li>
+        <li>Padding: <code>12px 16px 28px</code> (28px = home indicator clearance)</li>
+        <li>Replay: <code>flex: 2</code> · Hint: <code>flex: 1</code> · IDK: <code>flex: 1</code></li>
+        <li>Pre-K: Replay <code>flex: 2</code> + IDK <code>flex: 1</code> (no Hint)</li>
+        <li>G2-3 / G4-5: "📖 Re-read" replaces "🔊 Replay"</li>
+        <li>All buttons: <code>height: 52px</code> (min touch target)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Dimming Rules</h4>
+      <ul>
+        <li>Hint: dims after 1st tap (<code>opacity: 0.35; pointer-events: none</code>)</li>
+        <li>IDK: dims after 1st tap</li>
+        <li>Replay: NEVER dims — always tappable</li>
+        <li>After IDK: Hint also dims (max scaffolding reached)</li>
+        <li>Reset: both re-enable at start of next question</li>
+        <li class="dont">❌ Never gray out Replay — child may need to re-listen</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Hint Panel</h4>
+      <ul>
+        <li>Slides in above button row on Hint tap</li>
+        <li>Animation: <code>translateY(8px) → 0</code>, 0.2s ease-out</li>
+        <li>Background: band-tinted dark (violet <code>#1e1040</code>, mint <code>#0d2018</code>, etc.)</li>
+        <li>Hint text: Nunito 700, 0.84rem, 1.5 line-height</li>
+        <li>Hint icon: 💡 1.4rem, flex-shrink 0</li>
+        <li>Hint dismisses when next question loads (not manually)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Band Color Tokens (Hint Bar)</h4>
+      <ul>
+        <li><strong>Pre-K:</strong> <code>#0e0b00</code> bg · <code>#ffd166</code> accents</li>
+        <li><strong>K-1:</strong> <code>#0d0a20</code> bg · <code>#9b72ff</code> accents</li>
+        <li><strong>G2-3:</strong> <code>#050f0c</code> bg · <code>#58e8c1</code> accents</li>
+        <li><strong>G4-5:</strong> <code>#110700</code> bg · <code>#ff7b6b</code> accents</li>
+        <li>All bgs: slightly darker than phone bg for separation</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>IDK Button</h4>
+      <ul>
+        <li>Label: "I don't know yet" — "yet" is non-negotiable</li>
+        <li>Two-line label in small button: "I don't / know yet"</li>
+        <li>Triggers IDK state (play-i-dont-know-yet-state-v2.html)</li>
+        <li>Zero star penalty</li>
+        <li>After IDK correct: still earns +1 ⭐</li>
+        <li class="dont">❌ Never "Give up" / "Skip" / "I don't know" (no "yet")</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Adaptive Behavior</h4>
+      <ul>
+        <li>After 2+ Replay taps without answering: show Slow Mode suggestion</li>
+        <li>Slow Mode button appears in hint panel or below Replay</li>
+        <li>(See play-voice-replay-controls-v3.html for Replay details)</li>
+        <li>Hint bar is always visible — never hidden during active Q</li>
+        <li>Hidden during: correct-state overlay, level-up overlay, session complete</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

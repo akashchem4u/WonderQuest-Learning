@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Home Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* App shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);display:flex;min-height:600px}
+
+/* Left sidebar nav */
+.sidebar{width:200px;background:#080c12;border-right:1px solid rgba(255,255,255,.06);padding:16px 0;flex-shrink:0;display:flex;flex-direction:column;gap:2px}
+.sb-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);padding:8px 16px 4px}
+.sb-item{display:flex;align-items:center;gap:10px;padding:8px 16px;font-size:12px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;border-radius:0;transition:all .15s;position:relative}
+.sb-item:hover{background:rgba(255,255,255,.04);color:rgba(255,255,255,.8)}
+.sb-item.active{background:rgba(80,232,144,.08);color:#50e890}
+.sb-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890}
+.sb-icon{font-size:14px;flex-shrink:0}
+.sb-badge{margin-left:auto;background:rgba(248,81,73,.2);color:#f85149;font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px}
+.sb-divider{height:1px;background:rgba(255,255,255,.05);margin:6px 16px}
+
+/* Main content */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column}
+.main-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.mh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.mh-right{display:flex;align-items:center;gap:10px}
+.mh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.mh-btn-pri{background:#50e890;color:#080c12}
+.mh-btn-sec{background:rgba(255,255,255,.07);color:#f0f6ff}
+
+/* Stat row */
+.stat-row{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(255,255,255,.04);border-bottom:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.stat-cell{background:#080c12;padding:12px 16px}
+.stat-val{font-size:20px;font-weight:900;color:#f0f6ff;line-height:1}
+.stat-lbl{font-size:9px;color:rgba(255,255,255,.35);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.stat-delta{font-size:10px;margin-top:2px}
+.sd-up{color:#50e890}
+.sd-down{color:#f85149}
+.sd-neutral{color:rgba(255,255,255,.3)}
+
+/* Content area body */
+.content-body{padding:20px 24px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:20px}
+
+/* Skill cards grid */
+.skill-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.skill-card{background:#161c26;border-radius:10px;padding:14px;border:1px solid rgba(255,255,255,.05);cursor:pointer;transition:border-color .15s}
+.skill-card:hover{border-color:rgba(255,255,255,.12)}
+.sc-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.sc-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25)}
+.sc-status{font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px}
+.ss-live{background:rgba(80,232,144,.12);color:#50e890}
+.ss-review{background:rgba(245,158,11,.1);color:#f59e0b}
+.ss-blocked{background:rgba(248,81,73,.12);color:#f85149}
+.sc-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:4px}
+.sc-subject{font-size:10px;color:rgba(255,255,255,.4);margin-bottom:8px}
+.sc-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sc-band{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px}
+.band-p0{background:rgba(255,209,102,.15);color:#ffd166}
+.band-p1{background:rgba(155,114,255,.12);color:#9b72ff}
+.band-p2{background:rgba(88,232,193,.1);color:#58e8c1}
+.band-p3{background:rgba(255,123,107,.12);color:#ff7b6b}
+.sc-sessions{font-size:9px;color:rgba(255,255,255,.3)}
+.sc-quality{font-size:9px;color:rgba(255,255,255,.3)}
+.sc-flag{font-size:9px;font-weight:700;color:#f85149;margin-top:6px}
+
+/* Filter row */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:4px}
+.fr-chip{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fr-active{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fr-idle{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.fr-search{background:#161c26;border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:5px 12px;font-size:11px;color:#f0f6ff;font-family:system-ui;outline:none;width:180px;margin-left:auto}
+.fr-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em}
+
+/* Section header */
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sh-text{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3)}
+.sh-count{font-size:10px;color:rgba(255,255,255,.25)}
+.sh-link{font-size:10px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Blocked banner */
+.blocked-banner{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px}
+.bb-icon{font-size:14px}
+.bb-text{flex:1;font-size:11px;color:rgba(255,255,255,.7)}
+.bb-cta{font-size:11px;font-weight:700;color:#f85149;cursor:pointer;white-space:nowrap}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-home-desktop-v3.html</strong><br>
+  Content management home — the default landing page for the WonderQuest content/curriculum team. Shows skill library overview, flagged skills, and content health summary.<br>
+  <strong>Persona:</strong> Content team (curriculum writers, editors). NOT the owner console — this is the content CMS home. Owner sees content health summary from owner-content-health-desktop-v2.html.<br>
+  <strong>Left sidebar:</strong> All Skills · Flagged · Blocked · Under Review · Subjects · Bands · Settings.<br>
+  <strong>Main content:</strong> Stat row (total skills, live, review, blocked, sessions this month, avg skip rate) → Blocked alert banner (if any) → Flagged skills section → All skills grid.<br>
+  <strong>Skill status:</strong> Live (delivery_locked=false, review_status=Published) / Under Review (flagged, may still be live) / Blocked (delivery_locked=true).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')">Content Home</button>
+  <button class="tab-btn" onclick="showTab('filtered')">Flagged View</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Content Home ──────────────────────────────────────── -->
+<div id="tab-home" class="screen active">
+  <p class="section-title">Content home — desktop, default view (curriculum team)</p>
+  <div class="shell">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sb-section">Library</div>
+      <div class="sb-item active"><span class="sb-icon">🏠</span> Home</div>
+      <div class="sb-item"><span class="sb-icon">📖</span> All Skills <span style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.25)">284</span></div>
+      <div class="sb-item"><span class="sb-icon">⚠️</span> Flagged <span class="sb-badge">8</span></div>
+      <div class="sb-item"><span class="sb-icon">🔒</span> Blocked <span class="sb-badge" style="background:rgba(248,81,73,.2)">3</span></div>
+      <div class="sb-item"><span class="sb-icon">🔍</span> Under Review <span style="margin-left:auto;font-size:9px;color:#f59e0b;font-weight:700">5</span></div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">Browse</div>
+      <div class="sb-item"><span class="sb-icon">📐</span> Maths</div>
+      <div class="sb-item"><span class="sb-icon">📝</span> Literacy</div>
+      <div class="sb-item"><span class="sb-icon">🔬</span> Science</div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">Bands</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#ffd166">●</span> P0 Pre-K</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#9b72ff">●</span> P1 K–1</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#58e8c1">●</span> P2 G2–3</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#ff7b6b">●</span> P3 G4–5</div>
+      <div class="sb-divider"></div>
+      <div class="sb-item" style="margin-top:auto"><span class="sb-icon">⚙️</span> Settings</div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+      <div class="main-hdr">
+        <div class="mh-title">📖 Content Library</div>
+        <div class="mh-right">
+          <button class="mh-btn mh-btn-sec">↓ Export</button>
+          <button class="mh-btn mh-btn-pri">+ New Skill</button>
+        </div>
+      </div>
+
+      <!-- Stat row -->
+      <div class="stat-row">
+        <div class="stat-cell">
+          <div class="stat-val">284</div>
+          <div class="stat-lbl">Total Skills</div>
+          <div class="stat-delta sd-up">▲ +12 this month</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" style="color:#50e890">276</div>
+          <div class="stat-lbl">Live</div>
+          <div class="stat-delta sd-neutral">97.2% of total</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" style="color:#f59e0b">5</div>
+          <div class="stat-lbl">Under Review</div>
+          <div class="stat-delta sd-down">▲ +2 this week</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val" style="color:#f85149">3</div>
+          <div class="stat-lbl">Blocked</div>
+          <div class="stat-delta sd-neutral">delivery_locked</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">48.2K</div>
+          <div class="stat-lbl">Sessions / Month</div>
+          <div class="stat-delta sd-up">▲ +8.4%</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-val">12%</div>
+          <div class="stat-lbl">Avg Skip Rate</div>
+          <div class="stat-delta sd-down">▲ +1.4pp (watch)</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="content-body">
+
+        <!-- Blocked alert banner -->
+        <div class="blocked-banner">
+          <div class="bb-icon">🔒</div>
+          <div class="bb-text"><strong style="color:#f85149">3 skills blocked</strong> — delivery locked. These skills are not being delivered to any students. Requires fix + curriculum approval to unblock.</div>
+          <div class="bb-cta">Review Blocked Skills →</div>
+        </div>
+
+        <!-- Flagged section -->
+        <div>
+          <div class="section-hdr">
+            <div><div class="sh-text">Flagged &amp; Needs Attention</div><div class="sh-count" style="margin-top:2px">8 skills · sorted by severity</div></div>
+            <div class="sh-link">View all flagged →</div>
+          </div>
+          <div class="skill-grid">
+            <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0284</span><span class="sc-status ss-blocked">Blocked</span></div>
+              <div class="sc-title">Fractions: Mixed Numbers</div>
+              <div class="sc-subject">Maths · Fractions</div>
+              <div class="sc-meta"><span class="sc-band band-p2">P2 G2–3</span><span class="sc-sessions">1,240 sessions before block</span></div>
+              <div class="sc-flag">8 wrong-answer-as-correct reports · Auto-blocked Mar 23</div>
+            </div>
+            <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0291</span><span class="sc-status ss-blocked">Blocked</span></div>
+              <div class="sc-title">Division: Remainders</div>
+              <div class="sc-subject">Maths · Division</div>
+              <div class="sc-meta"><span class="sc-band band-p3">P3 G4–5</span><span class="sc-sessions">622 sessions before block</span></div>
+              <div class="sc-flag">Asset 404 · Image missing · Auto-blocked Mar 21</div>
+            </div>
+            <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0302</span><span class="sc-status ss-blocked">Blocked</span></div>
+              <div class="sc-title">Nouns: Plural Rules</div>
+              <div class="sc-subject">Literacy · Grammar</div>
+              <div class="sc-meta"><span class="sc-band band-p1">P1 K–1</span><span class="sc-sessions">389 sessions before block</span></div>
+              <div class="sc-flag">3 wrong-answer reports · Auto-blocked Mar 22</div>
+            </div>
+            <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0318</span><span class="sc-status ss-review">Under Review</span></div>
+              <div class="sc-title">Place Value: Thousands</div>
+              <div class="sc-subject">Maths · Number Sense</div>
+              <div class="sc-meta"><span class="sc-band band-p2">P2 G2–3</span><span class="sc-sessions">4,210 sessions</span></div>
+              <div class="sc-flag" style="color:#f59e0b">Skip rate 68% (threshold: 60%) · Flagged Mar 20</div>
+            </div>
+            <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0325</span><span class="sc-status ss-review">Under Review</span></div>
+              <div class="sc-title">Reading Comprehension: Inference</div>
+              <div class="sc-subject">Literacy · Reading</div>
+              <div class="sc-meta"><span class="sc-band band-p3">P3 G4–5</span><span class="sc-sessions">2,890 sessions</span></div>
+              <div class="sc-flag" style="color:#f59e0b">Abort rate 44% (threshold: 40%) · Flagged Mar 19</div>
+            </div>
+            <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+              <div class="sc-top"><span class="sc-id">SK-0197</span><span class="sc-status ss-review">Under Review</span></div>
+              <div class="sc-title">Animals: Habitats</div>
+              <div class="sc-subject">Science · Biology</div>
+              <div class="sc-meta"><span class="sc-band band-p0">P0 Pre-K</span><span class="sc-sessions">1,102 sessions</span></div>
+              <div class="sc-flag" style="color:#f59e0b">2 wrong-answer reports · Curriculum review pending</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recently edited -->
+        <div>
+          <div class="section-hdr">
+            <div><div class="sh-text">Recently Published</div><div class="sh-count" style="margin-top:2px">Last 7 days · 4 skills</div></div>
+            <div class="sh-link">View all →</div>
+          </div>
+          <div class="skill-grid">
+            <div class="skill-card">
+              <div class="sc-top"><span class="sc-id">SK-0281</span><span class="sc-status ss-live">Live</span></div>
+              <div class="sc-title">Fractions: Equivalent</div>
+              <div class="sc-subject">Maths · Fractions</div>
+              <div class="sc-meta"><span class="sc-band band-p2">P2 G2–3</span><span class="sc-sessions">3,180 sessions</span><span class="sc-quality">Skip: 8%</span></div>
+            </div>
+            <div class="skill-card">
+              <div class="sc-top"><span class="sc-id">SK-0339</span><span class="sc-status ss-live">Live</span></div>
+              <div class="sc-title">Spelling: Silent Letters</div>
+              <div class="sc-subject">Literacy · Spelling</div>
+              <div class="sc-meta"><span class="sc-band band-p1">P1 K–1</span><span class="sc-sessions">820 sessions</span><span class="sc-quality">Skip: 5%</span></div>
+            </div>
+            <div class="skill-card">
+              <div class="sc-top"><span class="sc-id">SK-0341</span><span class="sc-status ss-live">Live</span></div>
+              <div class="sc-title">Multiplication: Arrays</div>
+              <div class="sc-subject">Maths · Multiplication</div>
+              <div class="sc-meta"><span class="sc-band band-p2">P2 G2–3</span><span class="sc-sessions">480 sessions</span><span class="sc-quality">Skip: 7%</span></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Flagged View ───────────────────────────────────────── -->
+<div id="tab-filtered" class="screen">
+  <p class="section-title">Content home — flagged filter active</p>
+  <div class="shell">
+    <div class="sidebar">
+      <div class="sb-section">Library</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span> Home</div>
+      <div class="sb-item"><span class="sb-icon">📖</span> All Skills <span style="margin-left:auto;font-size:9px;color:rgba(255,255,255,.25)">284</span></div>
+      <div class="sb-item active"><span class="sb-icon">⚠️</span> Flagged <span class="sb-badge">8</span></div>
+      <div class="sb-item"><span class="sb-icon">🔒</span> Blocked <span class="sb-badge" style="background:rgba(248,81,73,.2)">3</span></div>
+      <div class="sb-item"><span class="sb-icon">🔍</span> Under Review <span style="margin-left:auto;font-size:9px;color:#f59e0b;font-weight:700">5</span></div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">Browse</div>
+      <div class="sb-item"><span class="sb-icon">📐</span> Maths</div>
+      <div class="sb-item"><span class="sb-icon">📝</span> Literacy</div>
+      <div class="sb-item"><span class="sb-icon">🔬</span> Science</div>
+      <div class="sb-divider"></div>
+      <div class="sb-section">Bands</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#ffd166">●</span> P0 Pre-K</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#9b72ff">●</span> P1 K–1</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#58e8c1">●</span> P2 G2–3</div>
+      <div class="sb-item"><span class="sb-icon" style="color:#ff7b6b">●</span> P3 G4–5</div>
+    </div>
+    <div class="main">
+      <div class="main-hdr">
+        <div class="mh-title">⚠️ Flagged Skills</div>
+        <div class="mh-right">
+          <button class="mh-btn mh-btn-sec">Sort: Severity</button>
+        </div>
+      </div>
+      <div class="content-body" style="padding-top:16px">
+        <div class="filter-row">
+          <div class="fr-label">Status</div>
+          <button class="fr-chip fr-active">All Flagged (8)</button>
+          <button class="fr-chip fr-idle">Blocked (3)</button>
+          <button class="fr-chip fr-idle">Under Review (5)</button>
+          <div class="fr-label" style="margin-left:8px">Band</div>
+          <button class="fr-chip fr-active">All</button>
+          <button class="fr-chip fr-idle" style="color:#ffd166">P0</button>
+          <button class="fr-chip fr-idle" style="color:#9b72ff">P1</button>
+          <button class="fr-chip fr-idle" style="color:#58e8c1">P2</button>
+          <button class="fr-chip fr-idle" style="color:#ff7b6b">P3</button>
+          <input class="fr-search" placeholder="Search skills…" readonly>
+        </div>
+        <div class="skill-grid">
+          <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0284</span><span class="sc-status ss-blocked">Blocked</span></div>
+            <div class="sc-title">Fractions: Mixed Numbers</div>
+            <div class="sc-subject">Maths · Fractions</div>
+            <div class="sc-meta"><span class="sc-band band-p2">P2</span><span class="sc-sessions">1,240 sessions before block</span></div>
+            <div class="sc-flag">8 wrong-answer reports · Delivery locked</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0291</span><span class="sc-status ss-blocked">Blocked</span></div>
+            <div class="sc-title">Division: Remainders</div>
+            <div class="sc-subject">Maths · Division</div>
+            <div class="sc-meta"><span class="sc-band band-p3">P3</span><span class="sc-sessions">622 sessions before block</span></div>
+            <div class="sc-flag">Asset 404 · Delivery locked</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(248,81,73,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0302</span><span class="sc-status ss-blocked">Blocked</span></div>
+            <div class="sc-title">Nouns: Plural Rules</div>
+            <div class="sc-subject">Literacy · Grammar</div>
+            <div class="sc-meta"><span class="sc-band band-p1">P1</span><span class="sc-sessions">389 sessions before block</span></div>
+            <div class="sc-flag">3 wrong-answer reports · Delivery locked</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0318</span><span class="sc-status ss-review">Under Review</span></div>
+            <div class="sc-title">Place Value: Thousands</div>
+            <div class="sc-subject">Maths · Number Sense</div>
+            <div class="sc-meta"><span class="sc-band band-p2">P2</span><span class="sc-sessions">4,210 sessions</span></div>
+            <div class="sc-flag" style="color:#f59e0b">Skip rate 68%</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0325</span><span class="sc-status ss-review">Under Review</span></div>
+            <div class="sc-title">Reading Comprehension: Inference</div>
+            <div class="sc-subject">Literacy · Reading</div>
+            <div class="sc-meta"><span class="sc-band band-p3">P3</span><span class="sc-sessions">2,890 sessions</span></div>
+            <div class="sc-flag" style="color:#f59e0b">Abort rate 44%</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0197</span><span class="sc-status ss-review">Under Review</span></div>
+            <div class="sc-title">Animals: Habitats</div>
+            <div class="sc-subject">Science · Biology</div>
+            <div class="sc-meta"><span class="sc-band band-p0">P0</span><span class="sc-sessions">1,102 sessions</span></div>
+            <div class="sc-flag" style="color:#f59e0b">2 wrong-answer reports</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0271</span><span class="sc-status ss-review">Under Review</span></div>
+            <div class="sc-title">Measurement: Centimetres</div>
+            <div class="sc-subject">Maths · Measurement</div>
+            <div class="sc-meta"><span class="sc-band band-p1">P1</span><span class="sc-sessions">1,780 sessions</span></div>
+            <div class="sc-flag" style="color:#f59e0b">Skip rate 62%</div>
+          </div>
+          <div class="skill-card" style="border-color:rgba(245,158,11,.2)">
+            <div class="sc-top"><span class="sc-id">SK-0309</span><span class="sc-status ss-review">Under Review</span></div>
+            <div class="sc-title">Fractions: Comparing</div>
+            <div class="sc-subject">Maths · Fractions</div>
+            <div class="sc-meta"><span class="sc-band band-p2">P2</span><span class="sc-sessions">2,100 sessions</span></div>
+            <div class="sc-flag" style="color:#f59e0b">1 wrong-answer report · Monitoring</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-home-desktop-v3.html<br>
+      <strong>Content CMS home page.</strong> Left sidebar navigation. 6-stat row. Blocked alert banner. Flagged skills grid. Recently published. Persona: curriculum/content team (NOT owner console).
+    </div>
+    <h2 class="spec-h2">Persona Distinction</h2>
+    <p class="spec-p">This is the content team CMS, not the owner console. Content team members can: view all skills, edit skill content, flag/unflag skills, submit for review, unblock skills (after fix + approval). They cannot: view school-level data, see individual teacher/student names, access governance log, or access financial KPIs. Owner sees a read-only summary of content health from owner-content-health-desktop-v2.html.</p>
+    <h2 class="spec-h2">Skill Status Flow</h2>
+    <p class="spec-p">Published (live) → Under Review (auto-flag triggered) → Blocked (threshold exceeded, delivery_locked=true). Unblock path: fix in CMS → curriculum review approval → owner confirms → deploy → delivery_locked=false → back to Published. Content team initiates fix; owner confirms unblock.</p>
+    <h2 class="spec-h2">Auto-Flag Thresholds</h2>
+    <p class="spec-p">Skip rate >60% → Under Review. Wrong-answer-as-correct reports ≥ 2 → Under Review; ≥ 3 → Blocked. Asset 404 → Blocked immediately. Abort mid-skill rate >40% → Under Review. These thresholds can be adjusted by owner in Settings → Content Thresholds.</p>
+    <h2 class="spec-h2">Left Sidebar Navigation</h2>
+    <p class="spec-p">Sidebar provides direct access to filtered views: All Skills (full library, 284), Flagged (8 — all items needing attention), Blocked (3 — delivery locked), Under Review (5 — flagged but still live). Browse by subject (Maths/Literacy/Science) or band (P0–P3). Badge counts on Flagged/Blocked update in real time.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

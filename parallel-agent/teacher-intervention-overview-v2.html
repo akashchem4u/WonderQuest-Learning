@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Intervention Overview — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Overview card */
+.overview-wrap{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:900px}
+.ov-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.ov-title{font-size:14px;font-weight:800;color:#1a1440}
+.ov-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+
+/* Status tabs */
+.status-tabs{display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap}
+.stab{padding:6px 16px;border-radius:16px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;border:none}
+.stab-active{background:#2563eb;color:#fff}
+.stab-inactive{background:#f0f4f8;color:#555}
+.stab-badge{display:inline-block;background:rgba(255,255,255,.3);color:inherit;font-size:10px;font-weight:900;padding:0 5px;border-radius:5px;margin-left:4px}
+.stab-inactive .stab-badge{background:rgba(0,0,0,.08)}
+
+/* Summary stat row */
+.summ-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.summ-tile{background:#f8faff;border-radius:10px;padding:10px 12px;text-align:center}
+.summ-n{font-size:18px;font-weight:900;color:#1a1440}
+.summ-l{font-size:10px;color:#888;font-weight:700;margin-top:2px}
+
+/* Intervention row */
+.intv-row{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #f5f7fa}
+.intv-row:last-child{border-bottom:none;padding-bottom:0}
+.intv-av{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:900;color:#fff;flex-shrink:0;margin-top:2px}
+.intv-body{flex:1}
+.intv-name{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:2px}
+.intv-trigger{font-size:11px;color:#666;line-height:1.4;margin-bottom:5px}
+.intv-chips{display:flex;gap:5px;flex-wrap:wrap}
+.ichip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.ichip-active{background:#fef3c7;color:#92400e}
+.ichip-improving{background:#dcfce7;color:#15803d}
+.ichip-resolved{background:#f0fdf4;color:#15803d}
+.ichip-escalated{background:#fff0f0;color:#dc2626}
+.ichip-trigger{background:#f0f4f8;color:#555}
+.intv-mastery{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.mastery-label{font-size:10px;color:#888;font-weight:700}
+.mastery-bar-wrap{background:#f0f4f8;border-radius:3px;height:5px;width:60px}
+.mastery-bar-fill{height:5px;border-radius:3px}
+.mastery-n{font-size:11px;font-weight:700;color:#1a1440}
+.intv-right{flex-shrink:0;text-align:right;min-width:80px}
+.intv-date{font-size:10px;color:#aaa;margin-bottom:6px}
+.intv-days{font-size:10px;font-weight:700;color:#888}
+.btn-xs{padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui;background:#fff;color:#2563eb;border:1.5px solid #dbe7ff;display:block;text-align:center;margin-top:5px}
+
+/* Timeline column */
+.timeline-col{max-width:640px}
+.tl-item{display:flex;gap:12px;padding:12px 0;position:relative}
+.tl-item:not(:last-child)::after{content:'';position:absolute;left:14px;top:32px;bottom:-4px;width:2px;background:#f0f0f0}
+.tl-dot{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-top:2px}
+.tld-trigger{background:#fef3c7;color:#92400e}
+.tld-note{background:#eff6ff;color:#2563eb}
+.tld-mastery{background:#dcfce7;color:#15803d}
+.tld-resolve{background:#f0fdf4;color:#15803d}
+.tl-body{flex:1}
+.tl-heading{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:2px}
+.tl-detail{font-size:11px;color:#666;line-height:1.5}
+.tl-time{font-size:10px;color:#aaa;margin-top:3px}
+.tl-name-tag{font-size:10px;font-weight:700;background:#f0f4f8;color:#555;padding:1px 7px;border-radius:5px;display:inline-block;margin-bottom:4px}
+
+/* Stats page */
+.stats-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.stats-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.06)}
+.sc-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440;margin-bottom:10px}
+
+/* Bar mini chart */
+.mini-chart{display:flex;gap:5px;align-items:flex-end;height:40px;margin-bottom:4px}
+.mc-bar{background:#2563eb;border-radius:2px 2px 0 0;min-width:16px}
+.mc-label{font-size:9px;color:#aaa;text-align:center;min-width:16px}
+.mc-wrap{display:flex;flex-direction:column;align-items:center;gap:2px}
+
+/* Resolution funnel */
+.funnel-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid #f5f7fa;font-size:12px}
+.funnel-row:last-child{border-bottom:none}
+.funnel-label{color:#555}
+.funnel-n{font-weight:800;color:#1a1440}
+.funnel-pct{font-size:10px;color:#888}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-intervention-overview-v2.html</strong><br>
+  Intervention overview — shows ALL interventions across the class (past and present), not just a single intervention detail.<br>
+  <strong>Distinct from:</strong> support queue (shows open items) | intervention detail (shows one intervention in depth) | intervention timeline (shows one intervention's full history).<br>
+  <strong>Route:</strong> /teacher/interventions — accessible from command center "Interventions" link or sidebar.<br>
+  <strong>Intervention lifecycle:</strong> Active → Improving → Resolved (auto when mastery ≥ 65 + 0 floor hits for 5 days) | Escalated.<br>
+  <strong>Privacy:</strong> First names only (FERPA). Teacher private notes visible here (private to teacher). Intervention data retained 90 days then anonymised.<br>
+  <strong>Stats view:</strong> Aggregate-only analytics (resolution rate, avg days to resolve, trigger distribution). No per-student comparative ranking.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active Interventions</button>
+  <button class="tab-btn" onclick="showTab('history')">Resolved History</button>
+  <button class="tab-btn" onclick="showTab('stats')">Stats</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Active Interventions ─────────────────────────────────────── -->
+<div id="tab-active" class="screen active">
+  <p class="section-title">Intervention overview — all active interventions</p>
+  <div class="overview-wrap">
+    <div class="ov-header">
+      <div class="ov-title">🛠 Interventions — Class 4B</div>
+      <div class="ov-link">Export</div>
+    </div>
+
+    <div class="summ-row">
+      <div class="summ-tile">
+        <div class="summ-n">4</div>
+        <div class="summ-l">Active</div>
+      </div>
+      <div class="summ-tile">
+        <div class="summ-n">2</div>
+        <div class="summ-l">Improving</div>
+      </div>
+      <div class="summ-tile">
+        <div class="summ-n">12</div>
+        <div class="summ-l">Resolved (term)</div>
+      </div>
+      <div class="summ-tile">
+        <div class="summ-n" style="color:#22c55e">78%</div>
+        <div class="summ-l">Resolution rate</div>
+      </div>
+    </div>
+
+    <div class="status-tabs">
+      <button class="stab stab-active">Active <span class="stab-badge">4</span></button>
+      <button class="stab stab-inactive">Improving <span class="stab-badge">2</span></button>
+      <button class="stab stab-inactive">All open <span class="stab-badge">6</span></button>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#475569">J</div>
+      <div class="intv-body">
+        <div class="intv-name">Jordan</div>
+        <div class="intv-trigger">Confidence floor on Fractions: Adding Unlike Denominators. Floor hit 4× this week.</div>
+        <div class="intv-chips">
+          <span class="ichip ichip-active">Active · 6 days</span>
+          <span class="ichip ichip-trigger">Confidence floor</span>
+          <span class="ichip" style="background:#58e8c122;color:#0d9065">P2 G2–3</span>
+        </div>
+        <div class="intv-mastery">
+          <div class="mastery-label">Mastery when flagged:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:28%;background:#f59e0b"></div></div>
+          <div class="mastery-n">28/100</div>
+          <div class="mastery-label" style="margin-left:8px">Now:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:38%;background:#2563eb"></div></div>
+          <div class="mastery-n">38/100</div>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Started Mar 18</div>
+        <div class="intv-days">6 days open</div>
+        <a class="btn-xs">View →</a>
+      </div>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#ec4899">P</div>
+      <div class="intv-body">
+        <div class="intv-name">Priya</div>
+        <div class="intv-trigger">Absence — 6 days missed. Monitor re-engagement and mastery recovery.</div>
+        <div class="intv-chips">
+          <span class="ichip ichip-active">Active · 4 days</span>
+          <span class="ichip ichip-trigger">Absence</span>
+          <span class="ichip" style="background:#9b72ff22;color:#6d3fcf">P1 K–1</span>
+        </div>
+        <div class="intv-mastery">
+          <div class="mastery-label">Mastery when flagged:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:44%;background:#f59e0b"></div></div>
+          <div class="mastery-n">44/100</div>
+          <div class="mastery-label" style="margin-left:8px">Now:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:52%;background:#2563eb"></div></div>
+          <div class="mastery-n">52/100</div>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Started Mar 20</div>
+        <div class="intv-days">4 days open</div>
+        <a class="btn-xs">View →</a>
+      </div>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#0ea5e9">A</div>
+      <div class="intv-body">
+        <div class="intv-name">Aisha</div>
+        <div class="intv-trigger">Hint pattern — requested hints 6× on same Multiplication question type.</div>
+        <div class="intv-chips">
+          <span class="ichip ichip-improving">Improving · 10 days</span>
+          <span class="ichip ichip-trigger">Hint pattern</span>
+          <span class="ichip" style="background:#58e8c122;color:#0d9065">P2 G2–3</span>
+        </div>
+        <div class="intv-mastery">
+          <div class="mastery-label">Flagged at:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:30%;background:#f59e0b"></div></div>
+          <div class="mastery-n">30/100</div>
+          <div class="mastery-label" style="margin-left:8px">Now:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:58%;background:#22c55e"></div></div>
+          <div class="mastery-n">58/100</div>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Started Mar 14</div>
+        <div class="intv-days">10 days · Improving</div>
+        <a class="btn-xs">View →</a>
+      </div>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#16a34a">M</div>
+      <div class="intv-body">
+        <div class="intv-name">Marcus</div>
+        <div class="intv-trigger">Band ceiling — consistently reaching P2 limit. Ready for P3 advancement review.</div>
+        <div class="intv-chips">
+          <span class="ichip" style="background:#eff6ff;color:#2563eb">Band ceiling · Positive</span>
+          <span class="ichip ichip-trigger">Band ceiling</span>
+          <span class="ichip" style="background:#58e8c122;color:#0d9065">P2 → P3?</span>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Started Mar 21</div>
+        <div class="intv-days">3 days</div>
+        <a class="btn-xs">Review →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Resolved History ───────────────────────────────────────────── -->
+<div id="tab-history" class="screen">
+  <p class="section-title">Resolved interventions — this term</p>
+  <div class="overview-wrap">
+    <div class="ov-header">
+      <div class="ov-title">✅ Resolved — This Term</div>
+      <div class="ov-link">See archived</div>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#ec4899">B</div>
+      <div class="intv-body">
+        <div class="intv-name">Bella</div>
+        <div class="intv-trigger">Confidence floor on Long Division. Resolved after visual model support + 8 sessions.</div>
+        <div class="intv-chips">
+          <span class="ichip ichip-resolved">Resolved · 12 days</span>
+          <span class="ichip ichip-trigger">Confidence floor</span>
+        </div>
+        <div class="intv-mastery">
+          <div class="mastery-label">Before:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:28%;background:#f59e0b"></div></div>
+          <div class="mastery-n">28/100</div>
+          <div class="mastery-label" style="margin-left:8px">After:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:82%;background:#22c55e"></div></div>
+          <div class="mastery-n">82/100 ✓</div>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Resolved Mar 18</div>
+        <a class="btn-xs">View history →</a>
+      </div>
+    </div>
+
+    <div class="intv-row">
+      <div class="intv-av" style="background:#16a34a">E</div>
+      <div class="intv-body">
+        <div class="intv-name">Ethan</div>
+        <div class="intv-trigger">Absence (4 days). Re-engagement successful — streak restored within 3 days.</div>
+        <div class="intv-chips">
+          <span class="ichip ichip-resolved">Resolved · 5 days</span>
+          <span class="ichip ichip-trigger">Absence</span>
+        </div>
+        <div class="intv-mastery">
+          <div class="mastery-label">Before:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:55%;background:#f59e0b"></div></div>
+          <div class="mastery-n">55/100</div>
+          <div class="mastery-label" style="margin-left:8px">After:</div>
+          <div class="mastery-bar-wrap"><div class="mastery-bar-fill" style="width:70%;background:#22c55e"></div></div>
+          <div class="mastery-n">70/100 ✓</div>
+        </div>
+      </div>
+      <div class="intv-right">
+        <div class="intv-date">Resolved Mar 12</div>
+        <a class="btn-xs">View history →</a>
+      </div>
+    </div>
+
+    <div style="text-align:center;padding:12px;font-size:11px;color:#aaa">
+      Showing 2 of 12 resolved this term. <a style="color:#2563eb;font-weight:700;cursor:pointer">View all →</a>
+    </div>
+    <div style="font-size:10px;color:#aaa;padding-top:8px;border-top:1px solid #f5f7fa">
+      Resolved interventions are retained for 90 days, then student names are anonymised. Teacher notes are deleted after 90 days.
+    </div>
+  </div>
+</div>
+
+<!-- ── Stats ─────────────────────────────────────────────────────── -->
+<div id="tab-stats" class="screen">
+  <p class="section-title">Intervention statistics — this term (aggregate)</p>
+  <div class="stats-grid" style="max-width:860px">
+    <div class="stats-card">
+      <div class="sc-title">Resolution Rate — Last 8 Weeks</div>
+      <div class="mini-chart">
+        <div class="mc-wrap"><div class="mc-bar" style="height:20px;background:#22c55e"></div><div class="mc-label">W1</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:28px"></div><div class="mc-label">W2</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:18px;background:#22c55e"></div><div class="mc-label">W3</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:32px"></div><div class="mc-label">W4</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:24px;background:#22c55e"></div><div class="mc-label">W5</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:38px"></div><div class="mc-label">W6</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:30px;background:#22c55e"></div><div class="mc-label">W7</div></div>
+        <div class="mc-wrap"><div class="mc-bar" style="height:36px"></div><div class="mc-label">W8</div></div>
+      </div>
+      <div style="font-size:11px;color:#888;margin-top:4px">Blue = opened. Green = resolved in same week.</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="sc-title">Trigger Distribution — This Term</div>
+      <div class="funnel-row"><div class="funnel-label">Confidence floor</div><div><span class="funnel-n">8</span> <span class="funnel-pct">50%</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Absence follow-up</div><div><span class="funnel-n">4</span> <span class="funnel-pct">25%</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Hint pattern</div><div><span class="funnel-n">2</span> <span class="funnel-pct">13%</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Band ceiling</div><div><span class="funnel-n">2</span> <span class="funnel-pct">13%</span></div></div>
+    </div>
+
+    <div class="stats-card">
+      <div class="sc-title">Resolution Funnel — This Term</div>
+      <div class="funnel-row"><div class="funnel-label">Total opened</div><div><span class="funnel-n">16</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Resolved by system</div><div><span class="funnel-n">9</span> <span class="funnel-pct">56%</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Resolved by teacher action</div><div><span class="funnel-n">3</span> <span class="funnel-pct">19%</span></div></div>
+      <div class="funnel-row"><div class="funnel-label">Still active / improving</div><div><span class="funnel-n">4</span> <span class="funnel-pct">25%</span></div></div>
+      <div style="margin-top:8px;padding-top:8px;border-top:1px solid #f5f7fa;font-size:13px;font-weight:800;color:#15803d">78% resolved this term</div>
+    </div>
+
+    <div class="stats-card">
+      <div class="sc-title">Average Days to Resolution</div>
+      <div style="display:flex;gap:12px;margin-bottom:8px">
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#1a1440">8.4</div>
+          <div style="font-size:10px;color:#aaa;font-weight:700">Avg days (all)</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#22c55e">6.1</div>
+          <div style="font-size:10px;color:#aaa;font-weight:700">Confidence floor</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:22px;font-weight:900;color:#2563eb">4.8</div>
+          <div style="font-size:10px;color:#aaa;font-weight:700">Absence</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#aaa;line-height:1.4">Stats are class-level aggregates. No per-student comparison or ranking shown.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-intervention-overview-v2.html<br>
+      <strong>Route:</strong> /teacher/interventions<br>
+      <strong>Data:</strong> interventions table — intervention_id, teacher_id, student_id, trigger_type, status, mastery_at_trigger, mastery_current, opened_at, resolved_at.
+    </div>
+    <h2 class="spec-h2">Intervention vs Queue</h2>
+    <table class="spec-table">
+      <tr><th>Aspect</th><th>Support Queue</th><th>Interventions</th></tr>
+      <tr><td>Scope</td><td>Currently open items only</td><td>All interventions (active + history)</td></tr>
+      <tr><td>Purpose</td><td>Daily action list</td><td>Term-level tracking + analytics</td></tr>
+      <tr><td>History</td><td>No — auto-removed when resolved</td><td>Yes — 90 days retained</td></tr>
+      <tr><td>Teacher notes</td><td>Not shown</td><td>Shown (private to teacher)</td></tr>
+      <tr><td>Stats</td><td>No</td><td>Yes — resolution rate, trigger distribution, avg days</td></tr>
+    </table>
+    <h2 class="spec-h2">Retention &amp; Privacy</h2>
+    <p class="spec-p">Interventions retained with full data for 90 days from resolution. After 90 days: student_name anonymised, teacher_notes deleted, aggregate stats retained for product analytics. Teacher cannot export raw intervention data with student names — export is summary-only (totals, trigger counts, resolution rate).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Governance Log — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#010409;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-left{display:flex;align-items:center;gap:16px}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-sub{font-size:11px;color:rgba(255,255,255,.3)}
+.sh-export{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;padding:12px 24px;background:#010409;border-bottom:1px solid rgba(255,255,255,.06);flex-wrap:wrap;align-items:center}
+.fb-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em}
+.fb-chip{padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.fb-search{background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:5px 12px;font-size:11px;color:#f0f6ff;font-family:system-ui;outline:none;width:200px;margin-left:auto}
+
+/* Log entries */
+.log-body{padding:16px 24px}
+.log-entry{display:flex;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.log-entry:last-child{border-bottom:none}
+.le-time{font-size:10px;color:rgba(255,255,255,.25);min-width:100px;flex-shrink:0;padding-top:1px}
+.le-dot{width:8px;height:8px;border-radius:50%;margin-top:4px;flex-shrink:0}
+.le-body{flex:1}
+.le-action{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.le-detail{font-size:11px;color:rgba(255,255,255,.5);line-height:1.4}
+.le-actor{font-size:10px;color:rgba(255,255,255,.3);margin-top:3px}
+.le-tags{display:flex;gap:4px;margin-top:4px;flex-wrap:wrap}
+.le-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:3px}
+.lt-privacy{background:rgba(155,114,255,.12);color:#9b72ff}
+.lt-content{background:rgba(88,232,193,.1);color:#58e8c1}
+.lt-ops{background:rgba(80,232,144,.1);color:#50e890}
+.lt-security{background:rgba(248,81,73,.12);color:#f85149}
+.lt-release{background:rgba(245,158,11,.1);color:#f59e0b}
+.lt-account{background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+
+/* Category dots */
+.cd-privacy{background:#9b72ff}
+.cd-content{background:#58e8c1}
+.cd-ops{background:#50e890}
+.cd-security{background:#f85149}
+.cd-release{background:#f59e0b}
+.cd-account{background:rgba(255,255,255,.3)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-governance-log-v3.html</strong><br>
+  Immutable audit log of all significant owner/system actions. For compliance, FERPA/COPPA accountability, and incident post-mortems.<br>
+  <strong>Entries include:</strong> Privacy/FERPA actions (data deletion, consent changes) · Content changes (skill publish/block/unblock) · Ops events (incident declare/resolve, release deploy) · Security events (MFA change, login anomaly) · Account events (school onboard/offboard).<br>
+  <strong>Immutable:</strong> Log entries cannot be edited or deleted. Append-only. 7-year retention per FERPA requirements.<br>
+  <strong>Export:</strong> CSV for compliance reporting. PDF for audit reports. Date-range filterable.<br>
+  <strong>Actor field:</strong> System-generated events show "System (auto)". Owner manual actions show "Owner". No individual teacher names in this log.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('log')">Governance Log</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Governance Log ──────────────────────────────────────── -->
+<div id="tab-log" class="screen active">
+  <p class="section-title">Owner governance log — all categories</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-left">
+        <div class="sh-title">📋 Governance Log</div>
+        <div class="sh-sub">Immutable audit trail · 7-year retention</div>
+      </div>
+      <div class="sh-export">↓ Export CSV</div>
+    </div>
+    <div class="filter-bar">
+      <div class="fb-label">Category</div>
+      <button class="fb-chip fc-a">All</button>
+      <button class="fb-chip fc-i">Privacy</button>
+      <button class="fb-chip fc-i">Content</button>
+      <button class="fb-chip fc-i">Ops</button>
+      <button class="fb-chip fc-i">Security</button>
+      <button class="fb-chip fc-i">Release</button>
+      <button class="fb-chip fc-i">Account</button>
+      <input class="fb-search" placeholder="Search log entries…" readonly>
+    </div>
+    <div class="log-body">
+
+      <div class="log-entry">
+        <div class="le-time">Mar 24 · 11:32 AM</div>
+        <div class="le-dot cd-ops"></div>
+        <div class="le-body">
+          <div class="le-action">P0 Incident Resolved — Assignment Engine (PD-4412)</div>
+          <div class="le-detail">Incident declared 6:10 AM, resolved 11:30 AM. Duration: 5h 20m. Root cause: Redis null payload crash in v2.5.0. Fix: Hotfix v2.5.1. 9 schools affected.</div>
+          <div class="le-actor">Actor: Owner + System (auto-close on healthy)</div>
+          <div class="le-tags"><span class="le-tag lt-ops">Ops</span><span class="le-tag lt-security">Incident</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 24 · 11:30 AM</div>
+        <div class="le-dot cd-release"></div>
+        <div class="le-body">
+          <div class="le-action">Hotfix v2.5.1 Deployed to Production</div>
+          <div class="le-detail">Deployed by engineering team. Resolved assignment queue consumer null payload crash. No data migration required. All tests passed pre-deploy.</div>
+          <div class="le-actor">Actor: Engineering (Sam) · CI/CD pipeline</div>
+          <div class="le-tags"><span class="le-tag lt-release">Release</span><span class="le-tag lt-ops">Deploy</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 24 · 6:10 AM</div>
+        <div class="le-dot cd-security"></div>
+        <div class="le-body">
+          <div class="le-action">P0 Incident Declared — Assignment Engine Down</div>
+          <div class="le-detail">Auto-declared by monitoring system (error rate exceeded threshold). PagerDuty PD-4412 created. #incidents Slack notified. Teacher status page updated.</div>
+          <div class="le-actor">Actor: System (auto)</div>
+          <div class="le-tags"><span class="le-tag lt-ops">Ops</span><span class="le-tag lt-security">Incident</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 23 · 2:15 PM</div>
+        <div class="le-dot cd-content"></div>
+        <div class="le-body">
+          <div class="le-action">Skill Blocked — Fractions: Mixed Numbers (SK-0284)</div>
+          <div class="le-detail">Auto-blocked: wrong-answer-as-correct reports exceeded threshold (8 reports). Delivery locked. Curriculum team notified. Skill served in 1,240 sessions before block.</div>
+          <div class="le-actor">Actor: System (auto-block)</div>
+          <div class="le-tags"><span class="le-tag lt-content">Content</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 22 · 4:30 PM</div>
+        <div class="le-dot cd-release"></div>
+        <div class="le-body">
+          <div class="le-action">Release v2.5 "Assignment Engine" Launched to Production</div>
+          <div class="le-detail">Gate score 94/100. All categories passed. Stakeholder sign-off complete (Founder + Lead Eng + Curriculum Lead). 3 skills locked at launch (curriculum review pending).</div>
+          <div class="le-actor">Actor: Owner (launch confirmed) · Engineering</div>
+          <div class="le-tags"><span class="le-tag lt-release">Release</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 20 · 10:00 AM</div>
+        <div class="le-dot cd-privacy"></div>
+        <div class="le-body">
+          <div class="le-action">Student Data Deletion Request Processed — School: Riverside Elementary</div>
+          <div class="le-detail">Right-to-erasure request received from parent. Student data (session logs, mastery scores, play events) deleted from primary database and analytics warehouse. Anonymised aggregate data retained per data minimisation policy. 72h processing time (within 30-day statutory requirement).</div>
+          <div class="le-actor">Actor: System (automated GDPR pipeline) + Owner verified</div>
+          <div class="le-tags"><span class="le-tag lt-privacy">Privacy</span><span class="le-tag lt-account">FERPA/GDPR</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 18 · 9:15 AM</div>
+        <div class="le-dot cd-account"></div>
+        <div class="le-body">
+          <div class="le-action">New School Onboarded — Cedar Valley Prep</div>
+          <div class="le-detail">School contract signed. Admin account created. 3 teacher accounts provisioned. Data processing agreement (DPA) countersigned. FERPA covered entity verification complete.</div>
+          <div class="le-actor">Actor: Owner (onboarding flow)</div>
+          <div class="le-tags"><span class="le-tag lt-account">Account</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 15 · 3:00 PM</div>
+        <div class="le-dot cd-security"></div>
+        <div class="le-body">
+          <div class="le-action">Owner MFA Configuration Updated</div>
+          <div class="le-detail">TOTP device re-enrolled (previous device lost). Previous TOTP device invalidated. Login session on previous device forcibly terminated.</div>
+          <div class="le-actor">Actor: Owner (authenticated with backup code)</div>
+          <div class="le-tags"><span class="le-tag lt-security">Security</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 10 · 11:55 PM</div>
+        <div class="le-dot cd-privacy"></div>
+        <div class="le-body">
+          <div class="le-action">Automated Intervention Anonymisation — Retention Policy</div>
+          <div class="le-detail">Batch job: interventions older than 90 days anonymised. 48 records processed: student_id → NULL, teacher_notes → deleted. Aggregate trigger/resolution stats retained. No personally identifiable data retained.</div>
+          <div class="le-actor">Actor: System (nightly cron)</div>
+          <div class="le-tags"><span class="le-tag lt-privacy">Privacy</span><span class="le-tag lt-ops">Automation</span></div>
+        </div>
+      </div>
+
+      <div class="log-entry">
+        <div class="le-time">Mar 5 · 2:00 PM</div>
+        <div class="le-dot cd-content"></div>
+        <div class="le-body">
+          <div class="le-action">Skill Unblocked — Fractions: Equivalent (SK-0281)</div>
+          <div class="le-detail">Answer key corrected (question_ids 3280, 3285). Curriculum team reviewed and approved. Skill re-published to production. Review log entry: "Retested by 2 reviewers. Clear."</div>
+          <div class="le-actor">Actor: Owner (approved unblock)</div>
+          <div class="le-tags"><span class="le-tag lt-content">Content</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-governance-log-v3.html<br>
+      <strong>Immutable audit trail.</strong> All significant actions logged. 7-year FERPA retention. Filter by category. Export CSV/PDF.
+    </div>
+    <h2 class="spec-h2">Log Categories</h2>
+    <p class="spec-p"><strong>Privacy:</strong> Data deletion, anonymisation, consent changes, FERPA/GDPR actions. <strong>Content:</strong> Skill publish/block/unblock, content review decisions. <strong>Ops:</strong> Incidents, deployments, system events. <strong>Security:</strong> MFA changes, login anomalies, access changes. <strong>Release:</strong> Version launches, hotfixes. <strong>Account:</strong> School onboard/offboard, DPA changes.</p>
+    <h2 class="spec-h2">Immutability</h2>
+    <p class="spec-p">Log entries are append-only. No update or delete operations on log_entries table. Write access is restricted to system service account only. Owner can view + export but cannot modify. Regular integrity checks compare log hash chain.</p>
+    <h2 class="spec-h2">Retention</h2>
+    <p class="spec-p">7-year retention per FERPA requirements (student education records). Privacy/FERPA entries are kept for the full 7 years even after school contract ends. Ops/Release entries purged after 3 years. Security entries kept 5 years.</p>
+    <h2 class="spec-h2">Actor Field</h2>
+    <p class="spec-p">"System (auto)" for automated actions (monitoring, cron jobs, auto-block). "Owner" for manual owner actions. Engineering team name for deploy actions. No individual teacher names — school name only for school-initiated events.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

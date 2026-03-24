@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Entry — Desktop v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent entry / sign-in flow — Desktop variant             │
+  │  Parent bg: #f5f0e8 (warm cream)                           │
+  │  NOT the child dark theme                                  │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Landing / Sign-In                                    │
+  │    2. Returning Parent (Dashboard Gate)                    │
+  │    3. New Parent (Create Account)                          │
+  │    4. Verification Step                                    │
+  │    5. Spec                                                 │
+  │                                                            │
+  │  Rules:                                                    │
+  │  - Desktop: max-width 1100px, 2-col hero on landing        │
+  │  - Parent tone: calm, trusted, professional                │
+  │  - No child-facing playful elements                        │
+  │  - Trust signals: privacy badge, COPPA note                │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: #ece8e0;
+  color: #1a1a2e;
+  min-height: 100vh;
+}
+
+/* ─── Tab Bar ─── */
+.tab-bar {
+  display: flex;
+  gap: 4px;
+  padding: 16px 24px 0;
+  border-bottom: 1px solid #d8d0c0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  background: #f5f0e8;
+}
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 9px 18px;
+  border: none;
+  background: transparent;
+  color: #8a7a6a;
+  font: 600 0.82rem system-ui, sans-serif;
+  cursor: pointer;
+  border-radius: 8px 8px 0 0;
+  white-space: nowrap;
+  transition: all 0.18s;
+}
+.tab-btn.active {
+  color: #3d2a8a;
+  background: #ece8e0;
+  border-bottom: 2px solid #9b72ff;
+}
+.screen { display: none; min-height: 90vh; }
+.screen.active { display: block; }
+
+/* ─── SCREEN 1: Landing / Sign-In ─── */
+#screen-landing {
+  display: none;
+  background: #f5f0e8;
+}
+#screen-landing.active { display: grid; }
+.landing-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 40px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: center;
+  min-height: calc(100vh - 57px);
+}
+/* Left Hero */
+.hero-left { display: flex; flex-direction: column; gap: 24px; }
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.wordmark-icon {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+}
+.wordmark-text {
+  font: 900 1.5rem system-ui, sans-serif;
+  background: linear-gradient(135deg, #3d2a8a, #9b72ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-headline {
+  font: 700 2.6rem/1.15 system-ui, sans-serif;
+  color: #1a1240;
+  max-width: 460px;
+}
+.hero-headline em {
+  font-style: normal;
+  background: linear-gradient(135deg, #9b72ff, #6030c0);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.hero-sub {
+  font: 400 1.05rem/1.7 system-ui, sans-serif;
+  color: #5a5070;
+  max-width: 420px;
+}
+.trust-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+.trust-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font: 500 0.75rem system-ui, sans-serif;
+  color: #7060a0;
+  background: #ede8ff;
+  border: 1px solid #ccc0f0;
+  border-radius: 20px;
+  padding: 5px 12px;
+}
+.trust-badge .tb-icon { font-size: 0.85rem; }
+
+/* Right Sign-In Card */
+.signin-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 40px rgba(100,60,200,0.1);
+  border: 1px solid #e0d8f8;
+}
+.card-eyebrow {
+  font: 600 0.75rem system-ui, sans-serif;
+  color: #9b72ff;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 6px;
+}
+.card-title {
+  font: 700 1.5rem system-ui, sans-serif;
+  color: #1a1240;
+  margin-bottom: 28px;
+}
+.form-group { margin-bottom: 18px; }
+.form-label {
+  display: block;
+  font: 600 0.8rem system-ui, sans-serif;
+  color: #4a3880;
+  margin-bottom: 7px;
+}
+.form-input {
+  width: 100%;
+  padding: 13px 16px;
+  border: 1.5px solid #d8d0f0;
+  border-radius: 10px;
+  font: 400 0.95rem system-ui, sans-serif;
+  color: #1a1240;
+  background: #faf8ff;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.form-input:focus {
+  border-color: #9b72ff;
+  box-shadow: 0 0 0 3px #9b72ff18;
+  background: #fff;
+}
+.form-input::placeholder { color: #b0a0d0; }
+.password-group { position: relative; }
+.password-group .form-input { padding-right: 48px; }
+.show-pw-btn {
+  position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+  border: none; background: none; cursor: pointer;
+  font-size: 1rem; color: #9080c0; padding: 4px;
+}
+.forgot-link {
+  display: block; text-align: right;
+  font: 500 0.78rem system-ui, sans-serif;
+  color: #9b72ff; text-decoration: none;
+  margin-top: -10px; margin-bottom: 20px;
+}
+.btn-primary {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font: 700 1rem system-ui, sans-serif;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  margin-bottom: 16px;
+}
+.btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+.divider-row {
+  display: flex; align-items: center; gap: 12px;
+  margin: 4px 0 16px;
+}
+.divider-line { flex: 1; height: 1px; background: #e8e0f8; }
+.divider-text { font: 400 0.75rem system-ui, sans-serif; color: #b0a0d0; }
+.btn-google {
+  width: 100%;
+  padding: 12px;
+  background: #fff;
+  border: 1.5px solid #d8d0e8;
+  border-radius: 12px;
+  font: 600 0.9rem system-ui, sans-serif;
+  color: #3a3060;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+  transition: background 0.15s, border-color 0.15s;
+  margin-bottom: 20px;
+}
+.btn-google:hover { background: #f8f4ff; border-color: #c0b0f0; }
+.google-icon { width: 20px; height: 20px; }
+.new-parent-row {
+  text-align: center;
+  font: 400 0.82rem system-ui, sans-serif;
+  color: #8070a0;
+}
+.new-parent-row a { color: #9b72ff; text-decoration: none; font-weight: 600; }
+.coppa-note {
+  margin-top: 20px;
+  padding: 12px 14px;
+  background: #f5f0e8;
+  border-radius: 8px;
+  font: 400 0.72rem system-ui, sans-serif;
+  color: #9080a0;
+  line-height: 1.6;
+  text-align: center;
+}
+
+/* ─── SCREEN 2: Returning Parent ─── */
+#screen-returning {
+  display: none;
+  background: #f5f0e8;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 60px;
+}
+#screen-returning.active { display: flex; }
+.returning-shell {
+  max-width: 480px;
+  width: 100%;
+  padding: 0 24px 80px;
+}
+.back-link {
+  display: inline-flex; align-items: center; gap: 6px;
+  font: 500 0.82rem system-ui, sans-serif;
+  color: #9b72ff; text-decoration: none; cursor: pointer;
+  margin-bottom: 32px;
+}
+.avatar-row {
+  display: flex; align-items: center; gap: 16px;
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: 16px;
+  border: 1.5px solid #e0d8f0;
+  box-shadow: 0 4px 16px rgba(100,60,200,0.07);
+  margin-bottom: 28px;
+}
+.parent-avatar {
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #9b72ff, #5a30d0);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem; flex-shrink: 0;
+}
+.avatar-info { flex: 1; }
+.avatar-name { font: 700 1.05rem system-ui, sans-serif; color: #1a1240; margin-bottom: 2px; }
+.avatar-email { font: 400 0.8rem system-ui, sans-serif; color: #8070a0; }
+.not-me-link { font: 500 0.78rem system-ui, sans-serif; color: #9b72ff; text-decoration: none; cursor: pointer; }
+.returning-card {
+  background: #fff;
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 8px 40px rgba(100,60,200,0.08);
+  border: 1px solid #e0d8f8;
+}
+.pin-label {
+  font: 600 0.8rem system-ui, sans-serif;
+  color: #4a3880; margin-bottom: 14px;
+}
+.pin-dots {
+  display: flex; gap: 12px; margin-bottom: 24px;
+}
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid #c0b0e8; background: transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+.pin-dot.filled { background: #9b72ff; border-color: #9b72ff; }
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.numpad-key {
+  padding: 16px;
+  background: #faf8ff;
+  border: 1.5px solid #e0d8f0;
+  border-radius: 12px;
+  font: 700 1.2rem system-ui, sans-serif;
+  color: #1a1240;
+  cursor: pointer;
+  text-align: center;
+  transition: background 0.12s, transform 0.1s;
+}
+.numpad-key:hover { background: #ede8ff; transform: scale(0.97); }
+.numpad-key.del { font-size: 1rem; color: #9080c0; }
+.numpad-key.empty { border: none; background: transparent; cursor: default; }
+.biometric-row {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  margin-top: 20px;
+  font: 500 0.8rem system-ui, sans-serif;
+  color: #9b72ff; cursor: pointer;
+}
+
+/* ─── SCREEN 3: Create Account ─── */
+#screen-create {
+  display: none;
+  background: #f5f0e8;
+}
+#screen-create.active { display: grid; }
+.create-shell {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 48px 40px 80px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 64px;
+  align-items: start;
+}
+.create-left { padding-top: 20px; }
+.create-headline {
+  font: 700 2rem/1.2 system-ui, sans-serif;
+  color: #1a1240;
+  margin-bottom: 16px;
+}
+.benefit-list { list-style: none; display: flex; flex-direction: column; gap: 14px; margin-top: 24px; }
+.benefit-item {
+  display: flex; align-items: flex-start; gap: 12px;
+  font: 400 0.9rem/1.5 system-ui, sans-serif;
+  color: #4a4070;
+}
+.benefit-icon {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: #ede8ff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.95rem; flex-shrink: 0; margin-top: 1px;
+}
+.benefit-text strong { color: #1a1240; display: block; margin-bottom: 2px; }
+.plan-teaser {
+  margin-top: 32px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #ede8ff, #e8f0ff);
+  border-radius: 14px;
+  border: 1px solid #ccc0f0;
+}
+.plan-teaser-label {
+  font: 600 0.72rem system-ui, sans-serif;
+  color: #9b72ff; text-transform: uppercase; letter-spacing: 0.07em;
+  margin-bottom: 4px;
+}
+.plan-teaser-text {
+  font: 700 0.95rem system-ui, sans-serif;
+  color: #1a1240;
+}
+.plan-teaser-sub {
+  font: 400 0.78rem system-ui, sans-serif;
+  color: #6a5090;
+  margin-top: 2px;
+}
+
+.create-right {
+  background: #fff;
+  border-radius: 20px;
+  padding: 40px 36px;
+  box-shadow: 0 8px 40px rgba(100,60,200,0.1);
+  border: 1px solid #e0d8f8;
+}
+.step-indicator {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 28px;
+}
+.step-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: #e0d8f0;
+}
+.step-dot.done { background: #50e890; }
+.step-dot.active { background: #9b72ff; width: 24px; border-radius: 4px; }
+.step-label { font: 500 0.75rem system-ui, sans-serif; color: #9080c0; margin-left: 4px; }
+.form-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.terms-row {
+  display: flex; align-items: flex-start; gap: 10px;
+  margin-bottom: 20px;
+}
+.terms-check {
+  width: 18px; height: 18px; border-radius: 4px;
+  border: 2px solid #c0b0e8; cursor: pointer;
+  flex-shrink: 0; margin-top: 1px;
+  accent-color: #9b72ff;
+}
+.terms-text {
+  font: 400 0.78rem/1.5 system-ui, sans-serif;
+  color: #8070a0;
+}
+.terms-text a { color: #9b72ff; }
+
+/* ─── SCREEN 4: Verification ─── */
+#screen-verify {
+  display: none;
+  background: #f5f0e8;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 80px;
+}
+#screen-verify.active { display: flex; }
+.verify-card {
+  max-width: 460px;
+  width: 100%;
+  padding: 0 24px 80px;
+}
+.verify-icon-wrap {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #ede8ff, #d8d0ff);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; margin: 0 auto 24px;
+}
+.verify-headline {
+  font: 700 1.7rem system-ui, sans-serif;
+  color: #1a1240; text-align: center; margin-bottom: 10px;
+}
+.verify-sub {
+  font: 400 0.9rem/1.6 system-ui, sans-serif;
+  color: #6a5890; text-align: center; margin-bottom: 32px;
+}
+.verify-sub strong { color: #1a1240; }
+.otp-row {
+  display: flex; gap: 10px; justify-content: center; margin-bottom: 28px;
+}
+.otp-box {
+  width: 52px; height: 60px;
+  border: 2px solid #d0c8f0;
+  border-radius: 12px;
+  font: 700 1.5rem system-ui, sans-serif;
+  color: #1a1240; text-align: center;
+  background: #faf8ff; outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.otp-box:focus { border-color: #9b72ff; box-shadow: 0 0 0 3px #9b72ff18; }
+.otp-box.filled { background: #ede8ff; border-color: #9b72ff; }
+.resend-row {
+  text-align: center;
+  font: 400 0.82rem system-ui, sans-serif;
+  color: #8070a0; margin-bottom: 24px;
+}
+.resend-row a { color: #9b72ff; font-weight: 600; text-decoration: none; }
+.verify-card .btn-primary { width: 100%; }
+.alt-verify-row {
+  margin-top: 16px;
+  padding: 14px 18px;
+  background: #f5f0e8;
+  border-radius: 10px;
+  font: 400 0.8rem/1.5 system-ui, sans-serif;
+  color: #8070a0; text-align: center;
+}
+.alt-verify-row a { color: #9b72ff; font-weight: 600; }
+
+/* ─── SCREEN 5: Spec ─── */
+#screen-spec { display: none; background: #f5f0e8; padding: 40px; }
+#screen-spec.active { display: block; }
+.spec-title {
+  font: 700 1.4rem system-ui, sans-serif;
+  color: #1a1240; margin-bottom: 24px;
+}
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+.spec-table th {
+  text-align: left; padding: 10px 14px;
+  background: #ede8ff; color: #4a3880;
+  font: 700 0.72rem system-ui, sans-serif;
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid #d8d0f0;
+}
+.spec-table td { padding: 10px 14px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.78rem; line-height: 1.5; }
+.tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font: 700 0.65rem system-ui, sans-serif; margin-right: 4px; }
+.tag-critical { background: #ffe8e8; color: #c02020; border: 1px solid #f0c0c0; }
+.tag-note { background: #e8ffe8; color: #207020; border: 1px solid #c0e8c0; }
+.spec-section { font: 700 0.95rem system-ui, sans-serif; color: #3d2a8a; margin: 28px 0 12px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('landing')">🏠 Sign-In</button>
+  <button class="tab-btn" onclick="showTab('returning')">👋 Returning Parent</button>
+  <button class="tab-btn" onclick="showTab('create')">✨ Create Account</button>
+  <button class="tab-btn" onclick="showTab('verify')">📧 Verification</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- ═════════════════════════════════ SIGN-IN ═════════════════════════════════ -->
+<div class="screen active" id="screen-landing">
+  <div class="landing-shell">
+
+    <!-- Left Hero -->
+    <div class="hero-left">
+      <div class="wordmark">
+        <div class="wordmark-icon">🌟</div>
+        <span class="wordmark-text">WonderQuest</span>
+      </div>
+      <h1 class="hero-headline">
+        Your child's <em>learning adventure</em> — in your hands
+      </h1>
+      <p class="hero-sub">
+        See what your child is exploring, celebrate their progress, and gently support their growth — all in one place.
+      </p>
+      <div class="trust-row">
+        <div class="trust-badge">
+          <span class="tb-icon">🔒</span> COPPA Compliant
+        </div>
+        <div class="trust-badge">
+          <span class="tb-icon">🛡️</span> No ads, ever
+        </div>
+        <div class="trust-badge">
+          <span class="tb-icon">👁️</span> No data sold
+        </div>
+      </div>
+
+      <!-- Sample stat preview -->
+      <div style="margin-top: 32px; background: #fff; border-radius: 16px; padding: 20px 24px; border: 1px solid #e0d8f0; max-width: 400px; box-shadow: 0 4px 20px rgba(100,60,200,0.07);">
+        <div style="font: 600 0.72rem system-ui, sans-serif; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 12px;">Preview — what you'll see</div>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+          <div style="text-align: center;">
+            <div style="font: 900 1.6rem system-ui, sans-serif; color: #9b72ff;">⭐ 42</div>
+            <div style="font: 400 0.7rem system-ui, sans-serif; color: #9080a0; margin-top: 2px;">Stars this week</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font: 900 1.6rem system-ui, sans-serif; color: #58e8c1;">12</div>
+            <div style="font: 400 0.7rem system-ui, sans-serif; color: #9080a0; margin-top: 2px;">Skills practiced</div>
+          </div>
+          <div style="text-align: center;">
+            <div style="font: 900 1.6rem system-ui, sans-serif; color: #ffd166;">🔥 5</div>
+            <div style="font: 400 0.7rem system-ui, sans-serif; color: #9080a0; margin-top: 2px;">Day streak</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Sign-In Card -->
+    <div class="signin-card">
+      <div class="card-eyebrow">Parent Portal</div>
+      <div class="card-title">Welcome back</div>
+
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="you@example.com" value="sarah.johnson@email.com">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <div class="password-group">
+          <input class="form-input" type="password" placeholder="Your password" value="••••••••••">
+          <button class="show-pw-btn">👁</button>
+        </div>
+      </div>
+      <a href="#" class="forgot-link">Forgot password?</a>
+
+      <button class="btn-primary">Sign in to Dashboard →</button>
+
+      <div class="divider-row">
+        <div class="divider-line"></div>
+        <span class="divider-text">or</span>
+        <div class="divider-line"></div>
+      </div>
+
+      <button class="btn-google">
+        <svg class="google-icon" viewBox="0 0 24 24">
+          <path fill="#4285f4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+          <path fill="#34a853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+          <path fill="#fbbc05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+          <path fill="#ea4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <div class="new-parent-row">
+        New to WonderQuest? <a href="#">Create parent account →</a>
+      </div>
+
+      <div class="coppa-note">
+        🔒 This portal is for parents and guardians only. Child accounts are managed through your dashboard. We comply with COPPA and never collect data from children without parental consent.
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═════════════════════════════════ RETURNING PARENT ═════════════════════════════════ -->
+<div class="screen" id="screen-returning">
+  <div class="returning-shell">
+    <a class="back-link">← Back to sign-in</a>
+
+    <div class="avatar-row">
+      <div class="parent-avatar">👩</div>
+      <div class="avatar-info">
+        <div class="avatar-name">Sarah Johnson</div>
+        <div class="avatar-email">sarah.johnson@email.com</div>
+      </div>
+      <a class="not-me-link">Not me</a>
+    </div>
+
+    <div class="returning-card">
+      <div class="card-title" style="margin-bottom:20px;">Enter your PIN</div>
+      <div class="pin-label">4-digit parent access PIN</div>
+      <div class="pin-dots">
+        <div class="pin-dot filled"></div>
+        <div class="pin-dot filled"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <div class="numpad">
+        <button class="numpad-key">1</button>
+        <button class="numpad-key">2<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">ABC</span></button>
+        <button class="numpad-key">3<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">DEF</span></button>
+        <button class="numpad-key">4<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">GHI</span></button>
+        <button class="numpad-key">5<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">JKL</span></button>
+        <button class="numpad-key">6<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">MNO</span></button>
+        <button class="numpad-key">7<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">PQRS</span></button>
+        <button class="numpad-key">8<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">TUV</span></button>
+        <button class="numpad-key">9<br><span style="font:400 0.55rem system-ui;color:#b0a0c0;">WXYZ</span></button>
+        <button class="numpad-key empty"></button>
+        <button class="numpad-key">0</button>
+        <button class="numpad-key del">⌫</button>
+      </div>
+
+      <div class="biometric-row">
+        <span>🪪</span> Use Face ID instead
+      </div>
+    </div>
+
+    <div style="text-align:center; margin-top: 20px;">
+      <a href="#" style="font:500 0.78rem system-ui; color:#9b72ff; text-decoration:none;">Forgot PIN? Use email instead →</a>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════ CREATE ACCOUNT ═════════════════════════════════ -->
+<div class="screen" id="screen-create">
+  <div class="create-shell">
+
+    <!-- Left -->
+    <div class="create-left">
+      <div class="wordmark" style="margin-bottom:16px;">
+        <div class="wordmark-icon">🌟</div>
+        <span class="wordmark-text">WonderQuest</span>
+      </div>
+      <h2 class="create-headline">Create your <em style="font-style:normal;color:#9b72ff;">parent account</em></h2>
+      <p style="font:400 0.9rem/1.6 system-ui; color:#5a5070; margin-bottom: 8px;">
+        Free to start. Help your child build skills they'll carry forever.
+      </p>
+      <ul class="benefit-list">
+        <li class="benefit-item">
+          <div class="benefit-icon">📊</div>
+          <div class="benefit-text">
+            <strong>Weekly progress reports</strong>
+            See exactly what your child practiced, and how they're growing.
+          </div>
+        </li>
+        <li class="benefit-item">
+          <div class="benefit-icon">⏱️</div>
+          <div class="benefit-text">
+            <strong>Healthy screen-time controls</strong>
+            Set daily limits; WonderQuest naturally wraps up sessions for you.
+          </div>
+        </li>
+        <li class="benefit-item">
+          <div class="benefit-icon">🏆</div>
+          <div class="benefit-text">
+            <strong>Celebrate every milestone</strong>
+            Get notified when your child earns a badge or levels up.
+          </div>
+        </li>
+        <li class="benefit-item">
+          <div class="benefit-icon">🔒</div>
+          <div class="benefit-text">
+            <strong>You're in control</strong>
+            No ads. No data sold. Full COPPA compliance. Review or delete data any time.
+          </div>
+        </li>
+      </ul>
+      <div class="plan-teaser">
+        <div class="plan-teaser-label">✨ Free plan includes</div>
+        <div class="plan-teaser-text">1 child · 3 sessions/day · full progress tracking</div>
+        <div class="plan-teaser-sub">Upgrade anytime for unlimited children & sessions</div>
+      </div>
+    </div>
+
+    <!-- Right Form -->
+    <div class="create-right">
+      <div class="step-indicator">
+        <div class="step-dot active"></div>
+        <div class="step-dot"></div>
+        <div class="step-dot"></div>
+        <span class="step-label">Step 1 of 3 — Your details</span>
+      </div>
+
+      <div class="card-title" style="margin-bottom:24px;">Create your account</div>
+
+      <div class="form-row-2">
+        <div class="form-group">
+          <label class="form-label">First name</label>
+          <input class="form-input" type="text" placeholder="Sarah">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Last name</label>
+          <input class="form-input" type="text" placeholder="Johnson">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email address</label>
+        <input class="form-input" type="email" placeholder="you@example.com">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Create password</label>
+        <div class="password-group">
+          <input class="form-input" type="password" placeholder="8+ characters">
+          <button class="show-pw-btn">👁</button>
+        </div>
+      </div>
+
+      <div style="margin-bottom:8px; font:400 0.72rem system-ui; color:#9080b0; line-height:1.5; padding:10px 12px; background:#faf8ff; border-radius:8px; border:1px solid #e0d8f0;">
+        Password strength: <strong style="color:#9b72ff;">Good</strong> — try adding a symbol to make it strong
+      </div>
+
+      <div class="form-group" style="margin-top:14px;">
+        <label class="form-label">Your role</label>
+        <select class="form-input" style="cursor:pointer;">
+          <option>Parent</option>
+          <option>Guardian</option>
+          <option>Grandparent</option>
+          <option>Educator</option>
+        </select>
+      </div>
+
+      <div class="terms-row">
+        <input type="checkbox" class="terms-check" checked>
+        <div class="terms-text">
+          I agree to the <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>, and I confirm I am 18+ and the parent or guardian of any child I add to this account.
+        </div>
+      </div>
+
+      <button class="btn-primary">Continue — verify email →</button>
+
+      <div class="new-parent-row">
+        Already have an account? <a href="#">Sign in →</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═════════════════════════════════ VERIFICATION ═════════════════════════════════ -->
+<div class="screen" id="screen-verify">
+  <div class="verify-card">
+    <div class="verify-icon-wrap">📧</div>
+    <div class="verify-headline">Check your email</div>
+    <div class="verify-sub">
+      We sent a 6-digit code to<br>
+      <strong>sarah.johnson@email.com</strong><br>
+      Enter it below to verify your account.
+    </div>
+
+    <div class="otp-row">
+      <input class="otp-box filled" type="text" maxlength="1" value="4">
+      <input class="otp-box filled" type="text" maxlength="1" value="8">
+      <input class="otp-box filled" type="text" maxlength="1" value="2">
+      <input class="otp-box" type="text" maxlength="1" placeholder="·">
+      <input class="otp-box" type="text" maxlength="1" placeholder="·">
+      <input class="otp-box" type="text" maxlength="1" placeholder="·">
+    </div>
+
+    <div class="resend-row">
+      Didn't receive it? <a href="#">Resend code</a> · Check spam folder
+    </div>
+
+    <button class="btn-primary">Verify &amp; continue →</button>
+
+    <div class="alt-verify-row">
+      Having trouble? <a href="#">Try a different email address</a> or <a href="#">contact support</a>
+    </div>
+
+    <div style="margin-top:24px; padding:14px 18px; background:#fff; border-radius:12px; border:1px solid #e0d8f0;">
+      <div style="font:600 0.75rem system-ui; color:#9b72ff; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.07em;">Why verify?</div>
+      <div style="font:400 0.78rem/1.5 system-ui; color:#8070a0;">
+        Verification ensures only you can access your child's account. It also helps us comply with COPPA by confirming you're a real adult parent or guardian.
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═════════════════════════════════ SPEC ═════════════════════════════════ -->
+<div class="screen" id="screen-spec">
+  <div class="spec-title">Parent Entry — Desktop Spec</div>
+
+  <div class="spec-section">Design Language</div>
+  <table class="spec-table">
+    <thead><tr><th>Token</th><th>Value</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="spec-rule">Background</td>
+        <td class="spec-detail">#f5f0e8 (warm cream)</td>
+        <td class="spec-detail">NOT child dark theme. Parent = calm/trusted aesthetic.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Card surface</td>
+        <td class="spec-detail">#ffffff</td>
+        <td class="spec-detail">White cards with subtle shadow and #e0d8f8 border</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Accent</td>
+        <td class="spec-detail">#9b72ff (violet)</td>
+        <td class="spec-detail">Brand violet links, CTAs, step indicators — same as child brand</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Font</td>
+        <td class="spec-detail">system-ui, -apple-system</td>
+        <td class="spec-detail">NOT Nunito. Parent view uses system sans-serif for professional feel.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Layout</td>
+        <td class="spec-detail">max-width: 1100px; 2-col grid on landing/create</td>
+        <td class="spec-detail">Left: hero/benefits. Right: form card.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="spec-section">Auth Flow</div>
+  <table class="spec-table">
+    <thead><tr><th>Step</th><th>Screen</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="spec-rule">Landing</td>
+        <td class="spec-detail">Sign-In form + hero</td>
+        <td class="spec-detail">Email/password or Google. Returning parent link at bottom.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Returning</td>
+        <td class="spec-detail">Avatar + PIN numpad</td>
+        <td class="spec-detail">Session cached — skip full login. 4-digit PIN or biometric.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Create</td>
+        <td class="spec-detail">3-step form</td>
+        <td class="spec-detail">Step 1: details. Step 2: verify email (OTP). Step 3: add first child.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule">Verify</td>
+        <td class="spec-detail">6-digit OTP</td>
+        <td class="spec-detail">Auto-focus next box on input. Auto-submit on 6th digit.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="spec-section">Trust & Safety Rules</div>
+  <table class="spec-table">
+    <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="spec-rule"><span class="tag tag-critical">REQUIRED</span> COPPA note</td>
+        <td class="spec-detail">Always shown in sign-in card footer. Reminds parents this portal is adults-only. Child accounts managed through dashboard.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule"><span class="tag tag-critical">REQUIRED</span> Age confirmation</td>
+        <td class="spec-detail">Checkbox on create form: "I confirm I am 18+ and parent/guardian of any child I add." Cannot proceed without checking.</td>
+      </tr>
+      <tr>
+        <td class="spec-rule"><span class="tag tag-note">TRUST</span> Trust badges</td>
+        <td class="spec-detail">COPPA compliant / No ads / No data sold — always visible on landing hero</td>
+      </tr>
+      <tr>
+        <td class="spec-rule"><span class="tag tag-note">TRUST</span> Password strength</td>
+        <td class="spec-detail">Inline feedback during create. Minimum 8 chars. Never show password strength as a red "Weak" error — use positive framing.</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

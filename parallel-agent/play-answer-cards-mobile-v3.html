@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-answer-cards-mobile-v3.html
+  ====================================================
+  Reusable answer card component library — mobile (390px phone) sizes.
+  Five tabs: Default Grid / States Gallery / Touch Targets / Band Variants / Spec
+  - Mobile-specific considerations: 44px minimum touch target, no hover states
+  - Touch-active state: brief opacity flash (not hover border) on tap
+  - Mobile: tighter padding, slightly smaller font, same state logic as desktop
+  - 2×2 grid at 390px — each card ~175px wide (minus gap)
+  - 4-up row at 390px — each card 80px wide (tight but workable for 2-char answers)
+  - Correct checkmark: inline (not ::after pseudo) — more reliable on mobile
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Answer Cards Mobile v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Simulate phone context */
+  .phone-context {
+    width: 390px; background: var(--bg);
+    border-radius: 24px; border: 1px solid #3a3060;
+    padding: 20px 18px; margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.7rem; font-weight: 900; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin: 20px 0 8px; padding-bottom: 6px;
+    border-bottom: 1px solid #2a2050;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ============ MOBILE ANSWER CARD ============ */
+
+  .ac-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .ac-list { display: flex; flex-direction: column; gap: 8px; }
+  .ac-row-4 { display: flex; gap: 8px; }
+
+  /* Base mobile card */
+  .ac {
+    background: var(--card2);
+    border: 3px solid #3a3060;
+    border-radius: 14px;
+    cursor: pointer;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 14px 10px; gap: 6px;
+    transition: opacity 0.1s;
+    position: relative; overflow: hidden;
+    /* Minimum touch target */
+    min-height: 44px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Mobile: use :active instead of :hover for touch feedback */
+  .ac:active { opacity: 0.75; }
+
+  /* Size variants — mobile */
+  .ac-standard { min-height: 90px; }
+  .ac-large { min-height: 110px; }
+  .ac-compact { padding: 11px 10px; min-height: 56px; }
+  .ac-wide { flex-direction: row; gap: 12px; justify-content: flex-start; padding: 12px 14px; }
+  .ac-letter { width: 76px; height: 76px; flex: none; padding: 8px; }
+  .ac-numeral { flex: 1; height: 64px; padding: 8px; }
+
+  /* Content */
+  .ac-emoji { font-size: 1.8rem; }
+  .ac-image { font-size: 2.2rem; }
+  .ac-text { font-size: 0.84rem; font-weight: 700; color: var(--text); text-align: center; line-height: 1.35; }
+  .ac-label { font-size: 0.68rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .ac-letter-char { font-family: 'Nunito', sans-serif; font-size: 2.2rem; font-weight: 900; color: var(--text); }
+  .ac-num-char { font-family: 'Nunito', sans-serif; font-size: 1.8rem; font-weight: 900; color: var(--text); }
+
+  /* Checkmark badge — inline div (not ::after) for better mobile rendering */
+  .ac-check {
+    position: absolute; top: 5px; right: 6px;
+    font-size: 0.8rem; font-weight: 900; color: var(--correct); display: none;
+  }
+
+  /* States */
+  .ac.correct {
+    background: var(--correct-bg); border-color: var(--correct); cursor: default;
+  }
+  .ac.correct .ac-text, .ac.correct .ac-letter-char,
+  .ac.correct .ac-num-char, .ac.correct .ac-label { color: var(--correct); }
+  .ac.correct .ac-check { display: block; }
+
+  .ac.wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    cursor: default; animation: ac-shake 0.5s ease-out;
+  }
+  .ac.wrong .ac-text, .ac.wrong .ac-letter-char, .ac.wrong .ac-num-char { color: var(--wrong); }
+
+  .ac.dimmed { opacity: 0.35; pointer-events: none; cursor: default; }
+
+  @keyframes ac-shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  /* Band variants */
+  .band-prek .ac.correct { background: var(--correct-bg); border-color: var(--correct); }
+  .band-g23 .ac { border-color: #1a3030; }
+  .band-g45 .ac { border-color: #2a1818; }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 680px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .spec-wrap table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .spec-wrap th, .spec-wrap td { border: 1px solid #d0b040; padding: 6px 10px; text-align: left; font-size: 0.8rem; }
+  .spec-wrap th { background: #f8e880; font-weight: 700; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: white; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>📱 Play · Answer Cards Mobile</h1>
+<p class="subtitle">v3 · Mobile component library · 390px context · Touch-optimized</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('default')">Default Grid</button>
+  <button class="tab-btn" onclick="showTab('states')">States Gallery</button>
+  <button class="tab-btn" onclick="showTab('touch')">Touch Targets</button>
+  <button class="tab-btn" onclick="showTab('bands')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== DEFAULT GRID ===== -->
+<div id="tab-default" class="screen active">
+  <div class="phone-context">
+    <div class="section-label">2×2 Picture Grid (Pre-K / K-1)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard"><span class="ac-image">🐱</span><span class="ac-text">cat</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Letter Row (4-up, K-1 Phonics)</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter"><span class="ac-letter-char">B</span><span class="ac-label">buh</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">S</span><span class="ac-label">sss</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">D</span><span class="ac-label">duh</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">R</span><span class="ac-label">rrr</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Number Row (4-up, Math)</div>
+    <div class="ac-row-4">
+      <div class="ac ac-numeral"><span class="ac-num-char">4</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">5</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">6</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">7</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Sentence List (Reading)</div>
+    <div class="ac-list">
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She went to the park with her dog.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She stayed inside and read a book.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She called her friend on the phone.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She went back to sleep.</span><div class="ac-check">✓</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATES GALLERY ===== -->
+<div id="tab-states" class="screen">
+  <div class="phone-context">
+    <div class="section-label">Default → Correct (second card)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard dimmed"><span class="ac-image">🐱</span><span class="ac-text">cat</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard correct"><span class="ac-image">🐶</span><span class="ac-text">dog</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">☀️</span><span class="ac-text">sun</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">🎩</span><span class="ac-text">hat</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Wrong (first card) — others remain active</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard wrong"><span class="ac-image">🐱</span><span class="ac-text">cat</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Letter row — correct + dimmed</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">S</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter correct"><span class="ac-letter-char">B</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">D</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">R</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Number row — wrong + retry</div>
+    <div class="ac-row-4">
+      <div class="ac ac-numeral"><span class="ac-num-char">4</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">5</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral wrong"><span class="ac-num-char">6</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">7</span><div class="ac-check">✓</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TOUCH TARGETS ===== -->
+<div id="tab-touch" class="screen">
+  <div class="phone-context">
+    <div class="section-label">Touch Target Sizes (44px minimum iOS/Android guideline)</div>
+    <p style="font-size:0.8rem; color: var(--muted); margin-bottom: 14px; line-height: 1.5;">
+      All answer cards meet or exceed 44px minimum touch target height. Mobile cards use <code>-webkit-tap-highlight-color: transparent</code> and :active opacity flash instead of :hover border for tap feedback.
+    </p>
+
+    <div class="section-label">Minimum touch target demo (compact + wide)</div>
+    <div class="ac-list">
+      <div class="ac ac-compact ac-wide">
+        <span class="ac-text">Compact row — 56px min-height (above 44px minimum)</span>
+        <div class="ac-check">✓</div>
+      </div>
+    </div>
+
+    <div class="section-label">Letter grid — 76px square</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter">
+        <span class="ac-letter-char">A</span>
+        <span class="ac-label" style="font-size: 0.6rem; color: var(--mint);">76px</span>
+        <div class="ac-check">✓</div>
+      </div>
+      <div class="ac ac-letter"><span class="ac-letter-char">B</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">C</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">D</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">Standard grid — 90px min-height</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard">
+        <span class="ac-image">🐱</span>
+        <span class="ac-text">cat</span>
+        <span class="ac-label" style="font-size:0.6rem; color: var(--mint);">90px tall</span>
+        <div class="ac-check">✓</div>
+      </div>
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span><div class="ac-check">✓</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BAND VARIANTS ===== -->
+<div id="tab-bands" class="screen">
+  <div class="phone-context">
+    <div class="section-label">Pre-K Gold</div>
+    <div class="ac-grid-2x2 band-prek">
+      <div class="ac ac-standard"><span class="ac-image">🔴</span><span class="ac-text" style="color: #ffd166;">circle</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard correct"><span class="ac-image">🔷</span><span class="ac-text">square</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard"><span class="ac-image">🔺</span><span class="ac-text">triangle</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">⭐</span><span class="ac-text">star</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">K-1 Violet (default)</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter wrong"><span class="ac-letter-char">S</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter correct"><span class="ac-letter-char">B</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">D</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">R</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">G2-3 Mint</div>
+    <div class="ac-list band-g23">
+      <div class="ac ac-compact ac-wide dimmed"><span class="ac-text">She went to the park.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide correct"><span class="ac-text">She stayed inside and read.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide dimmed"><span class="ac-text">She called her friend.</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-compact ac-wide dimmed"><span class="ac-text">She went back to sleep.</span><div class="ac-check">✓</div></div>
+    </div>
+
+    <div class="section-label">G4-5 Coral</div>
+    <div class="ac-row-4 band-g45">
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char" style="color:#ff7b6b;">9</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral correct"><span class="ac-num-char">12</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char">16</span><div class="ac-check">✓</div></div>
+      <div class="ac ac-numeral wrong"><span class="ac-num-char">15</span><div class="ac-check">✓</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-answer-cards-mobile-v3 · Engineering Spec</h2>
+
+    <h3>Mobile Differences from Desktop</h3>
+    <ul>
+      <li>No <code>:hover</code> — uses <code>:active { opacity: 0.75 }</code> for tap feedback (touch-appropriate)</li>
+      <li><code>-webkit-tap-highlight-color: transparent</code> on all cards — removes default browser tap highlight</li>
+      <li>Checkmark badge is a <code>&lt;div class="ac-check"&gt;</code> child (not CSS <code>::after</code>) — more reliable on mobile browsers</li>
+      <li>Reduced padding (14px vs 16px), slightly smaller font (0.84rem vs 0.88rem)</li>
+      <li>Smaller sizes: ac-letter=76px, ac-numeral=64px, ac-standard=90px (vs 80/70/100 desktop)</li>
+    </ul>
+
+    <h3>Touch Target Compliance</h3>
+    <ul>
+      <li>All card variants meet iOS Human Interface Guidelines minimum of 44×44px</li>
+      <li>Compact row: 56px min-height (above 44px)</li>
+      <li>Letter: 76×76px</li>
+      <li>Standard: 90px min-height</li>
+      <li>Do NOT reduce below 44px for any interactive element</li>
+    </ul>
+
+    <h3>State Classes (same as desktop)</h3>
+    <ul>
+      <li><code>.correct</code> — green, checkmark shown (via display: block on .ac-check child)</li>
+      <li><code>.wrong</code> — red border + bg + shake animation</li>
+      <li><code>.dimmed</code> — 35% opacity, pointer-events none</li>
+    </ul>
+
+    <h3>Layout at 390px</h3>
+    <table>
+      <tr><th>Layout</th><th>Card Width at 390px</th><th>Use Case</th></tr>
+      <tr><td>2×2 grid (10px gap)</td><td>~180px</td><td>Picture/shape/word 4 choices</td></tr>
+      <tr><td>4-up row (8px gap)</td><td>~84px</td><td>Letters, numerals</td></tr>
+      <tr><td>Full-width list</td><td>~354px</td><td>Sentence reading choices</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

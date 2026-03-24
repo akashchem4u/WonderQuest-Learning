@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Difficulty Ladder — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ─── PAGE SHELL ─────────────────────────────────────────────────── */
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+
+.page-body{padding:24px 28px;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── CONTROLS ───────────────────────────────────────────────────── */
+.controls{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;}
+.fc{padding:5px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);transition:all .15s;}
+.fc.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:600;}
+.fc:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25);}
+.ctrl-label{font-size:12px;color:rgba(240,246,255,.4);}
+
+/* ─── LADDER LAYOUT ──────────────────────────────────────────────── */
+.ladder-wrap{display:flex;gap:0;overflow-x:auto;}
+.ladder-wrap::-webkit-scrollbar{height:4px;}
+.ladder-wrap::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+
+/* Band column */
+.band-col{min-width:240px;flex:1;border-right:1px solid rgba(255,255,255,.06);}
+.band-col:last-child{border-right:none;}
+.band-header{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:2;background:#0d1117;}
+.bh-dot{width:10px;height:10px;border-radius:50%;}
+.bhd-p0{background:#ffd166;}
+.bhd-p1{background:#9b72ff;}
+.bhd-p2{background:#58e8c1;}
+.bhd-p3{background:#ff7b6b;}
+.bh-name{font-size:13px;font-weight:700;color:#f0f6ff;}
+.bh-sub{font-size:10px;color:rgba(240,246,255,.35);}
+.bh-count{margin-left:auto;font-size:11px;color:rgba(240,246,255,.4);}
+
+/* Rungs */
+.rung{padding:8px 16px;border-bottom:1px solid rgba(255,255,255,.04);}
+.rung-level-header{display:flex;align-items:center;gap:8px;padding:8px 0 4px;margin-bottom:4px;}
+.rlh-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;}
+.rlh-1{background:rgba(80,232,144,.15);color:#50e890;}
+.rlh-2{background:rgba(88,232,193,.12);color:#58e8c1;}
+.rlh-3{background:rgba(240,192,64,.12);color:#f0c040;}
+.rlh-4{background:rgba(255,123,107,.12);color:#ff7b6b;}
+.rlh-5{background:rgba(155,114,255,.15);color:#9b72ff;}
+.rlh-label{font-size:11px;color:rgba(240,246,255,.4);}
+.rlh-count{font-size:10px;color:rgba(240,246,255,.3);margin-left:auto;}
+
+.skill-pill{display:flex;align-items:center;gap:6px;padding:6px 8px;background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:6px;margin-bottom:5px;cursor:pointer;transition:all .12s;}
+.skill-pill:hover{border-color:rgba(255,255,255,.2);}
+.skill-pill.sp-blocked{border-color:rgba(255,123,107,.3);background:rgba(255,123,107,.05);}
+.skill-pill.sp-review{border-color:rgba(240,192,64,.2);}
+.sp-id{font-size:10px;color:rgba(240,246,255,.3);font-family:monospace;}
+.sp-title{font-size:12px;color:#f0f6ff;flex:1;line-height:1.3;}
+.sp-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:7px;}
+.sps-pub{background:rgba(80,232,144,.15);color:#50e890;}
+.sps-rev{background:rgba(240,192,64,.12);color:#f0c040;}
+.sps-blk{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.sps-dft{background:rgba(255,255,255,.07);color:rgba(240,246,255,.45);}
+.sp-q{font-size:10px;color:rgba(240,246,255,.3);}
+
+/* Rung connector lines */
+.rung-connector{height:12px;border-left:2px dashed rgba(255,255,255,.08);margin-left:14px;}
+
+/* ─── DIFFICULTY DISTRIBUTION CHART ─────────────────────────────── */
+.dist-chart{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:18px;margin-bottom:20px;}
+.dc-title{font-size:13px;font-weight:600;color:#f0f6ff;margin-bottom:16px;}
+.dist-bars{display:flex;flex-direction:column;gap:12px;}
+.dist-row{display:flex;align-items:center;gap:12px;}
+.dr-label{width:120px;font-size:12px;color:rgba(240,246,255,.6);text-align:right;}
+.dr-bar-track{flex:1;height:20px;background:rgba(255,255,255,.05);border-radius:4px;overflow:hidden;display:flex;}
+.drb-seg{height:100%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;transition:width .3s;}
+.drb-1{background:rgba(80,232,144,.3);color:#50e890;}
+.drb-2{background:rgba(88,232,193,.25);color:#58e8c1;}
+.drb-3{background:rgba(240,192,64,.25);color:#f0c040;}
+.drb-4{background:rgba(255,123,107,.25);color:#ff7b6b;}
+.drb-5{background:rgba(155,114,255,.25);color:#9b72ff;}
+.dr-total{width:36px;font-size:12px;color:rgba(240,246,255,.45);text-align:right;}
+
+.dist-legend{display:flex;gap:14px;margin-top:12px;flex-wrap:wrap;}
+.dl-item{display:flex;align-items:center;gap:6px;font-size:11px;color:rgba(240,246,255,.5);}
+.dl-swatch{width:14px;height:8px;border-radius:2px;}
+
+/* ─── ISSUE TABLE ────────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.sb-action{font-size:12px;color:#50e890;cursor:pointer;background:none;border:none;font-family:inherit;}
+.issue-table{width:100%;border-collapse:collapse;font-size:12px;}
+.issue-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.issue-table td{padding:7px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.issue-table tr:last-child td{border-bottom:none;}
+.sev-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;}
+.sev-high{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.sev-med{background:rgba(240,192,64,.12);color:#f0c040;}
+.sev-low{background:rgba(80,232,144,.1);color:#50e890;}
+.btn-xs{padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Difficulty Ladder</h1>
+  <span class="ph-sub">Map skill difficulty progression within and across grade bands</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export</button>
+    <button class="btn btn-primary">✏ Edit Ladder</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Difficulty Ladder v2:</strong> Difficulty levels 1–5 per skill: 1=Introductory / 2=Foundation / 3=Core / 4=Advanced / 5=Extension.
+    <br>Each skill has a difficulty_level field (1–5). Adaptive engine serves lower difficulty first within a skill path.
+    <br><strong>Band constraints:</strong> P0 Pre-K should have no level 4–5 skills. P1 K–1: max level 4. P2/P3: all levels allowed.
+    <br><strong>Gap rule:</strong> If a subject has a gap at level 3 but level 4+ skills exist, adaptive path is broken — flag as "broken ladder".
+    <br>Tabs: Ladder View / Distribution / Broken Ladders / Spec.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('ladder')">Ladder View</button>
+    <button class="tab-btn" onclick="showTab('dist')">Distribution</button>
+    <button class="tab-btn" onclick="showTab('broken')">Broken Ladders <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">5</span></button>
+    <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- TAB: LADDER VIEW -->
+  <div id="tab-ladder" class="screen active">
+    <div class="controls">
+      <span class="ctrl-label">Subject:</span>
+      <span class="fc active">Mathematics</span>
+      <span class="fc">Science</span>
+      <span class="fc">ELA</span>
+      <span class="fc">Social Studies</span>
+      <span class="ctrl-label" style="margin-left:12px;">Show:</span>
+      <span class="fc active">All Status</span>
+      <span class="fc">Published only</span>
+      <span class="fc">Gaps only</span>
+    </div>
+
+    <div class="ladder-wrap">
+
+      <!-- P0 Pre-K column -->
+      <div class="band-col">
+        <div class="band-header">
+          <div class="bh-dot bhd-p0"></div>
+          <div><div class="bh-name">P0 Pre-K</div><div class="bh-sub">Ages 3–4</div></div>
+          <span class="bh-count">14 skills</span>
+        </div>
+
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-1">L1</span>
+            <span class="rlh-label">Introductory</span>
+            <span class="rlh-count">6</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-011</span><span class="sp-title">Count objects 1–5</span><span class="sp-status sps-pub">✓</span><span class="sp-q">5q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-012</span><span class="sp-title">Recognise written digits 1–5</span><span class="sp-status sps-pub">✓</span><span class="sp-q">4q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-013</span><span class="sp-title">Match quantity to number</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-2">L2</span>
+            <span class="rlh-label">Foundation</span>
+            <span class="rlh-count">5</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-021</span><span class="sp-title">Count objects 1–10</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-022</span><span class="sp-title">Compare more/fewer (visual)</span><span class="sp-status sps-pub">✓</span><span class="sp-q">5q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-023</span><span class="sp-title">Number order 1–10</span><span class="sp-status sps-rev">Rev</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-3">L3</span>
+            <span class="rlh-label">Core</span>
+            <span class="rlh-count">3</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-031</span><span class="sp-title">Simple addition with pictures</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-032</span><span class="sp-title">Which number is bigger?</span><span class="sp-status sps-pub">✓</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung" style="opacity:.35;">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-4">L4</span>
+            <span class="rlh-label">Advanced</span>
+            <span class="rlh-count" style="color:#ff7b6b;">Not allowed (P0)</span>
+          </div>
+          <div style="font-size:11px;color:rgba(255,123,107,.6);padding:4px 0;">P0 max difficulty = L3</div>
+        </div>
+      </div>
+
+      <!-- P1 K-1 column -->
+      <div class="band-col">
+        <div class="band-header">
+          <div class="bh-dot bhd-p1"></div>
+          <div><div class="bh-name">P1 K–1</div><div class="bh-sub">Ages 5–6</div></div>
+          <span class="bh-count">28 skills</span>
+        </div>
+
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-1">L1</span>
+            <span class="rlh-label">Introductory</span>
+            <span class="rlh-count">4</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-041</span><span class="sp-title">Count to 20</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-042</span><span class="sp-title">Addition facts to 5</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-2">L2</span>
+            <span class="rlh-label">Foundation</span>
+            <span class="rlh-count">6</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-051</span><span class="sp-title">Addition facts to 10</span><span class="sp-status sps-pub">✓</span><span class="sp-q">8q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-052</span><span class="sp-title">Subtraction from 10</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-053</span><span class="sp-title">Skip counting by 2</span><span class="sp-status sps-rev">Rev</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-3">L3</span>
+            <span class="rlh-label">Core</span>
+            <span class="rlh-count">8</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-061</span><span class="sp-title">Addition facts to 20</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-062</span><span class="sp-title">Place value: tens and ones</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill sp-blocked"><span class="sp-id">SK-063</span><span class="sp-title">Measuring length (non-standard)</span><span class="sp-status sps-blk">Blk</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-4">L4</span>
+            <span class="rlh-label">Advanced</span>
+            <span class="rlh-count">5</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-071</span><span class="sp-title">Word problems: add/subtract</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-072</span><span class="sp-title">Introduction to 2D shapes</span><span class="sp-status sps-dft">Dft</span><span class="sp-q">4q</span></div>
+        </div>
+      </div>
+
+      <!-- P2 G2-3 column -->
+      <div class="band-col">
+        <div class="band-header">
+          <div class="bh-dot bhd-p2"></div>
+          <div><div class="bh-name">P2 G2–3</div><div class="bh-sub">Ages 7–8</div></div>
+          <span class="bh-count">36 skills</span>
+        </div>
+
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-1">L1</span>
+            <span class="rlh-label">Introductory</span>
+            <span class="rlh-count">3</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-081</span><span class="sp-title">Review: addition to 20</span><span class="sp-status sps-pub">✓</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-2">L2</span>
+            <span class="rlh-label">Foundation</span>
+            <span class="rlh-count">7</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-091</span><span class="sp-title">Multiplication × 2, × 5, × 10</span><span class="sp-status sps-pub">✓</span><span class="sp-q">8q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-092</span><span class="sp-title">Introduction to division</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-3">L3</span>
+            <span class="rlh-label">Core</span>
+            <span class="rlh-count">10</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-101</span><span class="sp-title">Multiplication tables × 3–9</span><span class="sp-status sps-pub">✓</span><span class="sp-q">8q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-102</span><span class="sp-title">Place value to 1,000</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-103</span><span class="sp-title">Fractions: halves and quarters</span><span class="sp-status sps-rev">Rev</span><span class="sp-q">6q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-4">L4</span>
+            <span class="rlh-label">Advanced</span>
+            <span class="rlh-count">8</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-111</span><span class="sp-title">Long multiplication (2-digit)</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-112</span><span class="sp-title">Fractions of a set</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-5">L5</span>
+            <span class="rlh-label">Extension</span>
+            <span class="rlh-count">4</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-121</span><span class="sp-title">Multi-step word problems</span><span class="sp-status sps-dft">Dft</span><span class="sp-q">5q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-122</span><span class="sp-title">Introduction to decimals</span><span class="sp-status sps-dft">Dft</span><span class="sp-q">4q</span></div>
+        </div>
+      </div>
+
+      <!-- P3 G4-5 column -->
+      <div class="band-col">
+        <div class="band-header">
+          <div class="bh-dot bhd-p3"></div>
+          <div><div class="bh-name">P3 G4–5</div><div class="bh-sub">Ages 9–10</div></div>
+          <span class="bh-count">22 skills <span style="color:#ff7b6b;">(below target)</span></span>
+        </div>
+
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-1">L1</span>
+            <span class="rlh-label">Introductory</span>
+            <span class="rlh-count">2</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-131</span><span class="sp-title">Review: fractions/decimals</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-2">L2</span>
+            <span class="rlh-label">Foundation</span>
+            <span class="rlh-count">4</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-141</span><span class="sp-title">Fractions: compare and order</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-142</span><span class="sp-title">Decimal place value to hundredths</span><span class="sp-status sps-rev">Rev</span><span class="sp-q">5q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung" style="border-left:2px dashed rgba(255,123,107,.3);margin-left:0;padding-left:14px;">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-3">L3</span>
+            <span class="rlh-label">Core</span>
+            <span class="rlh-count" style="color:#ff7b6b;">⚠ Only 3 — Gap</span>
+          </div>
+          <div class="skill-pill sp-blocked"><span class="sp-id">SK-151</span><span class="sp-title">Multiplying fractions</span><span class="sp-status sps-blk">Blk</span><span class="sp-q">5q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-152</span><span class="sp-title">Percentages basics</span><span class="sp-status sps-dft">Dft</span><span class="sp-q">4q</span></div>
+          <div style="font-size:11px;color:rgba(255,123,107,.7);padding:4px 0 2px;">⚠ Broken ladder: L4 skills exist but L3 is thin</div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-4">L4</span>
+            <span class="rlh-label">Advanced</span>
+            <span class="rlh-count">5</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-161</span><span class="sp-title">Long division with remainders</span><span class="sp-status sps-pub">✓</span><span class="sp-q">6q</span></div>
+          <div class="skill-pill"><span class="sp-id">SK-162</span><span class="sp-title">Order of operations (PEMDAS)</span><span class="sp-status sps-pub">✓</span><span class="sp-q">7q</span></div>
+        </div>
+
+        <div class="rung-connector"></div>
+        <div class="rung">
+          <div class="rung-level-header">
+            <span class="rlh-badge rlh-5">L5</span>
+            <span class="rlh-label">Extension</span>
+            <span class="rlh-count">4</span>
+          </div>
+          <div class="skill-pill"><span class="sp-id">SK-171</span><span class="sp-title">Introduction to algebra (variables)</span><span class="sp-status sps-dft">Dft</span><span class="sp-q">4q</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: DISTRIBUTION -->
+  <div id="tab-dist" class="screen">
+    <div class="dist-chart">
+      <div class="dc-title">Skill Distribution by Difficulty Level (Math)</div>
+      <div class="dist-bars">
+        <div class="dist-row">
+          <div class="dr-label">P0 Pre-K</div>
+          <div class="dr-bar-track">
+            <div class="drb-seg drb-1" style="width:43%">L1: 6</div>
+            <div class="drb-seg drb-2" style="width:36%">L2: 5</div>
+            <div class="drb-seg drb-3" style="width:21%">L3: 3</div>
+          </div>
+          <div class="dr-total">14</div>
+        </div>
+        <div class="dist-row">
+          <div class="dr-label">P1 K–1</div>
+          <div class="dr-bar-track">
+            <div class="drb-seg drb-1" style="width:14%">4</div>
+            <div class="drb-seg drb-2" style="width:21%">6</div>
+            <div class="drb-seg drb-3" style="width:29%">8</div>
+            <div class="drb-seg drb-4" style="width:18%">5</div>
+            <div class="drb-seg" style="width:18%;background:rgba(255,255,255,.05);color:rgba(240,246,255,.3);">—</div>
+          </div>
+          <div class="dr-total">28</div>
+        </div>
+        <div class="dist-row">
+          <div class="dr-label">P2 G2–3</div>
+          <div class="dr-bar-track">
+            <div class="drb-seg drb-1" style="width:8%">3</div>
+            <div class="drb-seg drb-2" style="width:19%">7</div>
+            <div class="drb-seg drb-3" style="width:28%">10</div>
+            <div class="drb-seg drb-4" style="width:22%">8</div>
+            <div class="drb-seg drb-5" style="width:11%">4</div>
+          </div>
+          <div class="dr-total">36</div>
+        </div>
+        <div class="dist-row">
+          <div class="dr-label">P3 G4–5</div>
+          <div class="dr-bar-track">
+            <div class="drb-seg drb-1" style="width:9%">2</div>
+            <div class="drb-seg drb-2" style="width:18%">4</div>
+            <div class="drb-seg drb-3" style="width:14%;background:rgba(255,123,107,.3);color:#ff7b6b;">3⚠</div>
+            <div class="drb-seg drb-4" style="width:23%">5</div>
+            <div class="drb-seg drb-5" style="width:18%">4</div>
+          </div>
+          <div class="dr-total">22</div>
+        </div>
+      </div>
+      <div class="dist-legend">
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(80,232,144,.3)"></div>L1 Intro</div>
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(88,232,193,.25)"></div>L2 Foundation</div>
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(240,192,64,.25)"></div>L3 Core</div>
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(255,123,107,.25)"></div>L4 Advanced</div>
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(155,114,255,.25)"></div>L5 Extension</div>
+        <div class="dl-item"><div class="dl-swatch" style="background:rgba(255,123,107,.4)"></div>Gap / Warning</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: BROKEN LADDERS -->
+  <div id="tab-broken" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Broken Ladder Detections — 5 Issues</span><button class="sb-action">Export</button></div>
+      <table class="issue-table">
+        <thead><tr><th>Band</th><th>Subject</th><th>Issue</th><th>Severity</th><th>Gap Level</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3</span></td>
+            <td>Math · Fractions</td>
+            <td style="color:rgba(240,246,255,.7);">L4–L5 skills exist but L3 is thin (3 skills, 1 blocked). Adaptive path breaks at L3.</td>
+            <td><span class="sev-badge sev-high">High</span></td>
+            <td>L3 (Core)</td>
+            <td><button class="btn-xs">Commission L3 skills</button></td>
+          </tr>
+          <tr>
+            <td><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3</span></td>
+            <td>Science · Earth</td>
+            <td style="color:rgba(240,246,255,.7);">No L2 skills — jump directly from L1 to L3. Learner path has no intermediate step.</td>
+            <td><span class="sev-badge sev-high">High</span></td>
+            <td>L2 (Foundation)</td>
+            <td><button class="btn-xs">Commission L2 skills</button></td>
+          </tr>
+          <tr>
+            <td><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(88,232,193,.15);color:#58e8c1;">P2</span></td>
+            <td>Social Studies</td>
+            <td style="color:rgba(240,246,255,.7);">L3 skills exist but all are in Draft/Review — effectively a gap in the published ladder.</td>
+            <td><span class="sev-badge sev-med">Medium</span></td>
+            <td>L3 (published)</td>
+            <td><button class="btn-xs">Expedite reviews</button></td>
+          </tr>
+          <tr>
+            <td><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(155,114,255,.15);color:#9b72ff;">P1</span></td>
+            <td>ELA · Writing</td>
+            <td style="color:rgba(240,246,255,.7);">L4 skill SK-0221 exists but pre-requisite L3 skill SK-0218 is Blocked. Learner cannot reach L4.</td>
+            <td><span class="sev-badge sev-med">Medium</span></td>
+            <td>L3 (blocked)</td>
+            <td><button class="btn-xs">Unblock SK-0218</button></td>
+          </tr>
+          <tr>
+            <td><span style="font-size:11px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,209,102,.15);color:#ffd166;">P0</span></td>
+            <td>Math · Numbers</td>
+            <td style="color:rgba(240,246,255,.7);">L4 skill SK-0034 incorrectly assigned to P0 (should be P1). Violates P0 max difficulty = L3.</td>
+            <td><span class="sev-badge sev-low">Low</span></td>
+            <td>L4 (wrong band)</td>
+            <td><button class="btn-xs">Reassign to P1</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: SPEC -->
+  <div id="tab-spec" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Difficulty Level Definitions</span></div>
+      <table class="issue-table">
+        <thead><tr><th>Level</th><th>Name</th><th>Description</th><th>P0 allowed</th><th>P1 allowed</th><th>P2/P3 allowed</th></tr></thead>
+        <tbody>
+          <tr><td style="color:#50e890;font-weight:700;">L1</td><td>Introductory</td><td style="color:rgba(240,246,255,.6);">Recall/recognition; single-step; highly scaffolded</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td style="color:#58e8c1;font-weight:700;">L2</td><td>Foundation</td><td style="color:rgba(240,246,255,.6);">Apply known facts; minimal application</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td style="color:#f0c040;font-weight:700;">L3</td><td>Core</td><td style="color:rgba(240,246,255,.6);">Multi-step; grade-level standard</td><td>✓</td><td>✓</td><td>✓</td></tr>
+          <tr><td style="color:#ff7b6b;font-weight:700;">L4</td><td>Advanced</td><td style="color:rgba(240,246,255,.6);">Above grade level; requires prior mastery of L3</td><td style="color:#ff7b6b;">✕</td><td>✓</td><td>✓</td></tr>
+          <tr><td style="color:#9b72ff;font-weight:700;">L5</td><td>Extension</td><td style="color:rgba(240,246,255,.6);">Challenge/enrichment; well above grade</td><td style="color:#ff7b6b;">✕</td><td style="color:#ff7b6b;">✕</td><td>✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(tab) {
+  const tabs = ['ladder','dist','broken','spec'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+document.querySelectorAll('.fc').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const g = chip.parentElement;
+    g.querySelectorAll('.fc').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Linked Child Sheet — WonderQuest v2</title>
+<style>
+/* ── Engineering Hint Box ───────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+
+/* ── Reset / Base ────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+
+/* ── Tabs ─────────────────────────────────────────────────────────── */
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+
+/* ── Section title ────────────────────────────────────────────────── */
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Phone frame (390px) ─────────────────────────────────────────── */
+.phone-frame{width:390px;height:780px;background:#f5f0e8;border-radius:40px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #9b72ff22;border:8px solid #1a1a2e;display:inline-block;vertical-align:top}
+.phone-screen{width:100%;height:100%;overflow:hidden;position:relative}
+
+/* ── Dashboard bg (parent dashboard shown behind sheet) ──────────── */
+.dash-bg{width:100%;height:100%;background:#f5f0e8;padding:16px}
+.dash-header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.dash-logo{font-size:18px;font-weight:900;color:#9b72ff;letter-spacing:-.5px}
+.dash-avatar-row{display:flex;align-items:center;gap:8px;background:#fff;border-radius:12px;padding:10px 14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07)}
+.dash-avatar{width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,#9b72ff,#6040cc);display:flex;align-items:center;justify-content:center;font-size:20px}
+.dash-name{font-size:15px;font-weight:700;color:#1a1440}
+.dash-band{font-size:11px;color:#9b72ff;font-weight:600}
+.dash-caret{margin-left:auto;color:#aaa;font-size:14px}
+.dash-stat-row{display:flex;gap:8px;margin-bottom:12px}
+.dash-stat{flex:1;background:#fff;border-radius:10px;padding:10px;text-align:center;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.dash-stat-val{font-size:18px;font-weight:800;color:#1a1440}
+.dash-stat-lbl{font-size:10px;color:#888;font-weight:600}
+
+/* ── Scrim ────────────────────────────────────────────────────────── */
+.scrim{position:absolute;inset:0;background:rgba(8,5,20,.45);z-index:10;border-radius:32px}
+
+/* ── Bottom Sheet ─────────────────────────────────────────────────── */
+.bottom-sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:20;padding:0 0 24px;overflow:hidden}
+.bottom-sheet::before{content:'';display:block;width:36px;height:4px;background:#ddd;border-radius:2px;margin:12px auto 0}
+
+/* Sheet header */
+.sheet-header{padding:14px 20px 12px;border-bottom:1px solid #f0ecf8}
+.sheet-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:10px}
+.sheet-child-row{display:flex;align-items:center;gap:12px}
+.sheet-child-avatar{width:48px;height:48px;border-radius:14px;background:linear-gradient(135deg,#9b72ff,#6040cc);display:flex;align-items:center;justify-content:center;font-size:24px}
+.sheet-child-name{font-size:17px;font-weight:800;color:#1a1440}
+.sheet-child-meta{font-size:12px;color:#888;margin-top:2px}
+.sheet-band-chip{display:inline-flex;align-items:center;gap:4px;background:#f5f0ff;border-radius:20px;padding:2px 8px;font-size:11px;font-weight:700;color:#9b72ff;margin-top:4px}
+
+/* Stats strip */
+.sheet-stats{display:flex;gap:0;border-bottom:1px solid #f0ecf8}
+.sheet-stat{flex:1;padding:10px 8px;text-align:center;border-right:1px solid #f0ecf8}
+.sheet-stat:last-child{border-right:none}
+.sheet-stat-val{font-size:16px;font-weight:800;color:#1a1440}
+.sheet-stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.05em;color:#aaa;font-weight:600}
+.sheet-stat-delta{font-size:10px;font-weight:600;margin-top:1px}
+.delta-up{color:#22c55e}
+.delta-same{color:#aaa}
+
+/* Action rows */
+.sheet-actions{padding:8px 0}
+.action-row{display:flex;align-items:center;gap:14px;padding:13px 20px;cursor:pointer;transition:background .12s}
+.action-row:hover{background:#faf8ff}
+.action-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.action-icon.purple{background:#f0ebff}
+.action-icon.blue{background:#ebf3ff}
+.action-icon.green{background:#ebfff3}
+.action-icon.orange{background:#fff5eb}
+.action-icon.red{background:#fff0f0}
+.action-label{font-size:14px;font-weight:600;color:#1a1440}
+.action-sub{font-size:11px;color:#aaa;margin-top:1px}
+.action-chevron{margin-left:auto;color:#ccc;font-size:14px}
+
+/* Sheet footer */
+.sheet-footer{padding:10px 20px 0;border-top:1px solid #f0ecf8}
+.unlink-btn{width:100%;padding:12px;border:none;border-radius:12px;background:#fff0f0;color:#e74c3c;font-size:13px;font-weight:700;font-family:system-ui;cursor:pointer;transition:background .12s}
+.unlink-btn:hover{background:#ffe4e4}
+
+/* ── Desktop layout ────────────────────────────────────────────────── */
+.desktop-demo{background:#fff;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.1);overflow:hidden;max-width:900px}
+.desktop-demo-header{background:#f8f6ff;padding:12px 20px;border-bottom:1px solid #ede9f8;font-size:12px;color:#888;font-weight:600}
+.desktop-container{display:flex;min-height:500px}
+.desktop-sidebar{width:240px;background:#fff;border-right:1px solid #ede9f8;padding:20px 0;flex-shrink:0}
+.desktop-sidebar-logo{font-size:16px;font-weight:900;color:#9b72ff;padding:0 20px 16px;border-bottom:1px solid #ede9f8;margin-bottom:12px}
+.desktop-nav-item{padding:9px 20px;font-size:13px;font-weight:600;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px}
+.desktop-nav-item.active{color:#9b72ff;background:#f8f4ff}
+.desktop-main{flex:1;padding:24px;background:#f5f0e8;position:relative;overflow:hidden}
+.desktop-child-trigger{display:inline-flex;align-items:center;gap:10px;background:#fff;border-radius:12px;padding:10px 16px;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:20px}
+.desktop-trigger-avatar{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#9b72ff,#6040cc);display:flex;align-items:center;justify-content:center;font-size:18px}
+.desktop-trigger-name{font-size:14px;font-weight:700;color:#1a1440}
+.desktop-trigger-band{font-size:11px;color:#9b72ff;font-weight:600}
+.desktop-trigger-caret{color:#aaa;font-size:13px}
+
+/* Desktop sheet overlay */
+.desktop-sheet-scrim{position:absolute;inset:0;background:rgba(8,5,20,.35);z-index:10;border-radius:0}
+.desktop-sheet{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:400px;background:#fff;border-radius:20px;z-index:20;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden}
+.desktop-sheet-header{padding:20px 20px 14px;border-bottom:1px solid #f0ecf8}
+.desktop-sheet-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.desktop-sheet-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff}
+.desktop-sheet-close{width:28px;height:28px;border-radius:8px;background:#f5f5f5;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:#666}
+.desktop-sheet-child-row{display:flex;align-items:center;gap:14px}
+.desktop-sheet-avatar{width:52px;height:52px;border-radius:16px;background:linear-gradient(135deg,#9b72ff,#6040cc);display:flex;align-items:center;justify-content:center;font-size:26px}
+.desktop-sheet-name{font-size:18px;font-weight:800;color:#1a1440}
+.desktop-sheet-meta{font-size:12px;color:#888;margin-top:2px}
+
+/* Spec styles */
+.spec-body{background:#fff;border-radius:12px;padding:24px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-violet{background:#f0ebff;color:#7c3aed}
+.tag-gray{background:#f0f0f0;color:#555}
+.tag-red{background:#fff0f0;color:#dc2626}
+</style>
+</head>
+<body>
+
+<!-- Engineering Hint Box -->
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-linked-child-sheet-v2.html</strong><br>
+  Component: bottom sheet (mobile) / modal dialog (desktop) shown when parent taps a linked child's row on the dashboard.<br>
+  <strong>Trigger:</strong> tapping child avatar row in dashboard header OR child mini-card in multi-child view.<br>
+  <strong>Content:</strong> child avatar + name + band chip / quick stats strip / 5 action rows / danger zone (unlink).<br>
+  <strong>Actions:</strong> Edit settings → opens parent-link-child-flow settings tab | View report → parent-weekly-report | View badges → badge gallery | Set session limit → inline stepper | Notifications → notif settings.<br>
+  <strong>Privacy:</strong> shows stars + sessions + streak only — never accuracy %, never wrong-answer count.<br>
+  <strong>Unlink:</strong> requires 2-step confirmation (tap unlink → confirm dialog). Does NOT delete child's progress data.
+</div>
+
+<!-- Tab Bar -->
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('mobile')">Mobile Sheet</button>
+  <button class="tab-btn" onclick="showTab('desktop')">Desktop Modal</button>
+  <button class="tab-btn" onclick="showTab('actions')">Action States</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: Mobile Sheet ─────────────────────────────────────────── -->
+<div id="tab-mobile" class="screen active">
+  <p class="section-title">Mobile — Bottom Sheet (390px phone frame)</p>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <!-- Dashboard background -->
+      <div class="dash-bg">
+        <div class="dash-header">
+          <span class="dash-logo">WonderQuest</span>
+        </div>
+        <div class="dash-avatar-row">
+          <div class="dash-avatar">🦊</div>
+          <div>
+            <div class="dash-name">Maya</div>
+            <div class="dash-band">Grade 2–3 · Mint Band</div>
+          </div>
+          <span class="dash-caret">▾</span>
+        </div>
+        <div class="dash-stat-row">
+          <div class="dash-stat"><div class="dash-stat-val">47</div><div class="dash-stat-lbl">Stars</div></div>
+          <div class="dash-stat"><div class="dash-stat-val">12</div><div class="dash-stat-lbl">Sessions</div></div>
+          <div class="dash-stat"><div class="dash-stat-val">6</div><div class="dash-stat-lbl">Streak</div></div>
+          <div class="dash-stat"><div class="dash-stat-val">3</div><div class="dash-stat-lbl">Badges</div></div>
+        </div>
+      </div>
+
+      <!-- Scrim -->
+      <div class="scrim"></div>
+
+      <!-- Bottom Sheet -->
+      <div class="bottom-sheet">
+        <!-- Sheet header -->
+        <div class="sheet-header">
+          <div class="sheet-title">Child details</div>
+          <div class="sheet-child-row">
+            <div class="sheet-child-avatar">🦊</div>
+            <div>
+              <div class="sheet-child-name">Maya</div>
+              <div class="sheet-child-meta">Grade 2–3 · 7 years old</div>
+              <div class="sheet-band-chip">🟢 Mint Band · Level 4</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="sheet-stats">
+          <div class="sheet-stat">
+            <div class="sheet-stat-val">47</div>
+            <div class="sheet-stat-lbl">Stars</div>
+            <div class="sheet-stat-delta delta-up">+12 this wk</div>
+          </div>
+          <div class="sheet-stat">
+            <div class="sheet-stat-val">12</div>
+            <div class="sheet-stat-lbl">Sessions</div>
+            <div class="sheet-stat-delta delta-up">+3 vs last wk</div>
+          </div>
+          <div class="sheet-stat">
+            <div class="sheet-stat-val">🔥 6</div>
+            <div class="sheet-stat-lbl">Streak</div>
+            <div class="sheet-stat-delta delta-same">Personal best!</div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="sheet-actions">
+          <div class="action-row">
+            <div class="action-icon purple">📊</div>
+            <div>
+              <div class="action-label">View weekly report</div>
+              <div class="action-sub">Last report: Mon, Mar 23</div>
+            </div>
+            <span class="action-chevron">›</span>
+          </div>
+          <div class="action-row">
+            <div class="action-icon blue">⚙️</div>
+            <div>
+              <div class="action-label">Edit settings</div>
+              <div class="action-sub">Band, sessions, focus areas</div>
+            </div>
+            <span class="action-chevron">›</span>
+          </div>
+          <div class="action-row">
+            <div class="action-icon green">🏅</div>
+            <div>
+              <div class="action-label">View badge collection</div>
+              <div class="action-sub">3 badges earned</div>
+            </div>
+            <span class="action-chevron">›</span>
+          </div>
+          <div class="action-row">
+            <div class="action-icon orange">🔔</div>
+            <div>
+              <div class="action-label">Notification preferences</div>
+              <div class="action-sub">Badge, Level-up alerts ON</div>
+            </div>
+            <span class="action-chevron">›</span>
+          </div>
+        </div>
+
+        <!-- Footer / danger zone -->
+        <div class="sheet-footer">
+          <button class="unlink-btn">Remove Maya from this account</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: Desktop Modal ────────────────────────────────────────── -->
+<div id="tab-desktop" class="screen">
+  <p class="section-title">Desktop — Centered Modal Dialog (within dashboard area)</p>
+  <div class="desktop-demo">
+    <div class="desktop-demo-header">Parent Dashboard — child detail modal active</div>
+    <div class="desktop-container">
+      <!-- Sidebar -->
+      <div class="desktop-sidebar">
+        <div class="desktop-sidebar-logo">WonderQuest</div>
+        <div class="desktop-nav-item active">🏠 Family overview</div>
+        <div class="desktop-nav-item">📊 Weekly report</div>
+        <div class="desktop-nav-item">🏅 Badges</div>
+        <div class="desktop-nav-item">🔔 Notifications</div>
+        <div class="desktop-nav-item">⚙️ Settings</div>
+      </div>
+
+      <!-- Main area -->
+      <div class="desktop-main">
+        <!-- Dashboard trigger (behind modal) -->
+        <div class="desktop-child-trigger">
+          <div class="desktop-trigger-avatar">🦊</div>
+          <div>
+            <div class="desktop-trigger-name">Maya</div>
+            <div class="desktop-trigger-band">Grade 2–3 · Mint Band</div>
+          </div>
+          <span class="desktop-trigger-caret">▾</span>
+        </div>
+
+        <!-- Scrim -->
+        <div class="desktop-sheet-scrim"></div>
+
+        <!-- Modal -->
+        <div class="desktop-sheet">
+          <div class="desktop-sheet-header">
+            <div class="desktop-sheet-topbar">
+              <span class="desktop-sheet-label">Child details</span>
+              <button class="desktop-sheet-close">✕</button>
+            </div>
+            <div class="desktop-sheet-child-row">
+              <div class="desktop-sheet-avatar">🦊</div>
+              <div>
+                <div class="desktop-sheet-name">Maya</div>
+                <div class="desktop-sheet-meta">Grade 2–3 · 7 years old</div>
+                <div class="sheet-band-chip" style="margin-top:4px">🟢 Mint Band · Level 4</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stats strip -->
+          <div class="sheet-stats">
+            <div class="sheet-stat">
+              <div class="sheet-stat-val">47</div>
+              <div class="sheet-stat-lbl">Stars this week</div>
+              <div class="sheet-stat-delta delta-up">+12 vs last week</div>
+            </div>
+            <div class="sheet-stat">
+              <div class="sheet-stat-val">12</div>
+              <div class="sheet-stat-lbl">Sessions</div>
+              <div class="sheet-stat-delta delta-up">+3 vs last week</div>
+            </div>
+            <div class="sheet-stat">
+              <div class="sheet-stat-val">🔥 6</div>
+              <div class="sheet-stat-lbl">Day streak</div>
+              <div class="sheet-stat-delta delta-same">Personal best!</div>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="sheet-actions">
+            <div class="action-row">
+              <div class="action-icon purple">📊</div>
+              <div>
+                <div class="action-label">View weekly report</div>
+                <div class="action-sub">Last generated Mon, Mar 23</div>
+              </div>
+              <span class="action-chevron">›</span>
+            </div>
+            <div class="action-row">
+              <div class="action-icon blue">⚙️</div>
+              <div>
+                <div class="action-label">Edit child settings</div>
+                <div class="action-sub">Band · Sessions · Focus areas</div>
+              </div>
+              <span class="action-chevron">›</span>
+            </div>
+            <div class="action-row">
+              <div class="action-icon green">🏅</div>
+              <div>
+                <div class="action-label">View badge collection</div>
+                <div class="action-sub">3 badges earned</div>
+              </div>
+              <span class="action-chevron">›</span>
+            </div>
+            <div class="action-row">
+              <div class="action-icon orange">🔔</div>
+              <div>
+                <div class="action-label">Notification preferences</div>
+                <div class="action-sub">Badge, Level-up alerts ON</div>
+              </div>
+              <span class="action-chevron">›</span>
+            </div>
+          </div>
+
+          <div class="sheet-footer">
+            <button class="unlink-btn">Remove Maya from this account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: Action States ────────────────────────────────────────── -->
+<div id="tab-actions" class="screen">
+  <p class="section-title">Action States — Unlink confirmation flow</p>
+
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <!-- State A: Default sheet -->
+    <div>
+      <p style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px">1 — Default sheet</p>
+      <div class="phone-frame" style="height:620px">
+        <div class="phone-screen">
+          <div class="dash-bg" style="opacity:.3"></div>
+          <div class="scrim"></div>
+          <div class="bottom-sheet">
+            <div class="sheet-header">
+              <div class="sheet-title">Child details</div>
+              <div class="sheet-child-row">
+                <div class="sheet-child-avatar">🐻</div>
+                <div>
+                  <div class="sheet-child-name">Liam</div>
+                  <div class="sheet-child-meta">Grade K–1 · 5 years old</div>
+                  <div class="sheet-band-chip">🟣 Violet Band · Level 2</div>
+                </div>
+              </div>
+            </div>
+            <div class="sheet-stats">
+              <div class="sheet-stat"><div class="sheet-stat-val">22</div><div class="sheet-stat-lbl">Stars</div><div class="sheet-stat-delta delta-up">+8</div></div>
+              <div class="sheet-stat"><div class="sheet-stat-val">8</div><div class="sheet-stat-lbl">Sessions</div><div class="sheet-stat-delta delta-same">Same</div></div>
+              <div class="sheet-stat"><div class="sheet-stat-val">🔥 3</div><div class="sheet-stat-lbl">Streak</div><div class="sheet-stat-delta delta-up">+1</div></div>
+            </div>
+            <div class="sheet-actions">
+              <div class="action-row"><div class="action-icon purple">📊</div><div><div class="action-label">View weekly report</div><div class="action-sub">Last: Mon, Mar 23</div></div><span class="action-chevron">›</span></div>
+              <div class="action-row"><div class="action-icon blue">⚙️</div><div><div class="action-label">Edit settings</div><div class="action-sub">Band, sessions, focus</div></div><span class="action-chevron">›</span></div>
+              <div class="action-row"><div class="action-icon green">🏅</div><div><div class="action-label">View badges</div><div class="action-sub">1 badge earned</div></div><span class="action-chevron">›</span></div>
+              <div class="action-row"><div class="action-icon orange">🔔</div><div><div class="action-label">Notifications</div><div class="action-sub">Badge alerts ON</div></div><span class="action-chevron">›</span></div>
+            </div>
+            <div class="sheet-footer">
+              <button class="unlink-btn">Remove Liam from this account</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State B: Unlink confirm dialog -->
+    <div>
+      <p style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px">2 — Unlink confirmation</p>
+      <div class="phone-frame" style="height:620px">
+        <div class="phone-screen">
+          <div class="dash-bg" style="opacity:.1"></div>
+          <div class="scrim" style="background:rgba(8,5,20,.65)"></div>
+          <!-- Confirmation dialog -->
+          <div style="position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:24px 24px 0 0;z-index:30;padding:0 20px 28px">
+            <div style="width:36px;height:4px;background:#ddd;border-radius:2px;margin:12px auto 16px"></div>
+            <div style="width:52px;height:52px;border-radius:14px;background:#fff0f0;display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px">⚠️</div>
+            <h3 style="font-size:17px;font-weight:800;color:#1a1440;text-align:center;margin-bottom:8px">Remove Liam?</h3>
+            <p style="font-size:13px;color:#666;text-align:center;line-height:1.5;margin-bottom:20px">Liam will no longer appear in your account. <strong>Progress data is saved</strong> and can be restored by re-linking with the same device.</p>
+            <button style="width:100%;padding:14px;background:#e74c3c;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-bottom:10px">Yes, remove Liam</button>
+            <button style="width:100%;padding:14px;background:#f5f0e8;color:#1a1440;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- State C: Success toast -->
+    <div>
+      <p style="font-size:12px;font-weight:700;color:#888;margin-bottom:8px">3 — Removed + toast</p>
+      <div class="phone-frame" style="height:620px">
+        <div class="phone-screen">
+          <div class="dash-bg">
+            <div class="dash-header"><span class="dash-logo">WonderQuest</span></div>
+            <div style="background:#fff;border-radius:12px;padding:40px 20px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+              <div style="font-size:36px;margin-bottom:10px">👤</div>
+              <div style="font-size:15px;font-weight:700;color:#888">No child linked</div>
+              <div style="font-size:12px;color:#bbb;margin-top:4px">Tap below to add a child</div>
+              <button style="margin-top:16px;background:#9b72ff;color:#fff;border:none;border-radius:10px;padding:10px 20px;font-size:13px;font-weight:700;font-family:system-ui;cursor:pointer">+ Link a child</button>
+            </div>
+          </div>
+          <!-- Toast -->
+          <div style="position:absolute;top:16px;left:16px;right:16px;background:#1a1440;color:#fff;border-radius:12px;padding:12px 16px;z-index:40;display:flex;align-items:center;gap:10px;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+            <span style="font-size:18px">✅</span>
+            <div>
+              <div style="font-size:13px;font-weight:700">Liam removed</div>
+              <div style="font-size:11px;color:#aaa">Progress saved. Re-link anytime.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: Spec ─────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component identity:</strong> parent-linked-child-sheet-v2.html<br>
+      <strong>Role:</strong> Secondary detail sheet/modal giving parent quick access to a linked child's stats and management actions.<br>
+      <strong>Trigger source:</strong> Dashboard child header row (mobile top) | Child mini-card (multi-child grid) | Desktop header trigger button.
+    </div>
+
+    <h2 class="spec-h2">Trigger Points</h2>
+    <table class="spec-table">
+      <tr><th>Surface</th><th>Trigger</th><th>Presentation</th></tr>
+      <tr><td>Mobile dashboard header</td><td>Tap avatar row (name + band + caret)</td><td>Bottom sheet slides up from bottom</td></tr>
+      <tr><td>Mobile multi-child grid</td><td>Tap child mini-card</td><td>Bottom sheet</td></tr>
+      <tr><td>Desktop dashboard header</td><td>Click trigger button</td><td>Centered modal dialog (400px wide)</td></tr>
+      <tr><td>Desktop multi-child grid</td><td>Click child mini-card</td><td>Centered modal dialog</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Sheet Content</h2>
+    <table class="spec-table">
+      <tr><th>Section</th><th>Contents</th><th>Privacy rule</th></tr>
+      <tr><td>Child header</td><td>Avatar emoji, first name only, grade range, age, band chip</td><td>No surname, no photo</td></tr>
+      <tr><td>Stats strip</td><td>Stars this week (+ delta), Sessions (+ delta), Day streak</td><td>No accuracy %, no wrong-answer count</td></tr>
+      <tr><td>Actions (5)</td><td>View report · Edit settings · View badges · Notifications · Session limit</td><td>—</td></tr>
+      <tr><td>Danger zone</td><td>"Remove [name] from this account" — requires 2-step confirm</td><td>Confirm copy explains data is saved</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Actions → Destinations</h2>
+    <table class="spec-table">
+      <tr><th>Action</th><th>Destination</th></tr>
+      <tr><td>View weekly report</td><td>parent-weekly-report-desktop/mobile-v3.html for this child</td></tr>
+      <tr><td>Edit settings</td><td>parent-link-child-flow-v3.html · settings mode (pre-filled)</td></tr>
+      <tr><td>View badge collection</td><td>Badge gallery filtered to this child</td></tr>
+      <tr><td>Notification preferences</td><td>parent-notification-center-desktop/mobile-v3.html · settings tab</td></tr>
+      <tr><td>Remove child</td><td>2-step: confirm dialog → dismiss sheet → show empty state → toast</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Unlink Flow (2-step)</h2>
+    <p class="spec-p"><strong>Step 1:</strong> Parent taps "Remove [name] from this account" red button → sheet transforms to confirmation sub-sheet with ⚠️ icon.</p>
+    <p class="spec-p"><strong>Step 2:</strong> Confirmation copy: "Progress data is saved and can be restored by re-linking with the same device." Two buttons: "Yes, remove [name]" (red, destructive) + "Cancel" (neutral). Cancel returns to default sheet.</p>
+    <p class="spec-p"><strong>After removal:</strong> Sheet dismisses → dashboard shows parent-linked-child-empty-v2 state → success toast for 3 seconds.</p>
+
+    <h2 class="spec-h2">Mobile vs Desktop Differences</h2>
+    <table class="spec-table">
+      <tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr>
+      <tr><td>Presentation</td><td>Bottom sheet from bottom edge</td><td>Centered modal with backdrop</td></tr>
+      <tr><td>Dismiss gesture</td><td>Swipe down drag handle</td><td>Click ✕ button or backdrop</td></tr>
+      <tr><td>Width</td><td>Full viewport width</td><td>400px fixed</td></tr>
+      <tr><td>Stats strip</td><td>3-col (Stars / Sessions / Streak)</td><td>3-col same</td></tr>
+      <tr><td>Actions</td><td>4 rows (limit condensed)</td><td>4 rows (same)</td></tr>
+    </table>
+
+    <h2 class="spec-h2">Privacy Rules</h2>
+    <table class="spec-table">
+      <tr><th>Item</th><th>Shown</th><th>Note</th></tr>
+      <tr><td>Stars this week</td><td><span class="tag tag-green">YES</span></td><td>With positive delta</td></tr>
+      <tr><td>Sessions this week</td><td><span class="tag tag-green">YES</span></td><td>With delta vs last week</td></tr>
+      <tr><td>Day streak</td><td><span class="tag tag-green">YES</span></td><td>Celebrate personal bests</td></tr>
+      <tr><td>Accuracy %</td><td><span class="tag tag-red">NEVER here</span></td><td>Weekly report only</td></tr>
+      <tr><td>Wrong answer count</td><td><span class="tag tag-red">NEVER</span></td><td>Not shown to parent ever</td></tr>
+      <tr><td>Child surname</td><td><span class="tag tag-red">NEVER</span></td><td>COPPA — first name only</td></tr>
+      <tr><td>Child photo</td><td><span class="tag tag-red">NEVER</span></td><td>Emoji avatar only</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

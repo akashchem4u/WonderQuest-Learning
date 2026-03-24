@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Benchmark Explainer — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Explainer card ──────────────────────────────────────────────── */
+.explainer{background:#fff;border-radius:16px;padding:28px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:560px;display:inline-block;vertical-align:top}
+.explainer-eyebrow{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9b72ff;margin-bottom:8px}
+.explainer-h{font-size:22px;font-weight:900;color:#1a1440;margin-bottom:8px;line-height:1.2}
+.explainer-intro{font-size:14px;color:#666;line-height:1.6;margin-bottom:24px}
+
+/* ── Band cards ──────────────────────────────────────────────────── */
+.band-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+.band-card{border-radius:12px;padding:14px;position:relative;overflow:hidden}
+.band-card-p0{background:#fff8e6;border:2px solid #ffd166}
+.band-card-p1{background:#f5f0ff;border:2px solid #9b72ff}
+.band-card-p2{background:#e6fef8;border:2px solid #58e8c1}
+.band-card-p3{background:#fff0ee;border:2px solid #ff7b6b}
+.band-name{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:2px}
+.band-grade{font-size:11px;color:#888;margin-bottom:6px}
+.band-desc{font-size:11px;color:#555;line-height:1.4}
+.band-dot{width:10px;height:10px;border-radius:50%;position:absolute;top:14px;right:14px}
+
+/* ── How mastery works ───────────────────────────────────────────── */
+.mastery-steps{display:flex;flex-direction:column;gap:12px;margin-bottom:24px}
+.mastery-step{display:flex;align-items:flex-start;gap:12px}
+.step-num{width:28px;height:28px;border-radius:50%;background:#9b72ff;color:#fff;font-size:13px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.step-text{font-size:13px;color:#444;line-height:1.5}
+.step-strong{font-weight:700;color:#1a1440;display:block}
+
+/* ── FAQ ──────────────────────────────────────────────────────────── */
+.faq-item{border-bottom:1px solid #f0ecf8;padding:14px 0}
+.faq-item:last-child{border-bottom:none;padding-bottom:0}
+.faq-q{font-size:13px;font-weight:700;color:#1a1440;margin-bottom:6px;cursor:pointer;display:flex;align-items:flex-start;gap:8px}
+.faq-a{font-size:12px;color:#666;line-height:1.6}
+
+/* ── Modal (inline demo) ─────────────────────────────────────────── */
+.modal-demo{position:relative;display:inline-block;vertical-align:top}
+.modal-bg{width:500px;height:550px;background:#f5f0e8;border-radius:16px;overflow:hidden;opacity:.5}
+.modal-overlay{position:absolute;inset:0;background:rgba(8,5,20,.3);border-radius:16px}
+.modal-card{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:380px;background:#fff;border-radius:20px;padding:24px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90%;overflow-y:auto}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-benchmark-explainer-v3.html</strong><br>
+  Educational explainer component — shown when parent taps "?" next to a mastery bar, band label, or skill status.<br>
+  Explains: What the 4 bands are (P0–P3) | How mastery score works | What "Strong / Building / Just started" means | Why no accuracy % is shown to child.<br>
+  Shown as: inline modal (desktop) | bottom sheet (mobile).<br>
+  <strong>Tone:</strong> Warm, reassuring, parent-friendly. No jargon. No "your child is behind" framing.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('full')">Full Explainer</button>
+  <button class="tab-btn" onclick="showTab('modal')">As Modal</button>
+  <button class="tab-btn" onclick="showTab('mini')">Mini (tooltip)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Full Explainer ─────────────────────────────────────────────── -->
+<div id="tab-full" class="screen active">
+  <p class="section-title">Full explainer card (standalone or in modal)</p>
+  <div class="explainer">
+    <div class="explainer-eyebrow">ℹ️ How WonderQuest works</div>
+    <div class="explainer-h">Understanding Maya's progress</div>
+    <div class="explainer-intro">WonderQuest uses learning bands, mastery scores, and stars to show how Maya is developing — not percentages or grades. Here's what everything means.</div>
+
+    <!-- 4 bands -->
+    <div style="font-size:13px;font-weight:800;color:#1a1440;margin-bottom:12px">The 4 learning bands</div>
+    <div class="band-grid">
+      <div class="band-card band-card-p0">
+        <div class="band-dot" style="background:#ffd166"></div>
+        <div class="band-name">Pre-K Band</div>
+        <div class="band-grade">Ages 4–5</div>
+        <div class="band-desc">Letter recognition, phonics foundations, counting to 20</div>
+      </div>
+      <div class="band-card band-card-p1">
+        <div class="band-dot" style="background:#9b72ff"></div>
+        <div class="band-name">K–1 Band</div>
+        <div class="band-grade">Ages 5–7</div>
+        <div class="band-desc">Sight words, blending, addition facts, basic spelling</div>
+      </div>
+      <div class="band-card band-card-p2">
+        <div class="band-dot" style="background:#58e8c1"></div>
+        <div class="band-name">Grades 2–3</div>
+        <div class="band-grade">Ages 7–9</div>
+        <div class="band-desc">Fluency, multi-digit math, vocabulary expansion</div>
+      </div>
+      <div class="band-card band-card-p3">
+        <div class="band-dot" style="background:#ff7b6b"></div>
+        <div class="band-name">Grades 4–5</div>
+        <div class="band-grade">Ages 9–11</div>
+        <div class="band-desc">Comprehension, fractions, complex spelling patterns</div>
+      </div>
+    </div>
+
+    <!-- Mastery status -->
+    <div style="font-size:13px;font-weight:800;color:#1a1440;margin-bottom:12px">Skill status badges</div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="background:#ebfff3;color:#15803d;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap">⭐ Strong</span>
+        <span style="font-size:13px;color:#444">Maya has a solid grasp of this skill. Keep going — higher levels await!</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="background:#fff8f0;color:#d97706;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap">🌱 Building</span>
+        <span style="font-size:13px;color:#444">This skill is actively developing. Normal and expected — a few more sessions will build it up.</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="background:#fff0f5;color:#c2185b;font-size:11px;font-weight:700;padding:4px 10px;border-radius:20px;white-space:nowrap">🌱 Just started</span>
+        <span style="font-size:13px;color:#444">Brand new skill — Maya has only seen it a few times. Early days!</span>
+      </div>
+    </div>
+
+    <!-- How mastery works -->
+    <div style="font-size:13px;font-weight:800;color:#1a1440;margin-bottom:12px">How the mastery bar works</div>
+    <div class="mastery-steps">
+      <div class="mastery-step">
+        <div class="step-num">1</div>
+        <div class="step-text"><span class="step-strong">Maya answers questions on a skill</span>WonderQuest tracks how consistently she gets them right over multiple sessions — not just one.</div>
+      </div>
+      <div class="mastery-step">
+        <div class="step-num">2</div>
+        <div class="step-text"><span class="step-strong">The mastery bar fills up</span>It rises when she consistently succeeds, and holds steady (doesn't drop) when she gets a few wrong — because one bad day doesn't undo learning.</div>
+      </div>
+      <div class="mastery-step">
+        <div class="step-num">3</div>
+        <div class="step-text"><span class="step-strong">She earns stars along the way</span>Stars reward effort and consistency — not perfection. This keeps learning fun.</div>
+      </div>
+    </div>
+
+    <!-- Why no % to child -->
+    <div style="background:#f5f0ff;border-radius:12px;padding:14px;font-size:13px;color:#5b21b6;line-height:1.5">
+      <strong>Why doesn't Maya see percentages?</strong><br>
+      Research shows that showing accuracy percentages to young learners can reduce motivation and create anxiety. Stars celebrate effort. You see fuller data in the weekly report because context helps you understand and support — not judge.
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal ───────────────────────────────────────────────────────── -->
+<div id="tab-modal" class="screen">
+  <p class="section-title">As inline modal — triggered by "?" next to mastery bar</p>
+  <div class="modal-demo">
+    <div class="modal-bg"></div>
+    <div class="modal-overlay"></div>
+    <div class="modal-card">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+        <div style="font-size:16px;font-weight:800;color:#1a1440">What does this mean?</div>
+        <button style="width:26px;height:26px;border-radius:8px;background:#f5f5f5;border:none;cursor:pointer;font-size:13px;color:#666;flex-shrink:0">✕</button>
+      </div>
+
+      <!-- Condensed content -->
+      <div style="font-size:13px;color:#666;line-height:1.6;margin-bottom:16px">The <strong style="color:#1a1440">mastery bar</strong> shows how well Maya has learned this skill over time — not just her score in one session.</div>
+
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#ebfff3;color:#15803d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">⭐ Strong (65+)</span>
+          <span style="font-size:12px;color:#444">Consistent success across sessions</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#fff8f0;color:#d97706;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">🌱 Building (40–64)</span>
+          <span style="font-size:12px;color:#444">Actively developing — normal progress</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="background:#fff0f5;color:#c2185b;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px">🌱 Just started (&lt;40)</span>
+          <span style="font-size:12px;color:#444">Brand new — early days</span>
+        </div>
+      </div>
+
+      <div style="background:#f5f0ff;border-radius:10px;padding:12px;font-size:12px;color:#5b21b6;line-height:1.5;margin-bottom:16px">
+        The bar doesn't decrease when Maya gets something wrong — learning is non-linear, and one bad session doesn't undo progress.
+      </div>
+
+      <button style="width:100%;padding:12px;background:#9b72ff;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer">Got it!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mini Tooltip ────────────────────────────────────────────────── -->
+<div id="tab-mini" class="screen">
+  <p class="section-title">Mini tooltip — hover/tap on band chip</p>
+  <div style="display:flex;gap:24px;flex-wrap:wrap">
+    <!-- Band tooltip -->
+    <div style="position:relative;display:inline-block">
+      <div style="background:#e6fef8;border-radius:20px;padding:4px 12px;font-size:13px;font-weight:700;color:#0e7360;display:inline-flex;align-items:center;gap:5px;cursor:pointer">🟢 Mint Band · Level 4 <span style="font-size:10px;color:#58e8c1">?</span></div>
+      <!-- Tooltip -->
+      <div style="position:absolute;top:110%;left:0;width:260px;background:#1a1440;color:#fff;border-radius:12px;padding:14px;font-size:12px;line-height:1.5;box-shadow:0 8px 24px rgba(0,0,0,.3);z-index:10">
+        <div style="font-weight:800;margin-bottom:6px">Grades 2–3 Band</div>
+        <div style="color:#ccc">Skills: Reading fluency, multi-digit addition, vocabulary expansion, CVC spelling</div>
+        <div style="margin-top:8px;color:#58e8c1;font-weight:700;cursor:pointer">Learn more about bands →</div>
+        <!-- Arrow -->
+        <div style="position:absolute;top:-6px;left:20px;width:12px;height:12px;background:#1a1440;transform:rotate(45deg)"></div>
+      </div>
+    </div>
+
+    <!-- Mastery tooltip -->
+    <div style="position:relative;display:inline-block;margin-top:60px">
+      <div style="display:flex;align-items:center;gap:6px;cursor:pointer">
+        <div style="height:10px;width:120px;background:#f0ecf8;border-radius:5px;overflow:hidden">
+          <div style="height:100%;width:74%;background:linear-gradient(90deg,#9b72ff,#58e8c1)"></div>
+        </div>
+        <span style="font-size:11px;color:#9b72ff;font-weight:700">74/100 ?</span>
+      </div>
+      <!-- Tooltip -->
+      <div style="position:absolute;top:110%;left:0;width:220px;background:#1a1440;color:#fff;border-radius:10px;padding:12px;font-size:11px;line-height:1.5;box-shadow:0 6px 20px rgba(0,0,0,.3)">
+        <strong>Mastery score: 74/100</strong><br>
+        <span style="color:#ccc">Consistent success across 5+ sessions. "Strong" at 65+. Mastery never drops — it reflects durable learning.</span>
+        <div style="position:absolute;top:-5px;left:16px;width:10px;height:10px;background:#1a1440;transform:rotate(45deg)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-benchmark-explainer-v3.html<br>
+      Three presentation modes: full explainer card | inline modal | mini tooltip.
+    </div>
+    <h2 class="spec-h2">Trigger Points</h2>
+    <table class="spec-table">
+      <tr><th>Trigger</th><th>Presentation</th><th>Content</th></tr>
+      <tr><td>"?" next to mastery bar</td><td>Inline modal</td><td>Mastery score + status explanation only</td></tr>
+      <tr><td>Band chip (e.g. "Mint Band")</td><td>Mini tooltip on hover/tap</td><td>Band name + skills covered + level context</td></tr>
+      <tr><td>"Learn how WonderQuest works" link</td><td>Full explainer card (new page or modal)</td><td>All 4 bands + mastery + stars + no-% explanation</td></tr>
+      <tr><td>Onboarding (after child linking)</td><td>Full explainer as onboarding step</td><td>Full content</td></tr>
+    </table>
+    <h2 class="spec-h2">Mastery Score Thresholds</h2>
+    <table class="spec-table">
+      <tr><th>Score</th><th>Status</th><th>Parent framing</th></tr>
+      <tr><td>65–100</td><td>⭐ Strong</td><td>"Consistent success — a solid skill"</td></tr>
+      <tr><td>40–64</td><td>🌱 Building</td><td>"Actively developing — normal progress"</td></tr>
+      <tr><td>0–39</td><td>🌱 Just started</td><td>"Brand new skill — early days"</td></tr>
+    </table>
+    <h2 class="spec-h2">Key Messages (must be consistent)</h2>
+    <p class="spec-p">1. Mastery never decreases — one bad session doesn't undo learning.</p>
+    <p class="spec-p">2. Stars celebrate effort and consistency — not perfection or accuracy.</p>
+    <p class="spec-p">3. No accuracy % shown to child — intentional, research-backed. Parent sees fuller data in weekly report for context.</p>
+    <p class="spec-p">4. Band placement is not a grade — it's a starting point that adjusts as the child progresses.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

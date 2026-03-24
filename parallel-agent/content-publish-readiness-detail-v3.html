@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Publish Readiness Detail — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.sh-btn-pri{background:#50e890;color:#080c12}
+.sh-btn-sec{background:rgba(255,255,255,.07);color:#f0f6ff}
+.sh-btn-red{background:rgba(248,81,73,.12);color:#f85149}
+
+/* Skill header */
+.skill-hdr{background:#080c12;padding:16px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.skh-meta{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap}
+.skh-id{font-size:10px;font-weight:700;color:rgba(255,255,255,.3)}
+.skh-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px}
+.ss-draft{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5)}
+.ss-ready{background:rgba(80,232,144,.12);color:#50e890}
+.ss-blocked{background:rgba(248,81,73,.12);color:#f85149}
+.skh-title{font-size:18px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.skh-sub{font-size:11px;color:rgba(255,255,255,.4)}
+.skh-band{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px}
+.sb-p3{background:rgba(255,123,107,.12);color:#ff7b6b}
+.skh-score-wrap{text-align:right}
+.skh-score-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:4px}
+.skh-score{font-size:40px;font-weight:900;line-height:1}
+.skh-score-max{font-size:14px;color:rgba(255,255,255,.3)}
+.skh-verdict{font-size:11px;font-weight:700;margin-top:4px}
+.sv-ready{color:#50e890}
+.sv-notready{color:#f85149}
+.sv-warn{color:#f59e0b}
+
+/* Layout */
+.body-grid{display:grid;grid-template-columns:1fr 280px;min-height:500px}
+.main-col{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:16px}
+.sidebar-col{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+
+/* Section header */
+.sec-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:10px}
+
+/* Checklist items */
+.checklist{display:flex;flex-direction:column;gap:6px}
+.cl-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.04)}
+.cl-check{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;margin-top:1px}
+.cc-pass{background:rgba(80,232,144,.15);color:#50e890}
+.cc-fail{background:rgba(248,81,73,.15);color:#f85149}
+.cc-warn{background:rgba(245,158,11,.12);color:#f59e0b}
+.cl-body{flex:1}
+.cl-title{font-size:12px;font-weight:700;color:#f0f6ff}
+.cl-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4}
+.cl-item.pass{background:rgba(80,232,144,.02)}
+.cl-item.fail{background:rgba(248,81,73,.03);border-color:rgba(248,81,73,.1)}
+.cl-item.warn{background:rgba(245,158,11,.02);border-color:rgba(245,158,11,.08)}
+
+/* Questions mini list */
+.q-mini-list{display:flex;flex-direction:column;gap:4px}
+.qml-row{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161c26;border-radius:6px;border:1px solid rgba(255,255,255,.04)}
+.qml-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);min-width:52px}
+.qml-text{font-size:10px;color:#f0f6ff;flex:1;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.qml-status{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.qms-ok{background:rgba(80,232,144,.1);color:#50e890}
+.qms-warn{background:rgba(245,158,11,.1);color:#f59e0b}
+.qms-err{background:rgba(248,81,73,.1);color:#f85149}
+.qml-type{font-size:8px;color:rgba(255,255,255,.25)}
+
+/* Score breakdown */
+.score-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.sg-cell{background:#161c26;border-radius:7px;padding:10px 12px;border:1px solid rgba(255,255,255,.04)}
+.sgc-cat{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.3);margin-bottom:6px}
+.sgc-score-row{display:flex;align-items:baseline;gap:4px}
+.sgc-val{font-size:16px;font-weight:900;color:#f0f6ff}
+.sgc-max{font-size:10px;color:rgba(255,255,255,.3)}
+.sgc-bar{height:3px;background:rgba(255,255,255,.07);border-radius:2px;margin-top:6px;overflow:hidden}
+.sgc-fill{height:100%;border-radius:2px;background:#50e890}
+.sgc-fill-warn{background:#f59e0b}
+.sgc-fill-err{background:#f85149}
+
+/* Sidebar */
+.sb-card{background:#161c26;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)}
+.sbc-title{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:6px}
+.sbc-sub{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}
+.sbc-list{display:flex;flex-direction:column;gap:5px;margin-top:8px}
+.sbc-row{display:flex;align-items:center;gap:8px;font-size:10px}
+.sbc-label{color:rgba(255,255,255,.4);flex:1}
+.sbc-val{color:#f0f6ff;font-weight:700}
+
+/* Reviewer sign-off */
+.reviewer-row{display:flex;align-items:center;gap:10px;padding:8px 10px;background:#0f1118;border-radius:7px;border:1px solid rgba(255,255,255,.05)}
+.rv-avatar{width:28px;height:28px;border-radius:8px;background:#161c26;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.rv-name{font-size:11px;font-weight:700;color:#f0f6ff;flex:1}
+.rv-role{font-size:9px;color:rgba(255,255,255,.3)}
+.rv-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px}
+.rvb-done{background:rgba(80,232,144,.12);color:#50e890}
+.rvb-pending{background:rgba(245,158,11,.1);color:#f59e0b}
+
+/* Footer */
+.footer-bar{background:#080c12;border-top:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.fb-note{font-size:11px;color:rgba(255,255,255,.4)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-publish-readiness-detail-v3.html</strong><br>
+  Per-skill publish readiness checklist. Shows all quality gates a skill must pass before it can be published to the live library.<br>
+  <strong>Purpose:</strong> Used by curriculum team after importing/writing a skill and before requesting owner publish approval.<br>
+  <strong>Readiness score:</strong> Content completeness (30) + Question quality (30) + Asset completeness (20) + Review sign-off (20) = 100. Publish threshold = 90.<br>
+  <strong>Not to be confused with Release Gate:</strong> Publish readiness is per-skill (curriculum team uses it). Release Gate is per-version release (owner uses it). A skill can be publish-ready but still held for a batch release.<br>
+  <strong>Publish action:</strong> When score ≥ 90 AND all sign-offs collected → owner confirms → review_status=Published, delivery_locked=false.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('not-ready')">Not Ready (74)</button>
+  <button class="tab-btn" onclick="showTab('ready')">Ready (94)</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Not Ready ───────────────────────────────────────────── -->
+<div id="tab-not-ready" class="screen active">
+  <p class="section-title">Skill publish readiness — not ready (score 74 / threshold 90)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">📋 Publish Readiness — Algebra: Variables &amp; Expressions</div>
+      <div class="sh-right">
+        <button class="sh-btn sh-btn-sec">← All Draft Skills</button>
+        <button class="sh-btn sh-btn-red">Reject Skill</button>
+      </div>
+    </div>
+
+    <!-- Skill header -->
+    <div class="skill-hdr">
+      <div>
+        <div class="skh-meta">
+          <span class="skh-id">SK-0342</span>
+          <span class="skh-status ss-draft">Draft</span>
+          <span class="skh-band sb-p3">P3 G4–5</span>
+        </div>
+        <div class="skh-title">Algebra: Variables &amp; Expressions</div>
+        <div class="skh-sub">Maths · Algebra · Imported Mar 24 · 6 questions</div>
+      </div>
+      <div class="skh-score-wrap">
+        <div class="skh-score-label">Readiness Score</div>
+        <div>
+          <span class="skh-score" style="color:#f59e0b">74</span>
+          <span class="skh-score-max">/100</span>
+        </div>
+        <div class="skh-verdict sv-notready">⚠ Not ready — 3 issues</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Threshold: 90</div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body-grid">
+      <div class="main-col">
+
+        <!-- Score breakdown -->
+        <div>
+          <div class="sec-hdr">Score Breakdown</div>
+          <div class="score-grid">
+            <div class="sg-cell">
+              <div class="sgc-cat">Content Completeness</div>
+              <div class="sgc-score-row"><span class="sgc-val" style="color:#50e890">28</span><span class="sgc-max">/30</span></div>
+              <div class="sgc-bar"><div class="sgc-fill" style="width:93%"></div></div>
+            </div>
+            <div class="sg-cell">
+              <div class="sgc-cat">Question Quality</div>
+              <div class="sgc-score-row"><span class="sgc-val" style="color:#f59e0b">20</span><span class="sgc-max">/30</span></div>
+              <div class="sgc-bar"><div class="sgc-fill-warn" style="width:67%"></div></div>
+            </div>
+            <div class="sg-cell">
+              <div class="sgc-cat">Asset Completeness</div>
+              <div class="sgc-score-row"><span class="sgc-val" style="color:#f85149">14</span><span class="sgc-max">/20</span></div>
+              <div class="sgc-bar"><div class="sgc-fill-err" style="width:70%"></div></div>
+            </div>
+            <div class="sg-cell">
+              <div class="sgc-cat">Review Sign-off</div>
+              <div class="sgc-score-row"><span class="sgc-val" style="color:#f85149">12</span><span class="sgc-max">/20</span></div>
+              <div class="sgc-bar"><div class="sgc-fill-err" style="width:60%"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Readiness checklist -->
+        <div>
+          <div class="sec-hdr">Readiness Checklist</div>
+          <div class="checklist">
+            <div class="cl-item pass">
+              <div class="cl-check cc-pass">✓</div>
+              <div class="cl-body">
+                <div class="cl-title">Skill title, subject, band set</div>
+                <div class="cl-sub">Title: "Algebra: Variables & Expressions" · Maths · P3 G4–5</div>
+              </div>
+            </div>
+            <div class="cl-item pass">
+              <div class="cl-check cc-pass">✓</div>
+              <div class="cl-body">
+                <div class="cl-title">Minimum 5 questions</div>
+                <div class="cl-sub">6 questions in skill</div>
+              </div>
+            </div>
+            <div class="cl-item fail">
+              <div class="cl-check cc-fail">✕</div>
+              <div class="cl-body">
+                <div class="cl-title">All questions have a correct answer</div>
+                <div class="cl-sub">Q4 ("Which expression is equivalent to 3x + 2x?") has no correct answer marked. Fix in question editor before publishing.</div>
+              </div>
+            </div>
+            <div class="cl-item warn">
+              <div class="cl-check cc-warn">~</div>
+              <div class="cl-body">
+                <div class="cl-title">Asset completeness — 1 question missing image</div>
+                <div class="cl-sub">Q6 references img_algebra_balance_01.png which was not found in asset library. Skill can be published without image but question experience will be degraded.</div>
+              </div>
+            </div>
+            <div class="cl-item pass">
+              <div class="cl-check cc-pass">✓</div>
+              <div class="cl-body">
+                <div class="cl-title">No duplicate question text</div>
+                <div class="cl-sub">All 6 question texts are unique within this skill and across P3 Maths</div>
+              </div>
+            </div>
+            <div class="cl-item fail">
+              <div class="cl-check cc-fail">✕</div>
+              <div class="cl-body">
+                <div class="cl-title">Curriculum reviewer sign-off</div>
+                <div class="cl-sub">Curriculum review not yet completed. Assign to a curriculum reviewer or mark as self-reviewed. Required before owner publish action.</div>
+              </div>
+            </div>
+            <div class="cl-item pass">
+              <div class="cl-check cc-pass">✓</div>
+              <div class="cl-body">
+                <div class="cl-title">Difficulty level set</div>
+                <div class="cl-sub">Default: Medium · Can be updated before publish</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions -->
+        <div>
+          <div class="sec-hdr">Questions (6)</div>
+          <div class="q-mini-list">
+            <div class="qml-row"><span class="qml-id">QID-4100</span><span class="qml-text">What is a variable in maths?</span><span class="qml-type">MCQ</span><span class="qml-status qms-ok">Valid</span></div>
+            <div class="qml-row"><span class="qml-id">QID-4101</span><span class="qml-text">Evaluate the expression 2x when x = 5</span><span class="qml-type">MCQ</span><span class="qml-status qms-ok">Valid</span></div>
+            <div class="qml-row"><span class="qml-id">QID-4102</span><span class="qml-text">Simplify: 4a + 3a</span><span class="qml-type">MCQ</span><span class="qml-status qms-ok">Valid</span></div>
+            <div class="qml-row" style="border-color:rgba(248,81,73,.2)"><span class="qml-id">QID-4103</span><span class="qml-text">Which expression is equivalent to 3x + 2x?</span><span class="qml-type">MCQ</span><span class="qml-status qms-err">No correct answer</span></div>
+            <div class="qml-row"><span class="qml-id">QID-4104</span><span class="qml-text">If n = 3, what is 4n + 1?</span><span class="qml-type">MCQ</span><span class="qml-status qms-ok">Valid</span></div>
+            <div class="qml-row" style="border-color:rgba(245,158,11,.15)"><span class="qml-id">QID-4105</span><span class="qml-text">Look at the balance scale. Write an equation for it.</span><span class="qml-type">MCQ</span><span class="qml-status qms-warn">Missing asset</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar-col">
+        <div class="sb-card">
+          <div class="sbc-title">Skill Info</div>
+          <div class="sbc-list">
+            <div class="sbc-row"><span class="sbc-label">Status</span><span class="sbc-val" style="color:rgba(255,255,255,.5)">Draft</span></div>
+            <div class="sbc-row"><span class="sbc-label">Band</span><span class="sbc-val" style="color:#ff7b6b">P3 G4–5</span></div>
+            <div class="sbc-row"><span class="sbc-label">Subject</span><span class="sbc-val">Maths · Algebra</span></div>
+            <div class="sbc-row"><span class="sbc-label">Questions</span><span class="sbc-val">6</span></div>
+            <div class="sbc-row"><span class="sbc-label">Difficulty</span><span class="sbc-val">Medium (default)</span></div>
+            <div class="sbc-row"><span class="sbc-label">Imported</span><span class="sbc-val">Mar 24, 2026</span></div>
+          </div>
+        </div>
+
+        <div class="sb-card">
+          <div class="sbc-title">Review Sign-off</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <div class="reviewer-row">
+              <div class="rv-avatar">📚</div>
+              <div style="flex:1"><div class="rv-name">Curriculum Team</div><div class="rv-role">Content review</div></div>
+              <span class="rv-badge rvb-pending">Pending</span>
+            </div>
+            <div class="reviewer-row">
+              <div class="rv-avatar">👤</div>
+              <div style="flex:1"><div class="rv-name">Owner</div><div class="rv-role">Final publish</div></div>
+              <span class="rv-badge rvb-pending">Pending</span>
+            </div>
+          </div>
+          <button style="width:100%;margin-top:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:8px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);font-family:system-ui;cursor:pointer">Assign to Reviewer</button>
+        </div>
+
+        <div class="sb-card" style="border-color:rgba(248,81,73,.15)">
+          <div class="sbc-title" style="color:#f85149">Blockers (2)</div>
+          <div class="sbc-sub">1. Q4 has no correct answer set.<br>2. Curriculum review sign-off missing.</div>
+          <div style="margin-top:8px">
+            <button style="width:100%;background:rgba(80,232,144,.12);border:none;border-radius:6px;padding:8px;font-size:11px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer">Edit Q4 Answer Key</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="footer-bar">
+      <div class="fb-note">⚠ Score 74/90 minimum — 2 blockers must be resolved before requesting publish</div>
+      <div style="display:flex;gap:8px">
+        <button class="sh-btn sh-btn-sec">Save Notes</button>
+        <button class="sh-btn sh-btn-pri" style="opacity:.4" disabled>Request Owner Publish</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Ready ───────────────────────────────────────────── -->
+<div id="tab-ready" class="screen">
+  <p class="section-title">Skill publish readiness — ready (score 94 / threshold 90)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">📋 Publish Readiness — Multiplication: Multi-Digit</div>
+      <div class="sh-right">
+        <button class="sh-btn sh-btn-sec">← All Draft Skills</button>
+      </div>
+    </div>
+    <div class="skill-hdr">
+      <div>
+        <div class="skh-meta">
+          <span class="skh-id">SK-0344</span>
+          <span class="skh-status ss-ready">Ready to Publish</span>
+          <span class="skh-band sb-p3">P3 G4–5</span>
+        </div>
+        <div class="skh-title">Multiplication: Multi-Digit</div>
+        <div class="skh-sub">Maths · Multiplication · Imported Mar 24 · 6 questions</div>
+      </div>
+      <div class="skh-score-wrap">
+        <div class="skh-score-label">Readiness Score</div>
+        <div><span class="skh-score" style="color:#50e890">94</span><span class="skh-score-max">/100</span></div>
+        <div class="skh-verdict sv-ready">✓ Ready for owner publish</div>
+        <div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">Threshold: 90 ✓</div>
+      </div>
+    </div>
+
+    <div class="body-grid">
+      <div class="main-col">
+        <div>
+          <div class="sec-hdr">Score Breakdown</div>
+          <div class="score-grid">
+            <div class="sg-cell"><div class="sgc-cat">Content Completeness</div><div class="sgc-score-row"><span class="sgc-val" style="color:#50e890">30</span><span class="sgc-max">/30</span></div><div class="sgc-bar"><div class="sgc-fill" style="width:100%"></div></div></div>
+            <div class="sg-cell"><div class="sgc-cat">Question Quality</div><div class="sgc-score-row"><span class="sgc-val" style="color:#50e890">28</span><span class="sgc-max">/30</span></div><div class="sgc-bar"><div class="sgc-fill" style="width:93%"></div></div></div>
+            <div class="sg-cell"><div class="sgc-cat">Asset Completeness</div><div class="sgc-score-row"><span class="sgc-val" style="color:#50e890">18</span><span class="sgc-max">/20</span></div><div class="sgc-bar"><div class="sgc-fill" style="width:90%"></div></div></div>
+            <div class="sg-cell"><div class="sgc-cat">Review Sign-off</div><div class="sgc-score-row"><span class="sgc-val" style="color:#50e890">18</span><span class="sgc-max">/20</span></div><div class="sgc-bar"><div class="sgc-fill" style="width:90%"></div></div></div>
+          </div>
+        </div>
+        <div>
+          <div class="sec-hdr">Readiness Checklist</div>
+          <div class="checklist">
+            <div class="cl-item pass"><div class="cl-check cc-pass">✓</div><div class="cl-body"><div class="cl-title">Skill title, subject, band set</div><div class="cl-sub">Multiplication: Multi-Digit · Maths · P3 G4–5</div></div></div>
+            <div class="cl-item pass"><div class="cl-check cc-pass">✓</div><div class="cl-body"><div class="cl-title">All questions have correct answer(s)</div><div class="cl-sub">6/6 questions have at least one is_correct=true answer</div></div></div>
+            <div class="cl-item pass"><div class="cl-check cc-pass">✓</div><div class="cl-body"><div class="cl-title">Assets present for all questions</div><div class="cl-sub">5/6 questions have assets; 1 question is text-only (no asset required)</div></div></div>
+            <div class="cl-item pass"><div class="cl-check cc-pass">✓</div><div class="cl-body"><div class="cl-title">No duplicate question text</div><div class="cl-sub">All 6 questions are unique</div></div></div>
+            <div class="cl-item warn"><div class="cl-check cc-warn">~</div><div class="cl-body"><div class="cl-title">Difficulty variance — all questions Medium</div><div class="cl-sub">All questions default to Medium difficulty. Consider adding 1–2 Hard questions for better skill depth. Not a blocker.</div></div></div>
+            <div class="cl-item pass"><div class="cl-check cc-pass">✓</div><div class="cl-body"><div class="cl-title">Curriculum reviewer sign-off</div><div class="cl-sub">Signed off by Curriculum team Mar 24 · 10:45 AM</div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="sidebar-col">
+        <div class="sb-card" style="border-color:rgba(80,232,144,.2)">
+          <div class="sbc-title" style="color:#50e890">✓ Ready to Publish</div>
+          <div class="sbc-sub">Score 94/90 threshold met. All blockers resolved. Curriculum sign-off collected. Request owner publish to make this skill live.</div>
+        </div>
+        <div class="sb-card">
+          <div class="sbc-title">Review Sign-off</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+            <div class="reviewer-row"><div class="rv-avatar">📚</div><div style="flex:1"><div class="rv-name">Curriculum Team</div><div class="rv-role">Content review</div></div><span class="rv-badge rvb-done">✓ Signed off</span></div>
+            <div class="reviewer-row"><div class="rv-avatar">👤</div><div style="flex:1"><div class="rv-name">Owner</div><div class="rv-role">Final publish</div></div><span class="rv-badge rvb-pending">Pending</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <div class="fb-note" style="color:#50e890">✓ All checks passed · Score 94/100 · Ready for owner publish</div>
+      <div style="display:flex;gap:8px">
+        <button class="sh-btn sh-btn-sec">Preview Skill</button>
+        <button class="sh-btn sh-btn-pri">Request Owner Publish →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-publish-readiness-detail-v3.html<br>
+      <strong>Per-skill publish readiness checklist.</strong> 4 categories (Content/Quality/Assets/Sign-off = 100). Threshold = 90. Blocked vs warned vs passed items. Two sign-offs required (curriculum + owner). Not the same as Release Gate.
+    </div>
+    <h2 class="spec-h2">Publish Readiness vs Release Gate</h2>
+    <p class="spec-p">Publish Readiness (this component) = per-skill quality gate managed by curriculum team. Applies to individual skills going from Draft → Published. Release Gate (owner-release-gate-*.html) = per-release quality gate managed by owner. Applies to the whole version release (vX.Y). A skill can be publish-ready but still only deployed in a batch release.</p>
+    <h2 class="spec-h2">Score Categories</h2>
+    <p class="spec-p"><strong>Content Completeness (30):</strong> Title set (+10), band set (+5), subject set (+5), difficulty set (+5), min 5 questions (+5). <strong>Question Quality (30):</strong> All questions have correct answer (+15), no duplicate text (+5), answer options make sense (curriculum review flag, +10). <strong>Asset Completeness (20):</strong> All referenced assets present (+20; partial score if some questions are text-only by design). <strong>Review Sign-off (20):</strong> Curriculum reviewer approval (+15), owner publish action will add final (+5 from action itself).</p>
+    <h2 class="spec-h2">Publish Action</h2>
+    <p class="spec-p">When score ≥ 90 AND curriculum sign-off collected: "Request Owner Publish" button becomes active. Owner receives a notification with link to this readiness detail page. Owner reviews, then clicks Publish → review_status=Published, delivery_locked=false → skill enters live delivery pool. The owner publish action is logged to the governance log (Content category).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

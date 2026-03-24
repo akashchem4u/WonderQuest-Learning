@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Family Dashboard — Mobile v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Parent family dashboard — Mobile variant (390px frame)    │
+  │  Parent bg: #f5f0e8 (warm cream)                           │
+  │  Bottom nav bar (5 items) — no sidebar on mobile           │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Home (1 Child)                                       │
+  │    2. Multi-Child                                          │
+  │    3. Notifications                                        │
+  │    4. Settings                                             │
+  │    5. Spec                                                  │
+  │                                                            │
+  │  Mobile notes:                                             │
+  │  - Bottom nav: Home / Report / Badges / Notifs / Settings  │
+  │  - Stat chips: horizontal-scroll row (not grid)            │
+  │  - Child hero: full-width card at top                      │
+  │  - Skills: vertical list (not grid)                        │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #2a2060; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px 16px 40px; }
+.tab-bar { display: flex; gap: 4px; padding: 0 0 12px; overflow-x: auto; scrollbar-width: none; width: 100%; max-width: 420px; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 14px; border: none; background: #3a3070; color: #b0a0e0; font: 600 0.72rem system-ui; cursor: pointer; border-radius: 8px; white-space: nowrap; flex-shrink: 0; transition: all 0.18s; }
+.tab-btn.active { background: #9b72ff; color: #fff; }
+.screen { display: none; width: 100%; }
+.screen.active { display: flex; flex-direction: column; align-items: center; }
+
+/* ─── Phone Frame ─── */
+.phone { width: 390px; max-width: 100%; background: #f5f0e8; border-radius: 40px; overflow: hidden; position: relative; box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #9b72ff22; }
+.status-bar { height: 44px; display: flex; align-items: flex-end; padding: 0 20px 8px; justify-content: space-between; background: #f5f0e8; }
+.sb-time { font: 600 0.8rem system-ui; color: #1a1240; }
+.sb-icons { display: flex; gap: 4px; font-size: 0.8rem; color: #1a1240; }
+
+/* ─── Page Content ─── */
+.page-content { padding: 16px 16px 0; overflow-y: auto; max-height: 600px; }
+.page-header-m { padding: 4px 0 14px; }
+.page-title-m { font: 700 1.15rem system-ui; color: #1a1240; }
+.page-sub-m { font: 400 0.78rem system-ui; color: #6a5890; margin-top: 2px; }
+
+/* ─── Child Hero Card ─── */
+.child-hero-m {
+  background: #fff; border-radius: 16px; padding: 16px;
+  border: 1px solid #e0d8f0; margin-bottom: 14px;
+  box-shadow: 0 2px 12px rgba(100,60,200,0.07);
+}
+.hero-top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.child-avatar-m { width: 52px; height: 52px; border-radius: 50%; background: linear-gradient(135deg, #ede8ff, #d8d0ff); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+.child-name-m { font: 700 1rem system-ui; color: #1a1240; }
+.child-band-m { font: 400 0.72rem system-ui; color: #9b72ff; margin-top: 1px; }
+.hero-btn { margin-left: auto; padding: 7px 14px; background: #9b72ff; color: #fff; border: none; border-radius: 8px; font: 600 0.75rem system-ui; cursor: pointer; }
+
+/* ─── Stat Chips (horizontal scroll) ─── */
+.stat-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; padding-bottom: 4px; margin-bottom: 14px; }
+.stat-chips::-webkit-scrollbar { display: none; }
+.stat-chip { flex-shrink: 0; background: #fff; border-radius: 12px; padding: 10px 14px; border: 1px solid #e0d8f0; text-align: center; min-width: 70px; }
+.chip-val { font: 900 1.1rem system-ui; display: block; }
+.chip-label { font: 400 0.62rem system-ui; color: #9080a0; }
+
+/* ─── Section Header ─── */
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.section-title { font: 700 0.88rem system-ui; color: #1a1240; }
+.section-link { font: 500 0.72rem system-ui; color: #9b72ff; }
+
+/* ─── Skill List ─── */
+.skill-list { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d8f0; margin-bottom: 14px; }
+.skill-row-m { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.skill-row-m:last-child { margin-bottom: 0; }
+.skill-name-m { font: 600 0.75rem system-ui; color: #1a1240; width: 90px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-bar-m { flex: 1; height: 5px; background: #e8e0f0; border-radius: 3px; overflow: hidden; }
+.skill-fill-m { height: 100%; border-radius: 3px; }
+
+/* ─── Activity Card ─── */
+.activity-card { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d8f0; margin-bottom: 14px; }
+.activity-item-m { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #f5f0f8; }
+.activity-item-m:last-child { border-bottom: none; }
+.activity-dot-m { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 4px; }
+.activity-text-m { flex: 1; font: 400 0.78rem/1.35 system-ui; color: #3a3060; }
+.activity-text-m strong { font-weight: 700; color: #1a1240; }
+.activity-time-m { font: 400 0.66rem system-ui; color: #b0a0c0; white-space: nowrap; }
+
+/* ─── Streak Card ─── */
+.streak-card-m { background: linear-gradient(135deg, #1a1240, #2a1860); border-radius: 14px; padding: 16px; color: #e8e4f8; margin-bottom: 14px; }
+.streak-days-m { display: flex; gap: 4px; margin-top: 10px; }
+.streak-day-m { flex: 1; height: 26px; border-radius: 5px; background: #2a2060; display: flex; align-items: center; justify-content: center; font: 600 0.62rem system-ui; color: #8070b0; }
+.streak-day-m.played { background: #ffd16622; color: #ffd166; }
+.streak-day-m.today { background: #ffd166; color: #1a1240; font-weight: 700; }
+
+/* ─── Bottom Nav ─── */
+.bottom-nav { display: flex; justify-content: space-around; align-items: center; padding: 10px 0 0; background: #fff; border-top: 1px solid #e0d8f0; }
+.nav-item-m { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 12px; cursor: pointer; }
+.nav-item-m .ni-icon { font-size: 1.3rem; }
+.nav-item-m .ni-label { font: 500 0.6rem system-ui; color: #b0a0c0; }
+.nav-item-m.active .ni-label { color: #9b72ff; }
+.nav-badge-m { position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border-radius: 50%; background: #9b72ff; color: #fff; font: 700 0.55rem system-ui; display: flex; align-items: center; justify-content: center; }
+.home-indicator-bar { height: 28px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 120px; height: 5px; border-radius: 3px; background: #2a1a80; opacity: 0.2; }
+
+/* ─── Multi-Child ─── */
+.child-mini-m { background: #fff; border-radius: 14px; padding: 14px; border: 1px solid #e0d8f0; margin-bottom: 12px; }
+.mini-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.mini-avatar-m { width: 40px; height: 40px; border-radius: 50%; background: #ede8ff; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+.mini-chips { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.mini-chips::-webkit-scrollbar { display: none; }
+.add-child-m { background: #faf8ff; border: 2px dashed #c0b0e8; border-radius: 14px; padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; }
+
+/* ─── Notifications ─── */
+.notif-list-m { list-style: none; }
+.notif-item-m { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-bottom: 1px solid #f0e8f8; }
+.notif-item-m:last-child { border-bottom: none; }
+.notif-icon-m { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+.notif-text-m { font: 400 0.78rem/1.4 system-ui; color: #3a3060; margin-bottom: 3px; }
+.notif-text-m strong { font-weight: 700; color: #1a1240; }
+.notif-time-m { font: 400 0.66rem system-ui; color: #b0a0c0; }
+.notif-dot-m { width: 8px; height: 8px; border-radius: 50%; background: #9b72ff; flex-shrink: 0; margin-top: 5px; }
+
+/* ─── Settings ─── */
+.settings-section-m { background: #fff; border-radius: 14px; padding: 16px; border: 1px solid #e0d8f0; margin-bottom: 12px; }
+.settings-title-m { font: 700 0.82rem system-ui; color: #1a1240; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f0e8f8; }
+.settings-row-m { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px solid #f8f0f8; }
+.settings-row-m:last-child { border-bottom: none; }
+.settings-label-m { font: 500 0.8rem system-ui; color: #1a1240; }
+.settings-sub-m { font: 400 0.68rem system-ui; color: #9080a0; }
+.toggle-m { width: 36px; height: 20px; border-radius: 10px; background: #d0c8e8; cursor: pointer; position: relative; flex-shrink: 0; }
+.toggle-m.on { background: #9b72ff; }
+.toggle-m::after { content: ''; position: absolute; left: 2px; top: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left 0.2s; }
+.toggle-m.on::after { left: 18px; }
+
+/* ─── Spec ─── */
+#screen-spec-m { display: none; background: #f5f0e8; padding: 24px; }
+#screen-spec-m.active { display: block; }
+.spec-title-m { font: 700 1.1rem system-ui; color: #1a1240; margin-bottom: 18px; }
+.spec-table-m { width: 100%; border-collapse: collapse; font-size: 0.78rem; margin-bottom: 20px; }
+.spec-table-m th { text-align: left; padding: 8px 12px; background: #ede8ff; color: #4a3880; font: 700 0.68rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table-m td { padding: 8px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table-m tr:last-child td { border-bottom: none; }
+.spec-rule-m { font-weight: 700; color: #1a1240; }
+.spec-detail-m { color: #6a5890; font-size: 0.73rem; line-height: 1.5; }
+.spec-section-m { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 20px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')">🏠 Home</button>
+  <button class="tab-btn" onclick="showTab('multi')">👨‍👩‍👧‍👦 Multi</button>
+  <button class="tab-btn" onclick="showTab('notifs')">🔔 Notifs</button>
+  <button class="tab-btn" onclick="showTab('settings')">⚙️ Settings</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- HOME -->
+<div class="screen active" id="screen-home">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m">
+        <div class="page-title-m">👋 Good morning, Sarah</div>
+        <div class="page-sub-m">Maya's week · March 18–24</div>
+      </div>
+
+      <!-- Child hero -->
+      <div class="child-hero-m">
+        <div class="hero-top">
+          <div class="child-avatar-m">🦁</div>
+          <div>
+            <div class="child-name-m">Maya</div>
+            <div class="child-band-m">K–1 · Level 2 Star Explorer ⭐</div>
+          </div>
+          <button class="hero-btn">Report →</button>
+        </div>
+        <!-- Stat chips -->
+        <div class="stat-chips">
+          <div class="stat-chip"><span class="chip-val" style="color:#ffd166;">⭐ 42</span><span class="chip-label">Stars</span></div>
+          <div class="stat-chip"><span class="chip-val" style="color:#9b72ff;">14</span><span class="chip-label">Sessions</span></div>
+          <div class="stat-chip"><span class="chip-val" style="color:#58e8c1;">🔥 5</span><span class="chip-label">Streak</span></div>
+          <div class="stat-chip"><span class="chip-val" style="color:#ff7b6b;">8</span><span class="chip-label">Skills</span></div>
+          <div class="stat-chip"><span class="chip-val" style="color:#9b72ff;">2</span><span class="chip-label">Badges</span></div>
+        </div>
+      </div>
+
+      <!-- Streak -->
+      <div class="streak-card-m">
+        <div style="font:600 0.68rem system-ui;color:#c0b0f0;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:4px;">Current streak</div>
+        <div style="font:900 1.5rem system-ui;color:#ffd166;">🔥 5 days in a row!</div>
+        <div class="streak-days-m">
+          <div class="streak-day-m played">M</div>
+          <div class="streak-day-m played">T</div>
+          <div class="streak-day-m played">W</div>
+          <div class="streak-day-m played">T</div>
+          <div class="streak-day-m today">F</div>
+          <div class="streak-day-m">S</div>
+          <div class="streak-day-m">S</div>
+        </div>
+      </div>
+
+      <!-- Skills -->
+      <div class="section-header"><span class="section-title">Skills this week</span><span class="section-link">See all →</span></div>
+      <div class="skill-list">
+        <div class="skill-row-m"><span class="skill-name-m">Rhyming words</span><div class="skill-bar-m"><div class="skill-fill-m" style="width:88%;background:#9b72ff;"></div></div></div>
+        <div class="skill-row-m"><span class="skill-name-m">Letter sounds</span><div class="skill-bar-m"><div class="skill-fill-m" style="width:74%;background:#9b72ff;"></div></div></div>
+        <div class="skill-row-m"><span class="skill-name-m">Counting</span><div class="skill-bar-m"><div class="skill-fill-m" style="width:60%;background:#ffd166;"></div></div></div>
+        <div class="skill-row-m"><span class="skill-name-m">First words</span><div class="skill-bar-m"><div class="skill-fill-m" style="width:45%;background:#ffd166;"></div></div></div>
+      </div>
+
+      <!-- Activity -->
+      <div class="section-header"><span class="section-title">Recent activity</span></div>
+      <div class="activity-card">
+        <div class="activity-item-m"><div class="activity-dot-m" style="background:#ffd166;"></div><div><div class="activity-text-m"><strong>Maya</strong> earned "Rhyme Queen 🎵" badge</div><div class="activity-time-m">Today 8:42 AM</div></div></div>
+        <div class="activity-item-m"><div class="activity-dot-m" style="background:#9b72ff;"></div><div><div class="activity-text-m"><strong>Maya</strong> completed 3 sessions · ⭐ 9 stars</div><div class="activity-time-m">Yesterday</div></div></div>
+        <div class="activity-item-m"><div class="activity-dot-m" style="background:#58e8c1;"></div><div><div class="activity-text-m"><strong>Maya</strong> leveled up to Star Explorer ⭐</div><div class="activity-time-m">Monday</div></div></div>
+      </div>
+
+      <div style="height:16px;"></div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+      <div class="nav-item-m active"><span class="ni-icon">🏠</span><span class="ni-label" style="color:#9b72ff;">Home</span></div>
+      <div class="nav-item-m"><span class="ni-icon">📊</span><span class="ni-label">Report</span></div>
+      <div class="nav-item-m"><span class="ni-icon">🏅</span><span class="ni-label">Badges</span></div>
+      <div class="nav-item-m" style="position:relative;"><span class="ni-icon">🔔</span><div class="nav-badge-m">3</div><span class="ni-label">Notifs</span></div>
+      <div class="nav-item-m"><span class="ni-icon">⚙️</span><span class="ni-label">Settings</span></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- MULTI-CHILD -->
+<div class="screen" id="screen-multi">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m"><div class="page-title-m">Your family</div><div class="page-sub-m">March 18–24, 2026</div></div>
+
+      <!-- Family stats -->
+      <div class="stat-chips" style="margin-bottom:14px;">
+        <div class="stat-chip"><span class="chip-val" style="color:#ffd166;">⭐ 76</span><span class="chip-label">Family stars</span></div>
+        <div class="stat-chip"><span class="chip-val" style="color:#9b72ff;">28</span><span class="chip-label">Sessions</span></div>
+        <div class="stat-chip"><span class="chip-val" style="color:#58e8c1;">5/3</span><span class="chip-label">Streaks</span></div>
+      </div>
+
+      <!-- Maya -->
+      <div class="child-mini-m">
+        <div class="mini-row">
+          <div class="mini-avatar-m">🦁</div>
+          <div><div style="font:700 0.9rem system-ui;color:#1a1240;">Maya</div><div style="font:400 0.7rem system-ui;color:#9b72ff;">K–1 · Level 2 ⭐</div></div>
+          <button class="hero-btn" style="margin-left:auto;">Report →</button>
+        </div>
+        <div class="mini-chips">
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#ffd166;font-size:0.9rem;">⭐ 42</span><span class="chip-label">Stars</span></div>
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#9b72ff;font-size:0.9rem;">14</span><span class="chip-label">Sessions</span></div>
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#58e8c1;font-size:0.9rem;">🔥 5</span><span class="chip-label">Streak</span></div>
+        </div>
+      </div>
+
+      <!-- Leo -->
+      <div class="child-mini-m">
+        <div class="mini-row">
+          <div class="mini-avatar-m" style="background:#e8fff8;">🐸</div>
+          <div><div style="font:700 0.9rem system-ui;color:#1a1240;">Leo</div><div style="font:400 0.7rem system-ui;color:#58e8c1;">G2–3 · Level 1 🌱</div></div>
+          <button class="hero-btn" style="margin-left:auto;background:linear-gradient(135deg,#58e8c1,#30a090);color:#0a3020;">Report →</button>
+        </div>
+        <div class="mini-chips">
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#ffd166;font-size:0.9rem;">⭐ 34</span><span class="chip-label">Stars</span></div>
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#58e8c1;font-size:0.9rem;">14</span><span class="chip-label">Sessions</span></div>
+          <div class="stat-chip" style="min-width:60px;"><span class="chip-val" style="color:#ff7b6b;font-size:0.9rem;">🔥 3</span><span class="chip-label">Streak</span></div>
+        </div>
+      </div>
+
+      <div class="add-child-m">
+        <div style="font-size:1.5rem;opacity:0.5;">👶</div>
+        <div style="font:600 0.82rem system-ui;color:#9b72ff;">Add another child</div>
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item-m active" style="color:#9b72ff;"><span class="ni-icon">🏠</span><span class="ni-label" style="color:#9b72ff;">Home</span></div>
+      <div class="nav-item-m"><span class="ni-icon">📊</span><span class="ni-label">Report</span></div>
+      <div class="nav-item-m"><span class="ni-icon">🏅</span><span class="ni-label">Badges</span></div>
+      <div class="nav-item-m" style="position:relative;"><span class="ni-icon">🔔</span><div class="nav-badge-m">3</div><span class="ni-label">Notifs</span></div>
+      <div class="nav-item-m"><span class="ni-icon">⚙️</span><span class="ni-label">Settings</span></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- NOTIFICATIONS -->
+<div class="screen" id="screen-notifs">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m"><div class="page-title-m">🔔 Notifications</div><div class="page-sub-m" style="color:#9b72ff;">3 unread · Mark all read</div></div>
+      <div style="background:#fff;border-radius:14px;padding:14px;border:1px solid #e0d8f0;">
+        <ul class="notif-list-m">
+          <li class="notif-item-m"><div class="notif-icon-m" style="background:#fff3e0;">🏅</div><div style="flex:1;"><div class="notif-text-m"><strong>Maya earned "Rhyme Queen" badge!</strong></div><div class="notif-time-m">Today 8:42 AM</div></div><div class="notif-dot-m"></div></li>
+          <li class="notif-item-m"><div class="notif-icon-m" style="background:#ede8ff;">⭐</div><div style="flex:1;"><div class="notif-text-m"><strong>Maya leveled up to Star Explorer!</strong></div><div class="notif-time-m">Monday 4:15 PM</div></div><div class="notif-dot-m"></div></li>
+          <li class="notif-item-m"><div class="notif-icon-m" style="background:#f0fdf8;">📊</div><div style="flex:1;"><div class="notif-text-m"><strong>Maya's weekly report is ready.</strong></div><div class="notif-time-m">Sunday 7:00 AM</div></div><div class="notif-dot-m"></div></li>
+          <li class="notif-item-m"><div class="notif-icon-m" style="background:#faf8ff;">🎯</div><div style="flex:1;"><div class="notif-text-m"><strong>Maya completed her 3 sessions.</strong> 4-day streak!</div><div class="notif-time-m">Yesterday 6:30 PM</div></div></li>
+        </ul>
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item-m"><span class="ni-icon">🏠</span><span class="ni-label">Home</span></div>
+      <div class="nav-item-m"><span class="ni-icon">📊</span><span class="ni-label">Report</span></div>
+      <div class="nav-item-m"><span class="ni-icon">🏅</span><span class="ni-label">Badges</span></div>
+      <div class="nav-item-m active" style="position:relative;"><span class="ni-icon">🔔</span><span class="ni-label" style="color:#9b72ff;">Notifs</span></div>
+      <div class="nav-item-m"><span class="ni-icon">⚙️</span><span class="ni-label">Settings</span></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="phone">
+    <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+    <div class="page-content">
+      <div class="page-header-m"><div class="page-title-m">⚙️ Settings</div></div>
+      <div class="settings-section-m">
+        <div class="settings-title-m">Maya's settings</div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Daily session limit</div><div class="settings-sub-m">3 sessions/day</div></div><span style="font:600 0.78rem system-ui;color:#9b72ff;">Change →</span></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Learning band</div><div class="settings-sub-m">K–1 Band</div></div><span style="font:600 0.78rem system-ui;color:#9b72ff;">Change →</span></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Focus areas</div><div class="settings-sub-m">Reading &amp; Math</div></div><span style="font:600 0.78rem system-ui;color:#9b72ff;">Edit →</span></div>
+      </div>
+      <div class="settings-section-m">
+        <div class="settings-title-m">Notifications</div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Badge earned</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Level-up</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Weekly report</div></div><div class="toggle-m on" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Session complete</div></div><div class="toggle-m" onclick="this.classList.toggle('on')"></div></div>
+        <div class="settings-row-m"><div><div class="settings-label-m">Inactivity reminder</div></div><div class="toggle-m" onclick="this.classList.toggle('on')"></div></div>
+      </div>
+      <div style="height:16px;"></div>
+    </div>
+    <div class="bottom-nav">
+      <div class="nav-item-m"><span class="ni-icon">🏠</span><span class="ni-label">Home</span></div>
+      <div class="nav-item-m"><span class="ni-icon">📊</span><span class="ni-label">Report</span></div>
+      <div class="nav-item-m"><span class="ni-icon">🏅</span><span class="ni-label">Badges</span></div>
+      <div class="nav-item-m" style="position:relative;"><span class="ni-icon">🔔</span><div class="nav-badge-m">3</div><span class="ni-label">Notifs</span></div>
+      <div class="nav-item-m active"><span class="ni-icon">⚙️</span><span class="ni-label" style="color:#9b72ff;">Settings</span></div>
+    </div>
+    <div class="home-indicator-bar"><div class="home-bar"></div></div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="background:#f5f0e8;border-radius:20px;padding:24px;width:100%;max-width:420px;">
+    <div class="spec-title-m">Parent Dashboard Mobile — Spec</div>
+    <div class="spec-section-m">Mobile vs Desktop</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Aspect</th><th>Mobile</th><th>Desktop</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule-m">Navigation</td><td class="spec-detail-m">Bottom nav bar (5 items)</td><td class="spec-detail-m">Left sidebar (240px)</td></tr>
+        <tr><td class="spec-rule-m">Stats</td><td class="spec-detail-m">Horizontal-scroll chips</td><td class="spec-detail-m">4-col quick stats grid</td></tr>
+        <tr><td class="spec-rule-m">Skills</td><td class="spec-detail-m">Vertical list with bars</td><td class="spec-detail-m">Card with rows + support tip</td></tr>
+        <tr><td class="spec-rule-m">Child hero</td><td class="spec-detail-m">Full-width card with chips</td><td class="spec-detail-m">3-col grid (avatar / info / CTAs)</td></tr>
+      </tbody>
+    </table>
+    <div class="spec-section-m">Bottom Nav Items</div>
+    <table class="spec-table-m">
+      <thead><tr><th>Item</th><th>Icon</th><th>Destination</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule-m">Home</td><td class="spec-detail-m">🏠</td><td class="spec-detail-m">Dashboard overview</td></tr>
+        <tr><td class="spec-rule-m">Report</td><td class="spec-detail-m">📊</td><td class="spec-detail-m">Weekly report (item 78)</td></tr>
+        <tr><td class="spec-rule-m">Badges</td><td class="spec-detail-m">🏅</td><td class="spec-detail-m">Badge gallery view</td></tr>
+        <tr><td class="spec-rule-m">Notifs</td><td class="spec-detail-m">🔔</td><td class="spec-detail-m">Notification center (item 80)</td></tr>
+        <tr><td class="spec-rule-m">Settings</td><td class="spec-detail-m">⚙️</td><td class="spec-detail-m">Child + notification settings</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

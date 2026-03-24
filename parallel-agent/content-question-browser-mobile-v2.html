@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Question Browser Mobile — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;background:#0f1118;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,.08);display:inline-block;vertical-align:top}
+.phone-status{background:#080c12;padding:10px 16px 6px;display:flex;justify-content:space-between}
+.ps-time{font-size:12px;font-weight:700;color:#f0f6ff}
+.ps-icons{font-size:10px;color:rgba(255,255,255,.4)}
+
+/* Header */
+.m-hdr{background:#080c12;padding:0 16px;height:50px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.mh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.mh-icons{display:flex;gap:14px;font-size:16px;color:rgba(255,255,255,.5)}
+
+/* Filter chips */
+.m-chips{display:flex;gap:6px;padding:8px 16px;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#080c12;border-bottom:1px solid rgba(255,255,255,.06)}
+.m-chips::-webkit-scrollbar{display:none}
+.m-chip{padding:4px 10px;border-radius:7px;font-size:10px;font-weight:700;flex-shrink:0;border:none;font-family:system-ui;cursor:pointer;white-space:nowrap}
+.mc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.mc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.mc-red{background:rgba(248,81,73,.15);color:#f85149}
+.mc-amb{background:rgba(245,158,11,.12);color:#f59e0b}
+
+/* Question list */
+.m-q-list{display:flex;flex-direction:column}
+.m-q-item{padding:12px 16px;border-bottom:1px solid rgba(255,255,255,.04);cursor:pointer;border-left:2px solid transparent;transition:background .12s}
+.m-q-item.blocked{border-left-color:#f85149;background:rgba(248,81,73,.02)}
+.m-q-item.review{border-left-color:#f59e0b}
+.m-q-item.selected{background:rgba(80,232,144,.04);border-left-color:#50e890}
+.mqt{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.mqt-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25)}
+.mqt-type{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
+.mqt-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px;margin-left:auto}
+.ms-live{background:rgba(80,232,144,.1);color:#50e890}
+.ms-review{background:rgba(245,158,11,.1);color:#f59e0b}
+.ms-blocked{background:rgba(248,81,73,.1);color:#f85149}
+.mq-text{font-size:11px;color:#f0f6ff;line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.mq-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.mq-band{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.mb-p0{background:rgba(255,209,102,.1);color:#ffd166}
+.mb-p1{background:rgba(155,114,255,.1);color:#9b72ff}
+.mb-p2{background:rgba(88,232,193,.08);color:#58e8c1}
+.mb-p3{background:rgba(255,123,107,.1);color:#ff7b6b}
+.mq-subject{font-size:9px;color:rgba(255,255,255,.3)}
+.mq-flag{font-size:9px;font-weight:700;color:#f85149;margin-top:2px}
+.mq-warn{font-size:9px;font-weight:700;color:#f59e0b;margin-top:2px}
+
+/* Question detail sheet (full-screen) */
+.m-q-detail{display:flex;flex-direction:column;background:#0f1118}
+.mqd-hdr{background:#080c12;padding:0 16px;height:50px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.06)}
+.mqd-back{font-size:16px;color:rgba(255,255,255,.5);cursor:pointer}
+.mqd-title{flex:1;font-size:13px;font-weight:800;color:#f0f6ff}
+.mqd-actions{display:flex;gap:6px}
+.mqd-act{font-size:10px;font-weight:700;padding:4px 10px;border-radius:5px;border:none;cursor:pointer;font-family:system-ui}
+.mqd-edit{background:rgba(80,232,144,.12);color:#50e890}
+.mqd-flag{background:rgba(245,158,11,.1);color:#f59e0b}
+
+.mqd-body{padding:14px 16px;display:flex;flex-direction:column;gap:14px;overflow-y:auto}
+.mqd-question{font-size:14px;font-weight:700;color:#f0f6ff;line-height:1.4}
+.mqd-meta-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.mqd-sec-hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06)}
+
+/* Answer options (mobile) */
+.m-answer-list{display:flex;flex-direction:column;gap:6px}
+.m-ao{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.06)}
+.m-ao.correct{border-color:rgba(80,232,144,.3);background:rgba(80,232,144,.04)}
+.m-ao.wrong-correct{border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.04)}
+.mao-letter{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)}
+.m-ao.correct .mao-letter{background:rgba(80,232,144,.2);color:#50e890}
+.m-ao.wrong-correct .mao-letter{background:rgba(248,81,73,.2);color:#f85149}
+.mao-text{font-size:11px;color:#f0f6ff;flex:1;line-height:1.3}
+.mao-tag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px;flex-shrink:0}
+.mao-correct{background:rgba(80,232,144,.15);color:#50e890}
+.mao-wrong{background:rgba(248,81,73,.15);color:#f85149}
+
+/* Error fix box */
+.m-fix-box{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:8px;padding:10px 12px}
+.mfb-title{font-size:10px;font-weight:700;color:#f85149;margin-bottom:4px}
+.mfb-text{font-size:10px;color:rgba(255,255,255,.5);line-height:1.4;font-family:monospace}
+
+/* Stats row */
+.m-stats-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.msr-cell{background:#161c26;border-radius:7px;padding:8px 10px;border:1px solid rgba(255,255,255,.04)}
+.msrc-val{font-size:14px;font-weight:900;color:#f0f6ff;line-height:1}
+.msrc-lbl{font-size:8px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+
+/* Footer action bar */
+.mqd-footer{background:#080c12;border-top:1px solid rgba(255,255,255,.06);padding:10px 16px;display:flex;gap:8px}
+.mqdf-btn{flex:1;padding:10px;border-radius:8px;border:none;font-size:11px;font-weight:700;font-family:system-ui;cursor:pointer}
+.mqdf-edit{background:#50e890;color:#080c12}
+.mqdf-block{background:rgba(248,81,73,.15);color:#f85149}
+
+/* Bottom tab bar */
+.m-bottom-bar{background:#080c12;border-top:1px solid rgba(255,255,255,.08);display:flex;padding:6px 0 10px}
+.mbb-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:4px 0;position:relative}
+.mbb-icon{font-size:18px}
+.mbb-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.35)}
+.mbb-item.active .mbb-label{color:#50e890}
+.mbb-badge{position:absolute;top:2px;right:calc(50% - 18px);background:#f85149;color:#fff;font-size:7px;font-weight:800;padding:1px 3px;border-radius:3px;min-width:12px;text-align:center}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-question-browser-mobile-v2.html</strong><br>
+  Mobile question browser. Single-column list → tap to open full-screen question detail sheet.<br>
+  <strong>Navigation pattern:</strong> List view → tap question → detail sheet (full screen, back arrow). No two-pane layout on mobile.<br>
+  <strong>Detail sheet:</strong> Question text → answer options → fix box (if wrong-answer-as-correct) → stats → error reports → footer action bar (Edit / Block).<br>
+  <strong>Mobile editing constraint:</strong> "Edit" on mobile opens the answer key correction flow only (mark/unmark correct answer). Full question text editing, asset upload, etc. requires desktop.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('list')">Question List</button>
+  <button class="tab-btn" onclick="showTab('detail')">Question Detail</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Question List ──────────────────────────────────────── -->
+<div id="tab-list" class="screen active">
+  <p class="section-title">Mobile question browser — list view, flagged filter</p>
+  <div class="phone">
+    <div class="phone-status"><span class="ps-time">9:41</span><span class="ps-icons">●●● 100%</span></div>
+    <div class="m-hdr">
+      <div class="mh-title">❓ Questions</div>
+      <div class="mh-icons"><span>🔍</span><span>⋯</span></div>
+    </div>
+    <div class="m-chips">
+      <button class="m-chip mc-a">Flagged (8)</button>
+      <button class="m-chip mc-red">Blocked (5)</button>
+      <button class="m-chip mc-amb">Review (3)</button>
+      <button class="m-chip mc-i">All (1,820)</button>
+      <button class="m-chip mc-i" style="color:#9b72ff">P1</button>
+      <button class="m-chip mc-i" style="color:#58e8c1">P2</button>
+    </div>
+    <div class="m-q-list">
+      <div class="m-q-item blocked">
+        <div class="mqt"><span class="mqt-id">QID-3280</span><span class="mqt-type">MCQ</span><span class="mqt-status ms-blocked">Blocked</span></div>
+        <div class="mq-text">Which fraction is equivalent to ¾? Select all that apply.</div>
+        <div class="mq-meta"><span class="mq-band mb-p2">P2</span><span class="mq-subject">Maths · Fractions</span></div>
+        <div class="mq-flag">8 wrong-answer reports · SK-0284</div>
+      </div>
+      <div class="m-q-item blocked">
+        <div class="mqt"><span class="mqt-id">QID-3285</span><span class="mqt-type">MCQ</span><span class="mqt-status ms-blocked">Blocked</span></div>
+        <div class="mq-text">What is ⅔ + ⅙?</div>
+        <div class="mq-meta"><span class="mq-band mb-p2">P2</span><span class="mq-subject">Maths · Fractions</span></div>
+        <div class="mq-flag">5 wrong-answer reports · SK-0284</div>
+      </div>
+      <div class="m-q-item blocked">
+        <div class="mqt"><span class="mqt-id">QID-4012</span><span class="mqt-type">MCQ</span><span class="mqt-status ms-blocked">Blocked</span></div>
+        <div class="mq-text">What is 17 ÷ 3? Write the quotient and remainder.</div>
+        <div class="mq-meta"><span class="mq-band mb-p3">P3</span><span class="mq-subject">Maths · Division</span></div>
+        <div class="mq-flag">Asset 404 · img missing · SK-0291</div>
+      </div>
+      <div class="m-q-item review">
+        <div class="mqt"><span class="mqt-id">QID-2901</span><span class="mqt-type">MCQ</span><span class="mqt-status ms-review">Review</span></div>
+        <div class="mq-text">How many thousands are in the number 4,352?</div>
+        <div class="mq-meta"><span class="mq-band mb-p2">P2</span><span class="mq-subject">Maths · Number Sense</span></div>
+        <div class="mq-warn">Skip rate 68% · SK-0318</div>
+      </div>
+      <div class="m-q-item review">
+        <div class="mqt"><span class="mqt-id">QID-3110</span><span class="mqt-type">True/False</span><span class="mqt-status ms-review">Review</span></div>
+        <div class="mq-text">The author uses a metaphor in this paragraph. True or False?</div>
+        <div class="mq-meta"><span class="mq-band mb-p3">P3</span><span class="mq-subject">Literacy · Reading</span></div>
+        <div class="mq-warn">Abort rate 44% · SK-0325</div>
+      </div>
+      <div class="m-q-item review">
+        <div class="mqt"><span class="mqt-id">QID-1840</span><span class="mqt-type">MCQ</span><span class="mqt-status ms-review">Review</span></div>
+        <div class="mq-text">Which animal lives in a pond habitat?</div>
+        <div class="mq-meta"><span class="mq-band mb-p0">P0</span><span class="mq-subject">Science · Biology</span></div>
+        <div class="mq-warn">2 wrong-answer reports · SK-0197</div>
+      </div>
+    </div>
+    <div class="m-bottom-bar">
+      <div class="mbb-item"><div class="mbb-icon">🏠</div><div class="mbb-label">Home</div></div>
+      <div class="mbb-item"><div class="mbb-icon">⚠️</div><div class="mbb-badge">8</div><div class="mbb-label">Flagged</div></div>
+      <div class="mbb-item active"><div class="mbb-icon">❓</div><div class="mbb-label" style="color:#50e890">Questions</div></div>
+      <div class="mbb-item"><div class="mbb-icon">📖</div><div class="mbb-label">Skills</div></div>
+      <div class="mbb-item"><div class="mbb-icon">⚙️</div><div class="mbb-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Question Detail ───────────────────────────────────── -->
+<div id="tab-detail" class="screen">
+  <p class="section-title">Mobile question detail — QID-3280 (wrong-answer-as-correct)</p>
+  <div class="phone">
+    <div class="phone-status"><span class="ps-time">9:41</span><span class="ps-icons">●●● 100%</span></div>
+    <div class="m-q-detail">
+      <div class="mqd-hdr">
+        <div class="mqd-back">‹</div>
+        <div class="mqd-title">QID-3280 · SK-0284</div>
+        <div class="mqd-actions">
+          <button class="mqd-act mqd-edit">Edit</button>
+          <button class="mqd-act mqd-flag">Flag</button>
+        </div>
+      </div>
+      <div class="mqd-body">
+        <!-- Status bar -->
+        <div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:7px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+          <span style="font-size:12px">🔒</span>
+          <span style="font-size:11px;font-weight:700;color:#f85149">Blocked · Delivery locked · 8 reports</span>
+        </div>
+
+        <!-- Question -->
+        <div>
+          <div class="mqd-sec-hdr" style="margin-bottom:6px">Question</div>
+          <div class="mqd-question">Which fraction is equivalent to ¾? Select all that apply.</div>
+          <div class="mqd-meta-row" style="margin-top:6px">
+            <span class="mq-band mb-p2">P2 G2–3</span>
+            <span style="font-size:9px;color:rgba(255,255,255,.3)">Maths · Fractions · MCQ</span>
+          </div>
+        </div>
+
+        <!-- Answers -->
+        <div>
+          <div class="mqd-sec-hdr" style="margin-bottom:8px">Answer Options</div>
+          <div class="m-answer-list">
+            <div class="m-ao"><div class="mao-letter">A</div><div class="mao-text">6/8</div><span class="mao-tag mao-correct">✓ Correct</span></div>
+            <div class="m-ao wrong-correct"><div class="mao-letter">B</div><div class="mao-text">9/16 (incorrect)</div><span class="mao-tag mao-wrong">⚠ Wrong — marked correct</span></div>
+            <div class="m-ao correct"><div class="mao-letter">C</div><div class="mao-text">12/16</div><span class="mao-tag mao-correct">✓ Correct</span></div>
+            <div class="m-ao"><div class="mao-letter">D</div><div class="mao-text">3/5</div></div>
+          </div>
+        </div>
+
+        <!-- Fix box -->
+        <div class="m-fix-box">
+          <div class="mfb-title">⚠ Fix Required — answer key error</div>
+          <div class="mfb-text">UPDATE question_answers SET is_correct=false WHERE question_id=3280 AND answer_letter='B';<br>→ Full edit requires desktop editor.</div>
+        </div>
+
+        <!-- Stats -->
+        <div>
+          <div class="mqd-sec-hdr" style="margin-bottom:8px">Stats</div>
+          <div class="m-stats-row">
+            <div class="msr-cell"><div class="msrc-val">4,218</div><div class="msrc-lbl">Impressions</div></div>
+            <div class="msr-cell"><div class="msrc-val" style="color:#f59e0b">38%</div><div class="msrc-lbl">Correct Rate</div></div>
+            <div class="msr-cell"><div class="msrc-val" style="color:#f85149">8</div><div class="msrc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Error reports -->
+        <div>
+          <div class="mqd-sec-hdr" style="margin-bottom:8px">Error Reports (8)</div>
+          <div style="background:#161c26;border:1px solid rgba(248,81,73,.15);border-radius:8px;padding:10px 12px;margin-bottom:6px">
+            <div style="font-size:10px;font-weight:700;color:#f85149;margin-bottom:3px">Wrong answer marked as correct</div>
+            <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.4">"Option B is wrong. My students all got it 'right' with the wrong answer."</div>
+            <div style="font-size:9px;color:rgba(255,255,255,.25);margin-top:3px">Teacher, Riverside Elementary · Mar 23</div>
+          </div>
+          <div style="font-size:10px;color:rgba(255,255,255,.25);text-align:center">+ 7 more reports (same issue)</div>
+        </div>
+
+        <!-- Parent skill -->
+        <div>
+          <div class="mqd-sec-hdr" style="margin-bottom:8px">Parent Skill</div>
+          <div style="display:flex;align-items:center;gap:10px;background:#161c26;border-radius:8px;padding:10px 12px;border:1px solid rgba(255,255,255,.05)">
+            <span style="font-size:14px">🔒</span>
+            <div style="flex:1"><div style="font-size:12px;font-weight:700;color:#f0f6ff">Fractions: Mixed Numbers</div><div style="font-size:10px;color:rgba(255,255,255,.3)">SK-0284 · Blocked</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="mqd-footer">
+        <button class="mqdf-btn mqdf-edit">✏️ Edit Answer Key</button>
+        <button class="mqdf-btn mqdf-block">🔒 Re-block</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-question-browser-mobile-v2.html<br>
+      <strong>Mobile question browser.</strong> List → tap → full-screen detail sheet. Wrong-answer-as-correct highlighted red. Mobile edit = answer key correction only (mark/unmark correct). Full edit on desktop.
+    </div>
+    <h2 class="spec-h2">Mobile Navigation Pattern</h2>
+    <p class="spec-p">Mobile uses a list → detail sheet pattern. Tapping a question item opens a full-screen detail view (no two-pane split). Back arrow returns to list. Detail sheet is a modal-style overlay pushed from the right (iOS-style navigation). On Android, back gesture also returns to list.</p>
+    <h2 class="spec-h2">Mobile Edit Constraints</h2>
+    <p class="spec-p">The "Edit Answer Key" action on mobile opens a simplified answer-key-only editor: shows the 4 answer options, allows toggling is_correct on each option. This is the most critical mobile edit case (fixing wrong-answer-as-correct). All other edits (question text, images, audio, skill metadata) require desktop. The mobile edit saves to the same question_answers table as desktop.</p>
+    <h2 class="spec-h2">Fix Reference Box</h2>
+    <p class="spec-p">The SQL fix reference shown in the detail sheet is a read-only hint for engineers reviewing on mobile. The actual fix can be performed either through the mobile edit flow (answer key toggle) or the desktop editor. A note clarifies that full edits require desktop to avoid confusion about what's editable on mobile.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

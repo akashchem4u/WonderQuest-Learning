@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Feedback Workbench Mobile — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;height:780px;border-radius:36px;border:6px solid #0d1117;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.4);position:relative;background:#0d1117;display:flex;flex-direction:column}
+.notch{width:110px;height:26px;background:#0d1117;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0;border:1px solid #1c2128}
+.mob-hdr{background:#010409;padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mh-back{color:rgba(255,255,255,.4);font-size:16px}
+.mh-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.mh-right{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+
+/* Filter chips scroll */
+.filter-scroll{display:flex;gap:6px;padding:8px 12px;overflow-x:auto;flex-shrink:0;background:#010409;border-bottom:1px solid rgba(255,255,255,.05)}
+.fchip{padding:3px 10px;border-radius:8px;font-size:10px;font-weight:700;cursor:pointer;border:none;font-family:system-ui;flex-shrink:0}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-p0{background:rgba(248,81,73,.2);color:#f85149}
+.fc-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.fc-p2{background:rgba(88,232,193,.12);color:#58e8c1}
+.fc-feat{background:rgba(155,114,255,.15);color:#9b72ff}
+
+/* Content */
+.mob-content{flex:1;overflow-y:auto;background:#0d1117;padding:10px 12px}
+
+/* Summary strip */
+.summary-strip{display:flex;gap:6px;margin-bottom:10px}
+.ss-tile{background:#161b22;border-radius:8px;padding:8px 10px;flex:1;border:1px solid rgba(255,255,255,.05);text-align:center}
+.sst-n{font-size:15px;font-weight:900;color:#f0f6ff}
+.sst-l{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.04em}
+
+/* Feedback item card */
+.fb-card{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:7px;border:1px solid rgba(255,255,255,.05);cursor:pointer}
+.fb-card.p0{border-color:rgba(248,81,73,.3);background:rgba(248,81,73,.06)}
+.fb-card.p1{border-color:rgba(245,158,11,.2)}
+.fb-card-top{display:flex;align-items:center;gap:6px;margin-bottom:4px}
+.fb-prio{font-size:9px;font-weight:800;padding:2px 6px;border-radius:4px}
+.fp-p0{background:rgba(248,81,73,.2);color:#f85149}
+.fp-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.fp-p2{background:rgba(80,232,144,.12);color:#50e890}
+.fp-feat{background:rgba(155,114,255,.15);color:#9b72ff}
+.fb-type{font-size:9px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase}
+.fb-age{font-size:9px;color:rgba(255,255,255,.2);margin-left:auto}
+.fb-title{font-size:12px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.fb-school{font-size:10px;color:rgba(255,255,255,.35)}
+.fb-preview{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4;margin-top:3px}
+
+/* Detail panel (full screen overlay feel) */
+.detail-screen .phone{height:860px}
+.det-hdr{background:#010409;padding:0 14px;height:50px;display:flex;align-items:center;gap:10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.det-back{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.det-title{font-size:12px;font-weight:800;color:#f0f6ff;flex:1}
+.det-content{flex:1;overflow-y:auto;background:#0d1117;padding:10px 12px}
+.det-meta{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.dm-row{display:flex;justify-content:space-between;padding:3px 0;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.dm-row:last-child{border-bottom:none}
+.dm-label{color:rgba(255,255,255,.35)}
+.dm-val{color:#f0f6ff;font-weight:600}
+.det-body{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.db-text{font-size:12px;color:rgba(255,255,255,.65);line-height:1.55}
+.reply-area{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.ra-label{font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:6px}
+.ra-textarea{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:8px 10px;font-size:11px;color:#f0f6ff;font-family:system-ui;resize:none;height:70px;outline:none}
+.ra-send{width:100%;margin-top:6px;padding:9px;background:#50e890;color:#010409;border:none;border-radius:7px;font-size:12px;font-weight:800;font-family:system-ui;cursor:pointer}
+.action-bar{display:flex;gap:5px;flex-wrap:wrap}
+.act-btn{flex:1;min-width:0;padding:7px 6px;border-radius:7px;font-size:10px;font-weight:700;font-family:system-ui;border:none;cursor:pointer;text-align:center}
+.ab-resolve{background:rgba(80,232,144,.15);color:#50e890}
+.ab-bump{background:rgba(245,158,11,.12);color:#f59e0b}
+.ab-escalate{background:rgba(248,81,73,.12);color:#f85149}
+.ab-wontfix{background:rgba(255,255,255,.06);color:rgba(255,255,255,.4)}
+.ab-roadmap{background:rgba(155,114,255,.12);color:#9b72ff}
+
+/* Bottom tabs */
+.mob-tabs{background:#010409;height:54px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+.mt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.mt.active .mt-icon,.mt.active .mt-label{color:#50e890}
+.mt-icon{font-size:17px;color:rgba(255,255,255,.3)}
+.mt-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-feedback-workbench-mobile-v2.html</strong><br>
+  Mobile version of the owner feedback workbench. Same queue data as desktop but single-column list → detail navigation.<br>
+  <strong>Layout:</strong> Queue list view (filter chips + summary strip + item cards) → tap item → full detail view (meta / body / reply / actions).<br>
+  <strong>Key rules:</strong> School name shown (not teacher name). Owner reply → platform notification (not email). Priority chips filter the list. P0 items always at top regardless of filter.<br>
+  <strong>Actions on mobile:</strong> All 5 desktop actions available (resolve / bump / escalate / won't fix / add to roadmap) — rendered as a flex-wrap row of compact buttons.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('queue')">Queue List</button>
+  <button class="tab-btn" onclick="showTab('detail')">Item Detail</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Queue List ───────────────────────────────────────────── -->
+<div id="tab-queue" class="screen active">
+  <p class="section-title">Owner feedback workbench — mobile queue</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">←</div>
+      <div class="mh-title">💬 Feedback Queue</div>
+      <div class="mh-right">12 open</div>
+    </div>
+    <div class="filter-scroll">
+      <button class="fchip fc-a">All</button>
+      <button class="fchip fc-p0">P0 Critical</button>
+      <button class="fchip fc-p1">P1 Major</button>
+      <button class="fchip fc-p2">P2 Moderate</button>
+      <button class="fchip fc-feat">Feature</button>
+    </div>
+    <div class="mob-content">
+      <div class="summary-strip">
+        <div class="ss-tile"><div class="sst-n" style="color:#f85149">2</div><div class="sst-l">P0</div></div>
+        <div class="ss-tile"><div class="sst-n" style="color:#f59e0b">4</div><div class="sst-l">P1</div></div>
+        <div class="ss-tile"><div class="sst-n" style="color:#50e890">6</div><div class="sst-l">P2–P3</div></div>
+        <div class="ss-tile"><div class="sst-n" style="color:#9b72ff">8</div><div class="sst-l">Feature</div></div>
+      </div>
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin-bottom:6px">P0 — Critical</div>
+
+      <div class="fb-card p0">
+        <div class="fb-card-top">
+          <span class="fb-prio fp-p0">P0</span>
+          <span class="fb-type">Bug</span>
+          <span class="fb-age">2h ago</span>
+        </div>
+        <div class="fb-title">Students can't log in — SSO token expired</div>
+        <div class="fb-school">🏫 Riverside Elementary · Teacher role</div>
+        <div class="fb-preview">Entire class locked out since 8am. SSO keeps saying "session expired" immediately after login.</div>
+      </div>
+
+      <div class="fb-card p0">
+        <div class="fb-card-top">
+          <span class="fb-prio fp-p0">P0</span>
+          <span class="fb-type">Bug</span>
+          <span class="fb-age">5h ago</span>
+        </div>
+        <div class="fb-title">Assignment engine silent-failing — no tasks delivered</div>
+        <div class="fb-school">🏫 Lincoln Academy · Teacher role</div>
+        <div class="fb-preview">Assigned skills yesterday, students see empty session today. No error shown to students.</div>
+      </div>
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin:10px 0 6px">P1 — Major</div>
+
+      <div class="fb-card p1">
+        <div class="fb-card-top">
+          <span class="fb-prio fp-p1">P1</span>
+          <span class="fb-type">Content</span>
+          <span class="fb-age">1d ago</span>
+        </div>
+        <div class="fb-title">Wrong answer flagged as correct in G3 Fractions</div>
+        <div class="fb-school">🏫 Maplewood School · Teacher role</div>
+        <div class="fb-preview">Students selecting 3/4 for "What is 1/2 of 3/4?" — being marked correct. Reproducible.</div>
+      </div>
+
+      <div class="fb-card p1">
+        <div class="fb-card-top">
+          <span class="fb-prio fp-p1">P1</span>
+          <span class="fb-type">Bug</span>
+          <span class="fb-age">1d ago</span>
+        </div>
+        <div class="fb-title">Support queue badge not updating — shows stale count</div>
+        <div class="fb-school">🏫 Oak Park Prep · Teacher role</div>
+        <div class="fb-preview">Resolved interventions still showing in queue badge count. Refreshing doesn't help.</div>
+      </div>
+
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin:10px 0 6px">Feature Requests</div>
+
+      <div class="fb-card">
+        <div class="fb-card-top">
+          <span class="fb-prio fp-feat">Feature</span>
+          <span class="fb-type">Feature</span>
+          <span class="fb-age">3d ago</span>
+        </div>
+        <div class="fb-title">Export class progress as PDF one-click</div>
+        <div class="fb-school">🏫 Cedar Grove · Teacher role</div>
+        <div class="fb-preview">Would save hours at parent-teacher conferences. We screenshot it now but a PDF button would be great.</div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt active"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Item Detail ──────────────────────────────────────────── -->
+<div id="tab-detail" class="screen detail-screen">
+  <p class="section-title">Owner feedback workbench — item detail view</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="det-hdr">
+      <div class="det-back">← Queue</div>
+      <div class="det-title">Bug #FB-2041</div>
+    </div>
+    <div class="det-content">
+      <div class="det-meta">
+        <div class="dm-row"><div class="dm-label">Priority</div><div class="dm-val" style="color:#f85149">P0 Critical</div></div>
+        <div class="dm-row"><div class="dm-label">Type</div><div class="dm-val">Bug</div></div>
+        <div class="dm-row"><div class="dm-label">School</div><div class="dm-val">Riverside Elementary</div></div>
+        <div class="dm-row"><div class="dm-label">Role</div><div class="dm-val">Teacher</div></div>
+        <div class="dm-row"><div class="dm-label">Submitted</div><div class="dm-val">Today, 8:14 AM</div></div>
+        <div class="dm-row"><div class="dm-label">Auto-triage</div><div class="dm-val">→ #on-call Slack</div></div>
+      </div>
+
+      <div class="det-body">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:6px">Feedback</div>
+        <div class="db-text">Students can't log in — SSO token expired. Entire class locked out since 8am. SSO keeps saying "session expired" immediately after login. We have a live class right now and can't access the platform at all. This is a critical blocker for our lesson today.</div>
+      </div>
+
+      <div class="reply-area">
+        <div class="ra-label">Owner Reply</div>
+        <textarea class="ra-textarea" placeholder="Your reply goes to the teacher's notification panel (not email)…"></textarea>
+        <button class="ra-send">Send Reply via Platform Notification</button>
+      </div>
+
+      <div class="det-body">
+        <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:8px">Actions</div>
+        <div class="action-bar">
+          <button class="act-btn ab-resolve">✓ Resolve</button>
+          <button class="act-btn ab-bump">↑ Bump</button>
+          <button class="act-btn ab-escalate">🚨 Escalate</button>
+          <button class="act-btn ab-wontfix">✗ Won't Fix</button>
+          <button class="act-btn ab-roadmap">🗺 Roadmap</button>
+        </div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt active"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-feedback-workbench-mobile-v2.html<br>
+      <strong>Mobile version of feedback workbench.</strong> List → detail navigation pattern. All same data and actions as desktop — compressed for single-column.
+    </div>
+    <h2 class="spec-h2">Navigation Pattern</h2>
+    <p class="spec-p">Queue list is the default view (reached via Feedback tab in bottom nav). Tapping a feedback card pushes to full-screen detail view. Back arrow returns to queue. Deep links from push notifications open directly to item detail.</p>
+    <h2 class="spec-h2">Privacy Rules</h2>
+    <p class="spec-p">School name (and teacher role) shown in both list and detail views. Individual teacher name is NOT shown. Owner reply is delivered via platform notification panel — not email or SMS. Reply textarea placeholder reinforces this rule.</p>
+    <h2 class="spec-h2">P0 Behaviour on Mobile</h2>
+    <p class="spec-p">P0 items are always shown at top of list regardless of active filter. Push notification for P0 items fires immediately on submission (FCM/APNs). P0 banner also shown on owner home screen (non-dismissible).</p>
+    <h2 class="spec-h2">Actions</h2>
+    <p class="spec-p">All 5 actions available: Resolve (closes item, optional note) / Bump priority (P3→P2→P1→P0) / Escalate to on-call (fires PagerDuty) / Won't Fix (requires reason) / Add to Roadmap (links to roadmap ticket). Actions are flex-wrap row of compact buttons fitting mobile width.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

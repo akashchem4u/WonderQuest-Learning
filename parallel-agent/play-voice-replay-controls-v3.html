@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-voice-replay-controls-v3.html
+  ======================================================
+  Voice replay controls component library.
+  Five tabs: Default Buttons / Playing State / Slow Mode / Band Variants / Spec
+  - Replay button: 🔊 with text, flex:1 in bottom bar
+  - Playing state: pulsing ring animation, bars animate, button label changes to "Playing…"
+  - Slow mode: 🐢 Slow button toggles slow TTS speed for accessibility
+  - Speed variants: normal / slow / very-slow (child voice setting from preferences)
+  - Auto-show slow button after child taps replay 2+ times (adaptive hint)
+  - Replay always available — never disabled
+  - Playing state dims answer cards (listen-first, same as coach overlay)
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Voice Replay Controls v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --wrong: #ff7b6b;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 16px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .demo-wrap { max-width: 680px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.72rem; font-weight: 900; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin: 22px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #2a2050;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ===== REPLAY BUTTON VARIANTS ===== */
+
+  /* Base bottom bar */
+  .bottom-bar-demo {
+    background: var(--card); border-radius: 16px; border: 1px solid #2a2050;
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 8px;
+    max-width: 390px;
+  }
+
+  .btn-row { display: flex; gap: 8px; }
+
+  /* Replay button — default */
+  .btn-replay {
+    flex: 1; padding: 10px 8px; border-radius: 12px;
+    background: #2a2050; color: var(--violet); border: 1px solid #3a3060;
+    font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-replay:hover { background: #3a3070; }
+
+  /* Replay — playing state */
+  .btn-replay.playing {
+    background: #2a2050; color: var(--correct); border-color: rgba(80,232,144,0.3);
+    position: relative; overflow: hidden;
+    animation: replay-pulse 1s ease-in-out infinite;
+  }
+  .btn-replay.playing::before {
+    content: ''; position: absolute; inset: 0;
+    background: rgba(80,232,144,0.06);
+    animation: replay-shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes replay-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(80,232,144,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(80,232,144,0); }
+  }
+  @keyframes replay-shimmer {
+    0% { opacity: 0; }
+    50% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Slow mode toggle */
+  .btn-slow {
+    flex: 1; padding: 10px 8px; border-radius: 12px;
+    background: rgba(88,232,193,0.08); color: var(--mint);
+    border: 1px solid rgba(88,232,193,0.2);
+    font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-slow.active {
+    background: rgba(88,232,193,0.18); border-color: var(--mint);
+    box-shadow: 0 0 8px rgba(88,232,193,0.25);
+  }
+
+  /* Hint + IDK */
+  .btn-hint {
+    flex: 1; padding: 10px 8px; border-radius: 12px;
+    background: rgba(155,114,255,0.1); color: var(--violet);
+    border: 1px solid rgba(155,114,255,0.25);
+    font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-idk {
+    flex: 1; padding: 10px 8px; border-radius: 12px;
+    background: transparent; color: var(--wrong);
+    border: 2px solid rgba(255,123,107,0.3);
+    font-family: inherit; font-size: 0.82rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+
+  /* Wave bars visualization on replay button */
+  .replay-waves {
+    display: flex; align-items: flex-end; gap: 2px; height: 14px;
+  }
+  .rw-bar {
+    width: 3px; border-radius: 2px; background: var(--correct);
+    animation: wave-dance var(--dur) ease-in-out infinite alternate;
+    min-height: 3px;
+  }
+  .rw-bar:nth-child(1) { --dur: 0.5s; --max-h: 10px; animation-delay: 0s; }
+  .rw-bar:nth-child(2) { --dur: 0.35s; --max-h: 14px; animation-delay: 0.08s; }
+  .rw-bar:nth-child(3) { --dur: 0.6s; --max-h: 8px; animation-delay: 0.04s; }
+  @keyframes wave-dance {
+    0% { height: 3px; }
+    100% { height: var(--max-h, 10px); }
+  }
+
+  /* Adaptive slow suggestion */
+  .slow-suggestion {
+    background: rgba(88,232,193,0.07); border: 1px solid rgba(88,232,193,0.18);
+    border-radius: 10px; padding: 8px 12px;
+    font-size: 0.78rem; font-weight: 700; color: var(--mint);
+    display: flex; align-items: center; gap: 6px;
+    animation: slide-in 0.3s ease-out;
+  }
+  @keyframes slide-in {
+    0% { opacity: 0; transform: translateY(6px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 680px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-mint { background: #58e8c1; color: #0a2a22; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🔊 Play · Voice Replay Controls</h1>
+<p class="subtitle">v3 · Bottom bar component · Default / Playing / Slow Mode / Bands</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('default')">Default Buttons</button>
+  <button class="tab-btn" onclick="showTab('playing')">Playing State</button>
+  <button class="tab-btn" onclick="showTab('slow')">Slow Mode</button>
+  <button class="tab-btn" onclick="showTab('bands')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== DEFAULT ===== -->
+<div id="tab-default" class="screen active">
+  <div class="demo-wrap">
+    <div class="section-label">Standard 3-button bottom bar</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+    </div>
+
+    <div class="section-label">With slow mode button (after 2+ replays — adaptive)</div>
+    <div class="bottom-bar-demo">
+      <div class="slow-suggestion">
+        🐢 Tap "Slow" to hear it at a slower speed
+      </div>
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-slow">🐢 Slow</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">Reading scene (Re-read replaces Replay)</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay" style="color: var(--mint); border-color: rgba(88,232,193,0.2);">📖 Re-read</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== PLAYING STATE ===== -->
+<div id="tab-playing" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">Replay button — playing state</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay playing">
+          <div class="replay-waves">
+            <div class="rw-bar"></div>
+            <div class="rw-bar"></div>
+            <div class="rw-bar"></div>
+          </div>
+          Playing…
+        </button>
+        <button class="btn-hint" style="opacity:0.4; cursor:default;" disabled>💡 Hint</button>
+        <button class="btn-idk" style="opacity:0.4; cursor:default;" disabled>🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">Playing state — note</div>
+    <div style="background: #1a1440; border-radius: 12px; padding: 12px 14px; max-width: 390px;">
+      <p style="font-size: 0.82rem; font-weight: 700; color: var(--muted); line-height: 1.5;">
+        During playback: Replay label changes to "Playing…" with wave bars. Hint and IDK buttons dimmed (not disabled — in case child taps during speech). Answer cards 35% opacity (listen mode).
+      </p>
+      <p style="font-size: 0.82rem; font-weight: 700; color: var(--correct); margin-top: 8px; line-height: 1.5;">
+        After playback ends: all buttons restore to normal, answer cards restore to full opacity.
+      </p>
+    </div>
+
+    <div class="section-label">Slow mode playing state</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay playing">
+          <div class="replay-waves">
+            <div class="rw-bar"></div>
+            <div class="rw-bar"></div>
+            <div class="rw-bar"></div>
+          </div>
+          Slow…
+        </button>
+        <button class="btn-slow active">🐢 Slow ✓</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SLOW MODE ===== -->
+<div id="tab-slow" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">Slow mode toggle — off</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-slow">🐢 Slow</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">Slow mode toggle — ON</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-slow active">🐢 Slow ✓</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">Adaptive slow suggestion (shown after 2nd replay tap)</div>
+    <div class="bottom-bar-demo">
+      <div class="slow-suggestion">
+        🐢 Want to hear it more slowly?
+      </div>
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-slow">🐢 Slow</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">Speed indicator chip (shown when slow mode active)</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; max-width:390px;">
+      <div style="background:rgba(88,232,193,0.1); border: 1px solid rgba(88,232,193,0.3); border-radius:20px; padding:4px 12px; font-size:0.75rem; font-weight:900; color:var(--mint);">🐢 Slow speed ON</div>
+      <div style="background:rgba(155,114,255,0.1); border: 1px solid rgba(155,114,255,0.3); border-radius:20px; padding:4px 12px; font-size:0.75rem; font-weight:900; color:var(--violet);">Normal speed</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BAND VARIANTS ===== -->
+<div id="tab-bands" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">Pre-K Gold — large replay, 2 buttons</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay" style="color:var(--gold); background:rgba(255,209,102,0.1); border-color:rgba(255,209,102,0.25); flex:2;">🔊 Replay</button>
+        <button class="btn-idk" style="flex:1;">🤷 IDK</button>
+      </div>
+    </div>
+
+    <div class="section-label">K-1 Violet — standard 3-button</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+    </div>
+
+    <div class="section-label">G2-3 Mint — re-read replaces replay</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay" style="color:var(--mint); background:#162a22; border-color:rgba(88,232,193,0.2);">📖 Re-read</button>
+        <button class="btn-hint" style="color:var(--mint); background:rgba(88,232,193,0.1); border-color:rgba(88,232,193,0.25);">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+    </div>
+
+    <div class="section-label">G4-5 Coral — re-read + hint</div>
+    <div class="bottom-bar-demo">
+      <div class="btn-row">
+        <button class="btn-replay" style="color:var(--coral); background:#1a0e0a; border-color:rgba(255,123,107,0.2);">📖 Re-read</button>
+        <button class="btn-hint" style="color:var(--coral); background:rgba(255,123,107,0.1); border-color:rgba(255,123,107,0.25);">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-voice-replay-controls-v3 · Engineering Spec</h2>
+
+    <h3>Replay Button</h3>
+    <ul>
+      <li>Default: <code>background: #2a2050; color: #9b72ff; border: 1px solid #3a3060</code></li>
+      <li>Playing: adds <code>.playing</code> class → green color, pulse ring animation, label → "Playing…" + wave bars</li>
+      <li>Playing state dims (but does NOT disable) Hint and IDK buttons — child can still tap</li>
+      <li>Replay is NEVER disabled — always accessible even mid-playback (tapping restarts audio)</li>
+    </ul>
+
+    <h3>Slow Mode Button</h3>
+    <ul>
+      <li>Hidden by default. Appears after child taps Replay 2+ times (adaptive behavior).</li>
+      <li>Also shown if child has "Slow" speed preference set in voice preferences</li>
+      <li>Toggle: off = <code>rgba(88,232,193,0.08)</code> bg; on = <code>rgba(88,232,193,0.18)</code> bg + mint border + box-shadow</li>
+      <li>When slow ON: all subsequent replays play at 0.75× TTS speed until toggled off</li>
+    </ul>
+
+    <h3>Adaptive Slow Suggestion</h3>
+    <ul>
+      <li>After 2nd consecutive replay tap without answering: show slide-in mint banner "Want to hear it more slowly?"</li>
+      <li>Shows the Slow button if not already visible</li>
+      <li>Banner dismisses on any answer tap or scroll</li>
+    </ul>
+
+    <h3>Re-read vs Replay</h3>
+    <ul>
+      <li>🔊 Replay: audio scenes (Pre-K sound, phonics, K-1 all scenes) — re-speaks the question</li>
+      <li>📖 Re-read: text-primary reading scenes (G2-3, G4-5) — scrolls passage into view + flashes highlight</li>
+      <li>Same button position, same flex:1 sizing — only label + color changes by band</li>
+    </ul>
+
+    <h3>Button Layout Rules</h3>
+    <ul>
+      <li>Standard: 3 buttons, <code>flex:1</code> each — Replay / Hint / IDK</li>
+      <li>Pre-K: 2 buttons — Replay (flex:2) / IDK (flex:1) — Hint removed at Pre-K (too abstract)</li>
+      <li>With slow: 4 buttons — Replay / Slow / Hint / IDK (each flex:1, smaller font if needed)</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

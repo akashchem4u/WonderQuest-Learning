@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Alpha Readiness Dashboard — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui}
+.sh-btn-pri{background:#50e890;color:#080c12}
+.sh-btn-sec{background:rgba(255,255,255,.07);color:#f0f6ff}
+
+/* Hero score */
+.hero{padding:24px;border-bottom:1px solid rgba(255,255,255,.06);display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;align-items:center}
+.hero-score-wrap{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}
+.hero-score{font-size:56px;font-weight:900;line-height:1}
+.hero-max{font-size:20px;color:rgba(255,255,255,.3);align-self:flex-end;margin-bottom:6px}
+.hero-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:6px}
+.hero-verdict{font-size:12px;font-weight:800}
+.hv-ready{color:#50e890}
+.hv-warn{color:#f59e0b}
+.hv-not{color:#f85149}
+.hero-bar-track{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:8px}
+.hero-bar-fill{height:100%;border-radius:3px}
+
+/* Category cards (middle column) */
+.cat-col{display:flex;flex-direction:column;gap:6px}
+.cat-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#161c26;border-radius:7px;border:1px solid rgba(255,255,255,.04)}
+.ctr-name{font-size:11px;font-weight:700;color:#f0f6ff;flex:1}
+.ctr-score{font-size:11px;font-weight:800}
+.ctr-bar{width:80px;height:3px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;flex-shrink:0}
+.ctrb-fill{height:100%;border-radius:2px}
+
+/* Metric cards (right column) */
+.metric-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.metric-card{background:#161c26;border-radius:7px;padding:10px 12px;border:1px solid rgba(255,255,255,.04)}
+.mc-val{font-size:16px;font-weight:900;color:#f0f6ff;line-height:1}
+.mc-lbl{font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+
+/* Body layout */
+.body-grid{display:grid;grid-template-columns:1fr 300px;min-height:400px}
+.main-col{padding:20px 24px;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;gap:14px}
+.sidebar-col{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.sec-hdr{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.06);margin-bottom:8px}
+
+/* Band readiness table */
+.band-table{width:100%;border-collapse:collapse}
+.bt-hdr td{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.2);padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.06)}
+.bt-row td{padding:9px 10px;font-size:11px;border-bottom:1px solid rgba(255,255,255,.04)}
+.bt-row:hover td{background:rgba(255,255,255,.015)}
+.bt-band{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px}
+.bb-p0{background:rgba(255,209,102,.12);color:#ffd166}
+.bb-p1{background:rgba(155,114,255,.1);color:#9b72ff}
+.bb-p2{background:rgba(88,232,193,.08);color:#58e8c1}
+.bb-p3{background:rgba(255,123,107,.1);color:#ff7b6b}
+.bt-progress{display:flex;align-items:center;gap:8px}
+.btp-track{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden;min-width:80px}
+.btp-fill{height:100%;border-radius:2px}
+.btp-val{font-size:10px;font-weight:700;color:#f0f6ff;min-width:32px;text-align:right}
+
+/* Status pills */
+.sp{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px}
+.sp-ready{background:rgba(80,232,144,.12);color:#50e890}
+.sp-partial{background:rgba(245,158,11,.1);color:#f59e0b}
+.sp-behind{background:rgba(248,81,73,.12);color:#f85149}
+
+/* Blockers list */
+.blocker-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.blocker-item:last-child{border-bottom:none}
+.bi-prio{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:1px}
+.bip-p0{background:rgba(248,81,73,.2);color:#f85149}
+.bip-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.bi-title{font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:2px}
+.bi-sub{font-size:10px;color:rgba(255,255,255,.4);line-height:1.4}
+
+/* Timeline */
+.timeline-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.timeline-row:last-child{border-bottom:none}
+.tr-date{font-size:10px;color:rgba(255,255,255,.35);min-width:60px;flex-shrink:0;font-weight:700}
+.tr-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tr-body{flex:1}
+.tr-title{font-size:11px;font-weight:700;color:#f0f6ff}
+.tr-sub{font-size:9px;color:rgba(255,255,255,.35)}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-alpha-readiness-dashboard-v3.html</strong><br>
+  Aggregate alpha content readiness dashboard — "is the content library ready for alpha/beta student testing?"<br>
+  <strong>Alpha vs Beta vs GA:</strong> Alpha = internal testing with a handful of teacher testers (no real student data). Beta = pilot schools (real students, limited). GA = general availability.<br>
+  <strong>Score:</strong> Coverage completeness (25) + Question quality (25) + Asset readiness (20) + Review pipeline health (20) + Risk score (10) = 100. Alpha threshold = 70. Beta threshold = 80. GA threshold = 90.<br>
+  <strong>Different from Skill Publish Readiness:</strong> Per-skill publish readiness tracks individual skills. Alpha Readiness is an aggregate assessment of the ENTIRE content library for a given band + milestone.<br>
+  <strong>Bands:</strong> Each band assessed independently — P0 may be alpha-ready while P3 is not.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('dashboard')">Alpha Readiness</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Dashboard ──────────────────────────────────────────── -->
+<div id="tab-dashboard" class="screen active">
+  <p class="section-title">Alpha readiness dashboard — v2.6 release · Apr 25 target</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">🎯 Content Alpha Readiness — v2.6 "Band Expansion"</div>
+      <div class="sh-right">
+        <button class="sh-btn sh-btn-sec">↓ Export Report</button>
+        <button class="sh-btn sh-btn-pri">Share with Owner →</button>
+      </div>
+    </div>
+
+    <!-- Hero -->
+    <div class="hero">
+      <div>
+        <div class="hero-label">Overall Readiness Score</div>
+        <div class="hero-score-wrap">
+          <div class="hero-score" style="color:#f59e0b">78</div>
+          <div class="hero-max">/ 100</div>
+        </div>
+        <div class="hero-verdict hv-warn">⚠ Beta-approaching — P3 content behind target</div>
+        <div class="hero-bar-track">
+          <div class="hero-bar-fill" style="width:78%;background:linear-gradient(90deg,#f59e0b,#ffd166)"></div>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:8px;font-size:10px;color:rgba(255,255,255,.3)">
+          <span>Alpha ≥70 ✓</span>
+          <span style="color:#f59e0b">Beta ≥80 — 2 pts away</span>
+          <span>GA ≥90</span>
+        </div>
+      </div>
+
+      <!-- Category scores -->
+      <div class="cat-col">
+        <div class="cat-row">
+          <div class="ctr-name">Coverage</div>
+          <div class="ctr-score" style="color:#50e890">20/25</div>
+          <div class="ctr-bar"><div class="ctrb-fill" style="width:80%;background:#50e890"></div></div>
+        </div>
+        <div class="cat-row">
+          <div class="ctr-name">Question Quality</div>
+          <div class="ctr-score" style="color:#50e890">22/25</div>
+          <div class="ctr-bar"><div class="ctrb-fill" style="width:88%;background:#50e890"></div></div>
+        </div>
+        <div class="cat-row">
+          <div class="ctr-name">Asset Readiness</div>
+          <div class="ctr-score" style="color:#f59e0b">14/20</div>
+          <div class="ctr-bar"><div class="ctrb-fill" style="width:70%;background:#f59e0b"></div></div>
+        </div>
+        <div class="cat-row">
+          <div class="ctr-name">Review Pipeline</div>
+          <div class="ctr-score" style="color:#f59e0b">14/20</div>
+          <div class="ctr-bar"><div class="ctrb-fill" style="width:70%;background:#f59e0b"></div></div>
+        </div>
+        <div class="cat-row">
+          <div class="ctr-name">Risk Score</div>
+          <div class="ctr-score" style="color:#f85149">8/10</div>
+          <div class="ctr-bar"><div class="ctrb-fill" style="width:80%;background:#50e890"></div></div>
+        </div>
+      </div>
+
+      <!-- Metric grid -->
+      <div class="metric-grid">
+        <div class="metric-card">
+          <div class="mc-val">284</div>
+          <div class="mc-lbl">Total Skills</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-val" style="color:#50e890">276</div>
+          <div class="mc-lbl">Live</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-val" style="color:#9b72ff">11</div>
+          <div class="mc-lbl">Draft (v2.6)</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-val" style="color:#f85149">3</div>
+          <div class="mc-lbl">Blocked</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-val">8</div>
+          <div class="mc-lbl">Flagged</div>
+        </div>
+        <div class="metric-card">
+          <div class="mc-val" style="color:#f59e0b">74%</div>
+          <div class="mc-lbl">Coverage</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="body-grid">
+      <div class="main-col">
+
+        <!-- Band readiness table -->
+        <div>
+          <div class="sec-hdr">Band-Level Readiness</div>
+          <table class="band-table">
+            <tr class="bt-hdr">
+              <td>Band</td>
+              <td>Skills</td>
+              <td>Coverage</td>
+              <td>Quality</td>
+              <td>Review pipeline</td>
+              <td>Status</td>
+            </tr>
+            <tr class="bt-row">
+              <td><span class="bt-band bb-p0">P0 Pre-K</span></td>
+              <td style="color:#f0f6ff;font-weight:700">68</td>
+              <td>
+                <div class="bt-progress">
+                  <div class="btp-track"><div class="btp-fill" style="width:95%;background:#50e890"></div></div>
+                  <span class="btp-val" style="color:#50e890">95%</span>
+                </div>
+              </td>
+              <td style="color:#50e890;font-weight:700">High</td>
+              <td style="color:#50e890;font-weight:700">All reviewed</td>
+              <td><span class="sp sp-ready">GA Ready</span></td>
+            </tr>
+            <tr class="bt-row">
+              <td><span class="bt-band bb-p1">P1 K–1</span></td>
+              <td style="color:#f0f6ff;font-weight:700">82</td>
+              <td>
+                <div class="bt-progress">
+                  <div class="btp-track"><div class="btp-fill" style="width:88%;background:#50e890"></div></div>
+                  <span class="btp-val" style="color:#50e890">88%</span>
+                </div>
+              </td>
+              <td style="color:#50e890;font-weight:700">High</td>
+              <td style="color:#f59e0b;font-weight:700">2 awaiting review</td>
+              <td><span class="sp sp-ready">Beta Ready</span></td>
+            </tr>
+            <tr class="bt-row">
+              <td><span class="bt-band bb-p2">P2 G2–3</span></td>
+              <td style="color:#f0f6ff;font-weight:700">96</td>
+              <td>
+                <div class="bt-progress">
+                  <div class="btp-track"><div class="btp-fill" style="width:82%;background:#50e890"></div></div>
+                  <span class="btp-val" style="color:#50e890">82%</span>
+                </div>
+              </td>
+              <td style="color:#f59e0b;font-weight:700">Med (3 blocked)</td>
+              <td style="color:#f59e0b;font-weight:700">5 awaiting review</td>
+              <td><span class="sp sp-partial">Beta Partial</span></td>
+            </tr>
+            <tr class="bt-row">
+              <td><span class="bt-band bb-p3">P3 G4–5</span></td>
+              <td style="color:#f0f6ff;font-weight:700">38</td>
+              <td>
+                <div class="bt-progress">
+                  <div class="btp-track"><div class="btp-fill" style="width:42%;background:#f85149"></div></div>
+                  <span class="btp-val" style="color:#f85149">42%</span>
+                </div>
+              </td>
+              <td style="color:#f59e0b;font-weight:700">Med</td>
+              <td style="color:#f85149;font-weight:700">11 draft pending</td>
+              <td><span class="sp sp-behind">Alpha Only</span></td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Blockers -->
+        <div>
+          <div class="sec-hdr">Active Blockers (4)</div>
+          <div class="blocker-item">
+            <div class="bi-prio bip-p0">P0</div>
+            <div>
+              <div class="bi-title">P3 coverage below beta threshold (42% vs 70% target)</div>
+              <div class="bi-sub">11 draft skills awaiting curriculum review. v2.6 target is 60+ P3 skills. Currently 38 live. Blocks beta readiness for P3 band.</div>
+            </div>
+          </div>
+          <div class="blocker-item">
+            <div class="bi-prio bip-p0">P0</div>
+            <div>
+              <div class="bi-title">3 skills blocked — delivery_locked (SK-0284, SK-0291, SK-0302)</div>
+              <div class="bi-sub">Blocked skills reduce effective P2 and P1 coverage. Fix required (answer key / asset) before unblock.</div>
+            </div>
+          </div>
+          <div class="blocker-item">
+            <div class="bi-prio bip-p1">P1</div>
+            <div>
+              <div class="bi-title">Review pipeline backlog — 18 skills awaiting curriculum review</div>
+              <div class="bi-sub">Curriculum review capacity is 5 skills/day. At current rate, all 11 new P3 draft skills reviewed by Apr 19. Gate check scheduled Apr 21.</div>
+            </div>
+          </div>
+          <div class="blocker-item">
+            <div class="bi-prio bip-p1">P1</div>
+            <div>
+              <div class="bi-title">Asset completeness — 1 missing image across P2 skills</div>
+              <div class="bi-sub">img_vol_01.png unreachable (Measurement: Volume). Skill can be delivered without image but experience is degraded. Upload ETA: Apr 16.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Progress timeline -->
+        <div>
+          <div class="sec-hdr">Content Milestones — v2.6</div>
+          <div>
+            <div class="timeline-row">
+              <div class="tr-date">Apr 14</div>
+              <div class="tr-dot" style="background:#50e890"></div>
+              <div class="tr-body"><div class="tr-title">Bulk import complete — 11 P3 draft skills created</div><div class="tr-sub">92 questions imported</div></div>
+            </div>
+            <div class="timeline-row">
+              <div class="tr-date">Apr 19</div>
+              <div class="tr-dot" style="background:#f59e0b"></div>
+              <div class="tr-body"><div class="tr-title">Curriculum review deadline — all draft skills</div><div class="tr-sub">Target: all 11 P3 skills reviewed and publish-ready</div></div>
+            </div>
+            <div class="timeline-row">
+              <div class="tr-date">Apr 21</div>
+              <div class="tr-dot" style="background:#f59e0b"></div>
+              <div class="tr-body"><div class="tr-title">Release gate check #1 — content category scored</div><div class="tr-sub">Target score: 18/20 content category</div></div>
+            </div>
+            <div class="timeline-row">
+              <div class="tr-date">Apr 25</div>
+              <div class="tr-dot" style="background:#9b72ff"></div>
+              <div class="tr-body"><div class="tr-title">v2.6 GA launch — all new P3 skills live</div><div class="tr-sub">Band Expansion: 40 new P3 skills target</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sidebar -->
+      <div class="sidebar-col">
+        <div style="background:#161c26;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:6px">Readiness Thresholds</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#50e890;flex-shrink:0"></div>
+              <div style="font-size:10px;color:rgba(255,255,255,.5);flex:1">Alpha (internal testing)</div>
+              <div style="font-size:10px;font-weight:700;color:#50e890">≥ 70 ✓</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div>
+              <div style="font-size:10px;color:rgba(255,255,255,.5);flex:1">Beta (pilot schools)</div>
+              <div style="font-size:10px;font-weight:700;color:#f59e0b">≥ 80 (78 now)</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              <div style="width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0"></div>
+              <div style="font-size:10px;color:rgba(255,255,255,.5);flex:1">GA (all schools)</div>
+              <div style="font-size:10px;font-weight:700;color:rgba(255,255,255,.4)">≥ 90</div>
+            </div>
+          </div>
+        </div>
+        <div style="background:#161c26;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:8px">Review Pipeline</div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;justify-content:space-between;font-size:10px">
+              <span style="color:rgba(255,255,255,.4)">Skills in review queue</span>
+              <span style="color:#f0f6ff;font-weight:700">18</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px">
+              <span style="color:rgba(255,255,255,.4)">Curriculum capacity/day</span>
+              <span style="color:#f0f6ff;font-weight:700">5 skills</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px">
+              <span style="color:rgba(255,255,255,.4)">Days to clear queue</span>
+              <span style="color:#f59e0b;font-weight:700">~4 days</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:10px">
+              <span style="color:rgba(255,255,255,.4)">Est. clear date</span>
+              <span style="color:#50e890;font-weight:700">Apr 19 ✓</span>
+            </div>
+          </div>
+        </div>
+        <div style="background:#161c26;border-radius:8px;padding:12px 14px;border:1px solid rgba(255,255,255,.05)">
+          <div style="font-size:11px;font-weight:700;color:#f0f6ff;margin-bottom:8px">Quick Actions</div>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <button style="background:rgba(80,232,144,.1);border:none;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;color:#50e890;font-family:system-ui;cursor:pointer;text-align:left">→ Review P3 Draft Skills</button>
+            <button style="background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);font-family:system-ui;cursor:pointer;text-align:left">→ Fix Blocked Skills (3)</button>
+            <button style="background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);font-family:system-ui;cursor:pointer;text-align:left">→ Upload Missing Assets</button>
+            <button style="background:rgba(255,255,255,.05);border:none;border-radius:6px;padding:8px 12px;font-size:11px;font-weight:700;color:rgba(255,255,255,.5);font-family:system-ui;cursor:pointer;text-align:left">→ Coverage Map</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-alpha-readiness-dashboard-v3.html<br>
+      <strong>Aggregate content readiness dashboard.</strong> 5 categories (Coverage/Quality/Assets/Review Pipeline/Risk = 100). Thresholds: Alpha ≥70, Beta ≥80, GA ≥90. Per-band readiness table. Active blockers. Content milestones timeline.
+    </div>
+    <h2 class="spec-h2">Alpha vs Beta vs GA Content Thresholds</h2>
+    <p class="spec-p">Alpha (≥70): Internal testing with teacher testers. Content can have gaps and some blocked skills. Focus on testing the delivery engine and UX, not complete curriculum coverage. Beta (≥80): Pilot schools with real students. Must have minimum viable coverage per band. Blocked skills should be resolved or the affected band marked as limited. GA (≥90): General availability. All bands should have good-to-full coverage. No critical content gaps.</p>
+    <h2 class="spec-h2">Per-Band Readiness</h2>
+    <p class="spec-p">Each band is assessed independently. P0/P1 may be GA-ready while P3 is still Alpha-only. This allows phased rollout: e.g., open all bands to beta schools but communicate that Grade 4–5 content (P3) is still expanding. Beta launch notes to pilot schools explain content depth per band.</p>
+    <h2 class="spec-h2">Score Calculation</h2>
+    <p class="spec-p">Coverage (25): weighted average of topic coverage cells across all bands. Quality (25): % of skills with no blocking error reports. Assets (20): % of skills with all assets present. Review Pipeline (20): % of backlogged skills cleared within SLA. Risk (10): deducted for active blocker count and severity. Score is recalculated nightly (cron job) and on-demand when "Refresh Score" is triggered.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

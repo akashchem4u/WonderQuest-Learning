@@ -3,599 +3,285 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WonderQuest · Owner Route Health Compact v3</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<title>Owner Route Health Compact — WonderQuest v3</title>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Sora', sans-serif; background: #0d1117; color: #e8edf5; min-height: 100vh; padding: 20px; }
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
 
-/* Tab bar */
-.tabs { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 0; }
-.tab { padding: 8px 16px; border-radius: 10px 10px 0 0; border: none; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; background: #161d2a; color: #7a90a8; transition: background .15s, color .15s; }
-.tab.active { background: #ffd166; color: #0d1117; }
-.tab:hover:not(.active) { background: #1e2a3a; color: #e8edf5; }
-.panel { display: none; }
-.panel.active { display: block; }
+/* Compact strip wrapper */
+.strip-demo{background:#0d1117;border-radius:12px;padding:12px 16px;border:1px solid rgba(255,255,255,.06);max-width:900px;margin-bottom:16px}
+.strip-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.sh-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.3)}
+.sh-time{font-size:10px;color:rgba(255,255,255,.2)}
+.sh-link{font-size:10px;font-weight:700;color:#50e890;cursor:pointer}
 
-/* Shell */
-.shell { background: #161d2a; border: 1px solid #2a3548; border-radius: 0 12px 12px 12px; padding: 24px; max-width: 1000px; margin: 0 auto; }
+/* Route strip — horizontal scrollable row of pills */
+.route-strip{display:flex;gap:5px;flex-wrap:wrap}
+.rs-pill{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:8px;cursor:pointer;border:1px solid transparent}
+.rs-pill.ok{background:#161b22;border-color:rgba(255,255,255,.05)}
+.rs-pill.warn{background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)}
+.rs-pill.down{background:rgba(248,81,73,.1);border-color:rgba(248,81,73,.3)}
+.rsp-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.dot-ok{background:#50e890}
+.dot-warn{background:#f59e0b}
+.dot-down{background:#f85149}
+.rsp-name{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.rsp-name.down{color:#f85149}
+.rsp-name.warn{color:#f59e0b}
+.rsp-p95{font-size:9px;font-weight:700;color:rgba(255,255,255,.3)}
+.rsp-p95.warn{color:#f59e0b}
+.rsp-p95.down{color:#f85149}
 
-/* Hint */
-.hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; margin-bottom: 20px; font-size: 11px; color: #5a4000; line-height: 1.65; }
-.hint strong { color: #3a2800; }
-.hint code { background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 3px; font-family: 'Courier New', monospace; font-size: 10px; }
+/* Context note */
+.context-note{font-size:10px;color:rgba(255,255,255,.25);margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,.05)}
 
-/* Status dots */
-.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; display: inline-block; }
-.dot.ok { background: #50e890; }
-.dot.warn { background: #f0a030; animation: pulse-warn 2s infinite; }
-.dot.down { background: #ff4444; animation: pulse-down 1s infinite; }
-.dot.unknown { background: #7a90a8; }
-@keyframes pulse-warn { 0%,100%{opacity:1} 50%{opacity:.4} }
-@keyframes pulse-down { 0%,100%{opacity:1} 50%{opacity:.2} }
+/* Expanded inline (click on a degraded route) */
+.inline-expand{background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.2);border-radius:10px;padding:10px 14px;margin-bottom:12px;max-width:900px}
+.ie-header{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.ie-dot{width:8px;height:8px;border-radius:50%;background:#f85149;flex-shrink:0}
+.ie-title{font-size:12px;font-weight:800;color:#f85149}
+.ie-path{font-size:10px;color:rgba(255,255,255,.3)}
+.ie-metrics{display:flex;gap:12px;margin-bottom:8px}
+.iem-item{display:flex;gap:4px;align-items:baseline}
+.iem-n{font-size:12px;font-weight:800;color:#f85149}
+.iem-l{font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase}
+.ie-steps{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}
+.ie-link{font-size:11px;font-weight:700;color:#50e890;cursor:pointer;margin-top:6px;display:block}
 
-/* Chip */
-.chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; }
-.chip-ok { background: #0a2a15; color: #50e890; border: 1px solid #50e89033; }
-.chip-warn { background: #2a1800; color: #f0a030; border: 1px solid #f0a03033; }
-.chip-down { background: #2a0808; color: #ff4444; border: 1px solid #ff444433; }
-.chip-unknown { background: #1e2a3a; color: #7a90a8; border: 1px solid #2a3548; }
-.chip-get { background: #1a2a4a; color: #58c8f0; }
-.chip-post { background: #1a3a1a; color: #50e890; }
-.chip-put { background: #2a2a1a; color: #f0c030; }
-.chip-del { background: #2a1a1a; color: #ff7b6b; }
+/* Grid version (2-col layout, used as widget on home page) */
+.widget-demo{background:#161b22;border-radius:12px;padding:16px 18px;border:1px solid rgba(255,255,255,.05);max-width:480px;margin-bottom:16px}
+.wd-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.wdh-title{font-size:11px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.06em}
+.wdh-all{font-size:10px;font-weight:700;color:#50e890;cursor:pointer}
+.wd-summary{display:flex;gap:8px;margin-bottom:10px}
+.wds-chip{flex:1;padding:6px 8px;border-radius:8px;text-align:center}
+.wdsc-ok{background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.12)}
+.wdsc-warn{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.15)}
+.wdsc-down{background:rgba(248,81,73,.08);border:1px solid rgba(248,81,73,.2)}
+.wdsc-n{font-size:16px;font-weight:900;color:#f0f6ff}
+.wdsc-l{font-size:8px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.3);letter-spacing:.04em}
+.wd-strip{display:flex;flex-direction:column;gap:5px}
+.wds-row{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.wds-row:last-child{border-bottom:none}
+.wdsr-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.wdsr-name{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.wdsr-p95{font-size:10px;font-weight:700;color:rgba(255,255,255,.35)}
+.wdsr-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.wss-ok{background:rgba(80,232,144,.1);color:#50e890}
+.wss-warn{background:rgba(245,158,11,.1);color:#f59e0b}
+.wss-down{background:rgba(248,81,73,.12);color:#f85149}
 
-/* Strip header */
-.strip-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.strip-title { font-size: 14px; font-weight: 800; color: #e8edf5; }
-.strip-meta { display: flex; align-items: center; gap: 10px; }
-.last-checked { font-size: 11px; color: #7a90a8; }
-.refresh-btn { background: #1e2a3a; border: 1px solid #2a3548; border-radius: 6px; padding: 4px 10px; font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 600; color: #7a90a8; cursor: pointer; }
-.refresh-btn:hover { color: #ffd166; border-color: #ffd16644; }
-
-/* Route row */
-.route-list { display: flex; flex-direction: column; gap: 2px; }
-.route-row { display: grid; grid-template-columns: 28px 1fr 60px 80px 80px 60px; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 8px; border-left: 3px solid transparent; background: #0d1117; cursor: pointer; transition: background .15s; }
-.route-row:hover { background: #1a2230; }
-.route-row.warn { border-left-color: #f0a030; background: #1a1600; }
-.route-row.down { border-left-color: #ff4444; background: #1a0808; }
-.route-path { font-size: 12px; font-weight: 600; color: #c0ccd8; font-family: 'Courier New', monospace; }
-.route-ms { font-size: 12px; font-weight: 700; color: #e8edf5; }
-.route-ms.slow { color: #f0a030; }
-.route-ms.crit { color: #ff4444; }
-.view-link { font-size: 11px; color: #ffd166; cursor: pointer; font-weight: 600; }
-.route-col-hdr { display: grid; grid-template-columns: 28px 1fr 60px 80px 80px 60px; gap: 12px; padding: 6px 14px; font-size: 10px; font-weight: 700; color: #7a90a8; text-transform: uppercase; letter-spacing: .06em; }
-
-/* Incident card */
-.incident-card { background: #1a0808; border: 1px solid #ff444433; border-left: 3px solid #ff4444; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; }
-.incident-hdr { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.incident-title { font-size: 13px; font-weight: 700; color: #ff9090; }
-.incident-meta { font-size: 11px; color: #7a90a8; margin-bottom: 10px; }
-.incident-actions { display: flex; gap: 8px; }
-.btn { padding: 6px 14px; border-radius: 7px; font-family: 'Sora', sans-serif; font-size: 11px; font-weight: 700; cursor: pointer; border: none; }
-.btn-gold { background: #ffd166; color: #0d1117; }
-.btn-outline { background: transparent; color: #7a90a8; border: 1px solid #2a3548; }
-.btn-danger { background: #2a0808; color: #ff9090; border: 1px solid #ff444433; }
-
-/* Section heading */
-.sec-heading { font-size: 11px; font-weight: 700; color: #7a90a8; text-transform: uppercase; letter-spacing: .08em; margin: 20px 0 10px; }
-
-/* Resolved card */
-.resolved-card { background: #0d1117; border: 1px solid #2a3548; border-radius: 8px; padding: 12px 14px; margin-bottom: 8px; opacity: .7; }
-.resolved-title { font-size: 12px; font-weight: 700; color: #c0ccd8; }
-.resolved-meta { font-size: 11px; color: #7a90a8; margin-top: 3px; }
-.resolved-note { font-size: 11px; color: #50e890; margin-top: 5px; font-style: italic; }
-
-/* Detail expand panel */
-.detail-panel { background: #1e2a3a; border: 1px solid #2a3548; border-radius: 8px; padding: 16px; margin-top: 6px; display: none; }
-.detail-panel.open { display: block; }
-
-/* Small multiples chart */
-.chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.mini-chart { background: #0d1117; border: 1px solid #2a3548; border-radius: 10px; padding: 14px; }
-.mini-chart-title { font-size: 11px; font-weight: 700; color: #c0ccd8; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-.bars { display: flex; align-items: flex-end; gap: 4px; height: 60px; }
-.bar { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; }
-.bar.ok { background: #50e890; }
-.bar.warn { background: #f0a030; }
-.bar.crit { background: #ff4444; }
-.bar-labels { display: flex; gap: 4px; margin-top: 4px; }
-.bar-label { flex: 1; font-size: 9px; color: #7a90a8; text-align: center; }
-.threshold-note { font-size: 10px; color: #7a90a8; margin-top: 8px; }
-
-/* Spec table */
-.spec-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 16px; }
-.spec-table th { background: #1e2a3a; color: #7a90a8; padding: 7px 10px; text-align: left; font-weight: 700; border-bottom: 1px solid #2a3548; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
-.spec-table td { color: #c0ccd8; padding: 7px 10px; border-bottom: 1px solid #1e2a3a; vertical-align: top; }
-.spec-table tr:last-child td { border-bottom: none; }
-.spec-rule { background: #1e2a3a; border-left: 3px solid #ffd166; border-radius: 0 6px 6px 0; padding: 7px 12px; margin-bottom: 6px; font-size: 12px; color: #c0ccd8; }
-
-/* Swatch */
-.swatch-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-.swatch { width: 32px; height: 32px; border-radius: 6px; border: 1px solid #2a3548; }
-.swatch-label { font-size: 10px; color: #7a90a8; margin-top: 3px; text-align: center; }
-.swatch-wrap { text-align: center; }
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
 </style>
 </head>
 <body>
 
-<div style="max-width:1000px;margin:0 auto;">
-  <div style="font-size:11px;font-weight:700;color:#ffd166;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;">WonderQuest · Owner · Route Health Compact v3</div>
-  <div class="tabs">
-    <button class="tab active" onclick="show('strip')">1 · Compact Strip</button>
-    <button class="tab" onclick="show('detail')">2 · Route Detail</button>
-    <button class="tab" onclick="show('incidents')">3 · Incident Log</button>
-    <button class="tab" onclick="show('trends')">4 · Latency Trends</button>
-    <button class="tab" onclick="show('spec')">5 · Spec</button>
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-route-health-compact-v3.html</strong><br>
+  Compact route health strip — used in 3 contexts: (A) home page card (widget with summary + top routes), (B) horizontal pill strip embedded in any owner page, (C) inline expand on degraded route.<br>
+  <strong>Distinct from:</strong> owner-route-health-desktop-v3.html (full monitoring page with table/sparklines/sidebar).<br>
+  <strong>Refresh:</strong> Same 60s cadence as full page. Clicking "View all routes →" navigates to full route health page.<br>
+  <strong>Degraded sort:</strong> Degraded/down routes always sorted to left. Healthy routes sorted by name alphabetically after.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('strip')">Horizontal Strip</button>
+  <button class="tab-btn" onclick="showTab('widget')">Home Widget</button>
+  <button class="tab-btn" onclick="showTab('degraded')">Degraded Expand</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Horizontal Strip ────────────────────────────────────── -->
+<div id="tab-strip" class="screen active">
+  <p class="section-title">Compact strip — all healthy</p>
+  <div class="strip-demo">
+    <div class="strip-hdr">
+      <div class="sh-label">📡 Route Health</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="sh-time">Refreshed 22s ago</div>
+        <div class="sh-link">View all →</div>
+      </div>
+    </div>
+    <div class="route-strip">
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Play Session</div><div class="rsp-p95">142ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Adaptive</div><div class="rsp-p95">178ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Assignments</div><div class="rsp-p95">165ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Auth / SSO</div><div class="rsp-p95">110ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Teacher</div><div class="rsp-p95">98ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Parent</div><div class="rsp-p95">88ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Content</div><div class="rsp-p95">55ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Mastery</div><div class="rsp-p95">130ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Notifications</div><div class="rsp-p95">75ms</div></div>
+      <div class="rs-pill warn"><div class="rsp-dot dot-warn"></div><div class="rsp-name warn">Reports</div><div class="rsp-p95 warn">310ms ⚠</div></div>
+    </div>
+    <div class="context-note">10 routes · 9 healthy · 1 slow · No incidents</div>
   </div>
 
-  <!-- TAB 1 — Compact Strip -->
-  <div id="strip" class="panel active">
-    <div class="shell">
-      <div class="hint"><strong>owner-route-health-compact-v3.html · Tab 1 — Compact Route Status Strip</strong>
-        Designed to be embedded in the owner home or command center right rail. Shows at-a-glance route health. Degraded rows surface to top automatically. Click any row to expand detail inline.
-        <code>GET /owner/routes/health</code> · refresh every 60s in prod.
+  <p class="section-title" style="margin-top:8px">Compact strip — 1 down (sorted to front)</p>
+  <div class="strip-demo" style="border-color:rgba(248,81,73,.2)">
+    <div class="strip-hdr">
+      <div class="sh-label" style="color:#f85149">📡 Route Health — INCIDENT</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="sh-time" style="color:#f85149">Refreshing every 10s</div>
+        <div class="sh-link">View all →</div>
       </div>
+    </div>
+    <div class="route-strip">
+      <div class="rs-pill down"><div class="rsp-dot dot-down"></div><div class="rsp-name down">Assignments</div><div class="rsp-p95 down">DOWN</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Play Session</div><div class="rsp-p95">142ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Adaptive</div><div class="rsp-p95">178ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Auth / SSO</div><div class="rsp-p95">110ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Teacher</div><div class="rsp-p95">98ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Parent</div><div class="rsp-p95">88ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Content</div><div class="rsp-p95">55ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Mastery</div><div class="rsp-p95">130ms</div></div>
+      <div class="rs-pill warn"><div class="rsp-dot dot-warn"></div><div class="rsp-name warn">Reports</div><div class="rsp-p95 warn">310ms ⚠</div></div>
+    </div>
+    <div class="context-note" style="color:#f85149">1 DOWN · PD-4412 active · On-call engaged</div>
+  </div>
+</div>
 
-      <div class="strip-header">
-        <div class="strip-title">Route Health</div>
-        <div class="strip-meta">
-          <span class="chip chip-warn">⚠ 1 Degraded</span>
-          <span class="last-checked">Last checked: 2 min ago</span>
-          <button class="refresh-btn">↺ Refresh</button>
-        </div>
-      </div>
-
-      <div class="route-col-hdr">
-        <div></div>
-        <div>Route</div>
-        <div>Method</div>
-        <div>Last</div>
-        <div>p95</div>
-        <div></div>
-      </div>
-
-      <div class="route-list" id="routeList">
-        <!-- Degraded first -->
-        <div class="route-row warn" onclick="toggleDetail(this, 'play-session')">
-          <span class="dot warn"></span>
-          <span class="route-path">/play/session/answer</span>
-          <span class="chip chip-post">POST</span>
-          <span class="route-ms slow">312ms</span>
-          <span class="route-ms slow">480ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="play-session" class="detail-panel">
-          <div style="font-size:12px;color:#f0a030;font-weight:700;margin-bottom:8px;">⚠ Degraded — elevated latency</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:10px;">p95 approaching warn threshold (480ms / 500ms limit). No errors. Likely DB query optimization needed.</div>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-            <span style="font-size:11px;color:#7a90a8;">Last incident: None · Uptime 7d: 99.8%</span>
-          </div>
-          <div style="display:flex;gap:8px;">
-            <button class="btn btn-outline">View Logs</button>
-            <button class="btn btn-danger">Create Alert</button>
-          </div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-child-entry')">
-          <span class="dot ok"></span>
-          <span class="route-path">/child/entry</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">88ms</span>
-          <span class="route-ms">142ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-child-entry" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">All metrics within thresholds. Uptime 7d: 100%. Last incident: 6 days ago (resolved in 4 min).</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-parent-dash')">
-          <span class="dot ok"></span>
-          <span class="route-path">/parent/dashboard</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">104ms</span>
-          <span class="route-ms">178ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-parent-dash" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%. p95 well below threshold.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-teacher-class')">
-          <span class="dot ok"></span>
-          <span class="route-path">/teacher/class/summary</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">122ms</span>
-          <span class="route-ms">198ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-teacher-class" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 99.9%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-owner-rel')">
-          <span class="dot ok"></span>
-          <span class="route-path">/owner/release-readiness</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">67ms</span>
-          <span class="route-ms">110ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-owner-rel" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-content-pub')">
-          <span class="dot ok"></span>
-          <span class="route-path">/content/publish</span>
-          <span class="chip chip-post">POST</span>
-          <span class="route-ms">155ms</span>
-          <span class="route-ms">244ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-content-pub" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 99.8%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-play-next')">
-          <span class="dot ok"></span>
-          <span class="route-path">/play/next-quest</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">95ms</span>
-          <span class="route-ms">161ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-play-next" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-auth')">
-          <span class="dot ok"></span>
-          <span class="route-path">/auth/token</span>
-          <span class="chip chip-post">POST</span>
-          <span class="route-ms">43ms</span>
-          <span class="route-ms">72ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-auth" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-feedback')">
-          <span class="dot ok"></span>
-          <span class="route-path">/owner/feedback</span>
-          <span class="chip chip-get">GET</span>
-          <span class="route-ms">78ms</span>
-          <span class="route-ms">130ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-feedback" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-
-        <div class="route-row" onclick="toggleDetail(this, 'd-streak')">
-          <span class="dot ok"></span>
-          <span class="route-path">/child/streak/restore</span>
-          <span class="chip chip-post">POST</span>
-          <span class="route-ms">55ms</span>
-          <span class="route-ms">88ms</span>
-          <span class="view-link">View →</span>
-        </div>
-        <div id="d-streak" class="detail-panel">
-          <div style="font-size:12px;color:#50e890;font-weight:700;margin-bottom:8px;">✓ Healthy</div>
-          <div style="font-size:11px;color:#7a90a8;margin-bottom:8px;">Uptime 7d: 100%.</div>
-          <div style="display:flex;gap:8px;"><button class="btn btn-outline">View Logs</button></div>
-        </div>
-      </div>
-
-      <div style="margin-top:12px;font-size:11px;color:#7a90a8;text-align:right;">
-        Overall: <strong style="color:#50e890;">9 OK</strong> · <strong style="color:#f0a030;">1 Degraded</strong> · <strong style="color:#ff4444;">0 Down</strong>
-      </div>
+<!-- ── Home Widget ─────────────────────────────────────────── -->
+<div id="tab-widget" class="screen">
+  <p class="section-title">Route health — home page card widget (healthy)</p>
+  <div class="widget-demo">
+    <div class="wd-header">
+      <div class="wdh-title">📡 Route Health</div>
+      <div class="wdh-all">View all →</div>
+    </div>
+    <div class="wd-summary">
+      <div class="wds-chip wdsc-ok"><div class="wdsc-n" style="color:#50e890">10</div><div class="wdsc-l">Healthy</div></div>
+      <div class="wds-chip wdsc-warn"><div class="wdsc-n" style="color:rgba(255,255,255,.3)">0</div><div class="wdsc-l">Degraded</div></div>
+      <div class="wds-chip wdsc-down"><div class="wdsc-n" style="color:rgba(255,255,255,.3)">0</div><div class="wdsc-l">Down</div></div>
+    </div>
+    <div class="wd-strip">
+      <div class="wds-row"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">Play Session</div><div class="wdsr-p95">142ms</div><span class="wdsr-status wss-ok">OK</span></div>
+      <div class="wds-row"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">Adaptive Engine</div><div class="wdsr-p95">178ms</div><span class="wdsr-status wss-ok">OK</span></div>
+      <div class="wds-row"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">Assignment Engine</div><div class="wdsr-p95">165ms</div><span class="wdsr-status wss-ok">OK</span></div>
+      <div class="wds-row"><div class="wdsr-dot" style="background:#f59e0b"></div><div class="wdsr-name">Reports / Export</div><div class="wdsr-p95" style="color:#f59e0b">310ms</div><span class="wdsr-status wss-warn">Slow</span></div>
+      <div class="wds-row" style="border-bottom:none;padding-bottom:0"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">+ 6 more all healthy</div><div class="wdsr-p95"></div><span class="wdsr-status wss-ok">✓</span></div>
     </div>
   </div>
 
-  <!-- TAB 2 — Route Detail -->
-  <div id="detail" class="panel">
-    <div class="shell">
-      <div class="hint"><strong>Tab 2 — Route Detail Table</strong>
-        Full detail with p95/p99/uptime/last-incident columns. Click any row to expand 7-day sparkline + incident history.
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="spec-table" style="min-width:800px;">
-          <thead><tr>
-            <th></th><th>Route</th><th>Method</th><th>Status</th><th>Last ms</th><th>p95</th><th>p99</th><th>Uptime 7d</th><th>Last Incident</th><th>Actions</th>
-          </tr></thead>
-          <tbody>
-            <tr style="background:#1a1600; border-left: 3px solid #f0a030;">
-              <td><span class="dot warn"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/play/session/answer</td>
-              <td><span class="chip chip-post">POST</span></td>
-              <td><span class="chip chip-warn">Degraded</span></td>
-              <td style="color:#f0a030;font-weight:700;">312ms</td><td style="color:#f0a030;">480ms</td><td style="color:#ff7b6b;">610ms</td>
-              <td>99.8%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/child/entry</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>88ms</td><td>142ms</td><td>220ms</td><td>100%</td><td style="color:#7a90a8;">6 days ago</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/parent/dashboard</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>104ms</td><td>178ms</td><td>260ms</td><td>100%</td><td style="color:#7a90a8;">8 days ago</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/teacher/class/summary</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>122ms</td><td>198ms</td><td>290ms</td><td>99.9%</td><td style="color:#7a90a8;">3 days ago</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/owner/release-readiness</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>67ms</td><td>110ms</td><td>160ms</td><td>100%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/content/publish</td>
-              <td><span class="chip chip-post">POST</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>155ms</td><td>244ms</td><td>360ms</td><td>99.8%</td><td style="color:#7a90a8;">2 days ago</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/play/next-quest</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>95ms</td><td>161ms</td><td>230ms</td><td>100%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/auth/token</td>
-              <td><span class="chip chip-post">POST</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>43ms</td><td>72ms</td><td>105ms</td><td>100%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/owner/feedback</td>
-              <td><span class="chip chip-get">GET</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>78ms</td><td>130ms</td><td>190ms</td><td>100%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-            <tr>
-              <td><span class="dot ok"></span></td>
-              <td style="font-family:monospace;font-size:11px;color:#c0ccd8;">/child/streak/restore</td>
-              <td><span class="chip chip-post">POST</span></td>
-              <td><span class="chip chip-ok">OK</span></td>
-              <td>55ms</td><td>88ms</td><td>130ms</td><td>100%</td><td style="color:#7a90a8;">None</td>
-              <td><button class="btn btn-outline" style="font-size:10px;padding:4px 8px;">Logs</button></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <p class="section-title" style="margin-top:8px">Route health — home page card widget (incident)</p>
+  <div class="widget-demo" style="border-color:rgba(248,81,73,.2)">
+    <div class="wd-header">
+      <div class="wdh-title" style="color:#f85149">📡 Route Health — P0</div>
+      <div class="wdh-all">View all →</div>
     </div>
-  </div>
-
-  <!-- TAB 3 — Incident Log -->
-  <div id="incidents" class="panel">
-    <div class="shell">
-      <div class="hint"><strong>Tab 3 — Incident Log</strong>
-        Active incidents and resolved incidents this week. Active incidents require acknowledgement within SLA.
-      </div>
-
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
-        <span style="font-size:14px;font-weight:800;">Active Incidents</span>
-        <span class="chip chip-warn">0 Active</span>
-        <span class="chip" style="background:#1e2a3a;color:#7a90a8;margin-left:auto;">Resolved this week: 4</span>
-      </div>
-
-      <div style="background:#1e2a3a;border:1px solid #2a3548;border-radius:10px;padding:16px;text-align:center;color:#7a90a8;font-size:13px;margin-bottom:20px;">
-        ✓ No active incidents — all routes nominal
-      </div>
-
-      <div class="sec-heading">Resolved This Week</div>
-
-      <div class="resolved-card">
-        <div class="resolved-title">/play/session/answer — Elevated latency spike</div>
-        <div class="resolved-meta">Started: Mon 09:14 · Duration: 18 min · Severity: P1</div>
-        <div class="resolved-note">Resolved: DB connection pool exhausted — pool size increased to 20</div>
-      </div>
-      <div class="resolved-card">
-        <div class="resolved-title">/teacher/class/summary — 502 errors (3 occurrences)</div>
-        <div class="resolved-meta">Started: Tue 14:22 · Duration: 4 min · Severity: P1</div>
-        <div class="resolved-note">Resolved: Deploy rollback — bad null-check in aggregation query</div>
-      </div>
-      <div class="resolved-card">
-        <div class="resolved-title">/content/publish — Timeout on large batch</div>
-        <div class="resolved-meta">Started: Wed 11:05 · Duration: 9 min · Severity: P2</div>
-        <div class="resolved-note">Resolved: Async queue introduced for bulk publish ops</div>
-      </div>
-      <div class="resolved-card">
-        <div class="resolved-title">/child/entry — Cold start latency (new deployment)</div>
-        <div class="resolved-meta">Started: Thu 08:00 · Duration: 2 min · Severity: P2</div>
-        <div class="resolved-note">Resolved: Keep-alive pings added to prevent cold starts</div>
-      </div>
+    <div class="wd-summary">
+      <div class="wds-chip wdsc-ok"><div class="wdsc-n" style="color:#50e890">9</div><div class="wdsc-l">Healthy</div></div>
+      <div class="wds-chip wdsc-warn"><div class="wdsc-n" style="color:rgba(255,255,255,.3)">0</div><div class="wdsc-l">Degraded</div></div>
+      <div class="wds-chip wdsc-down"><div class="wdsc-n" style="color:#f85149">1</div><div class="wdsc-l">Down</div></div>
     </div>
-  </div>
-
-  <!-- TAB 4 — Latency Trends -->
-  <div id="trends" class="panel">
-    <div class="shell">
-      <div class="hint"><strong>Tab 4 — Latency Trends</strong>
-        7-day mini charts for top 4 routes. Bar height = relative latency. Color = OK (green &lt;200ms) / Warn (amber 200–500ms) / Crit (red &gt;500ms). Thresholds: p95 baseline 180ms · p99 baseline 400ms.
-      </div>
-
-      <div style="margin-bottom:12px;display:flex;gap:12px;flex-wrap:wrap;">
-        <span class="chip chip-ok">OK &lt;200ms</span>
-        <span class="chip chip-warn">Warn 200–500ms</span>
-        <span class="chip chip-down">Crit &gt;500ms</span>
-        <span style="font-size:11px;color:#7a90a8;margin-left:auto;">7-day window · p95 values</span>
-      </div>
-
-      <div class="chart-grid">
-        <div class="mini-chart">
-          <div class="mini-chart-title"><span class="dot warn"></span> /play/session/answer <span class="chip chip-warn" style="margin-left:auto;">Degraded</span></div>
-          <div class="bars">
-            <div class="bar ok" style="height:30%"></div>
-            <div class="bar ok" style="height:35%"></div>
-            <div class="bar ok" style="height:28%"></div>
-            <div class="bar warn" style="height:55%"></div>
-            <div class="bar warn" style="height:62%"></div>
-            <div class="bar warn" style="height:70%"></div>
-            <div class="bar warn" style="height:75%"></div>
-          </div>
-          <div class="bar-labels">
-            <div class="bar-label">Mon</div><div class="bar-label">Tue</div><div class="bar-label">Wed</div>
-            <div class="bar-label">Thu</div><div class="bar-label">Fri</div><div class="bar-label">Sat</div><div class="bar-label">Sun</div>
-          </div>
-          <div class="threshold-note">p95 today: 480ms · baseline 180ms · ⚠ trending up</div>
-        </div>
-
-        <div class="mini-chart">
-          <div class="mini-chart-title"><span class="dot ok"></span> /child/entry <span class="chip chip-ok" style="margin-left:auto;">OK</span></div>
-          <div class="bars">
-            <div class="bar ok" style="height:45%"></div>
-            <div class="bar ok" style="height:42%"></div>
-            <div class="bar ok" style="height:50%"></div>
-            <div class="bar ok" style="height:44%"></div>
-            <div class="bar ok" style="height:40%"></div>
-            <div class="bar ok" style="height:38%"></div>
-            <div class="bar ok" style="height:43%"></div>
-          </div>
-          <div class="bar-labels">
-            <div class="bar-label">Mon</div><div class="bar-label">Tue</div><div class="bar-label">Wed</div>
-            <div class="bar-label">Thu</div><div class="bar-label">Fri</div><div class="bar-label">Sat</div><div class="bar-label">Sun</div>
-          </div>
-          <div class="threshold-note">p95 today: 142ms · stable ✓</div>
-        </div>
-
-        <div class="mini-chart">
-          <div class="mini-chart-title"><span class="dot ok"></span> /parent/dashboard <span class="chip chip-ok" style="margin-left:auto;">OK</span></div>
-          <div class="bars">
-            <div class="bar ok" style="height:52%"></div>
-            <div class="bar ok" style="height:48%"></div>
-            <div class="bar ok" style="height:54%"></div>
-            <div class="bar ok" style="height:50%"></div>
-            <div class="bar ok" style="height:46%"></div>
-            <div class="bar ok" style="height:49%"></div>
-            <div class="bar ok" style="height:52%"></div>
-          </div>
-          <div class="bar-labels">
-            <div class="bar-label">Mon</div><div class="bar-label">Tue</div><div class="bar-label">Wed</div>
-            <div class="bar-label">Thu</div><div class="bar-label">Fri</div><div class="bar-label">Sat</div><div class="bar-label">Sun</div>
-          </div>
-          <div class="threshold-note">p95 today: 178ms · stable ✓</div>
-        </div>
-
-        <div class="mini-chart">
-          <div class="mini-chart-title"><span class="dot ok"></span> /teacher/class/summary <span class="chip chip-ok" style="margin-left:auto;">OK</span></div>
-          <div class="bars">
-            <div class="bar ok" style="height:58%"></div>
-            <div class="bar warn" style="height:72%"></div>
-            <div class="bar ok" style="height:60%"></div>
-            <div class="bar ok" style="height:55%"></div>
-            <div class="bar ok" style="height:57%"></div>
-            <div class="bar ok" style="height:54%"></div>
-            <div class="bar ok" style="height:56%"></div>
-          </div>
-          <div class="bar-labels">
-            <div class="bar-label">Mon</div><div class="bar-label">Tue</div><div class="bar-label">Wed</div>
-            <div class="bar-label">Thu</div><div class="bar-label">Fri</div><div class="bar-label">Sat</div><div class="bar-label">Sun</div>
-          </div>
-          <div class="threshold-note">p95 today: 198ms · Tue spike resolved (deploy) ✓</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- TAB 5 — Spec -->
-  <div id="spec" class="panel">
-    <div class="shell">
-      <div class="hint"><strong>Tab 5 — Spec</strong>
-        Routes, thresholds, SLA, incident severity, design tokens.
-      </div>
-
-      <div class="sec-heading">API Routes</div>
-      <table class="spec-table">
-        <thead><tr><th>Method</th><th>Route</th><th>Purpose</th></tr></thead>
-        <tbody>
-          <tr><td><span class="chip chip-get">GET</span></td><td style="font-family:monospace;">/owner/routes/health</td><td>All route statuses (current ms, p95, p99, uptime)</td></tr>
-          <tr><td><span class="chip chip-get">GET</span></td><td style="font-family:monospace;">/owner/routes/:id/history</td><td>7-day latency history for a single route</td></tr>
-          <tr><td><span class="chip chip-get">GET</span></td><td style="font-family:monospace;">/owner/incidents</td><td>Active and resolved incidents</td></tr>
-          <tr><td><span class="chip chip-post">POST</span></td><td style="font-family:monospace;">/owner/incidents/:id/acknowledge</td><td>Acknowledge an active incident</td></tr>
-        </tbody>
-      </table>
-
-      <div class="sec-heading">Latency Thresholds</div>
-      <div class="spec-rule"><strong>OK:</strong> p95 &lt; 200ms — green dot</div>
-      <div class="spec-rule"><strong>Warn:</strong> p95 200–500ms — amber dot, pulsing</div>
-      <div class="spec-rule"><strong>Critical:</strong> p95 &gt; 500ms — red dot, fast pulse</div>
-      <div class="spec-rule"><strong>Down:</strong> HTTP errors &gt; 1% in rolling 5-min — red + fast pulse</div>
-
-      <div class="sec-heading">SLA</div>
-      <div class="spec-rule">Uptime target: 99.5% over rolling 7 days</div>
-      <div class="spec-rule">Incident acknowledge SLA: P0 = 15 min, P1 = 1h, P2 = 4h</div>
-
-      <div class="sec-heading">Design Tokens</div>
-      <div class="swatch-row">
-        <div class="swatch-wrap"><div class="swatch" style="background:#0d1117;"></div><div class="swatch-label">#0d1117<br>bg</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#161d2a;"></div><div class="swatch-label">#161d2a<br>card</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#2a3548;"></div><div class="swatch-label">#2a3548<br>border</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#ffd166;"></div><div class="swatch-label">#ffd166<br>gold</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#50e890;"></div><div class="swatch-label">#50e890<br>ok</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#f0a030;"></div><div class="swatch-label">#f0a030<br>warn</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#ff4444;"></div><div class="swatch-label">#ff4444<br>down</div></div>
-        <div class="swatch-wrap"><div class="swatch" style="background:#7a90a8;"></div><div class="swatch-label">#7a90a8<br>muted</div></div>
-      </div>
+    <div class="wd-strip">
+      <div class="wds-row" style="background:rgba(248,81,73,.04);border-radius:6px;padding:5px 6px"><div class="wdsr-dot" style="background:#f85149"></div><div class="wdsr-name" style="color:#f85149;font-weight:700">Assignment Engine</div><div class="wdsr-p95" style="color:#f85149">DOWN</div><span class="wdsr-status wss-down">P0</span></div>
+      <div class="wds-row"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">Play Session</div><div class="wdsr-p95">142ms</div><span class="wdsr-status wss-ok">OK</span></div>
+      <div class="wds-row"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">Adaptive Engine</div><div class="wdsr-p95">178ms</div><span class="wdsr-status wss-ok">OK</span></div>
+      <div class="wds-row" style="border-bottom:none;padding-bottom:0"><div class="wdsr-dot" style="background:#50e890"></div><div class="wdsr-name">+ 7 more healthy</div><div class="wdsr-p95"></div><span class="wdsr-status wss-ok">✓</span></div>
     </div>
   </div>
 </div>
 
+<!-- ── Degraded Expand ─────────────────────────────────────── -->
+<div id="tab-degraded" class="screen">
+  <p class="section-title">Inline expanded view — clicking a degraded/down pill</p>
+
+  <p style="font-size:12px;color:#666;margin-bottom:14px;max-width:900px">When owner clicks a degraded or down route pill in the compact strip, an inline expand card appears below the strip with: metrics snapshot / resolution steps / link to full route health page.</p>
+
+  <div class="strip-demo" style="border-color:rgba(248,81,73,.2)">
+    <div class="strip-hdr">
+      <div class="sh-label" style="color:#f85149">📡 Route Health — INCIDENT</div>
+      <div class="sh-link">View all →</div>
+    </div>
+    <div class="route-strip">
+      <div class="rs-pill down" style="border-color:rgba(248,81,73,.5);background:rgba(248,81,73,.15)"><div class="rsp-dot dot-down"></div><div class="rsp-name down">Assignments</div><div class="rsp-p95 down">DOWN ▾</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Play Session</div><div class="rsp-p95">142ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Adaptive</div><div class="rsp-p95">178ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Auth / SSO</div><div class="rsp-p95">110ms</div></div>
+    </div>
+  </div>
+
+  <div class="inline-expand">
+    <div class="ie-header">
+      <div class="ie-dot"></div>
+      <div class="ie-title">Assignment Engine — DOWN</div>
+      <div class="ie-path">/api/assignments</div>
+    </div>
+    <div class="ie-metrics">
+      <div class="iem-item"><div class="iem-n">—</div><div class="iem-l">p95</div></div>
+      <div class="iem-item"><div class="iem-n">12.4%</div><div class="iem-l">Error rate</div></div>
+      <div class="iem-item"><div class="iem-n">98.1%</div><div class="iem-l">30d Uptime</div></div>
+    </div>
+    <div class="ie-steps">Queue processor failing silently. Redis backlog: 2,400 unprocessed tasks. Engineering on-call (PD-4412) investigating. ETA unknown.</div>
+    <a class="ie-link">View full incident details → Route Health Page</a>
+  </div>
+
+  <p class="section-title" style="margin-top:8px">Inline expanded — warning (slow) state</p>
+  <div class="strip-demo">
+    <div class="strip-hdr">
+      <div class="sh-label">📡 Route Health</div>
+      <div class="sh-link">View all →</div>
+    </div>
+    <div class="route-strip">
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Play Session</div><div class="rsp-p95">142ms</div></div>
+      <div class="rs-pill ok"><div class="rsp-dot dot-ok"></div><div class="rsp-name">Adaptive</div><div class="rsp-p95">178ms</div></div>
+      <div class="rs-pill warn" style="border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.12)"><div class="rsp-dot dot-warn"></div><div class="rsp-name warn">Reports</div><div class="rsp-p95 warn">310ms ⚠ ▾</div></div>
+    </div>
+  </div>
+
+  <div class="inline-expand" style="background:rgba(245,158,11,.05);border-color:rgba(245,158,11,.2)">
+    <div class="ie-header">
+      <div class="ie-dot" style="background:#f59e0b"></div>
+      <div class="ie-title" style="color:#f59e0b">Reports / Export — Slow (p95 &gt; threshold)</div>
+      <div class="ie-path">/api/reports</div>
+    </div>
+    <div class="ie-metrics">
+      <div class="iem-item"><div class="iem-n" style="color:#f59e0b">310ms</div><div class="iem-l">p95 (threshold: 200ms)</div></div>
+      <div class="iem-item"><div class="iem-n" style="color:#f59e0b">420ms</div><div class="iem-l">p99</div></div>
+      <div class="iem-item"><div class="iem-n" style="color:#f0f6ff">99.8%</div><div class="iem-l">Uptime</div></div>
+    </div>
+    <div class="ie-steps" style="color:rgba(255,255,255,.5)">Expected — Report generation is inherently slower (complex SQL + PDF rendering). p95 target for this route is 500ms (not 200ms). Currently within route-specific SLA. No action needed.</div>
+    <a class="ie-link">View full route details → Route Health Page</a>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-route-health-compact-v3.html<br>
+      <strong>Compact route strip.</strong> Used as: (A) home page route health widget card, (B) horizontal pill strip embedded in any owner page. Overwrite of Batch 1 version — updated to match v3 owner design tokens.
+    </div>
+    <h2 class="spec-h2">Sort Order</h2>
+    <p class="spec-p">Down routes always first. Then degraded/slow. Then healthy sorted alphabetically. This ensures issues are never hidden when strip is truncated on narrow viewports.</p>
+    <h2 class="spec-h2">Widget vs Strip</h2>
+    <p class="spec-p">Widget (home page card): shows summary chips (healthy/degraded/down counts) + list of top routes. "View all →" navigates to full route health page. Strip (inline): horizontal pill row; degraded routes have inline expand on click. Both use same data source.</p>
+    <h2 class="spec-h2">Reports Route SLA Exception</h2>
+    <p class="spec-p">Reports/Export route has a custom p95 threshold of 500ms (not the global 200ms). This is intentional — report generation is expensive. The inline expand note clarifies this when the owner clicks on it. The pill still shows amber to indicate "different from standard" rather than "problem".</p>
+    <h2 class="spec-h2">Refresh</h2>
+    <p class="spec-p">Both widget and strip inherit the 60s refresh cadence from the route health monitoring system. During active P0: accelerates to 10s. A "Refreshed N ago" label is shown in the strip header. Widget on home page shows last refresh time in the card footer.</p>
+  </div>
+</div>
+
 <script>
-function show(id) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
   event.target.classList.add('active');
-}
-function toggleDetail(row, id) {
-  const panel = document.getElementById(id);
-  const isOpen = panel.classList.contains('open');
-  document.querySelectorAll('.detail-panel').forEach(p => p.classList.remove('open'));
-  if (!isOpen) panel.classList.add('open');
 }
 </script>
 </body>

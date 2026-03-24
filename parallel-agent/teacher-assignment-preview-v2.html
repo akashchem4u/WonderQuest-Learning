@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Assignment Preview — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Page layout */
+.page-wrap{display:flex;gap:20px;align-items:flex-start}
+.left-col{flex:1;min-width:0}
+.right-col{width:300px;flex-shrink:0}
+
+/* Card */
+.card{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.card-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440}
+.card-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+
+/* Assignment row */
+.assign-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f7fa}
+.assign-row:last-child{border-bottom:none;padding-bottom:0}
+.assign-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.assign-body{flex:1}
+.assign-name{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:2px}
+.assign-meta{font-size:11px;color:#666;line-height:1.4}
+.assign-chips{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
+.achip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.achip-band{background:#eff6ff;color:#2563eb}
+.achip-class{background:#dcfce7;color:#15803d}
+.achip-student{background:#fef3c7;color:#92400e}
+.achip-active{background:#e0f2fe;color:#0369a1}
+.assign-right{flex-shrink:0;text-align:right}
+.assign-due{font-size:10px;color:#aaa;margin-bottom:6px}
+.assign-progress{font-size:11px;font-weight:700;color:#2563eb}
+.btn-sm{padding:5px 12px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui}
+.btn-outline{background:#fff;color:#2563eb;border:1.5px solid #dbe7ff}
+.btn-danger{background:#fff;color:#dc2626;border:1.5px solid #fecaca}
+.btn-primary{background:#2563eb;color:#fff;border:none}
+
+/* Assignment detail card */
+.detail-card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:600px}
+.dc-header{display:flex;align-items:flex-start;gap:14px;margin-bottom:16px}
+.dc-icon{width:48px;height:48px;border-radius:14px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.dc-title{font-size:16px;font-weight:900;color:#1a1440;margin-bottom:4px}
+.dc-sub{font-size:12px;color:#666}
+.dc-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.dc-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.dc-stat{background:#f8faff;border-radius:10px;padding:10px 12px;text-align:center}
+.dc-stat-n{font-size:18px;font-weight:900;color:#1a1440}
+.dc-stat-l{font-size:10px;color:#888;font-weight:700;margin-top:2px}
+
+/* Student progress table */
+.prog-table{width:100%;border-collapse:collapse;font-size:12px}
+.prog-table th{padding:8px 10px;text-align:left;font-weight:700;color:#888;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #f0f0f0}
+.prog-table td{padding:8px 10px;border-bottom:1px solid #f5f7fa;color:#1a1440;vertical-align:middle}
+.prog-table tr:last-child td{border-bottom:none}
+.prog-bar-wrap{background:#f0f4f8;border-radius:4px;height:6px;width:80px}
+.prog-bar-fill{height:6px;border-radius:4px;background:#2563eb}
+.status-pill{font-size:10px;font-weight:700;padding:2px 8px;border-radius:8px}
+.sp-done{background:#dcfce7;color:#15803d}
+.sp-progress{background:#e0f2fe;color:#0369a1}
+.sp-not-started{background:#f5f5f5;color:#888}
+
+/* Right panel - assign new */
+.assign-form{display:flex;flex-direction:column;gap:12px}
+.form-group{display:flex;flex-direction:column;gap:4px}
+.form-label{font-size:11px;font-weight:700;color:#555;text-transform:uppercase;letter-spacing:.05em}
+.form-input{padding:8px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:13px;font-family:system-ui;outline:none;color:#1a1440;background:#fff}
+.form-select{padding:8px 12px;border:1.5px solid #dbe7ff;border-radius:10px;font-size:13px;font-family:system-ui;outline:none;color:#1a1440;background:#fff}
+.form-hint{font-size:10px;color:#999;line-height:1.4;margin-top:2px}
+.btn-full{width:100%;padding:11px;background:#2563eb;color:#fff;border:none;border-radius:12px;font-size:13px;font-weight:700;cursor:pointer;font-family:system-ui}
+.soft-note{background:#f0f7ff;border-radius:8px;padding:10px 12px;font-size:11px;color:#1d4ed8;line-height:1.5}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-assignment-preview-v2.html</strong><br>
+  Teacher skill assignments — teacher manually assigns a specific skill as a priority focus for a student or the whole class.<br>
+  <strong>Soft priority, not forced:</strong> WonderQuest adaptive engine considers teacher assignments as priority hints. The system will favour the assigned skill but may intersperse others. Teacher cannot force a locked linear path — adaptive engine always retains final say.<br>
+  <strong>Assignment types:</strong> Class-wide (all students) | Group (filtered subset) | Individual (single student).<br>
+  <strong>Due date:</strong> Optional. If set, system surfaces assignment more aggressively near due date.<br>
+  <strong>Completion:</strong> Assignment auto-marks complete when student reaches mastery_status = Strong on assigned skill.<br>
+  <strong>Max active assignments:</strong> 3 per student at once (to avoid overloading adaptive engine). Warn teacher if > 3.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('list')">Assignment List</button>
+  <button class="tab-btn" onclick="showTab('detail')">Assignment Detail</button>
+  <button class="tab-btn" onclick="showTab('new')">Assign New</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Assignment List ────────────────────────────────────────────── -->
+<div id="tab-list" class="screen active">
+  <p class="section-title">Active skill assignments — Class 4B</p>
+  <div class="page-wrap">
+    <div class="left-col">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">📋 Active Assignments</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <span style="font-size:11px;color:#888">3 active</span>
+            <button class="btn-sm btn-primary" style="padding:5px 12px">+ New</button>
+          </div>
+        </div>
+
+        <div class="assign-row">
+          <div class="assign-icon" style="background:#eff6ff">📐</div>
+          <div class="assign-body">
+            <div class="assign-name">Long Division</div>
+            <div class="assign-meta">P3 · G4–5 · Assigned to whole class · 28 students</div>
+            <div class="assign-chips">
+              <span class="achip achip-band">P3 G4–5</span>
+              <span class="achip achip-class">Class-wide</span>
+              <span class="achip achip-active">Active</span>
+            </div>
+          </div>
+          <div class="assign-right">
+            <div class="assign-due">Due: Apr 15</div>
+            <div class="assign-progress">18 / 28 started</div>
+            <div style="display:flex;gap:4px;margin-top:6px">
+              <button class="btn-sm btn-outline">View</button>
+              <button class="btn-sm btn-danger">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="assign-row">
+          <div class="assign-icon" style="background:#fff0f0">➕</div>
+          <div class="assign-body">
+            <div class="assign-name">Fractions: Adding Unlike Denominators</div>
+            <div class="assign-meta">P2 · G2–3 · Assigned to 5 students in support</div>
+            <div class="assign-chips">
+              <span class="achip achip-band">P2 G2–3</span>
+              <span class="achip achip-student">5 students</span>
+              <span class="achip achip-active">Active</span>
+            </div>
+          </div>
+          <div class="assign-right">
+            <div class="assign-due">No due date</div>
+            <div class="assign-progress">3 / 5 started</div>
+            <div style="display:flex;gap:4px;margin-top:6px">
+              <button class="btn-sm btn-outline">View</button>
+              <button class="btn-sm btn-danger">Remove</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="assign-row">
+          <div class="assign-icon" style="background:#f0fff4">🔢</div>
+          <div class="assign-body">
+            <div class="assign-name">Place Value: Thousands</div>
+            <div class="assign-meta">P1 · K–1 · Assigned to Priya (individual)</div>
+            <div class="assign-chips">
+              <span class="achip" style="background:#9b72ff22;color:#6d3fcf">P1 K–1</span>
+              <span class="achip achip-student">Individual</span>
+              <span class="achip achip-active">Active</span>
+            </div>
+          </div>
+          <div class="assign-right">
+            <div class="assign-due">Due: Mar 28</div>
+            <div class="assign-progress">In progress</div>
+            <div style="display:flex;gap:4px;margin-top:6px">
+              <button class="btn-sm btn-outline">View</button>
+              <button class="btn-sm btn-danger">Remove</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">✅ Completed This Month</div>
+          <div class="card-link">See all</div>
+        </div>
+        <div class="assign-row">
+          <div class="assign-icon" style="background:#dcfce722">✓</div>
+          <div class="assign-body">
+            <div class="assign-name" style="color:#888">Multiplication: Basic</div>
+            <div class="assign-meta">Completed Mar 10 · 22/28 students mastered</div>
+          </div>
+          <div class="assign-right">
+            <span class="status-pill sp-done">Completed</span>
+          </div>
+        </div>
+        <div class="assign-row">
+          <div class="assign-icon" style="background:#dcfce722">✓</div>
+          <div class="assign-body">
+            <div class="assign-name" style="color:#888">Subtraction with Regrouping</div>
+            <div class="assign-meta">Completed Mar 4 · 26/28 students mastered</div>
+          </div>
+          <div class="assign-right">
+            <span class="status-pill sp-done">Completed</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="card">
+        <div class="card-title" style="margin-bottom:12px">Quick Stats</div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#f8faff;border-radius:8px">
+            <span style="font-size:12px;color:#555">Active assignments</span>
+            <span style="font-size:14px;font-weight:800;color:#2563eb">3</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#f8faff;border-radius:8px">
+            <span style="font-size:12px;color:#555">Students with assignment</span>
+            <span style="font-size:14px;font-weight:800;color:#1a1440">28</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#f8faff;border-radius:8px">
+            <span style="font-size:12px;color:#555">Completed this month</span>
+            <span style="font-size:14px;font-weight:800;color:#15803d">2</span>
+          </div>
+        </div>
+        <div class="soft-note" style="margin-top:12px">
+          💡 Assignments are <strong>soft priorities</strong> — WonderQuest's adaptive engine will favour assigned skills while maintaining learning flow.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assignment Detail ─────────────────────────────────────────── -->
+<div id="tab-detail" class="screen">
+  <p class="section-title">Assignment detail — Long Division (Class-wide)</p>
+  <div class="detail-card">
+    <div class="dc-header">
+      <div class="dc-icon">📐</div>
+      <div>
+        <div class="dc-title">Long Division</div>
+        <div class="dc-sub">P3 · Grade 4–5 · Assigned to Class 4B (28 students)</div>
+        <div class="dc-chips">
+          <span class="achip achip-band">P3 G4–5</span>
+          <span class="achip achip-class">Class-wide</span>
+          <span class="achip achip-active">Active · Due Apr 15</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dc-stats">
+      <div class="dc-stat">
+        <div class="dc-stat-n">18</div>
+        <div class="dc-stat-l">Started</div>
+      </div>
+      <div class="dc-stat">
+        <div class="dc-stat-n">4</div>
+        <div class="dc-stat-l">Mastered</div>
+      </div>
+      <div class="dc-stat">
+        <div class="dc-stat-n">10</div>
+        <div class="dc-stat-l">Not started</div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:14px">
+      <div style="font-size:11px;font-weight:700;color:#888;margin-bottom:6px">STUDENT PROGRESS</div>
+      <table class="prog-table">
+        <tr><th>Student</th><th>Mastery</th><th>Sessions</th><th>Status</th></tr>
+        <tr>
+          <td style="font-weight:700">Bella</td>
+          <td><div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:88%"></div></div></td>
+          <td>8</td>
+          <td><span class="status-pill sp-done">Mastered</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700">Marcus</td>
+          <td><div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:72%"></div></div></td>
+          <td>6</td>
+          <td><span class="status-pill sp-progress">Building</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700">Jordan</td>
+          <td><div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:55%"></div></div></td>
+          <td>5</td>
+          <td><span class="status-pill sp-progress">Building</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700">Priya</td>
+          <td><div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:10%"></div></div></td>
+          <td>1</td>
+          <td><span class="status-pill sp-progress">Just started</span></td>
+        </tr>
+        <tr>
+          <td style="font-weight:700">Ethan</td>
+          <td><div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:0%"></div></div></td>
+          <td>0</td>
+          <td><span class="status-pill sp-not-started">Not started</span></td>
+        </tr>
+        <tr>
+          <td style="color:#aaa">+23 more</td>
+          <td></td><td></td>
+          <td><a style="font-size:11px;color:#2563eb;font-weight:700">View all</a></td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn-sm btn-outline" style="flex:1;padding:9px">Edit assignment</button>
+      <button class="btn-sm btn-danger" style="flex:1;padding:9px">Remove assignment</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Assign New ─────────────────────────────────────────────────── -->
+<div id="tab-new" class="screen">
+  <p class="section-title">Assign a skill — new assignment form</p>
+  <div style="max-width:400px">
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">📋 New Assignment</div>
+      <div class="assign-form">
+        <div class="form-group">
+          <label class="form-label">Skill</label>
+          <select class="form-select">
+            <option>Search or select a skill…</option>
+            <option selected>Long Division (P3 · G4–5)</option>
+            <option>Fractions: Adding Unlike Denominators (P2 · G2–3)</option>
+            <option>Place Value: Thousands (P1 · K–1)</option>
+            <option>Multiplication: Basic (P2 · G2–3)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Assign to</label>
+          <select class="form-select">
+            <option selected>Whole class — Class 4B (28 students)</option>
+            <option>Group: P2 students (12 students)</option>
+            <option>Group: Support queue students (4 students)</option>
+            <option>Individual student…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Due date (optional)</label>
+          <input type="date" class="form-input" value="2026-04-15">
+          <span class="form-hint">If set, system surfaces this skill more as due date approaches.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Note for yourself (optional)</label>
+          <input class="form-input" placeholder="e.g. Per curriculum map week 14…">
+          <span class="form-hint">Private to you. Not shown to students or parents.</span>
+        </div>
+        <div class="soft-note">
+          <strong>Soft priority:</strong> WonderQuest will favour this skill in adaptive sessions but won't lock students into it. The engine may intersperse other skills to maintain optimal learning flow.
+        </div>
+        <button class="btn-full">Create assignment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-assignment-preview-v2.html<br>
+      <strong>Data model:</strong> teacher_assignments table — teacher_id, class_id, student_ids[], skill_id, due_date (nullable), teacher_note (private), created_at, status (active/completed/removed).<br>
+      <strong>Completion rule:</strong> auto-complete when all targeted students reach mastery_status = Strong for that skill.
+    </div>
+    <h2 class="spec-h2">Assignment Types</h2>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Target</th><th>Use case</th></tr>
+      <tr><td>Class-wide</td><td>All students in class</td><td>Curriculum alignment, class topic focus</td></tr>
+      <tr><td>Group</td><td>Filtered subset (band, queue, etc.)</td><td>Differentiated instruction for cohort</td></tr>
+      <tr><td>Individual</td><td>Single student</td><td>Personalised remediation or extension</td></tr>
+    </table>
+    <h2 class="spec-h2">Limits &amp; Rules</h2>
+    <table class="spec-table">
+      <tr><th>Rule</th><th>Value</th><th>Why</th></tr>
+      <tr><td>Max active per student</td><td>3</td><td>Prevent overloading adaptive engine priority signals</td></tr>
+      <tr><td>Completion trigger</td><td>mastery_status → Strong</td><td>Objective, not session-count-based</td></tr>
+      <tr><td>Due date enforcement</td><td>Soft (surface more frequently)</td><td>Not a hard block — adaptive engine still retains control</td></tr>
+      <tr><td>Teacher note</td><td>Private (teacher only)</td><td>Curriculum rationale — not shown to student/parent</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Assignment lists are visible to the assigning teacher only. Students see the assigned skill appear in their session naturally — no "you were assigned this" label. Parents do not see assignment details. Assignment history retained for 1 year after class year ends.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

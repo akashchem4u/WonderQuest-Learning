@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-session-history-preview-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-session-history-preview-v2.html    ║
+     ║                                                              ║
+     ║  Session history shown to the CHILD on the home hub.         ║
+     ║  Shows recent sessions in a scrollable strip.                ║
+     ║  NOT the parent's detailed report — this is the child's      ║
+     ║  trophy shelf view of past sessions.                         ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — History Strip  : horizontal scroll, 3 recent cards ║
+     ║  Tab 2 — Session Detail : tapping a card expands detail      ║
+     ║  Tab 3 — Empty State    : no history yet (first-time)        ║
+     ║  Tab 4 — Spec           : data shown, privacy rules          ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 24px 20px 24px; gap: 14px; overflow: hidden;
+  }
+
+  /* Section header */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  .section-title { font-size: 1rem; font-weight: 900; color: #fff; }
+  .section-link { font-size: 0.76rem; font-weight: 700; color: #9b72ff; text-decoration: underline; text-underline-offset: 2px; }
+
+  /* Horizontal scroll strip */
+  .history-strip {
+    display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px;
+    scrollbar-width: none; flex-shrink: 0;
+  }
+  .history-strip::-webkit-scrollbar { display: none; }
+
+  /* Session card */
+  .session-card {
+    flex-shrink: 0; width: 130px;
+    background: #1a1440; border: 1.5px solid #2a2060; border-radius: 14px;
+    padding: 12px 14px; display: flex; flex-direction: column; gap: 8px;
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .session-card:active { opacity: 0.85; }
+  .sc-band-dot {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 0.9rem;
+  }
+  .sc-band-dot.violet { background: #221960; border: 2px solid #9b72ff44; }
+  .sc-band-dot.gold   { background: #2a1800; border: 2px solid #ffd16644; }
+  .sc-band-dot.mint   { background: #0d2018; border: 2px solid #58e8c144; }
+  .sc-band-dot.coral  { background: #1e0e08; border: 2px solid #ff7b6b44; }
+
+  .sc-skill { font-size: 0.72rem; font-weight: 900; color: #9080c0; line-height: 1.3; }
+  .sc-stars { font-size: 0.9rem; font-weight: 900; color: #ffd166; }
+  .sc-date  { font-size: 0.65rem; font-weight: 700; color: #6050a0; }
+
+  /* Perfect pip */
+  .sc-perfect {
+    background: #3a2000; border: 1px solid #ffd16644;
+    border-radius: 8px; padding: 1px 6px;
+    font-size: 0.6rem; font-weight: 900; color: #ffd166; align-self: flex-start;
+  }
+
+  /* Expanded detail card */
+  .detail-card {
+    background: #1a1440; border: 2px solid #9b72ff44; border-radius: 16px;
+    padding: 16px; display: flex; flex-direction: column; gap: 12px; flex-shrink: 0;
+  }
+  .dc-header { display: flex; align-items: center; justify-content: space-between; }
+  .dc-title { font-size: 0.96rem; font-weight: 900; color: #fff; }
+  .dc-close { font-size: 1.2rem; color: #6050a0; cursor: pointer; }
+  .dc-meta { font-size: 0.76rem; font-weight: 700; color: #9080c0; }
+  .dc-segs { display: flex; gap: 4px; }
+  .dc-seg { flex: 1; height: 6px; border-radius: 3px; background: #9b72ff; }
+  .dc-stat-row { display: flex; gap: 8px; }
+  .dc-stat {
+    flex: 1; background: #221960; border: 1.5px solid #2a2060; border-radius: 10px;
+    padding: 8px 10px; display: flex; flex-direction: column; gap: 2px;
+  }
+  .dc-stat-val { font-size: 1rem; font-weight: 900; color: #fff; }
+  .dc-stat-label { font-size: 0.65rem; font-weight: 700; color: #9080c0; }
+  .dc-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dc-badge-pill {
+    background: #221960; border: 1px solid #9b72ff44; border-radius: 12px;
+    padding: 3px 10px; font-size: 0.72rem; font-weight: 700; color: #b89eff;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .dc-play-again {
+    height: 46px; border-radius: 23px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 0.9rem; font-weight: 900; cursor: pointer;
+  }
+
+  /* Remaining cards below expanded */
+  .remaining-cards { display: flex; gap: 10px; flex-wrap: nowrap; overflow-x: auto; flex-shrink: 0; scrollbar-width: none; }
+  .remaining-cards::-webkit-scrollbar { display: none; }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 14px; text-align: center;
+  }
+  .es-emoji { font-size: 4rem; }
+  .es-title { font-size: 1.2rem; font-weight: 900; color: #fff; }
+  .es-sub { font-size: 0.88rem; font-weight: 700; color: #9080c0; line-height: 1.5; }
+  .btn-start {
+    height: 52px; width: 100%; border-radius: 26px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+  }
+
+  /* Upcoming section teaser */
+  .upcoming-section { display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; }
+  .upcoming-card {
+    background: #14102a; border: 1.5px solid #2a2050; border-radius: 12px;
+    padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+  }
+  .uc-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .uc-text { font-size: 0.82rem; font-weight: 700; color: #b0a0e0; }
+  .uc-text strong { color: #fff; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-session-history-preview-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">History Strip</button>
+  <button class="tab-btn" onclick="showTab('t2')">Session Detail</button>
+  <button class="tab-btn" onclick="showTab('t3')">Empty State</button>
+  <button class="tab-btn" onclick="showTab('t4')">Spec</button>
+</div>
+
+<!-- ── Tab 1: History Strip ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>History Strip — Child's Trophy Shelf View</h4>
+    Horizontal scroll strip of recent sessions. Each card: band dot + skill + stars + date.
+    Perfect sessions get gold pip. Tapping a card expands detail.
+    "See all →" link goes to full history. Star-only — no accuracy %.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="section-header">
+        <div class="section-title">Your Adventure Log 📖</div>
+        <div class="section-link">See all →</div>
+      </div>
+
+      <!-- Star total row -->
+      <div style="display:flex;align-items:center;gap:8px;background:#1a1440;border:1.5px solid #ffd16633;border-radius:10px;padding:8px 12px;flex-shrink:0;">
+        <span style="font-size:1.2rem;">⭐</span>
+        <div style="font-size:0.82rem;font-weight:700;color:#c0a8ff;">All-time stars</div>
+        <div style="font-size:1.1rem;font-weight:900;color:#ffd166;margin-left:auto;">47 ⭐</div>
+      </div>
+
+      <div class="history-strip">
+        <!-- Today - perfect -->
+        <div class="session-card">
+          <div class="sc-band-dot violet">🔤</div>
+          <div class="sc-skill">Beginning Sounds</div>
+          <div class="sc-stars">+10 ⭐</div>
+          <div class="sc-perfect">🏆 Perfect</div>
+          <div class="sc-date">Today</div>
+        </div>
+        <!-- Yesterday -->
+        <div class="session-card">
+          <div class="sc-band-dot mint">✖️</div>
+          <div class="sc-skill">Multiplication</div>
+          <div class="sc-stars">+7 ⭐</div>
+          <div class="sc-date">Yesterday</div>
+        </div>
+        <!-- 2 days ago -->
+        <div class="session-card">
+          <div class="sc-band-dot gold">⭕</div>
+          <div class="sc-skill">Shapes</div>
+          <div class="sc-stars">+6 ⭐</div>
+          <div class="sc-date">2 days ago</div>
+        </div>
+        <!-- 3 days ago -->
+        <div class="session-card">
+          <div class="sc-band-dot coral">📖</div>
+          <div class="sc-skill">Inference</div>
+          <div class="sc-stars">+8 ⭐</div>
+          <div class="sc-date">3 days ago</div>
+        </div>
+      </div>
+
+      <!-- Upcoming section -->
+      <div class="upcoming-section">
+        <div class="section-header"><div class="section-title">Coming up next 👀</div></div>
+        <div class="upcoming-card">
+          <div class="uc-icon">📚</div>
+          <div class="uc-text"><strong>Sight Words</strong> — you'll learn "jump", "play", and more!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Session Detail ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Session Detail — Expanded Card</h4>
+    Tapping a history card expands it to show full detail inline.
+    Shows: skill, date, all 5 segs (filled), stars, XP, badges earned.
+    "Play again" CTA to replay that skill.
+    Other cards still visible below (scrollable).
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="section-header">
+        <div class="section-title">Your Adventure Log 📖</div>
+        <div class="section-link">See all →</div>
+      </div>
+
+      <!-- Expanded detail card -->
+      <div class="detail-card">
+        <div class="dc-header">
+          <div>
+            <div class="dc-title">Beginning Sounds · K-1</div>
+            <div class="dc-meta">Today · 5 questions</div>
+          </div>
+          <div class="dc-close">×</div>
+        </div>
+        <div class="dc-segs">
+          <div class="dc-seg"></div><div class="dc-seg"></div>
+          <div class="dc-seg"></div><div class="dc-seg"></div>
+          <div class="dc-seg" style="background:#ffd166;"></div>
+        </div>
+        <div class="dc-stat-row">
+          <div class="dc-stat"><div class="dc-stat-val" style="color:#ffd166;">+10 ⭐</div><div class="dc-stat-label">Stars</div></div>
+          <div class="dc-stat"><div class="dc-stat-val" style="color:#9b72ff;">+80</div><div class="dc-stat-label">XP</div></div>
+          <div class="dc-stat"><div class="dc-stat-val">5/5</div><div class="dc-stat-label">Done</div></div>
+        </div>
+        <div class="dc-badges">
+          <div class="dc-badge-pill">🏆 Perfect Session</div>
+          <div class="dc-badge-pill">🔥 Streak: 3</div>
+        </div>
+        <button class="dc-play-again">↺ Play this skill again</button>
+      </div>
+
+      <!-- Other cards below -->
+      <div class="remaining-cards">
+        <div class="session-card">
+          <div class="sc-band-dot mint">✖️</div>
+          <div class="sc-skill">Multiplication</div>
+          <div class="sc-stars">+7 ⭐</div>
+          <div class="sc-date">Yesterday</div>
+        </div>
+        <div class="session-card">
+          <div class="sc-band-dot gold">⭕</div>
+          <div class="sc-skill">Shapes</div>
+          <div class="sc-stars">+6 ⭐</div>
+          <div class="sc-date">2 days ago</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Empty State ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Empty State — No History Yet (First Time)</h4>
+    Warm, exciting first-time message. No history to show.
+    "Start your first session!" CTA. Upcoming teaser shown to build anticipation.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="section-header">
+        <div class="section-title">Your Adventure Log 📖</div>
+      </div>
+      <div class="empty-state">
+        <div class="es-emoji">🗺️</div>
+        <div class="es-title">Your adventures start here!</div>
+        <div class="es-sub">Complete your first session to start filling your adventure log with stars and badges!</div>
+      </div>
+      <div class="upcoming-section">
+        <div class="section-header"><div class="section-title">Your first adventure 🌟</div></div>
+        <div class="upcoming-card">
+          <div class="uc-icon">🔤</div>
+          <div class="uc-text"><strong>Beginning Sounds</strong> — learn how letters sound at the start of words!</div>
+        </div>
+      </div>
+      <button class="btn-start">Start your first session! ▶</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Spec ── -->
+<div class="screen" id="t4">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Data Shown (Child View)</h4>
+      <ul>
+        <li>Stars earned per session (always positive delta)</li>
+        <li>Skill name + band</li>
+        <li>Relative date ("Today", "Yesterday", "2 days ago")</li>
+        <li>Perfect session pip (gold)</li>
+        <li>Badges earned in that session</li>
+        <li class="dont">❌ NEVER show wrong-answer count in history</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Privacy Rules (Child History)</h4>
+      <ul>
+        <li>This is the CHILD's view — celebratory, no negatives</li>
+        <li>Parent's detailed report is separate (parent-weekly-report-v3.html)</li>
+        <li>Child never sees "X wrong answers" or accuracy %</li>
+        <li>Child never sees skill names they struggled with prominently</li>
+        <li>All-time star total shown as motivator</li>
+        <li class="dont">❌ Never cross-contaminate parent data into child view</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Strip Layout</h4>
+      <ul>
+        <li>Card width: 130px; gap: 10px</li>
+        <li>Horizontal scroll: <code>overflow-x: auto; scrollbar-width: none</code></li>
+        <li>Cards: flex-shrink: 0</li>
+        <li>Scroll snapping: optional (smooth feels better)</li>
+        <li>Max visible: 3 cards before scroll; show partial 4th as hint</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Expanded Detail</h4>
+      <ul>
+        <li>Tap card → expand inline (not a new screen)</li>
+        <li>Close via × button → collapses back to strip</li>
+        <li>5 segs shown filled (all done)</li>
+        <li>Stats: Stars, XP, Questions count</li>
+        <li>"Play again" → launches new session with same skill</li>
+        <li>Other cards remain visible below (scrollable)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

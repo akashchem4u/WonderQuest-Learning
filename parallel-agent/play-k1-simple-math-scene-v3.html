@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-k1-simple-math-scene-v3.html
+  =====================================================
+  K-1 simple math play scene. Violet (#9b72ff) theme throughout.
+  Four tabs: Active (Addition) / Correct / Wrong / Spec
+  - Math prompt: emoji object groups + simple equation display (3 + 2 = ?)
+  - Object tiles: visible countable objects with staggered obj-pop animation
+  - Answer row: 4 number buttons (sized 70px square)
+  - Coach: "Count the 🌟 — how many all together?"
+  - Correct: answer button turns green, coach adds them up verbally, gold CTA
+  - Wrong: "Count all the stars together — touch each one!" — actionable
+  - No timer, no accuracy %, stars never decrease
+  - Addition only at K-1 level — max sum of 10
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · K-1 Simple Math Scene v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .phone-frame {
+    width: 390px; min-height: 780px; background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #9b72ff22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column; margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .top-bar {
+    background: var(--card); padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(155,114,255,0.12); border: none;
+    color: var(--violet); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(155,114,255,0.15); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(155,114,255,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--violet);
+  }
+
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(155,114,255,0.2); }
+  .ps-seg.done { background: var(--violet); }
+  .ps-seg.active { background: rgba(155,114,255,0.6); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 18px 20px 12px; gap: 14px; overflow-y: auto;
+  }
+
+  .coach-inline {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(155,114,255,0.08); border-radius: 14px;
+    padding: 12px 14px; border: 1px solid rgba(155,114,255,0.2);
+  }
+  .coach-avatar-sm {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    border: 2px solid var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .coach-bubble { flex: 1; font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .coach-bubble .phonics { color: var(--violet); font-size: 1rem; font-weight: 900; }
+
+  /* Equation display */
+  .equation-display {
+    background: var(--card2); border-radius: 16px; border: 2px solid #3a3060;
+    padding: 16px 20px;
+    display: flex; align-items: center; justify-content: center; gap: 12px;
+  }
+  .eq-group {
+    display: flex; flex-direction: column; align-items: center; gap: 4px;
+  }
+  .eq-objects {
+    display: flex; flex-wrap: wrap; gap: 3px; justify-content: center;
+    max-width: 90px;
+  }
+  .eq-obj {
+    font-size: 1.5rem;
+    animation: obj-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+  }
+  .eq-obj:nth-child(1) { animation-delay: 0.04s; }
+  .eq-obj:nth-child(2) { animation-delay: 0.08s; }
+  .eq-obj:nth-child(3) { animation-delay: 0.12s; }
+  .eq-obj:nth-child(4) { animation-delay: 0.16s; }
+  .eq-obj:nth-child(5) { animation-delay: 0.20s; }
+  .eq-obj.highlight-obj { filter: drop-shadow(0 0 4px #50e890); }
+  .eq-count { font-size: 1.2rem; font-weight: 900; color: var(--violet); }
+  .eq-op {
+    font-size: 2rem; font-weight: 900; color: var(--text); align-self: center;
+  }
+  .eq-equals {
+    font-size: 2rem; font-weight: 900; color: var(--muted); align-self: center;
+  }
+  .eq-question {
+    font-size: 2.8rem; font-weight: 900;
+    color: var(--violet); align-self: center;
+    animation: violet-pulse 1.5s ease-in-out infinite;
+  }
+  .eq-answer-reveal {
+    font-size: 2.8rem; font-weight: 900; color: var(--correct); align-self: center;
+  }
+
+  @keyframes violet-pulse {
+    0%,100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.1); }
+  }
+
+  /* Answer row */
+  .answer-row {
+    display: flex; gap: 10px; justify-content: center;
+  }
+  .num-btn {
+    width: 70px; height: 70px;
+    background: var(--card2); border: 3px solid #3a3060;
+    border-radius: 14px; cursor: pointer;
+    font-family: 'Nunito', sans-serif;
+    font-size: 2rem; font-weight: 900; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    animation: obj-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+  }
+  .num-btn:nth-child(1) { animation-delay: 0.05s; }
+  .num-btn:nth-child(2) { animation-delay: 0.10s; }
+  .num-btn:nth-child(3) { animation-delay: 0.15s; }
+  .num-btn:nth-child(4) { animation-delay: 0.20s; }
+  .num-btn:hover { border-color: var(--violet); color: var(--violet); transform: translateY(-3px); }
+  .num-btn.selected-correct {
+    background: var(--correct-bg); border-color: var(--correct);
+    color: var(--correct); animation: none;
+  }
+  .num-btn.selected-wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    color: var(--wrong); animation: shake 0.5s ease-out;
+  }
+  .num-btn.dimmed { opacity: 0.35; pointer-events: none; }
+
+  @keyframes obj-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .bottom-bar {
+    padding: 12px 16px 20px; background: var(--card); border-top: 1px solid #2a2050;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-replay, .btn-hint, .btn-idk {
+    flex: 1; padding: 10px 6px; border-radius: 12px; border: none;
+    font-family: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-replay { background: #2a2050; color: var(--violet); border: 1px solid #3a3060; }
+  .btn-hint { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+  .btn-idk { background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    color: white; font-family: inherit; font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .wrong-banner {
+    background: var(--wrong-bg); border: 2px solid var(--wrong);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .wrong-banner .w-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .wrong-banner .w-text { font-size: 0.88rem; font-weight: 700; color: var(--wrong); line-height: 1.3; }
+  .wrong-banner .w-text span { color: var(--text); }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: #2a0a00; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🔢 Play · K-1 Simple Math Scene</h1>
+<p class="subtitle">v3 · Violet K-1 theme · 4 states · Count objects + tap the answer</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('active')">Active (3 + 2 = ?)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== ACTIVE STATE ===== -->
+<div id="tab-active" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 14</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Math Quest</span>
+      <div class="star-counter">⭐ 14</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline">
+        <div class="coach-avatar-sm">🦁</div>
+        <div class="coach-bubble">
+          <span class="phonics">Count all the stars together!</span><br>
+          Touch each one as you count — how many in all?
+        </div>
+      </div>
+
+      <div class="equation-display">
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+          </div>
+          <span class="eq-count">3</span>
+        </div>
+        <div class="eq-op">+</div>
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+          </div>
+          <span class="eq-count">2</span>
+        </div>
+        <div class="eq-equals">=</div>
+        <div class="eq-question">?</div>
+      </div>
+
+      <div class="answer-row">
+        <button class="num-btn">4</button>
+        <button class="num-btn">5</button>
+        <button class="num-btn">6</button>
+        <button class="num-btn">7</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — keep trying!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORRECT STATE ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 15</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Math Quest</span>
+      <div class="star-counter">⭐ 15</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline" style="border-color:#50e890; background:#0d2a1a;">
+        <div class="coach-avatar-sm" style="border-color:#50e890;">🦁</div>
+        <div class="coach-bubble">
+          <span style="color:#50e890; font-size:1rem;">✨ 3 + 2 = 5! You counted them all!</span><br>
+          3… 4… 5! Perfect counting — you're a math star!
+        </div>
+      </div>
+
+      <div class="equation-display" style="border-color:#50e890;">
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj highlight-obj">⭐</span>
+            <span class="eq-obj highlight-obj">⭐</span>
+            <span class="eq-obj highlight-obj">⭐</span>
+          </div>
+          <span class="eq-count" style="color:#50e890;">3</span>
+        </div>
+        <div class="eq-op">+</div>
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj highlight-obj">⭐</span>
+            <span class="eq-obj highlight-obj">⭐</span>
+          </div>
+          <span class="eq-count" style="color:#50e890;">2</span>
+        </div>
+        <div class="eq-equals">=</div>
+        <div class="eq-answer-reveal">5</div>
+      </div>
+
+      <div class="answer-row">
+        <button class="num-btn dimmed">4</button>
+        <button class="num-btn selected-correct">5</button>
+        <button class="num-btn dimmed">6</button>
+        <button class="num-btn dimmed">7</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Problem ✨ +1⭐</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WRONG STATE ===== -->
+<div id="tab-wrong" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 14</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Math Quest</span>
+      <div class="star-counter">⭐ 14</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <span class="w-icon">⭐</span>
+        <div class="w-text">
+          Not quite — let's count again together.<br>
+          <span>Touch each star one at a time: 1, 2, 3… keep going!</span>
+        </div>
+      </div>
+
+      <div class="equation-display">
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+          </div>
+          <span class="eq-count">3</span>
+        </div>
+        <div class="eq-op">+</div>
+        <div class="eq-group">
+          <div class="eq-objects">
+            <span class="eq-obj">⭐</span>
+            <span class="eq-obj">⭐</span>
+          </div>
+          <span class="eq-count">2</span>
+        </div>
+        <div class="eq-equals">=</div>
+        <div class="eq-question">?</div>
+      </div>
+
+      <div class="answer-row">
+        <button class="num-btn">4</button>
+        <button class="num-btn">5</button>
+        <button class="num-btn selected-wrong">6</button>
+        <button class="num-btn">7</button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-k1-simple-math-scene-v3 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>K-1 simple addition scene — child counts two visible groups of objects and taps the total</li>
+      <li>Visual object groups reinforce counting-on strategy (not memorization)</li>
+      <li>Violet K-1 theme. No timer, no accuracy %, stars never decrease.</li>
+    </ul>
+
+    <h3>Tabs / States</h3>
+    <ul>
+      <li><span class="token tok-muted">Active</span> Equation card with 2 emoji groups + count labels + "?" answer slot, 4 number buttons below</li>
+      <li><span class="token tok-green">Correct</span> Objects get <code>highlight-obj</code> filter, answer slot shows numeral, correct button → green, violet CTA</li>
+      <li><span class="token tok-red">Wrong</span> Wrong button shakes + red border, wrong banner with touch-counting prompt, star-safe shown</li>
+      <li><span class="token tok-muted">Spec</span> This document</li>
+    </ul>
+
+    <h3>Equation Display</h3>
+    <ul>
+      <li>Flexrow: [group A emoji objects + count] + [op symbol] + [group B emoji objects + count] + [=] + [? or answer]</li>
+      <li>Each object gets staggered <code>obj-pop</code> animation (0.04s per emoji)</li>
+      <li>Count labels in violet below each group (e.g. "3", "2")</li>
+      <li>"?" pulses with <code>violet-pulse</code> keyframe while awaiting answer</li>
+      <li>On correct: "?" replaced with numeral in <code>#50e890</code>, objects get <code>highlight-obj</code> drop-shadow filter</li>
+    </ul>
+
+    <h3>Number Answer Buttons</h3>
+    <ul>
+      <li>4 buttons, 70px square, Nunito 900, 2rem font</li>
+      <li>4 adjacent numbers (e.g. 4/5/6/7 for answer 5) — distractors ±1 and ±2</li>
+      <li>Wrong: shake + red border, other choices remain active</li>
+      <li>Correct: green border, others dimmed</li>
+    </ul>
+
+    <h3>K-1 Math Scope</h3>
+    <ul>
+      <li>Addition only — sums 2–10</li>
+      <li>Max 5 objects per group (visual countability constraint)</li>
+      <li>Use emoji objects matching child's active theme (stars, animals, food, etc.)</li>
+      <li>No subtraction at this level</li>
+    </ul>
+
+    <h3>Coach Script</h3>
+    <ul>
+      <li>Active: "Count all the stars together! Touch each one as you count — how many in all?"</li>
+      <li>Correct: "3 + 2 = 5! 3… 4… 5! Perfect counting — you're a math star!"</li>
+      <li>Wrong: "Not quite — let's count again. Touch each star one at a time: 1, 2, 3… keep going!"</li>
+    </ul>
+
+    <h3>Design Tokens (K-1 Violet)</h3>
+    <ul>
+      <li>Violet: <code>#9b72ff</code> — count labels, eq-question pulse, progress segs, CTA</li>
+      <li>Correct: <code>#50e890</code> — answer reveal + highlight-obj filter glow</li>
+      <li>Wrong: <code>#ff7b6b</code> shake + banner</li>
+      <li>Star-safe badge on active + wrong states</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

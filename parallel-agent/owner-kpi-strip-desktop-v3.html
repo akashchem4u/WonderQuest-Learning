@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner KPI Strip Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1100px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1100px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* KPI Strip wrapper — sits at top of owner console pages */
+.kpi-strip-demo{background:#0d1117;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06);max-width:1100px}
+
+/* KPI Strip itself */
+.kpi-strip{display:grid;grid-template-columns:repeat(8,1fr);background:#010409;border-bottom:1px solid rgba(255,255,255,.06)}
+.kpi-cell{padding:14px 16px;border-right:1px solid rgba(255,255,255,.04);cursor:pointer;transition:background .15s;position:relative}
+.kpi-cell:last-child{border-right:none}
+.kpi-cell:hover{background:rgba(255,255,255,.03)}
+.kpi-cell.active-kpi{background:rgba(80,232,144,.05)}
+.kpi-cell.active-kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#50e890}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3);margin-bottom:6px;white-space:nowrap}
+.kpi-val{font-size:20px;font-weight:900;color:#f0f6ff;line-height:1;margin-bottom:4px}
+.kpi-delta{font-size:10px;font-weight:700;display:flex;align-items:center;gap:3px}
+.kpi-up{color:#50e890}
+.kpi-down{color:#f85149}
+.kpi-neutral{color:rgba(255,255,255,.3)}
+.kpi-sub{font-size:9px;color:rgba(255,255,255,.25);margin-top:2px}
+
+/* Alert KPI cell */
+.kpi-cell.kpi-alert{background:rgba(248,81,73,.04)}
+.kpi-cell.kpi-alert::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;background:#f85149}
+.kpi-cell.kpi-alert .kpi-val{color:#f85149}
+.kpi-cell.kpi-alert .kpi-label{color:#f85149}
+
+/* KPI cell: amber warn */
+.kpi-cell.kpi-warn{background:rgba(245,158,11,.03)}
+.kpi-cell.kpi-warn .kpi-val{color:#f59e0b}
+
+/* Content area placeholder */
+.kpi-content{padding:20px 24px}
+.kpi-content-title{font-size:13px;font-weight:800;color:#f0f6ff;margin-bottom:6px}
+.kpi-content-sub{font-size:11px;color:rgba(255,255,255,.3);line-height:1.5}
+
+/* Period selector */
+.period-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#010409;border-bottom:1px solid rgba(255,255,255,.06)}
+.pb-chips{display:flex;gap:4px}
+.pb-chip{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.pb-active{background:rgba(255,255,255,.12);color:#f0f6ff}
+.pb-idle{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.pb-updated{font-size:10px;color:rgba(255,255,255,.25)}
+
+/* Variants section */
+.variant-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.3);padding:12px 16px 6px;text-transform:uppercase;letter-spacing:.06em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1100px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;margin-bottom:12px}
+.spec-table th{text-align:left;font-size:11px;font-weight:700;color:#888;padding:6px 10px;border-bottom:2px solid #eee}
+.spec-table td{font-size:12px;color:#333;padding:7px 10px;border-bottom:1px solid #f0f0f0;vertical-align:top}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-kpi-strip-desktop-v3.html</strong><br>
+  Persistent KPI strip at the top of every owner desktop console page. 8 key metrics with deltas and period context.<br>
+  <strong>Metrics (left to right):</strong> MAU · DAU · MRR · ARR · Schools · Active Feedback · Release Gate · Route Health.<br>
+  <strong>Active cell:</strong> Green underline on hover/selected. Red underline + red values for alert states (incidents, gate blocked).<br>
+  <strong>Period selector:</strong> 7d / 30d / 90d / All Time. Deltas are always vs. previous equivalent period.<br>
+  <strong>Clicking a KPI cell:</strong> Navigates to the corresponding detail page. Feedback → Feedback Workbench. Routes → Route Health. Gate → Release Gate.<br>
+  <strong>Update frequency:</strong> Refreshed every 5 minutes (not real-time for cost reasons). Timestamp shown in period bar.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('healthy')">All Healthy</button>
+  <button class="tab-btn" onclick="showTab('incident')">With Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── All Healthy ───────────────────────────────────────── -->
+<div id="tab-healthy" class="screen active">
+  <p class="section-title">KPI strip — desktop, all healthy state (30d period)</p>
+
+  <div class="kpi-strip-demo">
+    <div class="period-bar">
+      <div class="pb-chips">
+        <button class="pb-chip pb-idle">7d</button>
+        <button class="pb-chip pb-active">30d</button>
+        <button class="pb-chip pb-idle">90d</button>
+        <button class="pb-chip pb-idle">All Time</button>
+      </div>
+      <div class="pb-updated">Updated 3 min ago · refreshes every 5 min</div>
+    </div>
+
+    <div class="kpi-strip">
+      <div class="kpi-cell active-kpi">
+        <div class="kpi-label">MAU</div>
+        <div class="kpi-val">4,812</div>
+        <div class="kpi-delta kpi-up">▲ +9.2%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">DAU (avg)</div>
+        <div class="kpi-val">842</div>
+        <div class="kpi-delta kpi-up">▲ +6.4%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">MRR</div>
+        <div class="kpi-val">$8.4K</div>
+        <div class="kpi-delta kpi-up">▲ +5.0%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">ARR</div>
+        <div class="kpi-val">$101K</div>
+        <div class="kpi-delta kpi-up">▲ +12%</div>
+        <div class="kpi-sub">annualised</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Schools</div>
+        <div class="kpi-val">23</div>
+        <div class="kpi-delta kpi-up">▲ +2</div>
+        <div class="kpi-sub">active this month</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Feedback</div>
+        <div class="kpi-val">6</div>
+        <div class="kpi-delta kpi-neutral">— P0+P1 open</div>
+        <div class="kpi-sub">42 total this month</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Release Gate</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● Open</div>
+        <div class="kpi-delta kpi-neutral">94/100</div>
+        <div class="kpi-sub">v2.5.1</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Route Health</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● All Up</div>
+        <div class="kpi-delta kpi-neutral">10/10 routes</div>
+        <div class="kpi-sub">99.94% uptime</div>
+      </div>
+    </div>
+
+    <div class="kpi-content">
+      <div class="kpi-content-title">KPI Strip — All Healthy</div>
+      <div class="kpi-content-sub">Green underline on MAU cell (hovered / active example). Feedback shows 6 open P0+P1 items as a number badge. Release Gate and Route Health show text status dots instead of numbers. Click any cell to navigate to its detail page.</div>
+    </div>
+  </div>
+
+  <!-- 7d period variant -->
+  <p class="section-title" style="margin-top:24px">7d period variant</p>
+  <div class="kpi-strip-demo">
+    <div class="period-bar">
+      <div class="pb-chips">
+        <button class="pb-chip pb-active">7d</button>
+        <button class="pb-chip pb-idle">30d</button>
+        <button class="pb-chip pb-idle">90d</button>
+        <button class="pb-chip pb-idle">All Time</button>
+      </div>
+      <div class="pb-updated">Updated 1 min ago · refreshes every 5 min</div>
+    </div>
+    <div class="kpi-strip">
+      <div class="kpi-cell">
+        <div class="kpi-label">MAU</div>
+        <div class="kpi-val">4,812</div>
+        <div class="kpi-delta kpi-neutral">— (month metric)</div>
+        <div class="kpi-sub">full month shown</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">DAU (avg)</div>
+        <div class="kpi-val">891</div>
+        <div class="kpi-delta kpi-up">▲ +5.8%</div>
+        <div class="kpi-sub">vs prev 7d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">MRR</div>
+        <div class="kpi-val">$8.4K</div>
+        <div class="kpi-delta kpi-neutral">— (month metric)</div>
+        <div class="kpi-sub">full month shown</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">ARR</div>
+        <div class="kpi-val">$101K</div>
+        <div class="kpi-delta kpi-neutral">— (month metric)</div>
+        <div class="kpi-sub">annualised</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Sessions</div>
+        <div class="kpi-val">5,902</div>
+        <div class="kpi-delta kpi-up">▲ +3.1%</div>
+        <div class="kpi-sub">7d total</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Feedback</div>
+        <div class="kpi-val">6</div>
+        <div class="kpi-delta kpi-neutral">— P0+P1 open</div>
+        <div class="kpi-sub">9 new this week</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Release Gate</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● Open</div>
+        <div class="kpi-delta kpi-neutral">94/100</div>
+        <div class="kpi-sub">v2.5.1</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Route Health</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● All Up</div>
+        <div class="kpi-delta kpi-neutral">10/10 routes</div>
+        <div class="kpi-sub">99.94% uptime</div>
+      </div>
+    </div>
+    <div class="kpi-content">
+      <div class="kpi-content-title">7d Period — Note on MAU/MRR</div>
+      <div class="kpi-content-sub">MAU and MRR are monthly metrics — they always show the current month value regardless of period selector. Period selector affects session counts, DAU, and feedback counts. When 7d is selected, Sessions replaces "Schools" cell since DAU/Sessions are more relevant at 7d granularity.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── With Incident ─────────────────────────────────────── -->
+<div id="tab-incident" class="screen">
+  <p class="section-title">KPI strip — P0 incident active (Assignment Engine down)</p>
+  <div class="kpi-strip-demo" style="border-color:rgba(248,81,73,.2)">
+    <div class="period-bar" style="background:rgba(10,2,3,1)">
+      <div class="pb-chips">
+        <button class="pb-chip pb-idle">7d</button>
+        <button class="pb-chip pb-active">30d</button>
+        <button class="pb-chip pb-idle">90d</button>
+        <button class="pb-chip pb-idle">All Time</button>
+      </div>
+      <div class="pb-updated" style="color:#f85149;font-weight:700">🚨 P0 INCIDENT ACTIVE · Route Health updating every 10s</div>
+    </div>
+    <div class="kpi-strip" style="background:rgba(10,2,3,1)">
+      <div class="kpi-cell">
+        <div class="kpi-label">MAU</div>
+        <div class="kpi-val">4,812</div>
+        <div class="kpi-delta kpi-up">▲ +9.2%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">DAU (avg)</div>
+        <div class="kpi-val">842</div>
+        <div class="kpi-delta kpi-up">▲ +6.4%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">MRR</div>
+        <div class="kpi-val">$8.4K</div>
+        <div class="kpi-delta kpi-up">▲ +5.0%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">ARR</div>
+        <div class="kpi-val">$101K</div>
+        <div class="kpi-delta kpi-up">▲ +12%</div>
+        <div class="kpi-sub">annualised</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Schools</div>
+        <div class="kpi-val">23</div>
+        <div class="kpi-delta kpi-neutral">— active</div>
+        <div class="kpi-sub">9 affected now</div>
+      </div>
+      <div class="kpi-cell kpi-warn">
+        <div class="kpi-label">Feedback</div>
+        <div class="kpi-val">8</div>
+        <div class="kpi-delta kpi-down">▲ +2 since incident</div>
+        <div class="kpi-sub">P0+P1 open</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Release Gate</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● Open</div>
+        <div class="kpi-delta kpi-neutral">94/100</div>
+        <div class="kpi-sub">v2.5.1</div>
+      </div>
+      <div class="kpi-cell kpi-alert">
+        <div class="kpi-label">Route Health</div>
+        <div class="kpi-val">1 DOWN</div>
+        <div class="kpi-delta" style="color:#f85149;font-weight:700">🚨 P0 · 5h 23m</div>
+        <div class="kpi-sub">Assignment Engine</div>
+      </div>
+    </div>
+    <div class="kpi-content" style="background:rgba(248,81,73,.04);border-top:1px solid rgba(248,81,73,.1)">
+      <div class="kpi-content-title" style="color:#f85149">⚠️ P0 Incident Active — Assignment Engine Down</div>
+      <div class="kpi-content-sub">Route Health cell turns red (background + underline + text). Update frequency bumped to 10s for Route Health only. Feedback count jumps as teacher reports come in. Period bar shows "P0 INCIDENT ACTIVE" warning. All other KPIs unchanged — do not highlight non-affected metrics.</div>
+    </div>
+  </div>
+
+  <!-- Degraded (amber) variant -->
+  <p class="section-title" style="margin-top:24px">Degraded (amber) variant — Reports route slow</p>
+  <div class="kpi-strip-demo" style="border-color:rgba(245,158,11,.2)">
+    <div class="period-bar">
+      <div class="pb-chips">
+        <button class="pb-chip pb-idle">7d</button>
+        <button class="pb-chip pb-active">30d</button>
+        <button class="pb-chip pb-idle">90d</button>
+        <button class="pb-chip pb-idle">All Time</button>
+      </div>
+      <div class="pb-updated" style="color:#f59e0b;font-weight:700">⚠ Route degraded · Updated 2 min ago</div>
+    </div>
+    <div class="kpi-strip">
+      <div class="kpi-cell">
+        <div class="kpi-label">MAU</div>
+        <div class="kpi-val">4,812</div>
+        <div class="kpi-delta kpi-up">▲ +9.2%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">DAU (avg)</div>
+        <div class="kpi-val">842</div>
+        <div class="kpi-delta kpi-up">▲ +6.4%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">MRR</div>
+        <div class="kpi-val">$8.4K</div>
+        <div class="kpi-delta kpi-up">▲ +5.0%</div>
+        <div class="kpi-sub">vs prev 30d</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">ARR</div>
+        <div class="kpi-val">$101K</div>
+        <div class="kpi-delta kpi-up">▲ +12%</div>
+        <div class="kpi-sub">annualised</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Schools</div>
+        <div class="kpi-val">23</div>
+        <div class="kpi-delta kpi-up">▲ +2</div>
+        <div class="kpi-sub">active this month</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Feedback</div>
+        <div class="kpi-val">6</div>
+        <div class="kpi-delta kpi-neutral">— P0+P1 open</div>
+        <div class="kpi-sub">42 total this month</div>
+      </div>
+      <div class="kpi-cell">
+        <div class="kpi-label">Release Gate</div>
+        <div class="kpi-val" style="color:#50e890;font-size:14px;font-weight:800">● Open</div>
+        <div class="kpi-delta kpi-neutral">94/100</div>
+        <div class="kpi-sub">v2.5.1</div>
+      </div>
+      <div class="kpi-cell kpi-warn">
+        <div class="kpi-label">Route Health</div>
+        <div class="kpi-val" style="font-size:13px;font-weight:800;color:#f59e0b">⚠ Degraded</div>
+        <div class="kpi-delta" style="color:#f59e0b;font-weight:700">1 slow route</div>
+        <div class="kpi-sub">Reports p95: 620ms</div>
+      </div>
+    </div>
+    <div class="kpi-content">
+      <div class="kpi-content-title">Degraded State — Amber, Not Red</div>
+      <div class="kpi-content-sub">Route Health cell turns amber for degraded (not down). Reports route has custom SLA of 500ms p95. At 620ms it shows amber "Degraded" rather than red "DOWN". No P0 incident is declared. Feedback count unchanged. Update frequency stays at 60s (not bumped to 10s).</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-kpi-strip-desktop-v3.html<br>
+      <strong>Persistent 8-cell KPI strip.</strong> Top of every owner desktop console page. Period selector (7d/30d/90d/All Time). Refresh 5 min normal, 10s on P0. Clickable cells.
+    </div>
+    <h2 class="spec-h2">KPI Cell Reference</h2>
+    <table class="spec-table">
+      <tr><th>Cell</th><th>Metric</th><th>Delta basis</th><th>On P0 incident</th></tr>
+      <tr><td>MAU</td><td>Monthly active users (unique students with ≥1 session in month)</td><td>vs prev month</td><td>Unchanged</td></tr>
+      <tr><td>DAU (avg)</td><td>Daily active users, averaged over selected period</td><td>vs prev period</td><td>Unchanged</td></tr>
+      <tr><td>MRR</td><td>Monthly recurring revenue (subscription contracts)</td><td>vs prev month</td><td>Unchanged</td></tr>
+      <tr><td>ARR</td><td>Annualised MRR (MRR × 12)</td><td>Annualised comparison</td><td>Unchanged</td></tr>
+      <tr><td>Schools</td><td>Schools with ≥1 active student this month</td><td>vs prev month count</td><td>Shows "X affected"</td></tr>
+      <tr><td>Feedback</td><td>P0+P1 open count</td><td>Change vs period start</td><td>Amber + "+X since incident"</td></tr>
+      <tr><td>Release Gate</td><td>Gate status + score</td><td>Status text</td><td>Unchanged</td></tr>
+      <tr><td>Route Health</td><td>Status: All Up / Degraded / N DOWN</td><td>Uptime %</td><td>Red + "N DOWN" + duration</td></tr>
+    </table>
+    <h2 class="spec-h2">Period Selector Behaviour</h2>
+    <p class="spec-p">MAU and MRR are always monthly values — period selector does not change them (they show current month). Selecting 7d swaps the "Schools" cell to "Sessions" (more relevant for short periods). DAU average, Sessions, and Feedback counts respond to period selection. ARR is always annualised MRR × 12.</p>
+    <h2 class="spec-h2">Refresh Rate</h2>
+    <p class="spec-p">Normal: every 5 minutes (trade-off between freshness and API cost). P0 incident active: Route Health cell refreshes every 10 seconds; other cells remain at 5-minute refresh. Timestamp shown in period bar ("Updated N min ago").</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

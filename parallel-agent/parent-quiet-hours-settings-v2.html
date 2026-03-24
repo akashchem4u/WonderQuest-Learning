@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Quiet Hours Settings — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Settings card ────────────────────────────────────────────────── */
+.settings-card{background:#fff;border-radius:16px;padding:22px;box-shadow:0 4px 16px rgba(0,0,0,.08);max-width:500px;display:inline-block;vertical-align:top}
+.settings-h{font-size:17px;font-weight:800;color:#1a1440;margin-bottom:4px}
+.settings-sub{font-size:13px;color:#888;margin-bottom:18px}
+
+/* ── Toggle row ──────────────────────────────────────────────────── */
+.toggle-row{display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid #f5f0ff}
+.toggle-row:last-child{border-bottom:none}
+.toggle-label{flex:1;font-size:14px;font-weight:600;color:#1a1440}
+.toggle-sub{font-size:11px;color:#aaa;display:block;margin-top:2px;font-weight:400}
+.toggle{width:44px;height:24px;border-radius:12px;background:#e0d8f0;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle.on{background:#9b72ff}
+.toggle::after{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:#fff;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+.toggle.on::after{left:22px}
+
+/* ── Time picker row ─────────────────────────────────────────────── */
+.time-row{display:flex;align-items:center;gap:12px;padding:14px;background:#f8f6ff;border-radius:12px;margin-bottom:10px}
+.time-label{font-size:13px;font-weight:700;color:#1a1440;flex:1}
+.time-picker{display:flex;align-items:center;gap:8px}
+.time-val{font-size:16px;font-weight:800;color:#1a1440;background:#fff;border:1.5px solid #ede9f8;border-radius:8px;padding:6px 12px;min-width:60px;text-align:center;cursor:pointer;transition:border-color .15s}
+.time-val:hover{border-color:#9b72ff}
+.time-sep{font-size:16px;font-weight:800;color:#ccc}
+.ampm-btn{font-size:12px;font-weight:700;padding:6px 10px;border-radius:8px;border:1.5px solid #ede9f8;background:#fff;cursor:pointer;color:#555;transition:all .15s}
+.ampm-btn.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+
+/* ── Day picker ──────────────────────────────────────────────────── */
+.day-row{display:flex;gap:6px;margin-bottom:14px}
+.day-btn{flex:1;padding:8px 0;border-radius:8px;border:1.5px solid #ede9f8;background:#fff;font-size:12px;font-weight:700;color:#888;cursor:pointer;text-align:center;transition:all .15s}
+.day-btn.active{background:#9b72ff;border-color:#9b72ff;color:#fff}
+
+/* ── Blocked period visual ───────────────────────────────────────── */
+.timeline{height:20px;background:#f0ecf8;border-radius:10px;overflow:hidden;position:relative;margin-bottom:6px}
+.timeline-block{position:absolute;top:0;height:100%;background:#9b72ff;border-radius:4px;opacity:.4}
+.timeline-labels{display:flex;justify-content:space-between;font-size:10px;color:#aaa}
+
+/* ── Info box ─────────────────────────────────────────────────────── */
+.info-box{background:#f5f0ff;border-radius:10px;padding:12px 14px;font-size:12px;color:#6d28d9;line-height:1.5;margin-top:14px}
+
+/* ── Save btn ─────────────────────────────────────────────────────── */
+.save-btn{width:100%;padding:14px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:15px;font-weight:700;font-family:system-ui;cursor:pointer;margin-top:16px;transition:background .15s}
+
+/* ── Phone frame ─────────────────────────────────────────────────── */
+.phone-frame{width:390px;height:780px;background:#f5f0e8;border-radius:40px;position:relative;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.25),inset 0 0 0 2px #9b72ff22;border:8px solid #1a1a2e;display:inline-block;vertical-align:top}
+.phone-screen{width:100%;height:100%;overflow-y:auto;padding:16px 0 24px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-quiet-hours-settings-v2.html</strong><br>
+  Parent can set "quiet hours" — time periods when WonderQuest will NOT send notifications to the parent's device AND will NOT allow the child to start new sessions on their device.<br>
+  <strong>Two separate toggles:</strong><br>
+  (1) Quiet hours for notifications (parent device only) — e.g. 9pm–7am no notification pings.<br>
+  (2) Quiet hours for play (child's device) — e.g. 8pm–7am child cannot start a new session (session in progress is allowed to complete).<br>
+  <strong>COPPA note:</strong> Quiet hours for play apply to the child's WonderQuest session start permission only — NOT a device-level parental control. Child can still use other apps.<br>
+  Defaults: Notifications quiet 9pm–7am (ON). Play quiet hours OFF (family's choice).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('desktop')">Desktop Settings</button>
+  <button class="tab-btn" onclick="showTab('mobile')">Mobile Settings</button>
+  <button class="tab-btn" onclick="showTab('blocked')">Session Blocked State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Desktop ─────────────────────────────────────────────────────── -->
+<div id="tab-desktop" class="screen active">
+  <p class="section-title">Desktop — quiet hours settings panel</p>
+  <div style="display:flex;gap:20px;flex-wrap:wrap">
+    <div class="settings-card">
+      <div class="settings-h">🌙 Quiet hours</div>
+      <div class="settings-sub">Control when notifications are sent and when Maya can start new sessions</div>
+
+      <!-- Notifications quiet hours -->
+      <div style="font-size:12px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🔔 Notification quiet hours</div>
+
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-label">Pause notifications at night</span>
+          <span class="toggle-sub">No pings to your device during quiet hours</span>
+        </div>
+        <div class="toggle on"></div>
+      </div>
+
+      <div style="margin:12px 0">
+        <div class="time-row" style="margin-bottom:8px">
+          <span class="time-label">🌙 Quiet from</span>
+          <div class="time-picker">
+            <div class="time-val">09</div>
+            <span class="time-sep">:</span>
+            <div class="time-val">00</div>
+            <button class="ampm-btn">AM</button>
+            <button class="ampm-btn active">PM</button>
+          </div>
+        </div>
+        <div class="time-row">
+          <span class="time-label">🌅 Quiet until</span>
+          <div class="time-picker">
+            <div class="time-val">07</div>
+            <span class="time-sep">:</span>
+            <div class="time-val">00</div>
+            <button class="ampm-btn active">AM</button>
+            <button class="ampm-btn">PM</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timeline visual -->
+      <div style="font-size:11px;color:#888;margin-bottom:6px;font-weight:600">Quiet period visualisation</div>
+      <div class="timeline">
+        <!-- 9pm to midnight is ~12.5% of 24h from left; midnight to 7am is 29.17% -->
+        <!-- Together: 9pm to 7am = 10 hours out of 24 = 41.7% -->
+        <div class="timeline-block" style="left:79.2%;width:20.8%"></div><!-- 9pm–midnight -->
+        <div class="timeline-block" style="left:0%;width:29.2%"></div><!-- midnight–7am -->
+      </div>
+      <div class="timeline-labels">
+        <span>12am</span><span>6am</span><span>12pm</span><span>6pm</span><span>12am</span>
+      </div>
+
+      <div style="height:20px"></div>
+
+      <!-- Play quiet hours -->
+      <div style="font-size:12px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🎮 Session quiet hours (child's device)</div>
+
+      <div class="toggle-row">
+        <div>
+          <span class="toggle-label">Limit session start times</span>
+          <span class="toggle-sub">Maya won't be able to start a new session during these hours</span>
+        </div>
+        <div class="toggle"></div>
+      </div>
+
+      <div style="font-size:12px;color:#aaa;margin-top:10px;line-height:1.5;font-style:italic">Turn on to set play quiet hours. Sessions in progress when quiet hours begin are allowed to finish.</div>
+
+      <!-- Day selector -->
+      <div style="margin-top:14px">
+        <div style="font-size:12px;font-weight:700;color:#555;margin-bottom:8px">Apply quiet hours on</div>
+        <div class="day-row">
+          <div class="day-btn active">M</div>
+          <div class="day-btn active">T</div>
+          <div class="day-btn active">W</div>
+          <div class="day-btn active">T</div>
+          <div class="day-btn active">F</div>
+          <div class="day-btn active">S</div>
+          <div class="day-btn active">S</div>
+        </div>
+      </div>
+
+      <div class="info-box">
+        ℹ️ This only controls WonderQuest session starts — it's not a device-level lock. Maya can still use other apps during quiet hours.
+      </div>
+
+      <button class="save-btn">Save quiet hours</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Mobile ──────────────────────────────────────────────────────── -->
+<div id="tab-mobile" class="screen">
+  <p class="section-title">Mobile — quiet hours in Settings (390px frame)</p>
+  <div class="phone-frame">
+    <div class="phone-screen">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;padding:0 16px 14px;border-bottom:1px solid #ede9f8;margin-bottom:14px">
+        <button style="width:30px;height:30px;border-radius:9px;background:#f5f0e8;border:none;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center">‹</button>
+        <span style="font-size:15px;font-weight:800;color:#1a1440">Quiet hours</span>
+      </div>
+
+      <div style="padding:0 16px">
+        <!-- Notif quiet -->
+        <div style="font-size:11px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🔔 Notification quiet hours</div>
+        <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+          <div class="toggle-row" style="padding-top:0">
+            <div><span class="toggle-label">Pause notifications at night</span><span class="toggle-sub">No pings during quiet hours</span></div>
+            <div class="toggle on"></div>
+          </div>
+          <div style="display:flex;gap:10px;margin-top:12px">
+            <div style="flex:1;text-align:center">
+              <div style="font-size:10px;color:#aaa;font-weight:600;margin-bottom:4px">FROM</div>
+              <div class="time-val">9:00 PM</div>
+            </div>
+            <div style="display:flex;align-items:center;font-size:20px;color:#ccc;padding-top:16px">→</div>
+            <div style="flex:1;text-align:center">
+              <div style="font-size:10px;color:#aaa;font-weight:600;margin-bottom:4px">UNTIL</div>
+              <div class="time-val">7:00 AM</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Play quiet -->
+        <div style="font-size:11px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px">🎮 Session quiet hours</div>
+        <div style="background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+          <div class="toggle-row" style="padding-top:0">
+            <div><span class="toggle-label">Limit session start times</span><span class="toggle-sub">Maya won't start sessions in these hours</span></div>
+            <div class="toggle"></div>
+          </div>
+          <div style="font-size:11px;color:#aaa;margin-top:8px;line-height:1.4;font-style:italic">Turn on to set times — sessions in progress can finish.</div>
+        </div>
+
+        <div class="info-box" style="margin-top:0">
+          ℹ️ This only controls WonderQuest — not other apps on Maya's device.
+        </div>
+
+        <button class="save-btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Session Blocked State ──────────────────────────────────────── -->
+<div id="tab-blocked" class="screen">
+  <p class="section-title">Child-side blocked session screen (seen on child's device, not parent's)</p>
+  <div style="width:390px;height:460px;background:#100b2e;border-radius:24px;overflow:hidden;display:inline-block;box-shadow:0 12px 40px rgba(0,0,0,.3);padding:32px 24px;text-align:center">
+    <div style="font-size:56px;margin-bottom:16px">🌙</div>
+    <div style="font-size:22px;font-weight:900;color:#fff;margin-bottom:8px">Bedtime mode!</div>
+    <div style="font-size:14px;color:#9b72ff;margin-bottom:20px;line-height:1.5">WonderQuest is taking a rest right now. Come back tomorrow and keep your adventure going!</div>
+    <div style="background:#1a1440;border-radius:14px;padding:16px;margin-bottom:20px">
+      <div style="font-size:12px;color:#aaa;margin-bottom:4px">Sessions start again at</div>
+      <div style="font-size:28px;font-weight:900;color:#9b72ff">7:00 AM</div>
+    </div>
+    <div style="font-size:12px;color:#555">🌟 Your stars and badges are safe — see you tomorrow!</div>
+  </div>
+  <div style="margin-top:12px;max-width:390px;background:#fff;border-radius:10px;padding:12px 14px;font-size:12px;color:#555;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.07)">
+    <strong>ENG note (child-facing screen):</strong> Shown on child's device when they try to start a session during parent-set play quiet hours. Stars/badges displayed with "🌟 safe" message. No shame language. Never "you're not allowed" — always "WonderQuest is resting".
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-quiet-hours-settings-v2.html<br>
+      Persists to: child_settings — columns: notif_quiet_enabled, notif_quiet_start (HH:MM), notif_quiet_end (HH:MM), play_quiet_enabled, play_quiet_start, play_quiet_end, play_quiet_days (array).
+    </div>
+    <h2 class="spec-h2">Two Separate Controls</h2>
+    <table class="spec-table">
+      <tr><th>Control</th><th>Affects</th><th>Default</th><th>Who sees the effect</th></tr>
+      <tr><td>Notification quiet hours</td><td>Parent device push/email notifications paused</td><td>9pm–7am ON</td><td>Parent only — child unaffected</td></tr>
+      <tr><td>Session quiet hours (play)</td><td>Child cannot start a NEW session during these hours</td><td>OFF (family decides)</td><td>Child sees "Bedtime mode" screen</td></tr>
+    </table>
+    <h2 class="spec-h2">Session-in-Progress Rule</h2>
+    <p class="spec-p">If quiet hours begin while a session is in progress: allow the session to complete naturally. Do NOT force-quit. Only block NEW session starts.</p>
+    <h2 class="spec-h2">Child-facing Blocked Screen Tone</h2>
+    <p class="spec-p">Child screen uses dark WonderQuest theme (not parent cream). Language: "WonderQuest is resting" / "Bedtime mode" / countdown to resume time. Never "you're blocked" or "your parent said no". Stars and badges always shown as safe.</p>
+    <h2 class="spec-h2">COPPA Note</h2>
+    <p class="spec-p">This is a WonderQuest-level restriction only — it does NOT lock the device or prevent use of other apps. Engineering must never market this as a parental control or device-level screen-time solution. It is a session scheduling feature only.</p>
+    <h2 class="spec-h2">Defaults</h2>
+    <table class="spec-table">
+      <tr><th>Setting</th><th>Default</th></tr>
+      <tr><td>notif_quiet_enabled</td><td>true</td></tr>
+      <tr><td>notif_quiet_start</td><td>21:00 (9pm)</td></tr>
+      <tr><td>notif_quiet_end</td><td>07:00 (7am)</td></tr>
+      <tr><td>play_quiet_enabled</td><td>false</td></tr>
+      <tr><td>play_quiet_start</td><td>20:00 (8pm) — set but inactive until enabled</td></tr>
+      <tr><td>play_quiet_end</td><td>07:00 (7am)</td></tr>
+      <tr><td>play_quiet_days</td><td>[Mon, Tue, Wed, Thu, Fri, Sat, Sun] — all days</td></tr>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

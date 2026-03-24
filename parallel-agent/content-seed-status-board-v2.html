@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seed Status Board — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+
+.page-body{padding:24px 28px;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── STATS STRIP ────────────────────────────────────────────────── */
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:24px;}
+.stat-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:12px 14px;}
+.sc-num{font-size:20px;font-weight:700;}
+.sc-lbl{font-size:10px;color:rgba(240,246,255,.4);margin-top:2px;}
+.sc-sub{font-size:10px;margin-top:3px;}
+.n-g{color:#50e890;}
+.n-a{color:#f0c040;}
+.n-r{color:#ff7b6b;}
+.n-w{color:#f0f6ff;}
+.n-v{color:#9b72ff;}
+
+/* ─── SEED STAGE BOARD ───────────────────────────────────────────── */
+.stage-board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:24px;}
+.stage-col{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;overflow:hidden;}
+.sc-head{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:8px;}
+.sch-dot{width:8px;height:8px;border-radius:50%;}
+.sd-assigned{background:#9b72ff;}
+.sd-scripted{background:#58e8c1;}
+.sd-reviewed{background:#f0c040;}
+.sd-qa{background:#ff7b6b;}
+.sd-ready{background:#50e890;}
+.sch-name{font-size:12px;font-weight:700;color:#f0f6ff;}
+.sch-count{margin-left:auto;font-size:11px;color:rgba(240,246,255,.4);}
+.sc-cards{padding:10px;display:flex;flex-direction:column;gap:7px;min-height:80px;}
+
+/* Seed content cards */
+.seed-card{background:#0d1117;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px;transition:all .12s;cursor:pointer;}
+.seed-card:hover{border-color:rgba(255,255,255,.18);}
+.seed-card.sc-overdue{border-color:rgba(255,123,107,.25);}
+.sdc-topic{font-size:12px;font-weight:600;color:#f0f6ff;line-height:1.3;margin-bottom:4px;}
+.sdc-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.sdc-band{font-size:9px;font-weight:700;padding:1px 5px;border-radius:7px;}
+.sb-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.sb-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.sb-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.sb-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.sdc-type{font-size:10px;color:rgba(240,246,255,.4);}
+.sdc-due{font-size:10px;color:rgba(240,246,255,.3);margin-left:auto;}
+.sdc-due.overdue{color:#ff7b6b;}
+.sdc-count{font-size:10px;color:rgba(240,246,255,.35);}
+
+/* ─── SEED SPEC TABLE ────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.seed-table{width:100%;border-collapse:collapse;font-size:12px;}
+.seed-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.08);}
+.seed-table td{padding:8px 8px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.seed-table tr:last-child td{border-bottom:none;}
+.seed-table tr:hover td{background:rgba(255,255,255,.02);}
+.st-stage{font-size:10px;font-weight:700;padding:2px 7px;border-radius:9px;}
+.sts-assigned{background:rgba(155,114,255,.15);color:#9b72ff;}
+.sts-scripted{background:rgba(88,232,193,.12);color:#58e8c1;}
+.sts-reviewed{background:rgba(240,192,64,.12);color:#f0c040;}
+.sts-qa{background:rgba(255,123,107,.12);color:#ff7b6b;}
+.sts-ready{background:rgba(80,232,144,.12);color:#50e890;}
+.btn-xs{padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;}
+.btn-xs:hover{background:rgba(255,255,255,.06);}
+
+/* ─── PROGRESS BARS ──────────────────────────────────────────────── */
+.prog-bar{height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;margin-top:3px;}
+.pb-fill{height:100%;border-radius:3px;}
+.pbf-green{background:#50e890;}
+.pbf-amber{background:#f0c040;}
+.pbf-red{background:#ff7b6b;}
+.pbf-violet{background:#9b72ff;}
+
+/* ─── BAND PROGRESS SECTION ──────────────────────────────────────── */
+.band-progress-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.bp-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;}
+.bpc-header{display:flex;align-items:center;gap:8px;margin-bottom:12px;}
+.bpch-dot{width:10px;height:10px;border-radius:50%;}
+.bphd-p0{background:#ffd166;}
+.bphd-p1{background:#9b72ff;}
+.bphd-p2{background:#58e8c1;}
+.bphd-p3{background:#ff7b6b;}
+.bpc-name{font-size:13px;font-weight:700;color:#f0f6ff;}
+.bpc-pct{margin-left:auto;font-size:13px;font-weight:700;}
+.stage-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.sr-label{font-size:11px;color:rgba(240,246,255,.45);width:70px;flex-shrink:0;}
+.sr-bar{flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden;}
+.sr-fill{height:100%;border-radius:3px;}
+.sr-count{font-size:11px;color:rgba(240,246,255,.35);width:24px;text-align:right;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Seed Status Board</h1>
+  <span class="ph-sub">Track seed content creation pipeline — from commission to ready-for-review</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export</button>
+    <button class="btn btn-primary">+ Seed Topic</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Seed Status Board v2:</strong> "Seed content" = newly commissioned skills/questions that don't yet exist in the library.
+    <br>Seed pipeline stages: Assigned (to writer) → Scripted (first draft complete) → Curriculum Review → QA (safe language + fact check) → Ready (enters main review queue).
+    <br>Each seed topic represents 1 new skill + 4–8 questions + 1 explainer + audio brief.
+    <br>SLA per stage: Assigned→Scripted = 3 biz days; Scripted→Reviewed = 2 biz days; Reviewed→QA = 1 day; QA→Ready = 1 day.
+    <br>Seed items overdue = assigned_date + cumulative_stage_sla &lt; NOW(). Overdue = red border.
+    <br>When stage = Ready, item auto-moves into the main Review Queue (content-review-queue-v2).
+    <br>Tabs: Stage Board / Band Progress / All Seeds / Spec.
+  </div>
+
+  <!-- Stat Strip -->
+  <div class="stat-strip">
+    <div class="stat-card"><div class="sc-num n-w">47</div><div class="sc-lbl">Total In Pipeline</div></div>
+    <div class="stat-card"><div class="sc-num n-v">9</div><div class="sc-lbl">Assigned</div></div>
+    <div class="stat-card"><div class="sc-num" style="color:#58e8c1;">14</div><div class="sc-lbl">Scripted</div></div>
+    <div class="stat-card"><div class="sc-num n-a">11</div><div class="sc-lbl">In Review</div></div>
+    <div class="stat-card"><div class="sc-num n-r">4</div><div class="sc-lbl">QA Stage</div></div>
+    <div class="stat-card"><div class="sc-num n-g">9</div><div class="sc-lbl">Ready</div></div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('board')">Stage Board</button>
+    <button class="tab-btn" onclick="showTab('bands')">Band Progress</button>
+    <button class="tab-btn" onclick="showTab('all')">All Seeds</button>
+    <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- TAB: BOARD -->
+  <div id="tab-board" class="screen active">
+    <div class="stage-board">
+
+      <!-- Stage: Assigned -->
+      <div class="stage-col">
+        <div class="sc-head">
+          <div class="sch-dot sd-assigned"></div>
+          <span class="sch-name">Assigned</span>
+          <span class="sch-count">9</span>
+        </div>
+        <div class="sc-cards">
+          <div class="seed-card sc-overdue">
+            <div class="sdc-topic">Fractions: half of a shape</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Math</span>
+              <span class="sdc-due overdue">2d overdue</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">Map reading basics</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Social Studies</span>
+              <span class="sdc-due">Due tomorrow</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">Branches of government</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Social Studies</span>
+              <span class="sdc-due">Due in 2d</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P2 Arts: reading music notation</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p2">P2</span>
+              <span class="sdc-type">Arts &amp; Music</span>
+              <span class="sdc-due">Due in 3d</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage: Scripted -->
+      <div class="stage-col">
+        <div class="sc-head">
+          <div class="sch-dot sd-scripted"></div>
+          <span class="sch-name">Scripted</span>
+          <span class="sch-count">14</span>
+        </div>
+        <div class="sc-cards">
+          <div class="seed-card sc-overdue">
+            <div class="sdc-topic">Decimal place value (hundredths)</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Math · 5q</span>
+              <span class="sdc-due overdue">1d overdue</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">Introduction to algebra (variables)</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Math · 4q</span>
+              <span class="sdc-due">Due today</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">Percentages: basics</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p3">P3</span>
+              <span class="sdc-type">Math · 4q</span>
+              <span class="sdc-due">Due in 1d</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P2 Multiplication word problems</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p2">P2</span>
+              <span class="sdc-type">Math · 6q</span>
+              <span class="sdc-due">Due in 2d</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:rgba(240,246,255,.25);padding:4px;">+10 more</div>
+        </div>
+      </div>
+
+      <!-- Stage: Curriculum Review -->
+      <div class="stage-col">
+        <div class="sc-head">
+          <div class="sch-dot sd-reviewed"></div>
+          <span class="sch-name">Curr. Review</span>
+          <span class="sch-count">11</span>
+        </div>
+        <div class="sc-cards">
+          <div class="seed-card">
+            <div class="sdc-topic">Food chains: producers &amp; consumers</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p2">P2</span>
+              <span class="sdc-type">Science · 6q</span>
+              <span class="sdc-due">Due tomorrow</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P1 Measurement: non-standard units</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p1">P1</span>
+              <span class="sdc-type">Math · 5q</span>
+              <span class="sdc-due">Due in 1d</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">Community helpers: post office</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p1">P1</span>
+              <span class="sdc-type">Social Studies · 4q</span>
+              <span class="sdc-due">Due in 2d</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:rgba(240,246,255,.25);padding:4px;">+8 more</div>
+        </div>
+      </div>
+
+      <!-- Stage: QA -->
+      <div class="stage-col">
+        <div class="sc-head">
+          <div class="sch-dot sd-qa"></div>
+          <span class="sch-name">QA Check</span>
+          <span class="sch-count">4</span>
+        </div>
+        <div class="sc-cards">
+          <div class="seed-card">
+            <div class="sdc-topic">What is a sentence?</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p0">P0</span>
+              <span class="sdc-type">ELA · 5q</span>
+              <span class="sdc-due">Due today</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P2 Long multiplication (2-digit)</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p2">P2</span>
+              <span class="sdc-type">Math · 7q</span>
+              <span class="sdc-due">Due today</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P1 Phonics: blending sounds</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p1">P1</span>
+              <span class="sdc-type">ELA · 6q</span>
+              <span class="sdc-due">Due in 1d</span>
+            </div>
+          </div>
+          <div class="seed-card">
+            <div class="sdc-topic">P0 Sorting by colour and shape</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p0">P0</span>
+              <span class="sdc-type">Math · 5q</span>
+              <span class="sdc-due">Due in 1d</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stage: Ready -->
+      <div class="stage-col">
+        <div class="sc-head">
+          <div class="sch-dot sd-ready"></div>
+          <span class="sch-name">Ready ✓</span>
+          <span class="sch-count" style="color:#50e890;">9</span>
+        </div>
+        <div class="sc-cards">
+          <div class="seed-card" style="border-color:rgba(80,232,144,.2);">
+            <div class="sdc-topic">P0 Counting objects 1–5</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p0">P0</span>
+              <span class="sdc-type">Math · 5q</span>
+              <span class="sdc-due" style="color:#50e890;">→ In Queue</span>
+            </div>
+          </div>
+          <div class="seed-card" style="border-color:rgba(80,232,144,.2);">
+            <div class="sdc-topic">P1 Addition facts to 20</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p1">P1</span>
+              <span class="sdc-type">Math · 7q</span>
+              <span class="sdc-due" style="color:#50e890;">→ In Queue</span>
+            </div>
+          </div>
+          <div class="seed-card" style="border-color:rgba(80,232,144,.2);">
+            <div class="sdc-topic">P2 Earth: rock types</div>
+            <div class="sdc-meta">
+              <span class="sdc-band sb-p2">P2</span>
+              <span class="sdc-type">Science · 6q</span>
+              <span class="sdc-due" style="color:#50e890;">→ In Queue</span>
+            </div>
+          </div>
+          <div style="text-align:center;font-size:11px;color:rgba(80,232,144,.5);padding:4px;">+6 more ready</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: BAND PROGRESS -->
+  <div id="tab-bands" class="screen">
+    <div class="band-progress-grid">
+
+      <div class="bp-card">
+        <div class="bpc-header">
+          <div class="bpch-dot bphd-p0"></div>
+          <span class="bpc-name">P0 Pre-K</span>
+          <span class="bpc-pct" style="color:#50e890;">68% complete</span>
+        </div>
+        <div class="stage-row"><span class="sr-label">Assigned</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#9b72ff;"></div></div><span class="sr-count">2</span></div>
+        <div class="stage-row"><span class="sr-label">Scripted</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#58e8c1;"></div></div><span class="sr-count">2</span></div>
+        <div class="stage-row"><span class="sr-label">Reviewed</span><div class="sr-bar"><div class="sr-fill" style="width:11%;background:#f0c040;"></div></div><span class="sr-count">1</span></div>
+        <div class="stage-row"><span class="sr-label">QA</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#ff7b6b;"></div></div><span class="sr-count">2</span></div>
+        <div class="stage-row"><span class="sr-label">Ready</span><div class="sr-bar"><div class="sr-fill" style="width:33%;background:#50e890;"></div></div><span class="sr-count">3</span></div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(240,246,255,.4);">10 seeds · Target: 80 total skills</div>
+        <div class="prog-bar" style="margin-top:4px;"><div class="pb-fill pbf-green" style="width:68%"></div></div>
+      </div>
+
+      <div class="bp-card">
+        <div class="bpc-header">
+          <div class="bpch-dot bphd-p1"></div>
+          <span class="bpc-name">P1 K–1</span>
+          <span class="bpc-pct" style="color:#50e890;">71% complete</span>
+        </div>
+        <div class="stage-row"><span class="sr-label">Assigned</span><div class="sr-bar"><div class="sr-fill" style="width:11%;background:#9b72ff;"></div></div><span class="sr-count">1</span></div>
+        <div class="stage-row"><span class="sr-label">Scripted</span><div class="sr-bar"><div class="sr-fill" style="width:33%;background:#58e8c1;"></div></div><span class="sr-count">3</span></div>
+        <div class="stage-row"><span class="sr-label">Reviewed</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#f0c040;"></div></div><span class="sr-count">2</span></div>
+        <div class="stage-row"><span class="sr-label">QA</span><div class="sr-bar"><div class="sr-fill" style="width:11%;background:#ff7b6b;"></div></div><span class="sr-count">1</span></div>
+        <div class="stage-row"><span class="sr-label">Ready</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#50e890;"></div></div><span class="sr-count">2</span></div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(240,246,255,.4);">9 seeds · Target: 120 total skills</div>
+        <div class="prog-bar" style="margin-top:4px;"><div class="pb-fill pbf-green" style="width:71%"></div></div>
+      </div>
+
+      <div class="bp-card">
+        <div class="bpc-header">
+          <div class="bpch-dot bphd-p2"></div>
+          <span class="bpc-name">P2 G2–3</span>
+          <span class="bpc-pct" style="color:#f0c040;">58% complete</span>
+        </div>
+        <div class="stage-row"><span class="sr-label">Assigned</span><div class="sr-bar"><div class="sr-fill" style="width:11%;background:#9b72ff;"></div></div><span class="sr-count">1</span></div>
+        <div class="stage-row"><span class="sr-label">Scripted</span><div class="sr-bar"><div class="sr-fill" style="width:44%;background:#58e8c1;"></div></div><span class="sr-count">4</span></div>
+        <div class="stage-row"><span class="sr-label">Reviewed</span><div class="sr-bar"><div class="sr-fill" style="width:44%;background:#f0c040;"></div></div><span class="sr-count">4</span></div>
+        <div class="stage-row"><span class="sr-label">QA</span><div class="sr-bar"><div class="sr-fill" style="width:11%;background:#ff7b6b;"></div></div><span class="sr-count">1</span></div>
+        <div class="stage-row"><span class="sr-label">Ready</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#50e890;"></div></div><span class="sr-count">2</span></div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(240,246,255,.4);">12 seeds · Target: 150 total skills</div>
+        <div class="prog-bar" style="margin-top:4px;"><div class="pb-fill pbf-amber" style="width:58%"></div></div>
+      </div>
+
+      <div class="bp-card">
+        <div class="bpc-header">
+          <div class="bpch-dot bphd-p3"></div>
+          <span class="bpc-name">P3 G4–5</span>
+          <span class="bpc-pct" style="color:#ff7b6b;">38% complete ⚠</span>
+        </div>
+        <div class="stage-row"><span class="sr-label">Assigned</span><div class="sr-bar"><div class="sr-fill" style="width:55%;background:#9b72ff;"></div></div><span class="sr-count">5</span></div>
+        <div class="stage-row"><span class="sr-label">Scripted</span><div class="sr-bar"><div class="sr-fill" style="width:55%;background:#58e8c1;"></div></div><span class="sr-count">5</span></div>
+        <div class="stage-row"><span class="sr-label">Reviewed</span><div class="sr-bar"><div class="sr-fill" style="width:44%;background:#f0c040;"></div></div><span class="sr-count">4</span></div>
+        <div class="stage-row"><span class="sr-label">QA</span><div class="sr-bar"><div class="sr-fill" style="width:0%;background:#ff7b6b;"></div></div><span class="sr-count">0</span></div>
+        <div class="stage-row"><span class="sr-label">Ready</span><div class="sr-bar"><div class="sr-fill" style="width:22%;background:#50e890;"></div></div><span class="sr-count">2</span></div>
+        <div style="margin-top:10px;font-size:11px;color:rgba(240,246,255,.4);">16 seeds · Target: 120 total skills</div>
+        <div class="prog-bar" style="margin-top:4px;"><div class="pb-fill pbf-red" style="width:38%"></div></div>
+        <div style="font-size:11px;color:#ff7b6b;margin-top:5px;">⚠ Major gap — v2.6 P3 sprint target</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- TAB: ALL SEEDS -->
+  <div id="tab-all" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">All Seed Items (47 total)</span><button class="btn btn-secondary" style="padding:5px 12px;font-size:11px;">⬇ Export</button></div>
+      <table class="seed-table">
+        <thead><tr><th>Topic</th><th>Band</th><th>Subject</th><th>Q Count</th><th>Stage</th><th>Due</th><th>Assigned</th></tr></thead>
+        <tbody>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">Fractions: half of a shape</td>
+            <td><span class="sdc-band sb-p3">P3</span></td>
+            <td style="color:rgba(240,246,255,.6);">Math</td>
+            <td>TBD</td>
+            <td><span class="st-stage sts-assigned">Assigned</span></td>
+            <td style="color:#ff7b6b;">2d overdue</td>
+            <td style="color:rgba(240,246,255,.5);">Writer A</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">Decimal place value (hundredths)</td>
+            <td><span class="sdc-band sb-p3">P3</span></td>
+            <td style="color:rgba(240,246,255,.6);">Math</td>
+            <td>5</td>
+            <td><span class="st-stage sts-scripted">Scripted</span></td>
+            <td style="color:#ff7b6b;">1d overdue</td>
+            <td style="color:rgba(240,246,255,.5);">Writer B</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">Food chains: producers &amp; consumers</td>
+            <td><span class="sdc-band sb-p2">P2</span></td>
+            <td style="color:rgba(240,246,255,.6);">Science</td>
+            <td>6</td>
+            <td><span class="st-stage sts-reviewed">Curr. Review</span></td>
+            <td>Tomorrow</td>
+            <td style="color:rgba(240,246,255,.5);">Dr. Patel</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">P1 Phonics: blending sounds</td>
+            <td><span class="sdc-band sb-p1">P1</span></td>
+            <td style="color:rgba(240,246,255,.6);">ELA</td>
+            <td>6</td>
+            <td><span class="st-stage sts-qa">QA Check</span></td>
+            <td>In 1 day</td>
+            <td style="color:rgba(240,246,255,.5);">QA Team</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">P0 Counting objects 1–5</td>
+            <td><span class="sdc-band sb-p0">P0</span></td>
+            <td style="color:rgba(240,246,255,.6);">Math</td>
+            <td>5</td>
+            <td><span class="st-stage sts-ready">Ready</span></td>
+            <td style="color:#50e890;">→ In Queue</td>
+            <td style="color:rgba(240,246,255,.5);">—</td>
+          </tr>
+          <tr>
+            <td style="color:#f0f6ff;font-weight:500;">P2 Earth: rock types</td>
+            <td><span class="sdc-band sb-p2">P2</span></td>
+            <td style="color:rgba(240,246,255,.6);">Science</td>
+            <td>6</td>
+            <td><span class="st-stage sts-ready">Ready</span></td>
+            <td style="color:#50e890;">→ In Queue</td>
+            <td style="color:rgba(240,246,255,.5);">—</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="text-align:center;padding:14px;font-size:12px;color:rgba(240,246,255,.3);">Showing 6 of 47 · <button class="btn-xs" style="font-size:12px;padding:4px 10px;">Load All</button></div>
+    </div>
+  </div>
+
+  <!-- TAB: SPEC -->
+  <div id="tab-spec" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Seed Pipeline Spec</span></div>
+      <table class="seed-table">
+        <thead><tr><th>Stage</th><th>Description</th><th>SLA</th><th>Owner</th><th>Next Stage Trigger</th></tr></thead>
+        <tbody>
+          <tr><td><span class="st-stage sts-assigned">Assigned</span></td><td style="color:rgba(240,246,255,.6);">Topic commissioned; assigned to writer</td><td>3 biz days</td><td>Content Writer</td><td>Submit first draft</td></tr>
+          <tr><td><span class="st-stage sts-scripted">Scripted</span></td><td style="color:rgba(240,246,255,.6);">First draft of skill + questions + explainer complete</td><td>2 biz days</td><td>Curriculum Lead</td><td>Curriculum sign-off</td></tr>
+          <tr><td><span class="st-stage sts-reviewed">Curr. Review</span></td><td style="color:rgba(240,246,255,.6);">Curriculum review of accuracy + alignment</td><td>1 biz day</td><td>QA Team</td><td>Pass safe language + fact checks</td></tr>
+          <tr><td><span class="st-stage sts-qa">QA Check</span></td><td style="color:rgba(240,246,255,.6);">Safe language scan + fact check + reading level</td><td>1 biz day</td><td>System / QA</td><td>All checks pass (or override with reason)</td></tr>
+          <tr><td><span class="st-stage sts-ready">Ready</span></td><td style="color:rgba(240,246,255,.6);">Seed enters main review queue as Under Review</td><td>—</td><td>Review Queue</td><td>Auto-transitioned; no manual step</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(tab) {
+  const tabs = ['board','bands','all','spec'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+</script>
+</body>
+</html>

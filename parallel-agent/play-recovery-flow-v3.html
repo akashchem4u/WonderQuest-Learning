@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-recovery-flow-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-recovery-flow-v3.html              ║
+     ║                                                              ║
+     ║  Recovery flow: sequence of screens shown after a child      ║
+     ║  misses the same question 2+ times in a row OR has missed    ║
+     ║  3+ consecutive sessions without completing a question type.  ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Struggling    : 2nd wrong on same Q, offer recovery ║
+     ║  Tab 2 — Coach Support : coach gives personalized hint       ║
+     ║  Tab 3 — Simpler Q     : easier scaffolded question offered  ║
+     ║  Tab 4 — Breakthrough  : child gets it after recovery        ║
+     ║  Tab 5 — Spec          : trigger logic, rules, what NOT to do║
+     ║                                                              ║
+     ║  CRITICAL RULES                                              ║
+     ║  • Stars NEVER decrease in recovery — star-safe              ║
+     ║  • No shame language — never "You keep getting this wrong"   ║
+     ║  • Recovery is always opt-in ("Want a hint?" not forced)     ║
+     ║  • Child can refuse recovery and retry directly              ║
+     ║  • Breakthrough earns EXTRA encouragement (bigger star pop)  ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+  .phone-inner {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    padding: 20px 16px 24px; gap: 12px; overflow: hidden;
+  }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .progress-segs { display: flex; gap: 4px; flex: 1; }
+  .seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .seg.filled { background: #9b72ff; }
+  .seg.wrong-seg { background: #ff6b6b55; }
+  .star-badge {
+    background: #1a1440; border: 1.5px solid #9b72ff55; border-radius: 20px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px;
+  }
+
+  /* Star-safe badge */
+  .star-safe-badge {
+    background: #1a2a15; border: 1.5px solid #50e890;
+    border-radius: 20px; padding: 5px 12px;
+    font-size: 0.78rem; font-weight: 900; color: #50e890;
+    display: flex; align-items: center; gap: 5px; align-self: center;
+    flex-shrink: 0;
+  }
+
+  /* Recovery banner */
+  .recovery-banner {
+    background: #1e1040; border: 2px solid #9b72ff55; border-radius: 16px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 10px;
+    flex-shrink: 0;
+  }
+  .rb-header { display: flex; align-items: center; gap: 10px; }
+  .rb-icon { font-size: 1.8rem; flex-shrink: 0; }
+  .rb-title { font-size: 1rem; font-weight: 900; color: #fff; line-height: 1.2; }
+  .rb-subtitle { font-size: 0.84rem; font-weight: 700; color: #b0a0e0; line-height: 1.4; }
+
+  /* Option buttons */
+  .rb-options { display: flex; flex-direction: column; gap: 8px; }
+  .rb-option {
+    height: 52px; border-radius: 14px; border: 1.5px solid;
+    font-size: 0.9rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .rb-option.primary {
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    border-color: #9b72ff; color: #fff;
+  }
+  .rb-option.secondary {
+    background: #221960; border-color: #2a1f60; color: #b89eff;
+  }
+
+  /* Question card */
+  .q-card {
+    background: #1a1440; border: 2px solid #9b72ff44; border-radius: 16px;
+    padding: 16px; display: flex; flex-direction: column;
+    align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .q-card.wrong-state { border-color: #ff6b6b66; animation: shake 0.4s ease; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-6px); }
+    40% { transform: translateX(6px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+  .q-emoji { font-size: 3rem; }
+  .q-label { font-size: 0.9rem; font-weight: 900; color: #b89eff; }
+  .q-question { font-size: 1.1rem; font-weight: 900; color: #fff; }
+
+  /* Answer choices */
+  .q-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; flex-shrink: 0; }
+  .ac {
+    background: #1a1440; border: 2px solid #2a1f60; border-radius: 14px;
+    height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; font-size: 2rem; font-weight: 900; color: #e8e0ff; cursor: pointer;
+  }
+  .ac .phoneme { font-size: 0.7rem; font-weight: 700; color: #9080c0; }
+  .ac.wrong { border-color: #ff6b6b; background: #2a0f0f; }
+  .ac.dimmed { opacity: 0.35; }
+  .ac.hint-highlight { border-color: #9b72ff; background: #221960; box-shadow: 0 0 0 3px #9b72ff22; }
+
+  /* Coach row */
+  .coach-row {
+    display: flex; align-items: flex-start; gap: 12px;
+    background: #1e1040; border: 1.5px solid #9b72ff44; border-radius: 14px;
+    padding: 12px 14px; flex-shrink: 0;
+  }
+  .coach-avatar {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: #1a1040; border: 2px solid #9b72ff66;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; flex-shrink: 0;
+  }
+  .coach-text { font-size: 0.85rem; font-weight: 700; color: #c8bef0; line-height: 1.5; }
+  .coach-name-tag { font-size: 0.68rem; font-weight: 900; color: #9b72ff; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 3px; }
+
+  /* Simpler question card */
+  .simpler-badge {
+    background: #2a1060; border: 1.5px solid #9b72ff; border-radius: 20px;
+    padding: 4px 12px; font-size: 0.72rem; font-weight: 900; color: #b89eff;
+    align-self: center; flex-shrink: 0;
+  }
+
+  /* Breakthrough */
+  @keyframes star-pop {
+    0% { transform: scale(0.5); opacity: 0; }
+    60% { transform: scale(1.3); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  @keyframes burst-ring {
+    0% { transform: scale(0.6); opacity: 0.8; }
+    100% { transform: scale(2.2); opacity: 0; }
+  }
+  .bt-hero {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 12px; flex: 1; position: relative;
+  }
+  .bt-ring {
+    position: absolute; width: 100px; height: 100px; border-radius: 50%;
+    border: 3px solid #9b72ff44; animation: burst-ring 1s ease-out forwards;
+  }
+  .bt-ring:nth-child(2) { animation-delay: 0.15s; border-color: #ffd16633; }
+  .bt-star {
+    font-size: 4rem; animation: star-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    position: relative; z-index: 2;
+  }
+  .bt-message { font-size: 1.3rem; font-weight: 900; color: #fff; text-align: center; line-height: 1.3; }
+  .bt-sub { font-size: 0.9rem; font-weight: 700; color: #b89eff; text-align: center; }
+  .bt-extra-chip {
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    border-radius: 24px; padding: 8px 20px;
+    font-size: 0.9rem; font-weight: 900; color: #fff;
+    animation: star-pop 0.4s 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .btn-next {
+    height: 56px; border-radius: 28px; border: none; width: 100%;
+    font-size: 1.05rem; font-weight: 900; cursor: pointer; flex-shrink: 0;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-recovery-flow-v3 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Struggling</button>
+  <button class="tab-btn" onclick="showTab('t2')">Coach Support</button>
+  <button class="tab-btn" onclick="showTab('t3')">Simpler Q</button>
+  <button class="tab-btn" onclick="showTab('t4')">Breakthrough</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Struggling ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Struggling — 2nd Wrong, Recovery Offer</h4>
+    Child missed same question twice. Recovery banner appears below wrong-state answer.
+    Star-safe badge reassures: stars are not decreasing.
+    Two options: "Get a hint" (primary) or "Try again on my own" (secondary).
+    Framing: warm and curious, never shaming.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg wrong-seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+
+      <div class="star-safe-badge">🛡 Your stars are safe!</div>
+
+      <!-- Question card — wrong state -->
+      <div class="q-card wrong-state">
+        <div class="q-emoji">🐝</div>
+        <div class="q-label">What letter does "bee" start with?</div>
+      </div>
+
+      <!-- Answer grid — S wrong, others active -->
+      <div class="q-choices">
+        <div class="ac">B <span class="phoneme">buh</span></div>
+        <div class="ac wrong">S <span class="phoneme">sss</span></div>
+        <div class="ac">D <span class="phoneme">duh</span></div>
+        <div class="ac">R <span class="phoneme">rrr</span></div>
+      </div>
+
+      <!-- Recovery banner -->
+      <div class="recovery-banner">
+        <div class="rb-header">
+          <div class="rb-icon">🧭</div>
+          <div>
+            <div class="rb-title">Want a little help?</div>
+            <div class="rb-subtitle">Coach Leo has a hint that might help you find it!</div>
+          </div>
+        </div>
+        <div class="rb-options">
+          <button class="rb-option primary">💡 Get a hint from Coach Leo</button>
+          <button class="rb-option secondary">↩ Try again on my own</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Coach Support ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Coach Support — Personalized Hint</h4>
+    Child chose "Get a hint." Coach appears with a bigger hint than the IDK hint.
+    One answer choice gets a subtle highlight (not the answer — a directional clue).
+    Wrong card(s) remain wrong (red), others still active for retry.
+    No penalty. Framing: "Here's what to listen for…"
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg wrong-seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+
+      <div class="q-card">
+        <div class="q-emoji">🐝</div>
+        <div class="q-label">What letter does "bee" start with?</div>
+      </div>
+
+      <!-- Coach hint -->
+      <div class="coach-row">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-text">
+          <div class="coach-name-tag">Coach Leo</div>
+          Say "bee" out loud really slowly. What's the very first sound?<br>
+          It sounds like <strong style="color:#c9a8ff;">"buh"</strong> — find that letter!
+        </div>
+      </div>
+
+      <!-- Answer grid — hint highlight on B, S wrong -->
+      <div class="q-choices">
+        <div class="ac hint-highlight">B <span class="phoneme">buh</span></div>
+        <div class="ac wrong">S <span class="phoneme">sss</span></div>
+        <div class="ac dimmed">D <span class="phoneme">duh</span></div>
+        <div class="ac dimmed">R <span class="phoneme">rrr</span></div>
+      </div>
+
+      <div style="font-size:0.8rem;font-weight:700;color:#6050a0;text-align:center;margin-top:4px;">
+        Find the "buh" letter — tap it!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Simpler Q ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Simpler Q — Scaffolded Question Offered</h4>
+    After 3+ misses, system offers a simpler version of the same skill.
+    "Simpler question" badge visible. Coach explains the swap warmly.
+    Simpler Q uses picture cue or fewer choices to reduce cognitive load.
+    Stars still awarded for simpler Q completion — never penalized.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg wrong-seg"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+
+      <div class="simpler-badge">✨ Let's try an easier one first!</div>
+
+      <!-- Coach transition message -->
+      <div class="coach-row">
+        <div class="coach-avatar">🦁</div>
+        <div class="coach-text">
+          <div class="coach-name-tag">Coach Leo</div>
+          No problem! Let's warm up with something a bit easier — you've got this!
+        </div>
+      </div>
+
+      <!-- Simpler question: 2 choices instead of 4, picture cue added -->
+      <div class="q-card" style="border-color:#9b72ff66;">
+        <div style="font-size:0.72rem;font-weight:900;color:#9b72ff;letter-spacing:0.06em;text-transform:uppercase;">Easier version</div>
+        <div class="q-emoji">🐱</div>
+        <div class="q-label" style="font-size:1.1rem;color:#fff;">"cat" starts with…</div>
+        <div style="font-size:0.8rem;color:#9080c0;font-weight:700;">(Hint: it sounds like "cuh"!)</div>
+      </div>
+
+      <!-- 2 choices only -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="ac" style="height:88px;font-size:2.4rem;">C <span class="phoneme">cuh</span></div>
+        <div class="ac" style="height:88px;font-size:2.4rem;">T <span class="phoneme">tuh</span></div>
+      </div>
+
+      <div style="font-size:0.78rem;font-weight:700;color:#6050a0;text-align:center;">
+        We'll go back to the harder one after this!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Breakthrough ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Breakthrough — Child Gets It After Recovery</h4>
+    Bigger celebration than normal correct. Extra encouragement chip.
+    Burst rings animate. Message emphasizes persistence, not performance.
+    "+1 ⭐ Earned" chip animates in. "You figured it out!" framing.
+    Never says "Finally!" or implies it took too long.
+  </div>
+  <div class="phone">
+    <div class="phone-inner">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled" style="background:#50e890;"></div>
+          <div class="seg"></div><div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge" style="border-color:#50e89044;color:#50e890;">⭐ 5</div>
+      </div>
+
+      <div class="bt-hero">
+        <div class="bt-ring"></div>
+        <div class="bt-ring" style="animation-delay:0.15s;"></div>
+        <div class="bt-star">⭐</div>
+        <div class="bt-message">You figured it out! 🎉</div>
+        <div class="bt-sub">Keeping at it makes you stronger!</div>
+        <div class="bt-extra-chip">+1 ⭐ Earned</div>
+        <!-- Coach cheer -->
+        <div class="coach-row" style="width:100%;margin-top:8px;background:#0d2018;border-color:#50e89033;">
+          <div class="coach-avatar" style="border-color:#50e89066;">🦁</div>
+          <div class="coach-text" style="color:#a0e8b8;">
+            <div class="coach-name-tag" style="color:#50e890;">Coach Leo</div>
+            That's the way! Next time you'll know it right away!
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-next">Next question →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Trigger Logic</h4>
+      <ul>
+        <li>Recovery offered after <strong>2nd wrong</strong> on same question in same session</li>
+        <li>Simpler Q offered after <strong>3rd wrong</strong> (or 2nd wrong after Coach hint)</li>
+        <li>Cross-session: 3+ sessions where same skill was never completed → show recovery at start</li>
+        <li class="dont">❌ Never show recovery after 1st wrong — give child a chance first</li>
+        <li class="do">✅ Recovery is always opt-in: child can choose "Try again on my own"</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star Safety</h4>
+      <ul>
+        <li>Stars NEVER decrease during recovery flow</li>
+        <li>Star-safe badge shown on Struggling screen</li>
+        <li>Simpler Q awards full +1 ⭐ on correct</li>
+        <li>Breakthrough awards full +1 ⭐ (not extra — just the normal star)</li>
+        <li>"Extra" chip is motivational text — still only +1 ⭐ value</li>
+        <li class="dont">❌ Never reduce star count anywhere in the product</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Language Rules</h4>
+      <ul>
+        <li class="do">✅ "Want a little help?" — warm and inviting</li>
+        <li class="do">✅ "You figured it out!" — celebrates persistence</li>
+        <li class="do">✅ "Next time you'll know it right away!" — future optimism</li>
+        <li class="dont">❌ Never "You keep getting this wrong"</li>
+        <li class="dont">❌ Never "Still not right" or "Try again" as the main heading</li>
+        <li class="dont">❌ Never "Finally!" or "It took a while but…"</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Coach Hint vs IDK Hint</h4>
+      <ul>
+        <li>IDK hint: child initiates, general tip</li>
+        <li>Recovery Coach hint: system initiates after 2+ wrong, more specific</li>
+        <li>Recovery hint may visually highlight the correct choice direction (subtle, not answer-reveal)</li>
+        <li>IDK never highlights a choice; recovery may</li>
+        <li>Both earn full star on subsequent correct answer</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Simpler Q Rules</h4>
+      <ul>
+        <li>Skill is the same; cognitive load is reduced</li>
+        <li>Reductions: fewer choices (4→2) / add picture cue / shorter sentence / phoneme hint shown inline</li>
+        <li>After simpler Q correct → return to original question (may simplify once more if still wrong)</li>
+        <li>Simpler Q badge: "✨ Let's try an easier one first!"</li>
+        <li class="dont">❌ Never say "You need an easier version"</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Breakthrough Celebration</h4>
+      <ul>
+        <li>Larger correct-state animation than normal</li>
+        <li>Burst rings: 2 rings, staggered 0.15s</li>
+        <li>"+1 ⭐ Earned" chip: <code>star-pop</code> at 0.3s delay</li>
+        <li>Coach cheer shown inline (no full overlay)</li>
+        <li>Full overlay reserved for level-up / badge only</li>
+        <li>Normal star counter bump animation still plays</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

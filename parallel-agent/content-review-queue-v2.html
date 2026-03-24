@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Review Queue — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;display:flex;height:100vh;overflow:hidden;}
+
+/* ─── SIDEBAR ───────────────────────────────────────────────────── */
+.sidebar{width:200px;background:#0f1118;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;flex-shrink:0;}
+.sb-logo{padding:18px 16px 14px;font-size:15px;font-weight:700;color:#50e890;border-bottom:1px solid rgba(255,255,255,.06);}
+.sb-logo span{color:#f0f6ff;font-weight:400;font-size:12px;display:block;margin-top:2px;}
+.sb-section{padding:10px 0;}
+.sb-label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(240,246,255,.35);padding:6px 16px 4px;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;color:rgba(240,246,255,.6);font-size:13px;position:relative;transition:color .15s;}
+.sb-item:hover{color:#f0f6ff;}
+.sb-item.active{color:#f0f6ff;}
+.sb-item.active::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890;}
+.sb-icon{font-size:15px;}
+.sb-badge{margin-left:auto;background:#ff4d4d;color:#fff;border-radius:9px;padding:1px 6px;font-size:10px;font-weight:700;}
+
+/* ─── MAIN ───────────────────────────────────────────────────────── */
+.main{flex:1;overflow:hidden;display:flex;flex-direction:column;}
+.top-bar{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:12px 24px;display:flex;align-items:center;gap:12px;}
+.top-bar h1{font-size:16px;font-weight:600;}
+.tb-sub{font-size:12px;color:rgba(240,246,255,.45);margin-left:4px;}
+.top-bar-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.btn-danger{background:transparent;color:#ff7b6b;border:1px solid rgba(255,123,107,.3);}
+.btn-amber{background:transparent;color:#f0c040;border:1px solid rgba(240,192,64,.3);}
+
+/* ─── CONTENT AREA ───────────────────────────────────────────────── */
+.content-area{flex:1;overflow:hidden;display:flex;}
+.queue-pane{width:360px;border-right:1px solid rgba(255,255,255,.06);display:flex;flex-direction:column;overflow:hidden;flex-shrink:0;}
+.detail-pane{flex:1;overflow-y:auto;padding:20px 24px;}
+
+/* ─── QUEUE HEADER ───────────────────────────────────────────────── */
+.queue-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);}
+.qh-stats{display:flex;gap:0;margin-bottom:10px;}
+.qhs-cell{flex:1;text-align:center;}
+.qhs-num{font-size:17px;font-weight:700;}
+.qhs-lbl{font-size:10px;color:rgba(240,246,255,.4);margin-top:1px;}
+.n-red{color:#ff7b6b;}
+.n-amber{color:#f0c040;}
+.n-green{color:#50e890;}
+.n-white{color:#f0f6ff;}
+
+.filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
+.fc{padding:4px 8px;border-radius:12px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);transition:all .15s;}
+.fc:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25);}
+.fc.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:600;}
+
+/* ─── QUEUE LIST ─────────────────────────────────────────────────── */
+.queue-list{flex:1;overflow-y:auto;}
+.queue-list::-webkit-scrollbar{width:4px;}
+.queue-list::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px;}
+
+.qi-item{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;transition:background .12s;position:relative;}
+.qi-item:hover{background:rgba(255,255,255,.03);}
+.qi-item.selected{background:rgba(80,232,144,.07);}
+.qi-item.selected::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#50e890;}
+.qi-item.qi-overdue::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#ff7b6b;}
+.qi-item.qi-due-soon::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:#f0c040;}
+
+.qi-row1{display:flex;align-items:center;gap:6px;margin-bottom:3px;}
+.qi-type{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:2px 6px;border-radius:8px;}
+.qt-skill{background:rgba(155,114,255,.15);color:#9b72ff;}
+.qt-question{background:rgba(88,232,193,.12);color:#58e8c1;}
+.qt-explainer{background:rgba(255,209,102,.12);color:#ffd166;}
+.qt-audio{background:rgba(80,232,144,.1);color:#50e890;}
+.qi-priority{font-size:9px;font-weight:700;padding:2px 5px;border-radius:8px;margin-left:auto;}
+.qp-p0{background:rgba(255,50,50,.2);color:#ff4d4d;}
+.qp-p1{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.qp-p2{background:rgba(240,192,64,.12);color:#f0c040;}
+.qi-title{font-size:13px;font-weight:500;color:#f0f6ff;margin-bottom:4px;line-height:1.35;}
+.qi-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.qi-band{font-size:9px;font-weight:700;padding:1px 5px;border-radius:7px;}
+.qib-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.qib-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.qib-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.qib-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.qi-assignee{font-size:11px;color:rgba(240,246,255,.4);}
+.qi-due{font-size:11px;color:rgba(240,246,255,.35);}
+.qi-due.overdue{color:#ff7b6b;}
+.qi-due.soon{color:#f0c040;}
+
+/* ─── DETAIL PANE ────────────────────────────────────────────────── */
+.detail-header{margin-bottom:18px;}
+.dh-type-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.dh-title{font-size:18px;font-weight:600;color:#f0f6ff;margin-bottom:8px;}
+.dh-meta-strip{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:#161b22;border-radius:8px;border:1px solid rgba(255,255,255,.06);}
+.dms-item{display:flex;flex-direction:column;gap:2px;}
+.dms-label{font-size:10px;color:rgba(240,246,255,.35);text-transform:uppercase;letter-spacing:.05em;}
+.dms-value{font-size:12px;color:#f0f6ff;font-weight:500;}
+
+/* ─── REVIEW CHECKLIST ───────────────────────────────────────────── */
+.review-checklist{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+.rc-item{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:7px;border:1px solid rgba(255,255,255,.08);cursor:pointer;transition:all .15s;}
+.rc-item.rci-checked{background:rgba(80,232,144,.06);border-color:rgba(80,232,144,.15);}
+.rc-item:hover{background:rgba(255,255,255,.03);}
+.rc-checkbox{width:16px;height:16px;border-radius:4px;border:2px solid rgba(255,255,255,.25);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#50e890;transition:all .15s;}
+.rc-item.rci-checked .rc-checkbox{background:#50e890;border-color:#50e890;color:#0d1117;}
+.rc-body{flex:1;}
+.rc-label{font-size:13px;font-weight:500;color:#f0f6ff;}
+.rc-hint{font-size:11px;color:rgba(240,246,255,.4);margin-top:2px;}
+
+/* ─── CONTENT PREVIEW ────────────────────────────────────────────── */
+.content-preview{background:#0d1117;border:1px solid rgba(255,255,255,.06);border-radius:8px;padding:14px;margin-bottom:16px;font-size:13px;line-height:1.65;color:#e0eaff;}
+.cp-label{font-size:10px;color:rgba(240,246,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;}
+
+/* ─── SECTION BLOCK ──────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;margin-bottom:14px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;margin-bottom:10px;}
+
+/* ─── ACTION BAR ─────────────────────────────────────────────────── */
+.action-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+
+/* ─── HISTORY LOG ────────────────────────────────────────────────── */
+.history-log{display:flex;flex-direction:column;gap:8px;}
+.hl-entry{display:flex;gap:10px;font-size:12px;}
+.hl-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;margin-top:3px;}
+.hld-review{background:#50e890;}
+.hld-flag{background:#ff7b6b;}
+.hld-assign{background:#9b72ff;}
+.hld-comment{background:#f0c040;}
+.hl-body{flex:1;}
+.hl-time{color:rgba(240,246,255,.3);}
+.hl-text{color:rgba(240,246,255,.65);}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sidebar">
+  <div class="sb-logo">WonderQuest <span>Content CMS</span></div>
+  <div class="sb-section">
+    <div class="sb-label">Content</div>
+    <div class="sb-item"><span class="sb-icon">🏠</span> Home</div>
+    <div class="sb-item"><span class="sb-icon">💡</span> Explainers</div>
+    <div class="sb-item"><span class="sb-icon">❓</span> Questions</div>
+    <div class="sb-item"><span class="sb-icon">🎧</span> Audio</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Review</div>
+    <div class="sb-item active"><span class="sb-icon">📋</span> Review Queue <span class="sb-badge">34</span></div>
+    <div class="sb-item"><span class="sb-icon">📊</span> Coverage Map</div>
+    <div class="sb-item"><span class="sb-icon">⚡</span> Bulk Import</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="top-bar">
+    <h1>Review Queue</h1>
+    <span class="tb-sub">Curriculum review of skills, questions, explainers, and audio before publish</span>
+    <div class="top-bar-actions">
+      <button class="btn btn-secondary">⬇ Export</button>
+      <button class="btn btn-primary">Assign Batch</button>
+    </div>
+  </div>
+
+  <div class="content-area">
+
+    <!-- QUEUE PANE -->
+    <div class="queue-pane">
+      <div class="queue-header">
+        <div class="qh-stats">
+          <div class="qhs-cell"><div class="qhs-num n-red">5</div><div class="qhs-lbl">Overdue</div></div>
+          <div class="qhs-cell"><div class="qhs-num n-amber">12</div><div class="qhs-lbl">Due soon</div></div>
+          <div class="qhs-cell"><div class="qhs-num n-white">17</div><div class="qhs-lbl">Queued</div></div>
+          <div class="qhs-cell"><div class="qhs-num n-green">34</div><div class="qhs-lbl">Total</div></div>
+        </div>
+        <div class="filter-chips">
+          <span class="fc active">All</span>
+          <span class="fc">Overdue</span>
+          <span class="fc">Mine</span>
+          <span class="fc">Skill</span>
+          <span class="fc">Question</span>
+          <span class="fc">Explainer</span>
+        </div>
+      </div>
+
+      <div class="queue-list">
+
+        <!-- Overdue items -->
+        <div class="qi-item qi-overdue selected">
+          <div class="qi-row1">
+            <span class="qi-type qt-skill">Skill</span>
+            <span class="qi-priority qp-p1">P1</span>
+          </div>
+          <div class="qi-title">Plants &amp; Sunlight — SK-0214</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p1">P1 K–1</span>
+            <span class="qi-assignee">→ Curriculum Lead</span>
+            <span class="qi-due overdue">3 days overdue</span>
+          </div>
+        </div>
+
+        <div class="qi-item qi-overdue">
+          <div class="qi-row1">
+            <span class="qi-type qt-question">Question</span>
+            <span class="qi-priority qp-p0">P0!</span>
+          </div>
+          <div class="qi-title">QID-0341 — Wrong answer key flagged</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p0">P0 Pre-K</span>
+            <span class="qi-assignee">→ Unassigned</span>
+            <span class="qi-due overdue">5 days overdue</span>
+          </div>
+        </div>
+
+        <div class="qi-item qi-overdue">
+          <div class="qi-row1">
+            <span class="qi-type qt-explainer">Explainer</span>
+            <span class="qi-priority qp-p1">P1</span>
+          </div>
+          <div class="qi-title">EXP-0041 — Reading level too high</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p1">P1 K–1</span>
+            <span class="qi-assignee">→ Content Writer</span>
+            <span class="qi-due overdue">2 days overdue</span>
+          </div>
+        </div>
+
+        <!-- Due soon -->
+        <div class="qi-item qi-due-soon">
+          <div class="qi-row1">
+            <span class="qi-type qt-skill">Skill</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">Fractions: halves and quarters — SK-0103</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p2">P2 G2–3</span>
+            <span class="qi-assignee">→ Dr. Patel</span>
+            <span class="qi-due soon">Due in 1 day</span>
+          </div>
+        </div>
+
+        <div class="qi-item qi-due-soon">
+          <div class="qi-row1">
+            <span class="qi-type qt-audio">Audio</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">AUD-0147 — Mispronunciation fix</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p1">P1 K–1</span>
+            <span class="qi-assignee">→ Audio QA</span>
+            <span class="qi-due soon">Due tomorrow</span>
+          </div>
+        </div>
+
+        <div class="qi-item qi-due-soon">
+          <div class="qi-row1">
+            <span class="qi-type qt-question">Question</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">QID-0619 — Duplicate of QID-0102</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p0">P0 Pre-K</span>
+            <span class="qi-assignee">→ Content Writer</span>
+            <span class="qi-due soon">Due in 2 days</span>
+          </div>
+        </div>
+
+        <!-- Regular queue -->
+        <div class="qi-item">
+          <div class="qi-row1">
+            <span class="qi-type qt-skill">Skill</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">Decimal place value to hundredths — SK-0142</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p3">P3 G4–5</span>
+            <span class="qi-assignee">→ Curriculum Lead</span>
+            <span class="qi-due">Due in 4 days</span>
+          </div>
+        </div>
+
+        <div class="qi-item">
+          <div class="qi-row1">
+            <span class="qi-type qt-question">Question</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">QID-0512 — Skip counting review</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p1">P1 K–1</span>
+            <span class="qi-assignee">→ Unassigned</span>
+            <span class="qi-due">Due in 5 days</span>
+          </div>
+        </div>
+
+        <div class="qi-item">
+          <div class="qi-row1">
+            <span class="qi-type qt-explainer">Explainer</span>
+            <span class="qi-priority qp-p2">P2</span>
+          </div>
+          <div class="qi-title">EXP-0052 — What makes something living?</div>
+          <div class="qi-meta">
+            <span class="qi-band qib-p2">P2 G2–3</span>
+            <span class="qi-assignee">→ Dr. Patel</span>
+            <span class="qi-due">Due in 6 days</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- DETAIL PANE -->
+    <div class="detail-pane">
+
+      <div class="eng-hint">
+        <strong>ENG NOTE — Review Queue v2:</strong> Queue entries created automatically when: skill/question/explainer moves to review_status=Under Review.
+        <br>SLA targets: P0 items = 24h; P1 items = 48h; P2 items = 5 business days.
+        <br>Overdue = created_at + sla_hours &lt; NOW(). Reviewer assigned via team lead or auto-round-robin.
+        <br>Completing a review sets review_status = Approved (if passed) or Needs Revision (if failed). Owner can then publish approved skills.
+        <br>Review history logged in content_review_log (item_id, item_type, reviewer_id, outcome, checklist_json, note, reviewed_at).
+        <br><strong>Privacy:</strong> Reviewer IDs stored internally; displayed as role only in this view (e.g. "Curriculum Lead", not a name).
+      </div>
+
+      <!-- Selected item detail -->
+      <div class="detail-header">
+        <div class="dh-type-row">
+          <span class="qi-type qt-skill" style="font-size:11px;">Skill</span>
+          <span class="qi-priority qp-p1" style="font-size:11px;">P1 Priority</span>
+          <span style="font-size:11px;color:#ff7b6b;font-weight:700;margin-left:4px;">3 days overdue</span>
+        </div>
+        <div class="dh-title">Plants &amp; Sunlight — SK-0214</div>
+        <div class="dh-meta-strip">
+          <div class="dms-item"><div class="dms-label">Item ID</div><div class="dms-value" style="font-family:monospace;">SK-0214</div></div>
+          <div class="dms-item"><div class="dms-label">Band</div><div class="dms-value">P1 K–1</div></div>
+          <div class="dms-item"><div class="dms-label">Subject</div><div class="dms-value">Science · Plants</div></div>
+          <div class="dms-item"><div class="dms-label">Assigned to</div><div class="dms-value">Curriculum Lead</div></div>
+          <div class="dms-item"><div class="dms-label">In queue since</div><div class="dms-value" style="color:#ff7b6b;">2024-03-19</div></div>
+          <div class="dms-item"><div class="dms-label">Questions</div><div class="dms-value">5 (3 published, 2 under review)</div></div>
+        </div>
+      </div>
+
+      <!-- Action bar -->
+      <div class="action-bar">
+        <button class="btn btn-primary">✓ Approve Skill</button>
+        <button class="btn btn-amber">↩ Request Revision</button>
+        <button class="btn btn-danger">🚫 Block</button>
+        <button class="btn btn-secondary">👤 Reassign</button>
+        <button class="btn btn-secondary" style="margin-left:auto;">⬇ Export Review</button>
+      </div>
+
+      <!-- Content preview -->
+      <div class="section-block">
+        <div class="sb-title">Skill Summary</div>
+        <div class="content-preview">
+          <div class="cp-label">Learning Objective</div>
+          Student understands that plants require sunlight to produce food via photosynthesis. Can identify sunlight as a primary requirement and distinguish it from other plant needs (water, soil).
+          <div style="margin-top:12px;" class="cp-label">Questions in this Skill</div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:4px;">
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+              <span style="font-family:monospace;color:rgba(240,246,255,.35);">QID-0388</span>
+              <span>What do plants need to make food?</span>
+              <span style="margin-left:auto;background:rgba(80,232,144,.15);color:#50e890;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">Published</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+              <span style="font-family:monospace;color:rgba(240,246,255,.35);">QID-0389</span>
+              <span>Which part of the plant captures sunlight?</span>
+              <span style="margin-left:auto;background:rgba(80,232,144,.15);color:#50e890;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">Published</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+              <span style="font-family:monospace;color:rgba(240,246,255,.35);">QID-0390</span>
+              <span>What happens if a plant gets no sunlight?</span>
+              <span style="margin-left:auto;background:rgba(240,192,64,.12);color:#f0c040;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">Review</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+              <span style="font-family:monospace;color:rgba(240,246,255,.35);">QID-0391</span>
+              <span>Is sunlight the only thing plants need?</span>
+              <span style="margin-left:auto;background:rgba(240,192,64,.12);color:#f0c040;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">Review</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;font-size:12px;">
+              <span style="font-family:monospace;color:rgba(240,246,255,.35);">QID-0214</span>
+              <span>What does photosynthesis mean? (K–1 version)</span>
+              <span style="margin-left:auto;background:rgba(80,232,144,.15);color:#50e890;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;">Published</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Review Checklist -->
+      <div class="section-block">
+        <div class="sb-title">Review Checklist — Skill</div>
+        <div class="review-checklist">
+          <div class="rc-item rci-checked" onclick="toggleCheck(this)">
+            <div class="rc-checkbox">✓</div>
+            <div class="rc-body"><div class="rc-label">Learning objective is clear and grade-appropriate</div><div class="rc-hint">Matches NGSS K-LS1-1 standard</div></div>
+          </div>
+          <div class="rc-item rci-checked" onclick="toggleCheck(this)">
+            <div class="rc-checkbox">✓</div>
+            <div class="rc-body"><div class="rc-label">Skill has ≥4 published questions</div><div class="rc-hint">5 questions total — 3 published, 2 need review first</div></div>
+          </div>
+          <div class="rc-item" onclick="toggleCheck(this)">
+            <div class="rc-checkbox"></div>
+            <div class="rc-body"><div class="rc-label">All questions reviewed and approved</div><div class="rc-hint">QID-0390 and QID-0391 still under review</div></div>
+          </div>
+          <div class="rc-item rci-checked" onclick="toggleCheck(this)">
+            <div class="rc-checkbox">✓</div>
+            <div class="rc-body"><div class="rc-label">Linked explainer (EXP-0041) approved</div><div class="rc-hint">EXP-0041 is in "Needs Revision" — not approved yet</div></div>
+          </div>
+          <div class="rc-item rci-checked" onclick="toggleCheck(this)">
+            <div class="rc-checkbox">✓</div>
+            <div class="rc-body"><div class="rc-label">No student/teacher names in content</div><div class="rc-hint">Privacy check passed</div></div>
+          </div>
+          <div class="rc-item" onclick="toggleCheck(this)">
+            <div class="rc-checkbox"></div>
+            <div class="rc-body"><div class="rc-label">Difficulty level correctly assigned (L2 Foundation)</div><div class="rc-hint">Verify against P1 K–1 curriculum progression</div></div>
+          </div>
+          <div class="rc-item rci-checked" onclick="toggleCheck(this)">
+            <div class="rc-checkbox">✓</div>
+            <div class="rc-body"><div class="rc-label">Theme mapping complete</div><div class="rc-hint">Mapped to Adventure + Nature themes</div></div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:12px;color:rgba(240,246,255,.4);">5/7 checks complete. Approval requires all items checked.</div>
+      </div>
+
+      <!-- Review History -->
+      <div class="section-block">
+        <div class="sb-title">Review History</div>
+        <div class="history-log">
+          <div class="hl-entry">
+            <div class="hl-dot hld-assign"></div>
+            <div class="hl-body"><span class="hl-text">Assigned to Curriculum Lead</span> <span class="hl-time">· 2024-03-19</span></div>
+          </div>
+          <div class="hl-entry">
+            <div class="hl-dot hld-flag"></div>
+            <div class="hl-body"><span class="hl-text">Moved to Under Review from Draft (5 questions met minimum)</span> <span class="hl-time">· 2024-03-19</span></div>
+          </div>
+          <div class="hl-entry">
+            <div class="hl-dot hld-comment"></div>
+            <div class="hl-body"><span class="hl-text">Comment: "QID-0390 and QID-0391 need fact check before I can sign off on the skill."</span> <span class="hl-time">· 2024-03-21</span></div>
+          </div>
+          <div class="hl-entry">
+            <div class="hl-dot hld-comment"></div>
+            <div class="hl-body"><span class="hl-text">EXP-0041 (linked explainer) flagged for reading level — still in revision</span> <span class="hl-time">· 2024-03-22</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /detail-pane -->
+  </div><!-- /content-area -->
+</div><!-- /main -->
+
+<script>
+function toggleCheck(item) {
+  item.classList.toggle('rci-checked');
+  const box = item.querySelector('.rc-checkbox');
+  box.textContent = item.classList.contains('rci-checked') ? '✓' : '';
+}
+
+document.querySelectorAll('.qi-item').forEach(item => {
+  item.addEventListener('click', () => {
+    document.querySelectorAll('.qi-item').forEach(i => i.classList.remove('selected'));
+    item.classList.add('selected');
+  });
+});
+
+document.querySelectorAll('.fc').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.queue-header .fc').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

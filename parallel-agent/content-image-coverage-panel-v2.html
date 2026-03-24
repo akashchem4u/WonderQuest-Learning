@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Coverage Panel — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ─── PAGE SHELL ─────────────────────────────────────────────────── */
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);margin-left:4px;}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-primary:hover{background:#3dd678;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+
+.page-body{padding:24px 28px;max-width:1400px;}
+
+/* ─── STAT STRIP ─────────────────────────────────────────────────── */
+.stat-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:24px;}
+.stat-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:14px 16px;}
+.sc-num{font-size:22px;font-weight:700;}
+.sc-lbl{font-size:11px;color:rgba(240,246,255,.4);margin-top:3px;}
+.sc-sub{font-size:11px;margin-top:4px;}
+.num-ok{color:#50e890;}
+.num-warn{color:#f0c040;}
+.num-err{color:#ff7b6b;}
+.num-neutral{color:#f0f6ff;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── COVERAGE HEATMAP ───────────────────────────────────────────── */
+.heatmap-controls{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;}
+.hc-label{font-size:12px;color:rgba(240,246,255,.5);}
+.filter-chip{padding:5px 10px;border-radius:12px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);background:transparent;transition:all .15s;}
+.filter-chip:hover{color:#f0f6ff;border-color:rgba(255,255,255,.25);}
+.filter-chip.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:600;}
+
+.heatmap-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:24px;}
+.heatmap-table th{text-align:left;padding:8px 12px;color:rgba(240,246,255,.4);font-weight:500;font-size:11px;border-bottom:1px solid rgba(255,255,255,.08);}
+.heatmap-table th:first-child{width:160px;}
+.heatmap-table td{padding:6px 8px;border-bottom:1px solid rgba(255,255,255,.04);}
+.heatmap-table tr:last-child td{border-bottom:none;}
+.row-band-header{background:rgba(255,255,255,.03);font-size:11px;font-weight:700;color:rgba(240,246,255,.5);letter-spacing:.06em;text-transform:uppercase;}
+.row-band-header td{padding:8px 12px!important;border-top:1px solid rgba(255,255,255,.06);}
+
+/* Coverage cells */
+.cov-cell{border-radius:6px;padding:8px 10px;text-align:center;cursor:pointer;transition:all .15s;min-width:80px;position:relative;}
+.cov-cell:hover{filter:brightness(1.15);}
+.cc-full{background:rgba(80,232,144,.2);border:1px solid rgba(80,232,144,.35);}
+.cc-good{background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.2);}
+.cc-partial{background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);}
+.cc-thin{background:rgba(255,123,107,.08);border:1px solid rgba(255,123,107,.15);}
+.cc-gap{background:transparent;border:1px dashed rgba(255,100,80,.4);}
+.cc-count{font-size:14px;font-weight:700;}
+.cc-full .cc-count{color:#50e890;}
+.cc-good .cc-count{color:#3dd678;}
+.cc-partial .cc-count{color:#f0c040;}
+.cc-thin .cc-count{color:#ff7b6b;}
+.cc-gap .cc-count{color:rgba(255,100,80,.6);}
+.cc-label{font-size:10px;color:rgba(240,246,255,.4);margin-top:2px;}
+.cc-new{position:absolute;top:-5px;right:-5px;background:#9b72ff;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:1px 4px;}
+.cc-miss{position:absolute;top:-5px;right:-5px;background:#ff4d4d;color:#fff;font-size:9px;font-weight:700;border-radius:8px;padding:2px 4px;}
+.subject-label{font-size:12px;font-weight:600;color:#f0f6ff;}
+.subject-sub{font-size:10px;color:rgba(240,246,255,.35);margin-top:1px;}
+
+/* ─── LEGEND ─────────────────────────────────────────────────────── */
+.legend{display:flex;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:12px;color:rgba(240,246,255,.55);}
+.leg-swatch{width:16px;height:16px;border-radius:4px;}
+.ls-full{background:rgba(80,232,144,.2);border:1px solid rgba(80,232,144,.35);}
+.ls-good{background:rgba(80,232,144,.1);border:1px solid rgba(80,232,144,.2);}
+.ls-partial{background:rgba(240,192,64,.1);border:1px solid rgba(240,192,64,.2);}
+.ls-thin{background:rgba(255,123,107,.08);border:1px solid rgba(255,123,107,.15);}
+.ls-gap{background:transparent;border:1px dashed rgba(255,100,80,.4);}
+
+/* ─── ASSET BROWSER ──────────────────────────────────────────────── */
+.asset-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;}
+.asset-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:8px;overflow:hidden;cursor:pointer;transition:all .15s;}
+.asset-card:hover{border-color:rgba(255,255,255,.2);}
+.asset-card.ac-selected{border-color:#50e890;}
+.asset-card.ac-missing{border-color:rgba(255,123,107,.4);}
+.ac-thumb{height:100px;display:flex;align-items:center;justify-content:center;font-size:32px;position:relative;}
+.ath-math{background:linear-gradient(135deg,rgba(80,232,144,.1),rgba(88,232,193,.1));}
+.ath-science{background:linear-gradient(135deg,rgba(155,114,255,.1),rgba(88,232,193,.1));}
+.ath-ela{background:linear-gradient(135deg,rgba(255,209,102,.1),rgba(240,192,64,.1));}
+.ath-soc{background:linear-gradient(135deg,rgba(255,123,107,.1),rgba(255,209,102,.1));}
+.ath-missing{background:rgba(255,100,80,.06);border:2px dashed rgba(255,100,80,.3);margin:6px;border-radius:6px;height:88px;}
+.ac-status-badge{position:absolute;top:6px;right:6px;font-size:10px;font-weight:700;padding:2px 6px;border-radius:8px;}
+.asb-approved{background:rgba(80,232,144,.2);color:#50e890;}
+.asb-review{background:rgba(240,192,64,.2);color:#f0c040;}
+.asb-missing{background:rgba(255,123,107,.2);color:#ff7b6b;}
+.asb-new{background:rgba(155,114,255,.2);color:#9b72ff;}
+.ac-info{padding:8px 10px;}
+.ac-id{font-size:10px;color:rgba(240,246,255,.35);font-family:monospace;}
+.ac-name{font-size:12px;font-weight:500;color:#f0f6ff;margin:2px 0;}
+.ac-meta{font-size:10px;color:rgba(240,246,255,.4);}
+
+/* ─── MISSING ASSETS TABLE ───────────────────────────────────────── */
+.missing-table{width:100%;border-collapse:collapse;font-size:13px;}
+.missing-table th{text-align:left;color:rgba(240,246,255,.4);font-weight:500;padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.missing-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.05);vertical-align:middle;}
+.missing-table tr:last-child td{border-bottom:none;}
+.mt-id{font-family:monospace;font-size:11px;color:rgba(240,246,255,.4);}
+.mt-skill{color:#f0f6ff;}
+.mt-impact{font-size:11px;font-weight:600;padding:2px 7px;border-radius:9px;}
+.imp-critical{background:rgba(255,50,50,.15);color:#ff4d4d;}
+.imp-high{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.imp-medium{background:rgba(240,192,64,.12);color:#f0c040;}
+.btn-xs{padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;}
+.btn-xs:hover{background:rgba(255,255,255,.06);}
+.btn-xs.bx-ok{border-color:rgba(80,232,144,.3);color:#50e890;}
+.btn-xs.bx-pri{background:rgba(80,232,144,.1);border-color:rgba(80,232,144,.3);color:#50e890;}
+
+/* ─── SECTION BLOCK ──────────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:20px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.sb-action{font-size:12px;color:#50e890;cursor:pointer;background:none;border:none;font-family:inherit;}
+
+/* ─── ALT TEXT STATUS ────────────────────────────────────────────── */
+.alt-row{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.alt-row:last-child{border-bottom:none;}
+.alt-thumb{width:48px;height:48px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;background:#0d1117;border:1px solid rgba(255,255,255,.06);}
+.alt-body{flex:1;}
+.alt-file{font-size:12px;font-family:monospace;color:rgba(240,246,255,.5);margin-bottom:3px;}
+.alt-text{font-size:13px;color:#f0f6ff;line-height:1.4;}
+.alt-empty{font-size:13px;color:rgba(255,123,107,.7);font-style:italic;}
+.alt-status{font-size:11px;font-weight:600;padding:2px 7px;border-radius:9px;margin-left:auto;flex-shrink:0;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Image Coverage Panel</h1>
+  <span class="ph-sub">Review illustration/diagram coverage and missing asset gaps</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export Gap Report</button>
+    <button class="btn btn-primary">+ Commission Images</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Image Coverage Panel v2:</strong> Image assets = illustrations, diagrams, infographics shown within question prompts and explainer cards.
+    <br>ID format: IMG-XXXX. Every question prompt requires ≥1 image OR is text-only (flagged if image_required=true and no asset linked).
+    <br><strong>Coverage levels:</strong> Full (≥8 assets/topic) / Good (5–7) / Partial (3–4) / Thin (1–2) / Gap (0).
+    <br><strong>Alt-text requirement:</strong> All published images must have alt_text set (WCAG 2.1 AA). Missing alt_text = warn (not block, but tracked).
+    <br><strong>Image types:</strong> illustration, diagram, photo_edit, infographic. Photos of real people = not used (policy).
+    <br>Asset 404 → question auto-blocked (same as audio). CDN URL stored per asset; hash verified on publish.
+    Tabs: Coverage Heatmap / Asset Browser / Missing Assets / Alt-Text Audit.
+  </div>
+
+  <!-- STAT STRIP -->
+  <div class="stat-strip">
+    <div class="stat-card">
+      <div class="sc-num num-neutral">284</div>
+      <div class="sc-lbl">Total Images</div>
+      <div class="sc-sub" style="color:rgba(240,246,255,.4);">In library</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-ok">241</div>
+      <div class="sc-lbl">Approved</div>
+      <div class="sc-sub" style="color:#50e890;">84.9% of total</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-warn">18</div>
+      <div class="sc-lbl">In Review</div>
+      <div class="sc-sub" style="color:rgba(240,246,255,.4);">Pending QA</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-err">31</div>
+      <div class="sc-lbl">Missing (Required)</div>
+      <div class="sc-sub" style="color:#ff7b6b;">Skill impact: 14</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-warn">47</div>
+      <div class="sc-lbl">Missing Alt-Text</div>
+      <div class="sc-sub" style="color:#f0c040;">WCAG gap</div>
+    </div>
+    <div class="stat-card">
+      <div class="sc-num num-err">6</div>
+      <div class="sc-lbl">404 Errors</div>
+      <div class="sc-sub" style="color:#ff7b6b;">Skills blocked</div>
+    </div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('heatmap')">Coverage Heatmap</button>
+    <button class="tab-btn" onclick="showTab('browser')">Asset Browser</button>
+    <button class="tab-btn" onclick="showTab('missing')">Missing Assets <span style="background:rgba(255,123,107,.2);color:#ff7b6b;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">31</span></button>
+    <button class="tab-btn" onclick="showTab('alttext')">Alt-Text Audit <span style="background:rgba(240,192,64,.15);color:#f0c040;border-radius:9px;padding:1px 6px;font-size:10px;margin-left:4px;">47</span></button>
+  </div>
+
+  <!-- TAB: HEATMAP -->
+  <div id="tab-heatmap" class="screen active">
+    <div class="heatmap-controls">
+      <span class="hc-label">Filter:</span>
+      <span class="filter-chip active">All Bands</span>
+      <span class="filter-chip">P0 Pre-K</span>
+      <span class="filter-chip">P1 K–1</span>
+      <span class="filter-chip">P2 G2–3</span>
+      <span class="filter-chip">P3 G4–5</span>
+      <span class="hc-label" style="margin-left:12px;">Show:</span>
+      <span class="filter-chip active">All Assets</span>
+      <span class="filter-chip">Gaps Only</span>
+      <span class="filter-chip">In Pipeline</span>
+    </div>
+
+    <div class="legend">
+      <div class="leg-item"><div class="leg-swatch ls-full"></div>Full (≥8)</div>
+      <div class="leg-item"><div class="leg-swatch ls-good"></div>Good (5–7)</div>
+      <div class="leg-item"><div class="leg-swatch ls-partial"></div>Partial (3–4)</div>
+      <div class="leg-item"><div class="leg-swatch ls-thin"></div>Thin (1–2)</div>
+      <div class="leg-item"><div class="leg-swatch ls-gap"></div>Gap (0)</div>
+      <div class="leg-item"><span style="background:#9b72ff;color:#fff;font-size:10px;padding:1px 5px;border-radius:6px;">+N</span> In pipeline</div>
+      <div class="leg-item"><span style="background:#ff4d4d;color:#fff;font-size:10px;padding:1px 5px;border-radius:6px;">!</span> 404 issue</div>
+    </div>
+
+    <table class="heatmap-table">
+      <thead>
+        <tr>
+          <th>Topic</th>
+          <th>Math</th>
+          <th>Science</th>
+          <th>ELA</th>
+          <th>Social Studies</th>
+          <th>Arts &amp; Music</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- P0 PRE-K -->
+        <tr class="row-band-header"><td colspan="6">P0 Pre-K (Ages 3–4)</td></tr>
+        <tr>
+          <td><div class="subject-label">Counting &amp; Numbers</div><div class="subject-sub">Basic numeracy</div></td>
+          <td><div class="cov-cell cc-full"><div class="cc-count">9</div><div class="cc-label">Full</div></div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">6</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-full"><div class="cc-count">8</div><div class="cc-label">Full</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">3</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-good" style="position:relative;"><div class="cc-count">5</div><div class="cc-label">Good</div><span class="cc-new">+2</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="subject-label">Shapes &amp; Colors</div><div class="subject-sub">Visual patterns</div></td>
+          <td><div class="cov-cell cc-full"><div class="cc-count">11</div><div class="cc-label">Full</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">2</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">7</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">4</div><div class="cc-label">Partial</div></div></td>
+        </tr>
+        <!-- P1 K-1 -->
+        <tr class="row-band-header"><td colspan="6">P1 K–1 (Ages 5–6)</td></tr>
+        <tr>
+          <td><div class="subject-label">Addition &amp; Subtraction</div><div class="subject-sub">Basic operations</div></td>
+          <td><div class="cov-cell cc-full"><div class="cc-count">14</div><div class="cc-label">Full</div></div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">6</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">4</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">1</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-partial" style="position:relative;"><div class="cc-count">3</div><div class="cc-label">Partial</div><span class="cc-new">+3</span></div></td>
+        </tr>
+        <tr>
+          <td><div class="subject-label">Plants &amp; Animals</div><div class="subject-sub">Living things</div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">5</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-full" style="position:relative;"><div class="cc-count">10</div><div class="cc-label">Full</div><span class="cc-miss">!</span></div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">7</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">4</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+        </tr>
+        <!-- P2 G2-3 -->
+        <tr class="row-band-header"><td colspan="6">P2 G2–3 (Ages 7–8)</td></tr>
+        <tr>
+          <td><div class="subject-label">Multiplication</div><div class="subject-sub">Times tables</div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">6</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">2</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">3</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">1</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="subject-label">Earth &amp; Space</div><div class="subject-sub">Planets, weather</div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">3</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-full"><div class="cc-count">9</div><div class="cc-label">Full</div></div></td>
+          <td><div class="cov-cell cc-good"><div class="cc-count">5</div><div class="cc-label">Good</div></div></td>
+          <td><div class="cov-cell cc-partial" style="position:relative;"><div class="cc-count">4</div><div class="cc-label">Partial</div><span class="cc-new">+1</span></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">2</div><div class="cc-label">Thin</div></div></td>
+        </tr>
+        <!-- P3 G4-5 -->
+        <tr class="row-band-header"><td colspan="6">P3 G4–5 (Ages 9–10) — ⚠ Major gaps — v2.6 content target</td></tr>
+        <tr>
+          <td><div class="subject-label">Fractions &amp; Decimals</div><div class="subject-sub">Number operations</div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">2</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">1</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+        </tr>
+        <tr>
+          <td><div class="subject-label">History &amp; Civics</div><div class="subject-sub">Community, gov't</div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">3</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">2</div><div class="cc-label">Thin</div></div></td>
+          <td><div class="cov-cell cc-partial"><div class="cc-count">4</div><div class="cc-label">Partial</div></div></td>
+          <td><div class="cov-cell cc-gap"><div class="cc-count">0</div><div class="cc-label">Gap</div></div></td>
+          <td><div class="cov-cell cc-thin"><div class="cc-count">1</div><div class="cc-label">Thin</div></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- TAB: ASSET BROWSER -->
+  <div id="tab-browser" class="screen">
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center;flex-wrap:wrap;">
+      <input type="text" placeholder="Search images…" style="background:#161b22;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 12px;color:#f0f6ff;font-size:13px;width:240px;">
+      <span class="filter-chip active">All</span>
+      <span class="filter-chip">Illustration</span>
+      <span class="filter-chip">Diagram</span>
+      <span class="filter-chip">Infographic</span>
+      <span class="filter-chip">Missing</span>
+      <span class="filter-chip">404 Error</span>
+    </div>
+    <div class="asset-grid">
+      <div class="asset-card">
+        <div class="ac-thumb ath-math">🔢<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0441</div><div class="ac-name">Addition number line</div><div class="ac-meta">Illustration · P1 K–1 · Math</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-science">🌱<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0442</div><div class="ac-name">Plant parts diagram</div><div class="ac-meta">Diagram · P1 K–1 · Science</div></div>
+      </div>
+      <div class="asset-card ac-missing">
+        <div class="ac-thumb ath-missing"><span style="font-size:28px;color:rgba(255,100,80,.5);">?</span><span class="ac-status-badge asb-missing">404</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0443</div><div class="ac-name">Sunlight diagram</div><div class="ac-meta">Diagram · P1 K–1 · Science</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-ela">📖<span class="ac-status-badge asb-review">Review</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0444</div><div class="ac-name">Sentence structure</div><div class="ac-meta">Illustration · P0 Pre-K · ELA</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-science">🌍<span class="ac-status-badge asb-new">New</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0451</div><div class="ac-name">Solar system map</div><div class="ac-meta">Infographic · P2 G2–3 · Science</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-math">📐<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0445</div><div class="ac-name">Shapes: triangle, circle</div><div class="ac-meta">Illustration · P0 Pre-K · Math</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-soc">🏘<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0447</div><div class="ac-name">Community helpers</div><div class="ac-meta">Illustration · P1 K–1 · Social Studies</div></div>
+      </div>
+      <div class="asset-card ac-missing">
+        <div class="ac-thumb ath-missing"><span style="font-size:28px;color:rgba(255,100,80,.5);">?</span><span class="ac-status-badge asb-missing">Missing</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-UNSET</div><div class="ac-name">Fractions visual</div><div class="ac-meta">Required · P3 G4–5 · Math</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-math">✖<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0448</div><div class="ac-name">Multiplication grid</div><div class="ac-meta">Diagram · P2 G2–3 · Math</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-ela">🅰<span class="ac-status-badge asb-approved">✓</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0449</div><div class="ac-name">Alphabet flashcard A</div><div class="ac-meta">Illustration · P0 Pre-K · ELA</div></div>
+      </div>
+      <div class="asset-card">
+        <div class="ac-thumb ath-science">🌧<span class="ac-status-badge asb-review">Review</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0452</div><div class="ac-name">Water cycle diagram</div><div class="ac-meta">Diagram · P3 G4–5 · Science</div></div>
+      </div>
+      <div class="asset-card ac-missing">
+        <div class="ac-thumb ath-missing"><span style="font-size:28px;color:rgba(255,100,80,.5);">?</span><span class="ac-status-badge asb-missing">404</span></div>
+        <div class="ac-info"><div class="ac-id">IMG-0440</div><div class="ac-name">Decimal number line</div><div class="ac-meta">Diagram · P3 G4–5 · Math</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: MISSING ASSETS -->
+  <div id="tab-missing" class="screen">
+    <div class="section-block">
+      <div class="sb-head">
+        <span class="sb-title">Required Images — Not Found</span>
+        <button class="sb-action">⬇ Export list</button>
+      </div>
+      <table class="missing-table">
+        <thead>
+          <tr>
+            <th>Asset ID</th>
+            <th>Description</th>
+            <th>Linked Skill</th>
+            <th>Band</th>
+            <th>Issue</th>
+            <th>Impact</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="mt-id">IMG-0443</td>
+            <td class="mt-skill">Sunlight diagram (CDN path broken)</td>
+            <td class="mt-id">SK-0214</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(155,114,255,.15);color:#9b72ff;">P1 K–1</span></td>
+            <td><span style="color:#ff7b6b;font-size:12px;">404 CDN error</span></td>
+            <td><span class="mt-impact imp-critical">Critical</span></td>
+            <td><button class="btn-xs bx-ok">Re-upload</button> <button class="btn-xs">Skip</button></td>
+          </tr>
+          <tr>
+            <td class="mt-id">IMG-0440</td>
+            <td class="mt-skill">Decimal number line illustration</td>
+            <td class="mt-id">SK-0301</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3 G4–5</span></td>
+            <td><span style="color:#ff7b6b;font-size:12px;">404 CDN error</span></td>
+            <td><span class="mt-impact imp-critical">Critical</span></td>
+            <td><button class="btn-xs bx-ok">Re-upload</button> <button class="btn-xs">Skip</button></td>
+          </tr>
+          <tr>
+            <td class="mt-id">IMG-UNSET</td>
+            <td class="mt-skill">Fractions visual (½ ¼ ¾ illustration)</td>
+            <td class="mt-id">SK-0298</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3 G4–5</span></td>
+            <td><span style="color:#f0c040;font-size:12px;">Never created</span></td>
+            <td><span class="mt-impact imp-high">High</span></td>
+            <td><button class="btn-xs bx-pri">Commission</button></td>
+          </tr>
+          <tr>
+            <td class="mt-id">IMG-UNSET</td>
+            <td class="mt-skill">Civics: branches of government diagram</td>
+            <td class="mt-id">SK-0312</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3 G4–5</span></td>
+            <td><span style="color:#f0c040;font-size:12px;">Never created</span></td>
+            <td><span class="mt-impact imp-high">High</span></td>
+            <td><button class="btn-xs bx-pri">Commission</button></td>
+          </tr>
+          <tr>
+            <td class="mt-id">IMG-UNSET</td>
+            <td class="mt-skill">Social Studies: map reading basics</td>
+            <td class="mt-id">SK-0319</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,123,107,.15);color:#ff7b6b;">P3 G4–5</span></td>
+            <td><span style="color:#f0c040;font-size:12px;">Never created</span></td>
+            <td><span class="mt-impact imp-medium">Medium</span></td>
+            <td><button class="btn-xs bx-pri">Commission</button></td>
+          </tr>
+          <tr>
+            <td class="mt-id">IMG-0461</td>
+            <td class="mt-skill">Pre-K Social Studies: families diversity</td>
+            <td class="mt-id">SK-0042</td>
+            <td><span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:9px;background:rgba(255,209,102,.15);color:#ffd166;">P0 Pre-K</span></td>
+            <td><span style="color:#f0c040;font-size:12px;">Placeholder only</span></td>
+            <td><span class="mt-impact imp-medium">Medium</span></td>
+            <td><button class="btn-xs bx-ok">Re-upload</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: ALT-TEXT AUDIT -->
+  <div id="tab-alttext" class="screen">
+    <div class="section-block">
+      <div class="sb-head">
+        <span class="sb-title">Alt-Text Audit — WCAG 2.1 AA</span>
+        <span style="font-size:11px;color:rgba(240,246,255,.35);">47 missing · 241 present · 16.4% gap rate</span>
+      </div>
+      <div style="margin-bottom:12px;font-size:12px;color:rgba(240,246,255,.45);">
+        Alt-text missing = accessibility warning. Images published without alt_text will be logged in the accessibility report.
+        Screen reader users will hear "image" without description. Not a deploy blocker but tracked for WCAG compliance.
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">🌱</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0442 · plant-parts-diagram.png</div>
+          <div class="alt-text">"Diagram showing the parts of a flowering plant: roots, stem, leaves, and flower, each labelled with arrows."</div>
+        </div>
+        <span class="alt-status s-pass" style="background:rgba(80,232,144,.15);color:#50e890;">Present</span>
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">🔢</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0441 · addition-number-line.png</div>
+          <div class="alt-text">"Number line from 0 to 20 with an arrow showing 3 + 4 = 7."</div>
+        </div>
+        <span class="alt-status s-pass" style="background:rgba(80,232,144,.15);color:#50e890;">Present</span>
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">✖</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0448 · multiplication-grid.png</div>
+          <div class="alt-empty">— Alt-text missing</div>
+        </div>
+        <span class="alt-status s-warn" style="background:rgba(240,192,64,.15);color:#f0c040;">Missing</span>
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">🏘</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0447 · community-helpers.png</div>
+          <div class="alt-empty">— Alt-text missing</div>
+        </div>
+        <span class="alt-status s-warn" style="background:rgba(240,192,64,.15);color:#f0c040;">Missing</span>
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">📐</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0445 · shapes-triangle-circle.png</div>
+          <div class="alt-text">"Colorful illustration showing a red triangle and a blue circle on a white background."</div>
+        </div>
+        <span class="alt-status s-pass" style="background:rgba(80,232,144,.15);color:#50e890;">Present</span>
+      </div>
+      <div class="alt-row">
+        <div class="alt-thumb">🌍</div>
+        <div class="alt-body">
+          <div class="alt-file">IMG-0451 · solar-system-map.png</div>
+          <div class="alt-empty">— Alt-text missing (new upload)</div>
+        </div>
+        <span class="alt-status s-warn" style="background:rgba(240,192,64,.15);color:#f0c040;">Missing</span>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:rgba(240,246,255,.35);text-align:center;">
+        Showing 6 of 47 items with missing alt-text · <button class="btn-xs" style="font-size:12px;padding:4px 10px;">Load All</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-primary">✏ Bulk Add Alt-Text</button>
+      <button class="btn btn-secondary">⬇ Export WCAG Report</button>
+    </div>
+  </div>
+
+</div><!-- /page-body -->
+
+<script>
+function showTab(tab) {
+  const tabs = ['heatmap','browser','missing','alttext'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    const group = chip.parentElement;
+    group.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

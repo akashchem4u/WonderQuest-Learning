@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Child Switcher v3</title>
+<!--
+  ┌─────────────────────────────────────────────────────────────┐
+  │  ENGINEERING HINT                                           │
+  │  Child switcher component — shown in parent dashboard       │
+  │  when family has multiple children.                         │
+  │  Both desktop dropdown and mobile bottom sheet variants.   │
+  │                                                            │
+  │  Tabs:                                                     │
+  │    1. Desktop Dropdown (2 children)                        │
+  │    2. Desktop Dropdown (3+ children)                       │
+  │    3. Mobile Bottom Sheet                                  │
+  │    4. Spec                                                  │
+  │                                                            │
+  │  Key rules:                                                │
+  │  - Switching context updates entire dashboard to selected  │
+  │    child — NOT a comparison view                           │
+  │  - Current child shown with checkmark                      │
+  │  - Each child shows band dot + level + recent star count   │
+  │  Version: v3  Date: 2026-03-24                             │
+  └─────────────────────────────────────────────────────────────┘
+-->
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #ece8e0; min-height: 100vh; }
+.tab-bar { display: flex; gap: 4px; padding: 14px 24px 0; border-bottom: 1px solid #d8d0c0; overflow-x: auto; scrollbar-width: none; background: #f5f0e8; }
+.tab-bar::-webkit-scrollbar { display: none; }
+.tab-btn { padding: 8px 16px; border: none; background: transparent; color: #8a7a6a; font: 600 0.8rem system-ui; cursor: pointer; border-radius: 6px 6px 0 0; white-space: nowrap; transition: all 0.18s; }
+.tab-btn.active { color: #3d2a8a; background: #ece8e0; border-bottom: 2px solid #9b72ff; }
+.screen { display: none; background: #f5f0e8; min-height: calc(100vh - 50px); padding: 40px; }
+.screen.active { display: block; }
+
+/* ─── Demo Container ─── */
+.demo-bg { max-width: 900px; margin: 0 auto; background: #fff; border-radius: 20px; padding: 32px; border: 1px solid #e0d8f0; }
+.demo-label { font: 600 0.72rem system-ui; color: #9b72ff; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 16px; }
+
+/* ─── Child Switcher Trigger Button ─── */
+.switcher-trigger {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 8px 16px; background: #faf8ff;
+  border: 1.5px solid #d0c8e8; border-radius: 12px;
+  cursor: pointer; transition: background 0.15s;
+  position: relative;
+}
+.switcher-trigger:hover { background: #f0e8ff; border-color: #b0a0e0; }
+.st-avatar { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, #ede8ff, #d8d0ff); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+.st-name { font: 700 0.88rem system-ui; color: #1a1240; }
+.st-band { font: 400 0.68rem system-ui; color: #9b72ff; }
+.st-caret { color: #9080b0; font-size: 0.7rem; }
+
+/* ─── Dropdown ─── */
+.switcher-dropdown {
+  position: absolute; top: calc(100% + 8px); left: 0; z-index: 100;
+  background: #fff; border-radius: 16px;
+  box-shadow: 0 8px 32px rgba(100,60,200,0.18);
+  border: 1px solid #e0d8f0; min-width: 260px; overflow: hidden;
+}
+.dropdown-header { padding: 12px 16px; font: 600 0.7rem system-ui; color: #9080b0; text-transform: uppercase; letter-spacing: 0.07em; border-bottom: 1px solid #f0e8f8; }
+.child-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid #f8f0f8; }
+.child-option:last-child { border-bottom: none; }
+.child-option:hover { background: #faf8ff; }
+.child-option.selected { background: #f5f0ff; }
+.co-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+.co-info { flex: 1; }
+.co-name { font: 700 0.86rem system-ui; color: #1a1240; }
+.co-band { font: 400 0.7rem system-ui; margin-top: 1px; }
+.co-stars { font: 700 0.78rem system-ui; color: #ffd166; }
+.co-check { color: #9b72ff; font-size: 1rem; }
+.dropdown-footer { padding: 10px 16px; border-top: 1px solid #f0e8f8; display: flex; align-items: center; justify-content: center; }
+.add-child-link { font: 600 0.78rem system-ui; color: #9b72ff; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+/* ─── Mobile Bottom Sheet ─── */
+.mobile-demo { display: flex; flex-direction: column; align-items: center; }
+.phone { width: 390px; max-width: 100%; background: #f5f0e8; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 0 0 2px #9b72ff22; position: relative; }
+.status-bar { height: 44px; display: flex; align-items: flex-end; padding: 0 20px 8px; justify-content: space-between; background: #f5f0e8; }
+.sb-time { font: 600 0.8rem system-ui; color: #1a1240; }
+.sb-icons { display: flex; gap: 4px; font-size: 0.8rem; color: #1a1240; }
+.phone-content { padding: 16px; min-height: 200px; }
+.scrim { position: absolute; inset: 0; background: rgba(8,5,20,0.45); z-index: 10; }
+.bottom-sheet { position: absolute; bottom: 0; left: 0; right: 0; background: #fff; border-radius: 24px 24px 0 0; padding: 0 0 28px; z-index: 20; }
+.drag-handle-m { display: flex; justify-content: center; padding: 10px 0 6px; }
+.drag-handle-m::before { content: ''; display: block; width: 36px; height: 5px; background: #d0c8e8; border-radius: 3px; }
+.sheet-title-m { font: 700 0.95rem system-ui; color: #1a1240; padding: 6px 20px 12px; border-bottom: 1px solid #f0e8f8; }
+.child-option-m { display: flex; align-items: center; gap: 12px; padding: 14px 20px; cursor: pointer; border-bottom: 1px solid #f8f0f8; }
+.child-option-m.selected { background: #f5f0ff; }
+.child-option-m:last-of-type { border-bottom: none; }
+.home-indicator-bar { height: 28px; display: flex; align-items: center; justify-content: center; }
+.home-bar { width: 120px; height: 5px; border-radius: 3px; background: #2a1a80; opacity: 0.2; }
+.sheet-footer-m { padding: 12px 20px 0; border-top: 1px solid #f0e8f8; margin-top: 4px; }
+
+/* ─── Spec ─── */
+#screen-spec { padding: 40px; }
+.spec-title { font: 700 1.2rem system-ui; color: #1a1240; margin-bottom: 18px; }
+.spec-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-bottom: 20px; }
+.spec-table th { text-align: left; padding: 9px 12px; background: #ede8ff; color: #4a3880; font: 700 0.7rem system-ui; text-transform: uppercase; letter-spacing: 0.05em; border-bottom: 1px solid #d8d0f0; }
+.spec-table td { padding: 9px 12px; border-bottom: 1px solid #ede8e0; vertical-align: top; }
+.spec-table tr:last-child td { border-bottom: none; }
+.spec-rule { font-weight: 700; color: #1a1240; }
+.spec-detail { color: #6a5890; font-size: 0.74rem; line-height: 1.5; }
+.spec-section { font: 700 0.88rem system-ui; color: #3d2a8a; margin: 22px 0 10px; padding-left: 10px; border-left: 3px solid #9b72ff; }
+</style>
+</head>
+<body>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('desktop2')">🖥 2 Children</button>
+  <button class="tab-btn" onclick="showTab('desktop3')">🖥 3+ Children</button>
+  <button class="tab-btn" onclick="showTab('mobile')">📱 Mobile Sheet</button>
+  <button class="tab-btn" onclick="showTab('spec')">📋 Spec</button>
+</div>
+
+<!-- DESKTOP 2 CHILDREN -->
+<div class="screen active" id="screen-desktop2">
+  <div class="demo-bg">
+    <div class="demo-label">Dashboard header — child switcher (2 children)</div>
+    <div style="display:flex; align-items:center; gap:16px; padding: 16px 20px; background:#faf8ff; border-radius:14px; border:1px solid #e0d8f0; margin-bottom:24px;">
+      <div style="font:700 1rem system-ui;color:#9b72ff;">WonderQuest</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <!-- Switcher trigger with open dropdown -->
+        <div style="position:relative;">
+          <div class="switcher-trigger">
+            <div class="st-avatar">🦁</div>
+            <div><div class="st-name">Maya</div><div class="st-band">K–1 · Level 2</div></div>
+            <span class="st-caret">▾</span>
+          </div>
+          <!-- Dropdown (open) -->
+          <div class="switcher-dropdown">
+            <div class="dropdown-header">Switch child view</div>
+            <div class="child-option selected">
+              <div class="co-avatar" style="background:#ede8ff;">🦁</div>
+              <div class="co-info">
+                <div class="co-name">Maya</div>
+                <div class="co-band" style="color:#9b72ff;">K–1 Band · Level 2 Star Explorer</div>
+                <div class="co-stars">⭐ 42 stars this week</div>
+              </div>
+              <span class="co-check">✓</span>
+            </div>
+            <div class="child-option">
+              <div class="co-avatar" style="background:#e8fff8;">🐸</div>
+              <div class="co-info">
+                <div class="co-name">Leo</div>
+                <div class="co-band" style="color:#58e8c1;">G2–3 Band · Level 1 Number Cub</div>
+                <div class="co-stars">⭐ 34 stars this week</div>
+              </div>
+            </div>
+            <div class="dropdown-footer">
+              <div class="add-child-link">＋ Add another child</div>
+            </div>
+          </div>
+        </div>
+        <div style="font:400 0.78rem system-ui;color:#9080a0;">Sarah J.</div>
+      </div>
+    </div>
+    <div style="padding:16px;background:#f5f0ff;border-radius:12px;border:1px solid #e0d8f0;font:400 0.8rem system-ui;color:#6a5890;">
+      ↑ Child switcher dropdown is open. Selecting "Leo" would reload the entire dashboard content for Leo's data.
+    </div>
+  </div>
+</div>
+
+<!-- DESKTOP 3+ CHILDREN -->
+<div class="screen" id="screen-desktop3">
+  <div class="demo-bg">
+    <div class="demo-label">Dashboard header — child switcher (3 children)</div>
+    <div style="display:flex; align-items:center; gap:16px; padding: 16px 20px; background:#faf8ff; border-radius:14px; border:1px solid #e0d8f0; margin-bottom:24px;">
+      <div style="font:700 1rem system-ui;color:#9b72ff;">WonderQuest</div>
+      <div style="margin-left:auto;display:flex;align-items:center;gap:12px;">
+        <div style="position:relative;">
+          <div class="switcher-trigger">
+            <div class="st-avatar">🦁</div>
+            <div><div class="st-name">Maya</div><div class="st-band">K–1 · Level 2</div></div>
+            <span class="st-caret">▾</span>
+          </div>
+          <div class="switcher-dropdown">
+            <div class="dropdown-header">Switch child view</div>
+            <div class="child-option selected">
+              <div class="co-avatar" style="background:#ede8ff;">🦁</div>
+              <div class="co-info"><div class="co-name">Maya</div><div class="co-band" style="color:#9b72ff;">K–1 Band · Level 2</div><div class="co-stars">⭐ 42 this week</div></div>
+              <span class="co-check">✓</span>
+            </div>
+            <div class="child-option">
+              <div class="co-avatar" style="background:#e8fff8;">🐸</div>
+              <div class="co-info"><div class="co-name">Leo</div><div class="co-band" style="color:#58e8c1;">G2–3 Band · Level 1</div><div class="co-stars">⭐ 34 this week</div></div>
+            </div>
+            <div class="child-option">
+              <div class="co-avatar" style="background:#fff8e8;">🦋</div>
+              <div class="co-info"><div class="co-name">Zara</div><div class="co-band" style="color:#ffd166;">Pre-K Band · Level 1</div><div class="co-stars">⭐ 18 this week</div></div>
+            </div>
+            <div class="dropdown-footer">
+              <div class="add-child-link">＋ Add another child</div>
+            </div>
+          </div>
+        </div>
+        <div style="font:400 0.78rem system-ui;color:#9080a0;">Sarah J.</div>
+      </div>
+    </div>
+    <div style="padding:14px 16px;background:#ede8ff;border-radius:10px;font:400 0.78rem/1.5 system-ui;color:#3a2070;">
+      ℹ️ With 3+ children, dropdown max-height is capped at ~320px with overflow-y: auto. "Add another child" always pinned at bottom.
+    </div>
+  </div>
+</div>
+
+<!-- MOBILE SHEET -->
+<div class="screen" id="screen-mobile">
+  <div class="mobile-demo">
+    <div class="phone">
+      <div class="status-bar"><span class="sb-time">9:41</span><div class="sb-icons"><span>●●●</span><span>WiFi</span><span>🔋</span></div></div>
+      <div class="phone-content">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;">
+          <div style="font:700 0.95rem system-ui;color:#9b72ff;">WonderQuest</div>
+          <div class="switcher-trigger" style="padding:6px 12px;">
+            <div class="st-avatar" style="width:28px;height:28px;font-size:0.85rem;">🦁</div>
+            <div><div style="font:700 0.82rem system-ui;color:#1a1240;">Maya</div></div>
+            <span class="st-caret">▾</span>
+          </div>
+        </div>
+      </div>
+      <!-- Scrim -->
+      <div class="scrim"></div>
+      <!-- Bottom Sheet -->
+      <div class="bottom-sheet">
+        <div class="drag-handle-m"></div>
+        <div class="sheet-title-m">Switch child view</div>
+        <div class="child-option-m selected">
+          <div class="co-avatar" style="background:#ede8ff;">🦁</div>
+          <div class="co-info">
+            <div class="co-name">Maya</div>
+            <div class="co-band" style="color:#9b72ff;">K–1 Band · Level 2 Star Explorer</div>
+            <div class="co-stars">⭐ 42 stars this week</div>
+          </div>
+          <span class="co-check">✓</span>
+        </div>
+        <div class="child-option-m">
+          <div class="co-avatar" style="background:#e8fff8;">🐸</div>
+          <div class="co-info">
+            <div class="co-name">Leo</div>
+            <div class="co-band" style="color:#58e8c1;">G2–3 Band · Level 1</div>
+            <div class="co-stars">⭐ 34 stars this week</div>
+          </div>
+        </div>
+        <div class="child-option-m">
+          <div class="co-avatar" style="background:#fff8e8;">🦋</div>
+          <div class="co-info">
+            <div class="co-name">Zara</div>
+            <div class="co-band" style="color:#ffd166;">Pre-K Band · Level 1</div>
+            <div class="co-stars">⭐ 18 stars this week</div>
+          </div>
+        </div>
+        <div class="sheet-footer-m">
+          <div class="add-child-link">＋ Add another child</div>
+        </div>
+      </div>
+      <div class="home-indicator-bar"><div class="home-bar"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div class="screen" id="screen-spec">
+  <div style="max-width:700px;margin:0 auto;">
+    <div class="spec-title">Parent Child Switcher — Spec</div>
+    <div class="spec-section">Behavior</div>
+    <table class="spec-table">
+      <thead><tr><th>Rule</th><th>Detail</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">Context switch</td><td class="spec-detail">Switching child reloads entire dashboard content for selected child. NOT a comparison view — one child at a time.</td></tr>
+        <tr><td class="spec-rule">Current child indicator</td><td class="spec-detail">Checkmark ✓ on current child row. Row has #f5f0ff background.</td></tr>
+        <tr><td class="spec-rule">Desktop trigger</td><td class="spec-detail">Button in header opens dropdown below. Closes on click-outside or Escape key.</td></tr>
+        <tr><td class="spec-rule">Mobile trigger</td><td class="spec-detail">Same trigger button opens bottom sheet with scrim. Drag handle present. Dismisses on drag down or tap scrim.</td></tr>
+        <tr><td class="spec-rule">Add child</td><td class="spec-detail">Always at bottom of list. Links to parent-link-child-flow-v3.html. Free plan shows upgrade prompt if already at 1 child.</td></tr>
+        <tr><td class="spec-rule">Dropdown max-height</td><td class="spec-detail">320px; overflow-y: auto if more than 4 children. Mobile sheet: no max-height, but "Add child" link pinned in footer.</td></tr>
+      </tbody>
+    </table>
+    <div class="spec-section">Each Child Row Shows</div>
+    <table class="spec-table">
+      <thead><tr><th>Element</th><th>Value</th></tr></thead>
+      <tbody>
+        <tr><td class="spec-rule">Avatar</td><td class="spec-detail">40px circle, emoji, band-tinted background</td></tr>
+        <tr><td class="spec-rule">Name</td><td class="spec-detail">Child first name, 700 weight</td></tr>
+        <tr><td class="spec-rule">Band + Level</td><td class="spec-detail">Band name + current level name, band accent color</td></tr>
+        <tr><td class="spec-rule">Stars this week</td><td class="spec-detail">⭐ N stars this week — gives parent quick context before switching</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelector(`[onclick="showTab('${tab}')"]`).classList.add('active');
+  document.getElementById(`screen-${tab}`).classList.add('active');
+}
+</script>
+</body>
+</html>

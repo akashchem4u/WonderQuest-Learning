@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parent Account Manager — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#9b72ff;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* ── Page shell ───────────────────────────────────────────────────── */
+.page{background:#f5f0e8;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.1)}
+.page-inner{display:flex;min-height:640px}
+.sidebar{width:240px;background:#fff;border-right:1px solid #ede9f8;padding:20px 0;flex-shrink:0}
+.sidebar-logo{font-size:16px;font-weight:900;color:#9b72ff;padding:0 20px 16px;border-bottom:1px solid #ede9f8;margin-bottom:12px}
+.sidebar-nav{padding:0 8px}
+.nav-item{padding:9px 12px;font-size:13px;font-weight:600;color:#888;cursor:pointer;display:flex;align-items:center;gap:8px;border-radius:8px}
+.nav-item.active{color:#9b72ff;background:#f8f4ff}
+.main{flex:1;padding:32px;overflow-y:auto}
+
+/* ── Card ─────────────────────────────────────────────────────────── */
+.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px}
+.card-h{font-size:15px;font-weight:800;color:#1a1440;margin-bottom:14px}
+
+/* ── Profile row ──────────────────────────────────────────────────── */
+.profile-row{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+.profile-avatar{width:64px;height:64px;border-radius:20px;background:linear-gradient(135deg,#9b72ff,#6040cc);display:flex;align-items:center;justify-content:center;font-size:28px;color:#fff;font-weight:900;flex-shrink:0}
+.profile-name{font-size:18px;font-weight:800;color:#1a1440}
+.profile-email{font-size:13px;color:#888;margin-top:3px}
+.profile-plan{display:inline-flex;align-items:center;gap:5px;background:#f0ebff;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;color:#7c3aed;margin-top:5px}
+.edit-link{font-size:12px;color:#9b72ff;font-weight:700;cursor:pointer;text-decoration:none;margin-top:6px;display:block}
+
+/* ── Info row ─────────────────────────────────────────────────────── */
+.info-row{display:flex;align-items:center;padding:11px 0;border-bottom:1px solid #f5f0ff}
+.info-row:last-child{border-bottom:none}
+.info-label{font-size:12px;font-weight:700;color:#aaa;text-transform:uppercase;letter-spacing:.07em;min-width:130px}
+.info-val{font-size:14px;font-weight:600;color:#1a1440;flex:1}
+.info-edit{font-size:12px;color:#9b72ff;font-weight:700;cursor:pointer;margin-left:auto}
+
+/* ── Plan card ────────────────────────────────────────────────────── */
+.plan-badge{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:20px;font-size:13px;font-weight:700}
+.plan-free{background:#f5f5f5;color:#555}
+.plan-family{background:#f0ebff;color:#7c3aed}
+
+.plan-feature-row{display:flex;align-items:flex-start;gap:8px;font-size:13px;color:#444;margin-bottom:8px}
+.check-icon{color:#22c55e;font-weight:900;margin-top:1px;flex-shrink:0}
+.cross-icon{color:#aaa;flex-shrink:0}
+
+.upgrade-btn{padding:13px 28px;background:#9b72ff;color:#fff;border:none;border-radius:12px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer;transition:background .15s}
+.upgrade-btn:hover{background:#8560e8}
+
+/* ── Danger zone ──────────────────────────────────────────────────── */
+.danger-zone{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:16px;border:1px solid #fee2e2}
+.danger-h{font-size:15px;font-weight:800;color:#dc2626;margin-bottom:14px}
+.danger-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #fee2e2}
+.danger-row:last-child{border-bottom:none;padding-bottom:0}
+.danger-label{font-size:13px;font-weight:600;color:#1a1440}
+.danger-sub{font-size:11px;color:#aaa;margin-top:2px}
+.danger-btn{padding:8px 16px;background:#fff0f0;color:#dc2626;border:1.5px solid #fca5a5;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui;flex-shrink:0}
+
+/* ── Linked devices ──────────────────────────────────────────────── */
+.device-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid #f5f0ff}
+.device-row:last-child{border-bottom:none;padding-bottom:0}
+.device-icon{width:36px;height:36px;border-radius:10px;background:#f5f0ff;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.device-name{font-size:13px;font-weight:700;color:#1a1440}
+.device-meta{font-size:11px;color:#aaa}
+.device-remove{font-size:12px;color:#dc2626;font-weight:700;cursor:pointer;margin-left:auto}
+.this-device{font-size:10px;background:#ebfff3;color:#15803d;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:6px}
+
+/* ── Spec ─────────────────────────────────────────────────────────── */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f8f6ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #ede9f8}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-green{background:#ebfff3;color:#15803d}
+.tag-red{background:#fff0f0;color:#dc2626}
+.tag-gray{background:#f0f0f0;color:#555}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — parent-account-manager-v2.html</strong><br>
+  Parent's account management page — accessible from Settings sidebar nav.<br>
+  Sections: Profile (name, email, password, role) | Subscription plan (Free vs Family) | Linked devices | Security (2FA, session sign-out) | Danger zone (delete account, export data).<br>
+  <strong>COPPA note:</strong> Parent account is the adult account — no COPPA restrictions on parent's own data. Child profiles are managed separately via parent-linked-child-sheet.<br>
+  <strong>Delete account:</strong> 2-step confirmation required. Copy must emphasise child progress is preserved for 90 days (data retention).<br>
+  <strong>Export data:</strong> GDPR/CCPA right to data portability — always available, no reason required.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('profile')">Profile &amp; Plan</button>
+  <button class="tab-btn" onclick="showTab('devices')">Devices &amp; Security</button>
+  <button class="tab-btn" onclick="showTab('danger')">Danger Zone</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Profile & Plan ─────────────────────────────────────────────── -->
+<div id="tab-profile" class="screen active">
+  <p class="section-title">Profile, contact details, and subscription plan</p>
+  <div class="page">
+    <div class="page-inner">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav">
+          <div class="nav-item">🏠 Family overview</div>
+          <div class="nav-item">📊 Weekly report</div>
+          <div class="nav-item">🏅 Badges</div>
+          <div class="nav-item">🔔 Notifications</div>
+          <div class="nav-item active">⚙️ Settings</div>
+        </div>
+      </div>
+      <div class="main">
+        <!-- Profile section -->
+        <div class="card">
+          <div class="card-h">👤 Your profile</div>
+          <div class="profile-row">
+            <div class="profile-avatar">S</div>
+            <div>
+              <div class="profile-name">Sarah Mitchell</div>
+              <div class="profile-email">sarah.mitchell@email.com</div>
+              <div class="profile-plan">👨‍👩‍👧 Family plan</div>
+              <a class="edit-link">Edit profile photo</a>
+            </div>
+          </div>
+
+          <div class="info-row">
+            <span class="info-label">Full name</span>
+            <span class="info-val">Sarah Mitchell</span>
+            <span class="info-edit">Edit</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Email</span>
+            <span class="info-val">sarah.mitchell@email.com</span>
+            <span class="info-edit">Change</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Password</span>
+            <span class="info-val">••••••••</span>
+            <span class="info-edit">Update</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Role</span>
+            <span class="info-val">Parent / Guardian</span>
+            <span class="info-edit">Change</span>
+          </div>
+          <div class="info-row">
+            <span class="info-label">Member since</span>
+            <span class="info-val">January 14, 2026</span>
+          </div>
+        </div>
+
+        <!-- Plan section -->
+        <div class="card">
+          <div class="card-h">💳 Subscription</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            <span class="plan-badge plan-family">👨‍👩‍👧 Family plan</span>
+            <span style="font-size:13px;color:#888">$7.99/month · Renews Apr 14, 2026</span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:16px">
+            <div class="plan-feature-row"><span class="check-icon">✓</span>Unlimited children</div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>Unlimited sessions/day</div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>Full weekly reports</div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>All skill detail views</div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>Home practice planner</div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>Priority support</div>
+          </div>
+
+          <div style="display:flex;gap:10px">
+            <button style="padding:10px 20px;border:1.5px solid #ede9f8;border-radius:10px;font-size:13px;font-weight:700;color:#555;cursor:pointer;background:#fff;font-family:system-ui">Manage billing</button>
+            <button style="padding:10px 20px;border:1.5px solid #fca5a5;border-radius:10px;font-size:13px;font-weight:700;color:#dc2626;cursor:pointer;background:#fff0f0;font-family:system-ui">Cancel plan</button>
+          </div>
+        </div>
+
+        <!-- Free plan variant (shown as comment context) -->
+        <div class="card" style="background:#fafafa;border:2px dashed #ede9f8">
+          <div style="font-size:11px;font-weight:700;color:#aaa;margin-bottom:10px;text-transform:uppercase">FREE PLAN VARIANT — upgrade prompt</div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+            <span class="plan-badge plan-free">🆓 Free plan</span>
+            <span style="font-size:13px;color:#888">1 child · 3 sessions/day</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:16px">
+            <div class="plan-feature-row"><span class="check-icon">✓</span>1 child</div>
+            <div class="plan-feature-row"><span class="cross-icon" style="color:#aaa">✗</span><span style="color:#aaa">2+ children</span></div>
+            <div class="plan-feature-row"><span class="check-icon">✓</span>3 sessions/day</div>
+            <div class="plan-feature-row"><span class="cross-icon" style="color:#aaa">✗</span><span style="color:#aaa">Unlimited sessions</span></div>
+          </div>
+          <button class="upgrade-btn">Upgrade to Family — $7.99/mo</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Devices & Security ──────────────────────────────────────────── -->
+<div id="tab-devices" class="screen">
+  <p class="section-title">Linked devices and security settings</p>
+  <div class="page">
+    <div class="page-inner">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav">
+          <div class="nav-item active">⚙️ Settings</div>
+        </div>
+      </div>
+      <div class="main">
+        <!-- Linked devices -->
+        <div class="card">
+          <div class="card-h">📱 Linked devices</div>
+          <div class="device-row">
+            <div class="device-icon">📱</div>
+            <div>
+              <div class="device-name">iPhone 15 Pro <span class="this-device">This device</span></div>
+              <div class="device-meta">iOS 17.4 · Last active: Today 3:40 PM</div>
+            </div>
+          </div>
+          <div class="device-row">
+            <div class="device-icon">💻</div>
+            <div>
+              <div class="device-name">MacBook Pro</div>
+              <div class="device-meta">Safari · Last active: Mon Mar 23 at 8:12am</div>
+            </div>
+            <span class="device-remove">Remove</span>
+          </div>
+          <div class="device-row">
+            <div class="device-icon">📱</div>
+            <div>
+              <div class="device-name">iPad (Maya's)</div>
+              <div class="device-meta">iPadOS 17.3 · Child device · Last session: Today</div>
+            </div>
+            <span class="device-remove">Remove</span>
+          </div>
+          <div style="margin-top:12px">
+            <button style="background:transparent;border:1.5px solid #ede9f8;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:700;color:#dc2626;cursor:pointer;font-family:system-ui">Sign out all other devices</button>
+          </div>
+        </div>
+
+        <!-- Security -->
+        <div class="card">
+          <div class="card-h">🔐 Security</div>
+          <div class="info-row">
+            <div>
+              <span class="info-label" style="font-size:13px;text-transform:none;letter-spacing:0;color:#1a1440;font-weight:600">Two-factor authentication</span>
+              <span style="display:block;font-size:11px;color:#aaa;margin-top:2px">Extra security when signing in</span>
+            </div>
+            <span style="background:#ebfff3;color:#15803d;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;margin-left:auto">Enabled ✓</span>
+          </div>
+          <div class="info-row">
+            <div>
+              <span class="info-label" style="font-size:13px;text-transform:none;letter-spacing:0;color:#1a1440;font-weight:600">Active sessions</span>
+              <span style="display:block;font-size:11px;color:#aaa;margin-top:2px">2 active sessions across devices</span>
+            </div>
+            <span class="info-edit">View all</span>
+          </div>
+          <div class="info-row" style="border-bottom:none">
+            <div>
+              <span class="info-label" style="font-size:13px;text-transform:none;letter-spacing:0;color:#1a1440;font-weight:600">Login history</span>
+              <span style="display:block;font-size:11px;color:#aaa;margin-top:2px">Last 10 sign-ins</span>
+            </div>
+            <span class="info-edit">View</span>
+          </div>
+        </div>
+
+        <!-- PIN for child profile -->
+        <div class="card">
+          <div class="card-h">🔢 Child profile PIN</div>
+          <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px">The PIN you enter when switching to Maya's profile in the app. This is separate from your account password.</div>
+          <div class="info-row">
+            <span class="info-val">••••</span>
+            <span class="info-edit">Change PIN</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Danger Zone ─────────────────────────────────────────────────── -->
+<div id="tab-danger" class="screen">
+  <p class="section-title">Danger zone — delete, export, and data requests</p>
+  <div class="page">
+    <div class="page-inner">
+      <div class="sidebar">
+        <div class="sidebar-logo">WonderQuest</div>
+        <div class="sidebar-nav">
+          <div class="nav-item active">⚙️ Settings</div>
+        </div>
+      </div>
+      <div class="main">
+        <!-- Export data -->
+        <div class="card">
+          <div class="card-h">📦 Your data</div>
+          <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px">You have the right to download or request deletion of all data associated with your account and linked children's profiles (GDPR/CCPA).</div>
+          <div class="danger-row" style="border-color:#f0ecf8">
+            <div>
+              <div class="danger-label">Export all data</div>
+              <div class="danger-sub">Download a ZIP of your account and Maya's learning data</div>
+            </div>
+            <button style="padding:8px 16px;background:#f5f0ff;color:#9b72ff;border:1.5px solid #ede9f8;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui">Request export</button>
+          </div>
+          <div class="danger-row" style="border-color:#f0ecf8;border-bottom:none">
+            <div>
+              <div class="danger-label">Data deletion request</div>
+              <div class="danger-sub">Request removal of all personal data (separate from account deletion)</div>
+            </div>
+            <button class="danger-btn">Request deletion</button>
+          </div>
+        </div>
+
+        <!-- Account deletion -->
+        <div class="danger-zone">
+          <div class="danger-h">⚠️ Danger zone</div>
+          <div class="danger-row">
+            <div>
+              <div class="danger-label">Deactivate account</div>
+              <div class="danger-sub">Pause your account — reactivate anytime. Maya's data preserved.</div>
+            </div>
+            <button class="danger-btn">Deactivate</button>
+          </div>
+          <div class="danger-row" style="border-bottom:none">
+            <div>
+              <div class="danger-label">Permanently delete account</div>
+              <div class="danger-sub">All data deleted after 90-day grace period. 2-step confirmation required.</div>
+            </div>
+            <button class="danger-btn">Delete account</button>
+          </div>
+        </div>
+
+        <!-- Delete confirmation example -->
+        <div style="background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:2px solid #fee2e2">
+          <div style="font-size:12px;font-weight:700;color:#aaa;text-transform:uppercase;margin-bottom:10px">Delete confirmation dialog (2-step)</div>
+          <div style="font-size:15px;font-weight:800;color:#dc2626;margin-bottom:8px">Delete your account?</div>
+          <div style="font-size:13px;color:#666;line-height:1.5;margin-bottom:14px">
+            Your account will be scheduled for deletion. Maya's learning progress will be preserved for <strong>90 days</strong> — you can reactivate within that time to restore everything.
+          </div>
+          <div style="background:#fff8f0;border-radius:10px;padding:12px 14px;font-size:12px;color:#92400e;margin-bottom:14px;line-height:1.5">
+            ⚠️ After 90 days, all data is permanently deleted and cannot be recovered.
+          </div>
+          <div style="margin-bottom:10px">
+            <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+              <input type="checkbox" style="margin-top:2px">
+              <span style="font-size:13px;color:#444">I understand my account will be deleted after 90 days</span>
+            </label>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button style="flex:1;padding:12px;background:#dc2626;color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer">Yes, delete my account</button>
+            <button style="flex:1;padding:12px;background:#f5f5f5;color:#555;border:none;border-radius:10px;font-size:14px;font-weight:700;font-family:system-ui;cursor:pointer">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> parent-account-manager-v2.html<br>
+      Route: /parent/settings/account<br>
+      Auth: requires active session. Sensitive actions (change email, delete) require password re-confirmation.
+    </div>
+    <h2 class="spec-h2">Page Sections</h2>
+    <table class="spec-table">
+      <tr><th>Section</th><th>Contents</th><th>Auth requirement</th></tr>
+      <tr><td>Profile</td><td>Name, email, password, role, member since</td><td>Standard session</td></tr>
+      <tr><td>Subscription</td><td>Current plan, features, billing, upgrade/cancel</td><td>Standard session</td></tr>
+      <tr><td>Linked devices</td><td>Device list, remove device, sign out all</td><td>Standard session</td></tr>
+      <tr><td>Security</td><td>2FA status, active sessions, login history</td><td>Standard session</td></tr>
+      <tr><td>Child profile PIN</td><td>View/change PIN for child profile switcher</td><td>Password re-confirmation</td></tr>
+      <tr><td>Data export</td><td>ZIP download request (GDPR/CCPA)</td><td>Standard session</td></tr>
+      <tr><td>Delete account</td><td>2-step confirmation, 90-day grace period</td><td>Password re-confirmation + checkbox</td></tr>
+    </table>
+    <h2 class="spec-h2">Account Deletion Flow</h2>
+    <p class="spec-p"><strong>Step 1:</strong> Click "Delete account" → confirmation dialog with 90-day data retention explanation.</p>
+    <p class="spec-p"><strong>Step 2:</strong> Checkbox ("I understand…") must be checked. Password re-entry required. Then destructive button becomes active.</p>
+    <p class="spec-p"><strong>After deletion:</strong> Account enters 90-day grace period. Email sent to parent with reactivation link. After 90 days, all data purged (parent + child). Child progress data follows same 90-day window.</p>
+    <h2 class="spec-h2">Plan Variants</h2>
+    <table class="spec-table">
+      <tr><th>Plan</th><th>Subscription card shows</th></tr>
+      <tr><td>Free</td><td>Feature comparison (with greyed-out Family features) + upgrade CTA</td></tr>
+      <tr><td>Family (monthly)</td><td>Current plan + renewal date + manage billing + cancel option</td></tr>
+      <tr><td>Family (annual)</td><td>Same + "N months remaining on annual plan"</td></tr>
+    </table>
+    <h2 class="spec-h2">COPPA</h2>
+    <p class="spec-p">Parent's own profile data has standard adult privacy rights (GDPR/CCPA). Child profiles are covered by COPPA — children's data export is included in the parent's export ZIP and follows the same 90-day deletion window.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

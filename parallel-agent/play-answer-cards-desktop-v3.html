@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-answer-cards-desktop-v3.html
+  =====================================================
+  Reusable answer card component library — desktop/tablet sizes.
+  Five tabs: Default Grid / States Gallery / Band Variants / Multi-choice Sizes / Spec
+  - Shows all answer card states: default / hover / selected-correct / selected-wrong / disabled
+  - 2×2 grid layout (standard), 1×4 list layout, 1×2 wide layout
+  - Band color variants: Pre-K gold / K-1 violet / G2-3 mint / G4-5 coral
+  - Size variants: standard (for 4 choices), large (for 2 choices), compact (for word-choice)
+  - Correct: green border + bg + checkmark badge, text remains readable
+  - Wrong: red border + bg + shake animation applied via class
+  - Disabled/dimmed: 0.35 opacity, pointer-events none
+  - No hover state on touch targets (CSS hover not available on touch)
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · Answer Cards Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e; --card: #1a1440; --card2: #221960;
+    --violet: #9b72ff; --gold: #ffd166; --mint: #58e8c1; --coral: #ff7b6b;
+    --text: #f0eaff; --muted: #8b7fb8;
+    --correct: #50e890; --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b; --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif; background: #0a0820; color: var(--text);
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 24px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 28px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Layout wrappers */
+  .demo-wrap { max-width: 880px; margin: 0 auto; }
+  .section-label {
+    font-size: 0.72rem; font-weight: 900; color: var(--muted);
+    text-transform: uppercase; letter-spacing: 0.07em;
+    margin: 24px 0 10px; padding-bottom: 6px;
+    border-bottom: 1px solid #2a2050;
+  }
+  .section-label:first-child { margin-top: 0; }
+
+  /* ============ ANSWER CARD COMPONENT ============ */
+
+  /* Standard 2×2 grid */
+  .ac-grid-2x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 600px; }
+  /* 1×4 list */
+  .ac-list { display: flex; flex-direction: column; gap: 10px; max-width: 600px; }
+  /* 1×2 wide */
+  .ac-grid-1x2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; max-width: 600px; }
+  /* 4-up row */
+  .ac-row-4 { display: flex; gap: 10px; max-width: 600px; }
+
+  /* Base answer card */
+  .ac {
+    background: var(--card2);
+    border: 3px solid #3a3060;
+    border-radius: 16px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 16px 12px; gap: 8px;
+    transition: all 0.15s;
+    position: relative; overflow: hidden;
+  }
+
+  /* Size variants */
+  .ac-standard { min-height: 100px; }
+  .ac-large { min-height: 120px; }
+  .ac-compact { padding: 12px 10px; min-height: 72px; }
+  .ac-wide { padding: 18px 20px; flex-direction: row; gap: 14px; justify-content: flex-start; }
+  .ac-letter { width: 80px; height: 80px; flex: none; }
+  .ac-numeral { width: 70px; height: 70px; flex: none; font-size: 2rem; }
+
+  /* Content inside card */
+  .ac-emoji { font-size: 2rem; }
+  .ac-image { font-size: 2.8rem; }
+  .ac-text { font-size: 0.88rem; font-weight: 700; color: var(--text); text-align: center; line-height: 1.4; }
+  .ac-label { font-size: 0.72rem; font-weight: 900; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .ac-letter-char { font-family: 'Nunito', sans-serif; font-size: 2.5rem; font-weight: 900; color: var(--text); }
+  .ac-num-char { font-family: 'Nunito', sans-serif; font-size: 2rem; font-weight: 900; color: var(--text); }
+
+  /* === States === */
+  .ac:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .ac:hover .ac-text, .ac:hover .ac-letter-char, .ac:hover .ac-num-char { color: var(--violet); }
+
+  /* Correct */
+  .ac.correct {
+    background: var(--correct-bg); border-color: var(--correct);
+    cursor: default; transform: none;
+  }
+  .ac.correct .ac-text, .ac.correct .ac-letter-char, .ac.correct .ac-num-char,
+  .ac.correct .ac-label { color: var(--correct); }
+  .ac.correct::after {
+    content: '✓'; position: absolute; top: 6px; right: 8px;
+    font-size: 0.85rem; font-weight: 900; color: var(--correct);
+  }
+
+  /* Wrong */
+  .ac.wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    cursor: default; animation: ac-shake 0.5s ease-out;
+  }
+  .ac.wrong .ac-text, .ac.wrong .ac-letter-char, .ac.wrong .ac-num-char { color: var(--wrong); }
+
+  /* Dimmed */
+  .ac.dimmed { opacity: 0.35; pointer-events: none; cursor: default; }
+
+  /* Active (mid-sequence highlight) */
+  .ac.active-choice { border-color: var(--violet); background: rgba(155,114,255,0.1); }
+
+  @keyframes ac-shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  /* Band-specific themes */
+  /* Pre-K Gold */
+  .band-prek .ac { border-color: #3a2a00; }
+  .band-prek .ac:hover { border-color: var(--gold); }
+  .band-prek .ac:hover .ac-text { color: var(--gold); }
+  .band-prek .ac.correct { background: var(--correct-bg); border-color: var(--correct); }
+  /* K-1 Violet (default) */
+  /* G2-3 Mint */
+  .band-g23 .ac { border-color: #1a3030; }
+  .band-g23 .ac:hover { border-color: var(--mint); }
+  .band-g23 .ac:hover .ac-text { color: var(--mint); }
+  /* G4-5 Coral */
+  .band-g45 .ac { border-color: #2a1818; }
+  .band-g45 .ac:hover { border-color: var(--coral); }
+  .band-g45 .ac:hover .ac-text { color: var(--coral); }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 880px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200; font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .spec-wrap table { width: 100%; border-collapse: collapse; margin: 8px 0; }
+  .spec-wrap th, .spec-wrap td { border: 1px solid #d0b040; padding: 6px 10px; text-align: left; font-size: 0.8rem; }
+  .spec-wrap th { background: #f8e880; font-weight: 700; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-gold { background: #ffd166; color: #1a0c00; }
+  .tok-mint { background: #58e8c1; color: #0a2a22; }
+  .tok-coral { background: #ff7b6b; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: white; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🃏 Play · Answer Cards Desktop</h1>
+<p class="subtitle">v3 · Component library · All states, sizes, and band variants</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('default')">Default Grid</button>
+  <button class="tab-btn" onclick="showTab('states')">States Gallery</button>
+  <button class="tab-btn" onclick="showTab('bands')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('sizes')">Sizes</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== DEFAULT GRID ===== -->
+<div id="tab-default" class="screen active">
+  <div class="demo-wrap">
+    <div class="section-label">Standard 2×2 Picture Grid (Pre-K / K-1)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard">
+        <span class="ac-image">🐱</span>
+        <span class="ac-text">cat</span>
+      </div>
+      <div class="ac ac-standard">
+        <span class="ac-image">🐶</span>
+        <span class="ac-text">dog</span>
+      </div>
+      <div class="ac ac-standard">
+        <span class="ac-image">☀️</span>
+        <span class="ac-text">sun</span>
+      </div>
+      <div class="ac ac-standard">
+        <span class="ac-image">🎩</span>
+        <span class="ac-text">hat</span>
+      </div>
+    </div>
+
+    <div class="section-label">Standard 2×2 Text-Only Grid (K-1 / G2-3)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard"><span class="ac-text">She went to the park.</span></div>
+      <div class="ac ac-standard"><span class="ac-text">She stayed inside to read.</span></div>
+      <div class="ac ac-standard"><span class="ac-text">She called her friend.</span></div>
+      <div class="ac ac-standard"><span class="ac-text">She went back to sleep.</span></div>
+    </div>
+
+    <div class="section-label">Letter Choices (4-up row, K-1 Phonics)</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter"><span class="ac-letter-char">B</span><span class="ac-label">buh</span></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">S</span><span class="ac-label">sss</span></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">D</span><span class="ac-label">duh</span></div>
+      <div class="ac ac-letter"><span class="ac-letter-char">R</span><span class="ac-label">rrr</span></div>
+    </div>
+
+    <div class="section-label">Number Choices (4-up row, K-1 Math)</div>
+    <div class="ac-row-4">
+      <div class="ac ac-numeral"><span class="ac-num-char">4</span></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">5</span></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">6</span></div>
+      <div class="ac ac-numeral"><span class="ac-num-char">7</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== STATES GALLERY ===== -->
+<div id="tab-states" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">Default (idle) — hover border + lift</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🐱</span><span class="ac-text">cat</span></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span></div>
+    </div>
+
+    <div class="section-label">Correct — green border + bg + ✓ badge</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard dimmed"><span class="ac-image">🐱</span><span class="ac-text">cat</span></div>
+      <div class="ac ac-standard correct"><span class="ac-image">🐶</span><span class="ac-text">dog</span></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">☀️</span><span class="ac-text">sun</span></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">🎩</span><span class="ac-text">hat</span></div>
+    </div>
+
+    <div class="section-label">Wrong — red border + bg (others remain active for retry)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard wrong"><span class="ac-image">🐱</span><span class="ac-text">cat</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span></div>
+    </div>
+
+    <div class="section-label">Dimmed — 35% opacity, pointer-events none</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard dimmed"><span class="ac-image">🐱</span><span class="ac-text">cat</span></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">🐶</span><span class="ac-text">dog</span></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">☀️</span><span class="ac-text">sun</span></div>
+      <div class="ac ac-standard dimmed"><span class="ac-image">🎩</span><span class="ac-text">hat</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BAND VARIANTS ===== -->
+<div id="tab-bands" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">Pre-K Gold Band · Idle</div>
+    <div class="ac-grid-2x2 band-prek">
+      <div class="ac ac-standard"><span class="ac-image">🔴</span><span class="ac-text" style="color:#ffd166;">circle</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🔷</span><span class="ac-text">square</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🔺</span><span class="ac-text">triangle</span></div>
+      <div class="ac ac-standard"><span class="ac-image">⭐</span><span class="ac-text">star</span></div>
+    </div>
+
+    <div class="section-label">K-1 Violet Band · Idle (default)</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard"><span class="ac-letter-char">B</span><span class="ac-label">buh</span></div>
+      <div class="ac ac-standard"><span class="ac-letter-char">S</span><span class="ac-label">sss</span></div>
+      <div class="ac ac-standard"><span class="ac-letter-char">D</span><span class="ac-label">duh</span></div>
+      <div class="ac ac-standard"><span class="ac-letter-char">R</span><span class="ac-label">rrr</span></div>
+    </div>
+
+    <div class="section-label">G2-3 Mint Band · Idle</div>
+    <div class="ac-list band-g23">
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She went to the park with her dog.</span></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She stayed inside and read about dragons.</span></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She called a friend on the phone.</span></div>
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She went back to sleep.</span></div>
+    </div>
+
+    <div class="section-label">G4-5 Coral Band · Idle + Correct + Wrong mix</div>
+    <div class="ac-row-4 band-g45">
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char" style="color:#ff7b6b;">9</span></div>
+      <div class="ac ac-numeral correct"><span class="ac-num-char">12</span></div>
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char">16</span></div>
+      <div class="ac ac-numeral wrong"><span class="ac-num-char">15</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SIZES ===== -->
+<div id="tab-sizes" class="screen">
+  <div class="demo-wrap">
+    <div class="section-label">ac-standard (100px min-h) — 4 choices, 2×2</div>
+    <div class="ac-grid-2x2">
+      <div class="ac ac-standard"><span class="ac-image">🐶</span><span class="ac-text">dog</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🐱</span><span class="ac-text">cat</span></div>
+      <div class="ac ac-standard"><span class="ac-image">☀️</span><span class="ac-text">sun</span></div>
+      <div class="ac ac-standard"><span class="ac-image">🎩</span><span class="ac-text">hat</span></div>
+    </div>
+
+    <div class="section-label">ac-large (120px min-h) — 2 choices, wide</div>
+    <div class="ac-grid-1x2">
+      <div class="ac ac-large"><span class="ac-image">🌙</span><span class="ac-text">night</span></div>
+      <div class="ac ac-large correct"><span class="ac-image">☀️</span><span class="ac-text">day</span></div>
+    </div>
+
+    <div class="section-label">ac-compact (72px min-h) — full-sentence choices list</div>
+    <div class="ac-list">
+      <div class="ac ac-compact ac-wide"><span class="ac-text">She was excited and couldn't wait to tell her parents.</span></div>
+      <div class="ac ac-compact ac-wide correct"><span class="ac-text">She was upset or disappointed about the results.</span></div>
+      <div class="ac ac-compact ac-wide dimmed"><span class="ac-text">She was bored and wanted to go home.</span></div>
+      <div class="ac ac-compact ac-wide dimmed"><span class="ac-text">She was confused about what the results meant.</span></div>
+    </div>
+
+    <div class="section-label">ac-letter (80px square) — phonics</div>
+    <div class="ac-row-4">
+      <div class="ac ac-letter correct"><span class="ac-letter-char">B</span></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">S</span></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">D</span></div>
+      <div class="ac ac-letter dimmed"><span class="ac-letter-char">R</span></div>
+    </div>
+
+    <div class="section-label">ac-numeral (70px square) — math</div>
+    <div class="ac-row-4">
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char">4</span></div>
+      <div class="ac ac-numeral correct"><span class="ac-num-char">5</span></div>
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char">6</span></div>
+      <div class="ac ac-numeral dimmed"><span class="ac-num-char">7</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-answer-cards-desktop-v3 · Engineering Spec</h2>
+
+    <h3>Component Overview</h3>
+    <ul>
+      <li>Shared answer card component used across all play scenes — desktop and tablet sizes</li>
+      <li>Base class: <code>.ac</code> — applies background, border, border-radius, flex layout, transition</li>
+      <li>Size modifier class applied per use case (see table below)</li>
+      <li>State class applied via JS when answer is submitted</li>
+    </ul>
+
+    <h3>Size Classes</h3>
+    <table>
+      <tr><th>Class</th><th>Min Height</th><th>Use Case</th></tr>
+      <tr><td><code>.ac-standard</code></td><td>100px</td><td>Standard 4-choice 2×2 grid</td></tr>
+      <tr><td><code>.ac-large</code></td><td>120px</td><td>2-choice layout (bigger target)</td></tr>
+      <tr><td><code>.ac-compact</code></td><td>72px</td><td>Full-sentence answer list (reading)</td></tr>
+      <tr><td><code>.ac-wide</code></td><td>auto</td><td>Full-width row, flex-direction: row — text aligned left</td></tr>
+      <tr><td><code>.ac-letter</code></td><td>80×80px</td><td>Single letter + phoneme label (phonics)</td></tr>
+      <tr><td><code>.ac-numeral</code></td><td>70×70px</td><td>Single number answer (math)</td></tr>
+    </table>
+
+    <h3>State Classes (JS-applied)</h3>
+    <table>
+      <tr><th>Class</th><th>Visual</th><th>Behavior</th></tr>
+      <tr><td><code>.correct</code></td><td>Green border + bg + ✓ badge</td><td>cursor: default, no hover lift</td></tr>
+      <tr><td><code>.wrong</code></td><td>Red border + bg + shake animation</td><td>shake once, cursor: default; others remain active</td></tr>
+      <tr><td><code>.dimmed</code></td><td>35% opacity</td><td>pointer-events: none — shown after correct answer</td></tr>
+      <tr><td><code>.active-choice</code></td><td>Violet border + tint</td><td>For multi-select or previewing sequences</td></tr>
+    </table>
+
+    <h3>Band Accent Classes</h3>
+    <ul>
+      <li><code>.band-prek</code> on parent — hover border color → gold (#ffd166)</li>
+      <li><code>.band-k1</code> (default, no class needed) — hover border → violet (#9b72ff)</li>
+      <li><code>.band-g23</code> on parent — hover border → mint (#58e8c1)</li>
+      <li><code>.band-g45</code> on parent — hover border → coral (#ff7b6b)</li>
+    </ul>
+
+    <h3>Correct State Checkmark Badge</h3>
+    <ul>
+      <li>CSS <code>::after</code> pseudo-element — no extra DOM needed</li>
+      <li>Content: "✓" at top-right corner (position absolute)</li>
+      <li>Color: var(--correct) = <code>#50e890</code></li>
+    </ul>
+
+    <h3>Wrong + Shake Animation</h3>
+    <ul>
+      <li>Class <code>.wrong</code> applies <code>ac-shake</code> keyframe (translateX ±8px, 0.5s, ease-out)</li>
+      <li>After animation completes: card stays red — not reset to neutral (keeps history visible)</li>
+      <li>Other cards remain interactive — child retries from remaining choices</li>
+    </ul>
+
+    <h3>Layout Patterns</h3>
+    <ul>
+      <li>2×2 grid: <code>display: grid; grid-template-columns: 1fr 1fr; gap: 12px;</code></li>
+      <li>4-up row: <code>display: flex; gap: 10px;</code> with <code>.ac-letter</code> or <code>.ac-numeral</code></li>
+      <li>Full-width list: <code>display: flex; flex-direction: column; gap: 10px;</code> with <code>.ac-wide</code></li>
+      <li>1×2 wide: <code>display: grid; grid-template-columns: 1fr 1fr; gap: 14px;</code> with <code>.ac-large</code></li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

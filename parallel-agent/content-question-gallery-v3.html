@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Content Question Gallery — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:1200px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:1200px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1200px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Shell */
+.shell{background:#0f1118;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.06)}
+.shell-hdr{background:#080c12;padding:0 24px;height:52px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)}
+.sh-title{font-size:14px;font-weight:800;color:#f0f6ff}
+.sh-right{display:flex;gap:8px;align-items:center}
+.sh-btn{font-size:11px;font-weight:700;padding:5px 14px;border-radius:6px;border:none;cursor:pointer;font-family:system-ui;background:rgba(255,255,255,.07);color:#f0f6ff}
+.sh-view-toggle{display:flex;gap:2px;background:rgba(255,255,255,.06);border-radius:6px;padding:2px}
+.svt-btn{padding:4px 10px;border-radius:4px;font-size:10px;font-weight:700;cursor:pointer;border:none;font-family:system-ui;color:rgba(255,255,255,.4)}
+.svt-btn.active{background:#161c26;color:#f0f6ff}
+
+/* Filter bar */
+.filter-bar{background:#080c12;padding:10px 24px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.fb-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-right:2px}
+.fb-chip{padding:4px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:none;font-family:system-ui}
+.fc-a{background:rgba(255,255,255,.12);color:#f0f6ff}
+.fc-i{background:rgba(255,255,255,.04);color:rgba(255,255,255,.3)}
+.fb-sep{width:1px;height:16px;background:rgba(255,255,255,.07);margin:0 2px}
+.fb-sort{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:6px;padding:4px 10px;font-size:11px;color:rgba(255,255,255,.5);font-family:system-ui;cursor:pointer;margin-left:auto}
+
+/* Gallery grid */
+.gallery-body{padding:20px 24px}
+.gallery-section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.gsh-text{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.3)}
+.gsh-count{font-size:10px;color:rgba(255,255,255,.2)}
+
+/* Question card grid */
+.q-gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px}
+
+/* Individual question card */
+.qg-card{background:#161c26;border-radius:10px;padding:0;border:1px solid rgba(255,255,255,.06);overflow:hidden;cursor:pointer;transition:border-color .15s;display:flex;flex-direction:column}
+.qg-card:hover{border-color:rgba(255,255,255,.15)}
+.qg-card.flagged{border-color:rgba(248,81,73,.25)}
+.qg-card.review{border-color:rgba(245,158,11,.2)}
+.qg-card.selected{border-color:#50e890;background:rgba(80,232,144,.03)}
+
+/* Card image/visual area */
+.qgc-visual{height:80px;display:flex;align-items:center;justify-content:center;background:#1a2030;position:relative;flex-shrink:0}
+.qgcv-img{font-size:28px}
+.qgcv-type{position:absolute;top:6px;left:6px;font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;background:rgba(0,0,0,.5);color:rgba(255,255,255,.6);backdrop-filter:blur(4px)}
+.qgcv-status{position:absolute;top:6px;right:6px;font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px}
+.qs-live{background:rgba(80,232,144,.2);color:#50e890}
+.qs-review{background:rgba(245,158,11,.2);color:#f59e0b}
+.qs-blocked{background:rgba(248,81,73,.2);color:#f85149}
+
+/* Card body */
+.qgc-body{padding:10px 12px;flex:1;display:flex;flex-direction:column;gap:4px}
+.qgcb-id{font-size:9px;font-weight:700;color:rgba(255,255,255,.25)}
+.qgcb-text{font-size:11px;color:#f0f6ff;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;flex:1}
+.qgcb-meta{display:flex;gap:5px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.qgcb-band{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.qb-p0{background:rgba(255,209,102,.1);color:#ffd166}
+.qb-p1{background:rgba(155,114,255,.1);color:#9b72ff}
+.qb-p2{background:rgba(88,232,193,.08);color:#58e8c1}
+.qb-p3{background:rgba(255,123,107,.1);color:#ff7b6b}
+.qgcb-sessions{font-size:9px;color:rgba(255,255,255,.25)}
+
+/* Flag indicator on card */
+.qgc-flag-bar{height:3px;background:#f85149;flex-shrink:0}
+.qgc-review-bar{height:3px;background:#f59e0b;flex-shrink:0}
+
+/* Stats mini row */
+.qgc-stats{display:flex;gap:0;border-top:1px solid rgba(255,255,255,.04);padding:6px 12px}
+.qgcs-cell{flex:1;text-align:center}
+.qgcsc-val{font-size:10px;font-weight:700;color:#f0f6ff;line-height:1}
+.qgcsc-lbl{font-size:7px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.25);margin-top:1px}
+
+/* Selected card expanded view */
+.qg-selected-detail{background:#0f1118;border:1px solid rgba(80,232,144,.2);border-radius:10px;padding:16px 20px;margin-bottom:24px;display:grid;grid-template-columns:1fr 280px;gap:16px}
+.qgsd-left{}
+.qgsd-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.25);margin-bottom:6px}
+.qgsd-question{font-size:14px;font-weight:700;color:#f0f6ff;line-height:1.4;margin-bottom:10px}
+.qgsd-answers{display:flex;flex-direction:column;gap:4px}
+.qgsda{display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:6px;background:#161c26;border:1px solid rgba(255,255,255,.05)}
+.qgsda.correct{border-color:rgba(80,232,144,.25);background:rgba(80,232,144,.04)}
+.qgsda.wrong{border-color:rgba(248,81,73,.25);background:rgba(248,81,73,.04)}
+.qgsdal{width:18px;height:18px;border-radius:4px;background:rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:rgba(255,255,255,.5);flex-shrink:0}
+.qgsda.correct .qgsdal{background:rgba(80,232,144,.2);color:#50e890}
+.qgsda.wrong .qgsdal{background:rgba(248,81,73,.2);color:#f85149}
+.qgsdal-text{font-size:11px;color:#f0f6ff;flex:1}
+.qgsda-tag{font-size:8px;font-weight:700;padding:1px 5px;border-radius:3px}
+.t-correct{background:rgba(80,232,144,.15);color:#50e890}
+.t-wrong{background:rgba(248,81,73,.15);color:#f85149}
+.qgsd-right{}
+.qgsd-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
+.qgsd-stat{background:#161c26;border-radius:7px;padding:8px 10px;border:1px solid rgba(255,255,255,.04)}
+.qgsd-stat-val{font-size:14px;font-weight:900;color:#f0f6ff;line-height:1}
+.qgsd-stat-lbl{font-size:8px;text-transform:uppercase;letter-spacing:.05em;color:rgba(255,255,255,.25);margin-top:3px}
+.qgsd-actions{display:flex;flex-direction:column;gap:6px}
+.qgsda-btn{padding:8px 12px;border-radius:7px;border:none;font-size:11px;font-weight:700;font-family:system-ui;cursor:pointer;text-align:left}
+.qgsdb-edit{background:rgba(80,232,144,.12);color:#50e890}
+.qgsdb-flag{background:rgba(245,158,11,.1);color:#f59e0b}
+.qgsdb-block{background:rgba(248,81,73,.1);color:#f85149}
+.qgsdb-dismiss{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+
+/* List view (alternative) */
+.list-view-table{width:100%;border-collapse:collapse}
+.lvt-hdr td{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.2);padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+.lvt-row td{padding:9px 12px;font-size:11px;color:rgba(255,255,255,.7);border-bottom:1px solid rgba(255,255,255,.04)}
+.lvt-row:hover td{background:rgba(255,255,255,.02)}
+.lvt-row.flagged td:first-child{border-left:2px solid #f85149}
+.lvt-row.review td:first-child{border-left:2px solid #f59e0b}
+.lv-q-text{color:#f0f6ff;font-weight:600;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;max-width:320px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:1200px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — content-question-gallery-v3.html</strong><br>
+  Visual card gallery of all questions, designed for bulk review and curriculum audits. Card-based grid with answer preview on selection.<br>
+  <strong>Purpose:</strong> Used during curriculum review sprints to quickly scan all questions in a skill or subject. Visual scanning is faster than the list browser for quality checks.<br>
+  <strong>View toggle:</strong> Gallery (4-col grid) ↔ List (table). Same filter/sort options in both views.<br>
+  <strong>Card content:</strong> Question type badge · Status badge · Illustration placeholder (if asset) · Question text (2-line clamp) · Band tag · Impression count · Skip rate / correct rate mini-stats.<br>
+  <strong>Selected card:</strong> Expands an inline detail panel below the grid row (not a separate pane). Shows full answer options, stats, quick actions.<br>
+  <strong>Flag indicator:</strong> Red top bar on blocked cards. Amber top bar on under-review cards.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('gallery')">Gallery View</button>
+  <button class="tab-btn" onclick="showTab('list')">List View</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Gallery ───────────────────────────────────────────── -->
+<div id="tab-gallery" class="screen active">
+  <p class="section-title">Question gallery — Maths / Fractions (skill SK-0284)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">🎨 Question Gallery — Fractions (SK-0284 · 8 questions)</div>
+      <div class="sh-right">
+        <div class="sh-view-toggle">
+          <button class="svt-btn active">⊞ Gallery</button>
+          <button class="svt-btn">☰ List</button>
+        </div>
+        <button class="sh-btn">↓ Export</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="fb-label">Status</div>
+      <button class="fb-chip fc-a">All (8)</button>
+      <button class="fb-chip fc-i">Live (5)</button>
+      <button class="fb-chip fc-i">Blocked (3)</button>
+      <div class="fb-sep"></div>
+      <div class="fb-label">Band</div>
+      <button class="fb-chip fc-a" style="color:#58e8c1">P2 G2–3</button>
+      <div class="fb-sep"></div>
+      <div class="fb-label">Type</div>
+      <button class="fb-chip fc-a">All</button>
+      <button class="fb-chip fc-i">MCQ</button>
+      <button class="fb-chip fc-i">True/False</button>
+      <select class="fb-sort">
+        <option>Sort: Impressions ↓</option>
+        <option>Sort: Error reports ↓</option>
+        <option>Sort: Skip rate ↓</option>
+        <option>Sort: QID ↑</option>
+      </select>
+    </div>
+    <div class="gallery-body">
+
+      <!-- Expanded detail for selected card (QID-3280) -->
+      <div class="qg-selected-detail">
+        <div class="qgsd-left">
+          <div class="qgsd-label">Selected: QID-3280 · Fractions: Mixed Numbers · Blocked</div>
+          <div class="qgsd-question">Which fraction is equivalent to ¾? Select all that apply.</div>
+          <div class="qgsd-answers">
+            <div class="qgsda correct"><div class="qgsdal">A</div><div class="qgsdal-text">6/8</div><span class="qgsda-tag t-correct">✓ Correct</span></div>
+            <div class="qgsda wrong"><div class="qgsdal">B</div><div class="qgsdal-text">9/16</div><span class="qgsda-tag t-wrong">⚠ Wrong — marked correct</span></div>
+            <div class="qgsda correct"><div class="qgsdal">C</div><div class="qgsdal-text">12/16</div><span class="qgsda-tag t-correct">✓ Correct</span></div>
+            <div class="qgsda"><div class="qgsdal">D</div><div class="qgsdal-text">3/5</div></div>
+          </div>
+        </div>
+        <div class="qgsd-right">
+          <div class="qgsd-stat-grid">
+            <div class="qgsd-stat"><div class="qgsd-stat-val">4,218</div><div class="qgsd-stat-lbl">Impressions</div></div>
+            <div class="qgsd-stat"><div class="qgsd-stat-val" style="color:#f59e0b">38%</div><div class="qgsd-stat-lbl">Correct Rate</div></div>
+            <div class="qgsd-stat"><div class="qgsd-stat-val">14%</div><div class="qgsd-stat-lbl">Skip Rate</div></div>
+            <div class="qgsd-stat"><div class="qgsd-stat-val" style="color:#f85149">8</div><div class="qgsd-stat-lbl">Reports</div></div>
+          </div>
+          <div class="qgsd-actions">
+            <button class="qgsda-btn qgsdb-edit">✏️ Edit Answer Key</button>
+            <button class="qgsda-btn qgsdb-flag">⚑ Add Flag Note</button>
+            <button class="qgsda-btn qgsdb-dismiss">✓ Dismiss Report</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gallery grid -->
+      <div class="gallery-section-hdr">
+        <div class="gsh-text">All 8 Questions — SK-0284</div>
+        <div class="gsh-count">3 blocked · 5 live</div>
+      </div>
+      <div class="q-gallery-grid">
+
+        <!-- Blocked card (selected) -->
+        <div class="qg-card selected flagged">
+          <div class="qgc-flag-bar"></div>
+          <div class="qgc-visual">
+            <div class="qgcv-img">½</div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3280</div>
+            <div class="qgcb-text">Which fraction is equivalent to ¾? Select all that apply.</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">4,218 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f59e0b">38%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">14%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f85149">8</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Blocked card -->
+        <div class="qg-card flagged">
+          <div class="qgc-flag-bar"></div>
+          <div class="qgc-visual">
+            <div class="qgcv-img">⅔</div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3285</div>
+            <div class="qgcb-text">What is ⅔ + ⅙?</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">3,890 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f59e0b">41%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">12%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f85149">5</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Blocked card (asset 404) -->
+        <div class="qg-card flagged">
+          <div class="qgc-flag-bar"></div>
+          <div class="qgc-visual" style="background:#1a1428">
+            <div class="qgcv-img" style="font-size:22px">🖼️<span style="position:absolute;bottom:8px;right:8px;font-size:10px;background:rgba(248,81,73,.3);color:#f85149;padding:2px 4px;border-radius:3px;font-weight:800">404</span></div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-blocked">Blocked</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3291</div>
+            <div class="qgcb-text">Which diagram shows ⅗ shaded?</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">2,104 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f85149">—</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f85149">—</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f85149">404</div><div class="qgcsc-lbl">Asset</div></div>
+          </div>
+        </div>
+
+        <!-- Live card (high performing) -->
+        <div class="qg-card">
+          <div class="qgc-visual">
+            <div class="qgcv-img">⅓</div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-live">Live</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3271</div>
+            <div class="qgcb-text">What fraction of the circle is shaded? Circle divided into 4 equal parts, 1 shaded.</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">6,210 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#50e890">89%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">4%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">0</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Live card -->
+        <div class="qg-card">
+          <div class="qgc-visual">
+            <div class="qgcv-img">¾</div>
+            <span class="qgcv-type">True/False</span>
+            <span class="qgcv-status qs-live">Live</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3274</div>
+            <div class="qgcb-text">½ is greater than ¼. True or False?</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">5,480 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#50e890">92%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">3%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">0</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Live card (moderate performance) -->
+        <div class="qg-card">
+          <div class="qgc-visual">
+            <div class="qgcv-img">📊</div>
+            <span class="qgcv-type">Sort</span>
+            <span class="qgcv-status qs-live">Live</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3278</div>
+            <div class="qgcb-text">Order these fractions from smallest to largest: ⅓, ¾, ½, ¼</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">3,920 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#f59e0b">68%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">18%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">0</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Live card -->
+        <div class="qg-card">
+          <div class="qgc-visual">
+            <div class="qgcv-img">🔤</div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-live">Live</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3282</div>
+            <div class="qgcb-text">A pizza is cut into 8 equal slices. You eat 3. What fraction did you eat?</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">4,100 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#50e890">84%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">7%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">0</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+        <!-- Live card -->
+        <div class="qg-card">
+          <div class="qgc-visual">
+            <div class="qgcv-img">🍰</div>
+            <span class="qgcv-type">MCQ</span>
+            <span class="qgcv-status qs-live">Live</span>
+          </div>
+          <div class="qgc-body">
+            <div class="qgcb-id">QID-3287</div>
+            <div class="qgcb-text">Which is bigger: ⅕ or ¼?</div>
+            <div class="qgcb-meta"><span class="qgcb-band qb-p2">P2</span><span class="qgcb-sessions">3,760 imp.</span></div>
+          </div>
+          <div class="qgc-stats">
+            <div class="qgcs-cell"><div class="qgcsc-val" style="color:#50e890">88%</div><div class="qgcsc-lbl">Correct</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">5%</div><div class="qgcsc-lbl">Skip</div></div>
+            <div class="qgcs-cell"><div class="qgcsc-val">0</div><div class="qgcsc-lbl">Reports</div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── List View ─────────────────────────────────────────── -->
+<div id="tab-list" class="screen">
+  <p class="section-title">Question gallery — list view (same data, table format)</p>
+  <div class="shell">
+    <div class="shell-hdr">
+      <div class="sh-title">🎨 Question Gallery — Fractions (SK-0284 · 8 questions)</div>
+      <div class="sh-right">
+        <div class="sh-view-toggle">
+          <button class="svt-btn">⊞ Gallery</button>
+          <button class="svt-btn active">☰ List</button>
+        </div>
+        <button class="sh-btn">↓ Export</button>
+      </div>
+    </div>
+    <div class="filter-bar">
+      <div class="fb-label">Status</div>
+      <button class="fb-chip fc-a">All (8)</button>
+      <button class="fb-chip fc-i">Blocked (3)</button>
+      <button class="fb-chip fc-i">Live (5)</button>
+      <select class="fb-sort">
+        <option>Sort: Error reports ↓</option>
+      </select>
+    </div>
+    <div class="gallery-body">
+      <table class="list-view-table">
+        <tr class="lvt-hdr">
+          <td>ID</td>
+          <td>Question</td>
+          <td>Type</td>
+          <td>Band</td>
+          <td>Status</td>
+          <td>Impressions</td>
+          <td>Correct %</td>
+          <td>Skip %</td>
+          <td>Reports</td>
+        </tr>
+        <tr class="lvt-row flagged">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3280</td>
+          <td><div class="lv-q-text">Which fraction is equivalent to ¾? Select all that apply.</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">MCQ</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td><span style="font-size:9px;font-weight:700;color:#f85149">Blocked</span></td>
+          <td style="font-variant-numeric:tabular-nums">4,218</td>
+          <td style="color:#f59e0b">38%</td>
+          <td>14%</td>
+          <td style="color:#f85149;font-weight:700">8</td>
+        </tr>
+        <tr class="lvt-row flagged">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3285</td>
+          <td><div class="lv-q-text">What is ⅔ + ⅙?</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">MCQ</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td style="font-size:9px;font-weight:700;color:#f85149">Blocked</td>
+          <td style="font-variant-numeric:tabular-nums">3,890</td>
+          <td style="color:#f59e0b">41%</td>
+          <td>12%</td>
+          <td style="color:#f85149;font-weight:700">5</td>
+        </tr>
+        <tr class="lvt-row flagged">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3291</td>
+          <td><div class="lv-q-text">Which diagram shows ⅗ shaded?</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">MCQ</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td style="font-size:9px;font-weight:700;color:#f85149">Blocked</td>
+          <td style="font-variant-numeric:tabular-nums">2,104</td>
+          <td style="color:#f85149">—</td>
+          <td>—</td>
+          <td style="color:#f85149;font-weight:700">Asset 404</td>
+        </tr>
+        <tr class="lvt-row">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3271</td>
+          <td><div class="lv-q-text">What fraction of the circle is shaded?</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">MCQ</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td style="font-size:9px;font-weight:700;color:#50e890">Live</td>
+          <td style="font-variant-numeric:tabular-nums">6,210</td>
+          <td style="color:#50e890">89%</td>
+          <td>4%</td>
+          <td>0</td>
+        </tr>
+        <tr class="lvt-row">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3274</td>
+          <td><div class="lv-q-text">½ is greater than ¼. True or False?</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">True/False</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td style="font-size:9px;font-weight:700;color:#50e890">Live</td>
+          <td style="font-variant-numeric:tabular-nums">5,480</td>
+          <td style="color:#50e890">92%</td>
+          <td>3%</td>
+          <td>0</td>
+        </tr>
+        <tr class="lvt-row">
+          <td style="font-size:9px;color:rgba(255,255,255,.3);font-weight:700">QID-3278</td>
+          <td><div class="lv-q-text">Order these fractions from smallest to largest: ⅓, ¾, ½, ¼</div></td>
+          <td style="font-size:9px;color:rgba(255,255,255,.4)">Sort</td>
+          <td><span class="qgcb-band qb-p2">P2</span></td>
+          <td style="font-size:9px;font-weight:700;color:#50e890">Live</td>
+          <td style="font-variant-numeric:tabular-nums">3,920</td>
+          <td style="color:#f59e0b">68%</td>
+          <td>18%</td>
+          <td>0</td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> content-question-gallery-v3.html<br>
+      <strong>Visual question card gallery.</strong> 4-col grid. Gallery ↔ List view toggle. Red top bar (blocked) / amber top bar (review). Selected card expands inline detail. Flag indicator + stats per card.
+    </div>
+    <h2 class="spec-h2">Gallery vs Browser</h2>
+    <p class="spec-p">Gallery (this component) is optimised for scanning all questions in a skill or subject at once — useful during curriculum review sprints. Browser (content-question-browser-desktop-v3.html) is optimised for drill-down on a specific question with full error report detail. Both show the same underlying data. Gallery is the default view for "review all questions in this skill"; Browser is the default for "find and fix a specific flagged question".</p>
+    <h2 class="spec-h2">Card Flag Indicators</h2>
+    <p class="spec-p">Blocked cards have a 3px red top bar (derived from .qgc-flag-bar). Under Review cards have an amber top bar (.qgc-review-bar). Live cards have no top bar. Asset 404 cards show a "404" badge in the visual area instead of the question image. These visual indicators allow rapid scanning without reading the status badge on each card.</p>
+    <h2 class="spec-h2">Selected Card Expansion</h2>
+    <p class="spec-p">Clicking a card shows an inline expansion panel above the gallery row containing the selected card (not a modal). The panel shows full answer options (with correct/wrong highlights), stats, and quick action buttons. This avoids losing context of the gallery while reviewing a question. The panel closes when another card is selected or when Escape is pressed.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Release Gate Mobile — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;height:700px;border-radius:36px;border:6px solid #0d1117;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.4);position:relative;background:#0d1117;display:flex;flex-direction:column}
+.notch{width:110px;height:26px;background:#0d1117;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0;border:1px solid #1c2128}
+.mob-hdr{background:#010409;padding:0 14px;height:50px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.mh-back{color:rgba(255,255,255,.4);font-size:16px}
+.mh-title{font-size:13px;font-weight:800;color:#f0f6ff}
+.mh-rerun{font-size:11px;font-weight:700;color:#50e890;cursor:pointer}
+.mob-content{flex:1;overflow-y:auto;background:#0d1117;padding:10px 12px}
+
+/* Score summary */
+.score-summary{background:#161b22;border-radius:12px;padding:14px 16px;border:1px solid rgba(255,255,255,.05);margin-bottom:10px;display:flex;align-items:center;gap:12px}
+.ss-ring{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-direction:column;flex-shrink:0;border:3px solid #f59e0b}
+.ssr-n{font-size:18px;font-weight:900;color:#f0f6ff;line-height:1}
+.ssr-l{font-size:8px;color:rgba(255,255,255,.3);font-weight:700}
+.ss-body{flex:1}
+.ss-title{font-size:12px;font-weight:800;color:#f0f6ff;margin-bottom:2px}
+.ss-sub{font-size:10px;color:rgba(255,255,255,.3);line-height:1.3}
+.ss-status{font-size:10px;font-weight:800;padding:2px 8px;border-radius:5px;margin-top:4px;display:inline-block}
+.sss-blocked{background:rgba(248,81,73,.15);color:#f85149}
+.sss-ready{background:rgba(80,232,144,.15);color:#50e890}
+
+/* Blocker banner */
+.blocker-banner{background:rgba(248,81,73,.1);border:1px solid rgba(248,81,73,.25);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#f85149;line-height:1.4}
+.warn-banner{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:11px;color:#f59e0b;line-height:1.4}
+
+/* Category rows */
+.cat-row{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:7px;border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:8px}
+.cat-row.fail{border-color:rgba(248,81,73,.25)}
+.cat-row.warn{border-color:rgba(245,158,11,.15)}
+.cr-icon{font-size:15px;flex-shrink:0}
+.cr-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.7);flex:1}
+.cr-pill{font-size:10px;font-weight:800;padding:2px 7px;border-radius:5px}
+.cp-pass{background:rgba(80,232,144,.15);color:#50e890}
+.cp-fail{background:rgba(248,81,73,.15);color:#f85149}
+.cp-warn{background:rgba(245,158,11,.15);color:#f59e0b}
+.cr-expand{font-size:12px;color:rgba(255,255,255,.25)}
+
+/* Launch area */
+.launch-area{padding:10px 12px;background:#010409;flex-shrink:0;border-top:1px solid rgba(255,255,255,.06)}
+.launch-btn{width:100%;padding:12px;border-radius:10px;font-size:13px;font-weight:800;font-family:system-ui;text-align:center}
+.lb-blocked{background:#1c2128;color:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.06);cursor:not-allowed}
+.lb-ready{background:#50e890;color:#010409;border:none;cursor:pointer}
+.lb-tip{font-size:10px;text-align:center;margin-top:5px;color:rgba(255,255,255,.2)}
+
+/* Bottom tabs */
+.mob-tabs{background:#010409;height:54px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+.mt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.mt.active .mt-icon,.mt.active .mt-label{color:#50e890}
+.mt-icon{font-size:17px;color:rgba(255,255,255,.3)}
+.mt-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-release-gate-mobile-v3.html</strong><br>
+  Mobile release gate — condensed version of the desktop release gate page.<br>
+  <strong>Layout:</strong> Score ring summary at top → blocker/warning banners → category row list (collapsed by default) → launch button pinned to bottom.<br>
+  <strong>Mobile-specific:</strong> Categories are single-row collapsed (expand on tap). Launch button is pinned at bottom (not inline). "Re-run gate" link in header.<br>
+  <strong>Launch on mobile:</strong> Launch button on mobile is intentionally hard to trigger accidentally — tapping shows a full-screen confirmation overlay before proceeding.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('blocked')">Blocked</button>
+  <button class="tab-btn" onclick="showTab('ready')">Ready</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Blocked ────────────────────────────────────────────────────── -->
+<div id="tab-blocked" class="screen active">
+  <p class="section-title">Mobile release gate — blocked</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">←</div>
+      <div class="mh-title">🚀 Release Gate</div>
+      <div class="mh-rerun">Re-run</div>
+    </div>
+    <div class="mob-content">
+      <div class="score-summary">
+        <div class="ss-ring">
+          <div class="ssr-n">71</div>
+          <div class="ssr-l">/100</div>
+        </div>
+        <div class="ss-body">
+          <div class="ss-title">v2.5 "Assignment Engine"</div>
+          <div class="ss-sub">Build #247 · Checked 8 min ago</div>
+          <span class="ss-status sss-blocked">🔒 Blocked — 1 hard blocker</span>
+        </div>
+      </div>
+
+      <div class="blocker-banner">⛔ <strong>BLOCKER:</strong> p95 latency 210ms (threshold 200ms). Fix N+1 query in PR #892.</div>
+      <div class="warn-banner">⚠ <strong>Warning:</strong> Curriculum review pending for Fractions: Mixed Numbers. Skill will be locked at launch.</div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin-bottom:6px">Gate categories</div>
+
+      <div class="cat-row"><div class="cr-icon">🧪</div><div class="cr-name">Quality</div><span class="cr-pill cp-pass">25/25 ✓</span></div>
+      <div class="cat-row fail"><div class="cr-icon">⚡</div><div class="cr-name">Performance</div><span class="cr-pill cp-fail">6/25 ✗</span><div class="cr-expand">▾</div></div>
+      <div style="background:rgba(248,81,73,.06);border:1px solid rgba(248,81,73,.15);border-radius:0 0 8px 8px;padding:8px 12px;margin-top:-4px;margin-bottom:7px;font-size:10px;color:#f85149">p95 latency 210ms — exceeds 200ms threshold</div>
+      <div class="cat-row warn"><div class="cr-icon">📚</div><div class="cr-name">Content</div><span class="cr-pill cp-warn">16/20 ⚠</span><div class="cr-expand">▾</div></div>
+      <div class="cat-row"><div class="cr-icon">🔒</div><div class="cr-name">Privacy</div><span class="cr-pill cp-pass">20/20 ✓</span></div>
+      <div class="cat-row"><div class="cr-icon">✍️</div><div class="cr-name">Sign-off</div><span class="cr-pill cp-pass">10/10 ✓</span></div>
+    </div>
+    <div class="launch-area">
+      <button class="launch-btn lb-blocked">🚀 Launch — Blocked</button>
+      <div class="lb-tip">Resolve 1 blocker to unlock launch</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Ready ──────────────────────────────────────────────────────── -->
+<div id="tab-ready" class="screen">
+  <p class="section-title">Mobile release gate — ready to launch</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr">
+      <div class="mh-back">←</div>
+      <div class="mh-title">🚀 Release Gate</div>
+      <div class="mh-rerun">Re-run</div>
+    </div>
+    <div class="mob-content">
+      <div class="score-summary" style="border-color:rgba(80,232,144,.15)">
+        <div class="ss-ring" style="border-color:#50e890">
+          <div class="ssr-n" style="color:#50e890">94</div>
+          <div class="ssr-l">/100</div>
+        </div>
+        <div class="ss-body">
+          <div class="ss-title">v2.5 "Assignment Engine"</div>
+          <div class="ss-sub">Build #251 · Checked 3 min ago · All clear</div>
+          <span class="ss-status sss-ready">✅ Gate open — Ready</span>
+        </div>
+      </div>
+
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.2);margin-bottom:6px">Gate categories</div>
+
+      <div class="cat-row"><div class="cr-icon">🧪</div><div class="cr-name">Quality</div><span class="cr-pill cp-pass">25/25 ✓</span></div>
+      <div class="cat-row"><div class="cr-icon">⚡</div><div class="cr-name">Performance</div><span class="cr-pill cp-pass">25/25 ✓</span></div>
+      <div class="cat-row"><div class="cr-icon">📚</div><div class="cr-name">Content</div><span class="cr-pill cp-pass">20/20 ✓</span></div>
+      <div class="cat-row"><div class="cr-icon">🔒</div><div class="cr-name">Privacy</div><span class="cr-pill cp-pass">20/20 ✓</span></div>
+      <div class="cat-row"><div class="cr-icon">✍️</div><div class="cr-name">Sign-off</div><span class="cr-pill cp-pass">10/10 ✓</span></div>
+    </div>
+    <div class="launch-area">
+      <button class="launch-btn lb-ready">🚀 Launch v2.5</button>
+      <div class="lb-tip" style="color:rgba(80,232,144,.4)">Confirmation overlay before deploying to production</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-release-gate-mobile-v3.html<br>
+      <strong>Same gate logic as desktop.</strong> Mobile layout: collapsed category rows, pinned launch button, full-screen confirmation overlay on launch tap.
+    </div>
+    <h2 class="spec-h2">Mobile Launch Safety</h2>
+    <p class="spec-p">On mobile, tapping the (active) launch button shows a full-screen confirmation overlay: version number displayed prominently, brief changelog summary, "Confirm deployment" + "Cancel" buttons. "Confirm" requires a second tap with brief 1s delay (anti-accidental-tap). This is intentionally harder to trigger than desktop (which uses a typed version number).</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

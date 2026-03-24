@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home Launcher Desktop — WonderQuest v4</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+/* ─── TABS (variant switcher) ────────────────────────────────────── */
+.variant-bar{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:10px 24px;display:flex;gap:10px;align-items:center;}
+.variant-label{font-size:12px;color:rgba(240,246,255,.4);}
+.vb{padding:5px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.12);font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);background:transparent;transition:all .15s;}
+.vb.active{background:#50e890;color:#0d1117;border-color:#50e890;font-weight:700;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── CHILD LAUNCHER SHELL ───────────────────────────────────────── */
+.child-launcher{min-height:100vh;background:linear-gradient(160deg,#0d1117 0%,#10162a 40%,#0d1a18 100%);position:relative;overflow:hidden;}
+
+/* Decorative background stars */
+.bg-stars{position:absolute;inset:0;overflow:hidden;pointer-events:none;}
+.star{position:absolute;border-radius:50%;background:#f0f6ff;animation:twinkle 3s infinite;}
+@keyframes twinkle{0%,100%{opacity:.15;}50%{opacity:.6;}}
+
+/* Top bar */
+.cl-topbar{padding:16px 32px;display:flex;align-items:center;gap:16px;position:relative;z-index:10;}
+.cl-logo{font-size:22px;font-weight:800;color:#50e890;letter-spacing:-.5px;}
+.cl-logo span{color:#f0f6ff;}
+.cl-top-right{margin-left:auto;display:flex;gap:12px;align-items:center;}
+.cl-school-badge{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 12px;font-size:12px;color:rgba(240,246,255,.65);}
+.cl-avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#58e8c1);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;cursor:pointer;}
+
+/* Hero greeting */
+.cl-hero{padding:28px 32px 20px;position:relative;z-index:10;}
+.cl-greeting{font-size:28px;font-weight:800;color:#f0f6ff;margin-bottom:6px;}
+.cl-greeting .wave{display:inline-block;animation:wave 2s infinite;}
+@keyframes wave{0%,100%{transform:rotate(0deg);}25%{transform:rotate(15deg);}75%{transform:rotate(-5deg);}}
+.cl-sub{font-size:15px;color:rgba(240,246,255,.55);}
+
+/* XP / streak strip */
+.cl-xp-strip{padding:0 32px 20px;display:flex;gap:12px;position:relative;z-index:10;}
+.xp-chip{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 14px;display:flex;align-items:center;gap:8px;}
+.xpc-icon{font-size:18px;}
+.xpc-body{}
+.xpc-num{font-size:15px;font-weight:700;color:#f0f6ff;}
+.xpc-lbl{font-size:10px;color:rgba(240,246,255,.4);}
+.xp-bar-wrap{flex:1;display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:14px;padding:8px 14px;}
+.xpb-label{font-size:12px;color:rgba(240,246,255,.5);}
+.xpb-track{flex:1;height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.xpb-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#50e890,#58e8c1);}
+.xpb-num{font-size:12px;color:#50e890;font-weight:600;white-space:nowrap;}
+
+/* Main content grid */
+.cl-content{padding:0 32px 32px;display:grid;grid-template-columns:1fr 320px;gap:20px;position:relative;z-index:10;}
+.cl-left{}
+.cl-right{}
+
+/* Continue learning card */
+.continue-card{background:linear-gradient(135deg,rgba(80,232,144,.12),rgba(88,232,193,.08));border:1px solid rgba(80,232,144,.25);border-radius:16px;padding:22px 24px;margin-bottom:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.continue-card:hover{transform:translateY(-2px);border-color:rgba(80,232,144,.4);}
+.cc-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#50e890;font-weight:700;margin-bottom:8px;}
+.cc-title{font-size:20px;font-weight:800;color:#f0f6ff;margin-bottom:6px;}
+.cc-sub{font-size:13px;color:rgba(240,246,255,.55);margin-bottom:16px;}
+.cc-progress{margin-bottom:16px;}
+.cc-prog-label{display:flex;justify-content:space-between;font-size:11px;color:rgba(240,246,255,.45);margin-bottom:5px;}
+.cc-prog-track{height:8px;background:rgba(255,255,255,.08);border-radius:4px;overflow:hidden;}
+.cc-prog-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,#50e890,#58e8c1);width:65%;}
+.cc-play-btn{display:inline-flex;align-items:center;gap:8px;background:#50e890;color:#0d1117;border:none;border-radius:10px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;transition:all .15s;}
+.cc-play-btn:hover{background:#3dd678;transform:scale(1.03);}
+.cc-badge{position:absolute;top:16px;right:16px;background:#ffd166;color:#0d1117;border-radius:10px;padding:4px 10px;font-size:11px;font-weight:700;}
+
+/* Subject grid */
+.subject-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.subj-card{border-radius:12px;padding:16px 14px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;gap:8px;border:1px solid rgba(255,255,255,.06);}
+.subj-card:hover{transform:translateY(-2px);}
+.sc-math{background:linear-gradient(135deg,rgba(80,232,144,.12),rgba(80,232,144,.06));}
+.sc-science{background:linear-gradient(135deg,rgba(155,114,255,.12),rgba(88,232,193,.06));}
+.sc-ela{background:linear-gradient(135deg,rgba(255,209,102,.1),rgba(240,192,64,.06));}
+.sc-social{background:linear-gradient(135deg,rgba(255,123,107,.1),rgba(255,209,102,.06));}
+.sc-arts{background:linear-gradient(135deg,rgba(88,232,193,.1),rgba(155,114,255,.06));}
+.sc-new{background:linear-gradient(135deg,rgba(255,255,255,.06),rgba(255,255,255,.03));border:1px dashed rgba(255,255,255,.15);}
+.subj-icon{font-size:24px;}
+.subj-name{font-size:13px;font-weight:700;color:#f0f6ff;}
+.subj-count{font-size:11px;color:rgba(240,246,255,.4);}
+.subj-prog{height:4px;background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;}
+.sp-fill{height:100%;border-radius:2px;background:#50e890;}
+
+/* Achievement row */
+.achievements-row{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;}
+.achievements-row::-webkit-scrollbar{height:2px;}
+.ach-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px 12px;flex-shrink:0;text-align:center;min-width:80px;}
+.ach-card.ach-earned{background:rgba(255,209,102,.08);border-color:rgba(255,209,102,.2);}
+.ach-icon{font-size:22px;margin-bottom:4px;}
+.ach-name{font-size:10px;color:rgba(240,246,255,.5);line-height:1.3;}
+.ach-card.ach-locked .ach-icon{filter:grayscale(1);opacity:.3;}
+
+/* Right sidebar */
+.today-card{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:14px;}
+.tc-title{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:12px;}
+.today-list{display:flex;flex-direction:column;gap:8px;}
+.tl-item{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,.03);border-radius:8px;cursor:pointer;transition:all .12s;}
+.tl-item:hover{background:rgba(255,255,255,.06);}
+.tl-item.done{opacity:.5;}
+.tl-item.done .tli-check{background:#50e890;border-color:#50e890;}
+.tli-check{width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#0d1117;}
+.tli-body{flex:1;}
+.tli-skill{font-size:12px;color:#f0f6ff;font-weight:500;}
+.tli-sub{font-size:10px;color:rgba(240,246,255,.4);}
+.tli-xp{font-size:11px;color:#50e890;font-weight:600;}
+
+/* Class leaderboard */
+.leaderboard{background:rgba(155,114,255,.05);border:1px solid rgba(155,114,255,.15);border-radius:14px;padding:16px;}
+.lb-title{font-size:13px;font-weight:700;color:#f0f6ff;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
+.lb-rows{display:flex;flex-direction:column;gap:6px;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;}
+.lb-row.lb-me{background:rgba(155,114,255,.1);border:1px solid rgba(155,114,255,.2);}
+.lb-rank{font-size:13px;font-weight:700;width:20px;color:rgba(240,246,255,.4);}
+.lb-rank.r1{color:#ffd166;}
+.lb-rank.r2{color:rgba(240,246,255,.6);}
+.lb-rank.r3{color:#ff7b6b;}
+.lb-avatar{width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.lb-name{flex:1;font-size:12px;color:#f0f6ff;}
+.lb-xp{font-size:12px;color:#50e890;font-weight:600;}
+
+/* ─── PARENT LANDING VIEW ────────────────────────────────────────── */
+.parent-launcher{min-height:100vh;background:#0d1117;}
+.pl-topbar{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;}
+.pl-logo{font-size:16px;font-weight:700;color:#50e890;}
+.pl-logo span{color:#f0f6ff;font-weight:400;font-size:12px;display:block;margin-top:1px;}
+.pl-tabs{display:flex;gap:0;margin-left:24px;}
+.pl-tab{padding:8px 16px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;transition:all .15s;}
+.pl-tab.active{color:#50e890;border-bottom-color:#50e890;}
+.pl-actions{margin-left:auto;display:flex;gap:8px;}
+.pl-btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;}
+.pl-btn-ghost{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.pl-btn-primary{background:#50e890;color:#0d1117;}
+
+.pl-hero{padding:32px 28px 24px;display:flex;gap:28px;align-items:flex-start;}
+.plh-left{flex:1;}
+.plh-title{font-size:26px;font-weight:800;color:#f0f6ff;margin-bottom:8px;line-height:1.2;}
+.plh-sub{font-size:14px;color:rgba(240,246,255,.5);margin-bottom:20px;max-width:480px;line-height:1.6;}
+.plh-cta-row{display:flex;gap:10px;}
+.plh-cta-main{padding:12px 24px;background:#50e890;color:#0d1117;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;}
+.plh-cta-sec{padding:12px 24px;background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.2);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;}
+.plh-right{width:280px;flex-shrink:0;}
+
+.child-summary-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:12px;padding:16px;}
+.csc-header{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.csc-avatar{width:44px;height:44px;border-radius:50%;background:linear-gradient(135deg,#9b72ff,#58e8c1);display:flex;align-items:center;justify-content:center;font-size:18px;}
+.csc-name{font-size:15px;font-weight:700;color:#f0f6ff;}
+.csc-school{font-size:11px;color:rgba(240,246,255,.4);}
+.csc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.csc-stat{text-align:center;padding:8px;background:#0d1117;border-radius:8px;}
+.csst-num{font-size:16px;font-weight:700;color:#50e890;}
+.csst-lbl{font-size:10px;color:rgba(240,246,255,.4);margin-top:1px;}
+</style>
+</head>
+<body>
+
+<div class="variant-bar">
+  <span class="variant-label">View as:</span>
+  <span class="vb active" onclick="showVariant('child')">👧 Child Learner</span>
+  <span class="vb" onclick="showVariant('parent')">👪 Parent</span>
+</div>
+
+<!-- CHILD LAUNCHER -->
+<div id="v-child" class="screen active">
+  <div class="child-launcher">
+
+    <div class="bg-stars" id="bgStars"></div>
+
+    <div class="cl-topbar">
+      <div class="cl-logo">Wonder<span>Quest</span></div>
+      <div class="cl-top-right">
+        <div class="cl-school-badge">🏫 Sunny Brook Primary</div>
+        <div class="cl-avatar">J</div>
+      </div>
+    </div>
+
+    <div class="cl-hero">
+      <div class="cl-greeting">Hi, Jasmine! <span class="wave">👋</span></div>
+      <div class="cl-sub">Ready to explore? You're on a 5-day streak! 🔥</div>
+    </div>
+
+    <div class="cl-xp-strip">
+      <div class="xp-chip">
+        <span class="xpc-icon">🔥</span>
+        <div class="xpc-body"><div class="xpc-num">5</div><div class="xpc-lbl">Day Streak</div></div>
+      </div>
+      <div class="xp-chip">
+        <span class="xpc-icon">⭐</span>
+        <div class="xpc-body"><div class="xpc-num">1,240</div><div class="xpc-lbl">Total XP</div></div>
+      </div>
+      <div class="xp-bar-wrap">
+        <span class="xpb-label">Level 7</span>
+        <div class="xpb-track"><div class="xpb-fill" style="width:62%"></div></div>
+        <span class="xpb-num">240 / 400 XP → Lvl 8</span>
+      </div>
+    </div>
+
+    <div class="cl-content">
+      <div class="cl-left">
+
+        <!-- Continue -->
+        <div class="continue-card">
+          <div class="cc-label">▶ Continue Learning</div>
+          <div class="cc-title">Plants &amp; Sunlight 🌱</div>
+          <div class="cc-sub">Science · P1 K–1 · Skill 3 of 6</div>
+          <div class="cc-progress">
+            <div class="cc-prog-label"><span>Skill Progress</span><span>65%</span></div>
+            <div class="cc-prog-track"><div class="cc-prog-fill"></div></div>
+          </div>
+          <button class="cc-play-btn">▶ Keep Going!</button>
+          <div class="cc-badge">+50 XP</div>
+        </div>
+
+        <!-- Subject grid -->
+        <div style="font-size:13px;font-weight:700;color:rgba(240,246,255,.65);margin-bottom:10px;">Choose a Subject</div>
+        <div class="subject-grid">
+          <div class="subj-card sc-math">
+            <div class="subj-icon">🔢</div>
+            <div class="subj-name">Math</div>
+            <div class="subj-count">12 skills done</div>
+            <div class="subj-prog"><div class="sp-fill" style="width:60%"></div></div>
+          </div>
+          <div class="subj-card sc-science">
+            <div class="subj-icon">🔬</div>
+            <div class="subj-name">Science</div>
+            <div class="subj-count">8 skills done</div>
+            <div class="subj-prog"><div class="sp-fill" style="width:40%"></div></div>
+          </div>
+          <div class="subj-card sc-ela">
+            <div class="subj-icon">📖</div>
+            <div class="subj-name">Reading</div>
+            <div class="subj-count">9 skills done</div>
+            <div class="subj-prog"><div class="sp-fill" style="width:45%"></div></div>
+          </div>
+          <div class="subj-card sc-social">
+            <div class="subj-icon">🌍</div>
+            <div class="subj-name">The World</div>
+            <div class="subj-count">5 skills done</div>
+            <div class="subj-prog"><div class="sp-fill" style="width:25%"></div></div>
+          </div>
+          <div class="subj-card sc-arts">
+            <div class="subj-icon">🎨</div>
+            <div class="subj-name">Arts</div>
+            <div class="subj-count">4 skills done</div>
+            <div class="subj-prog"><div class="sp-fill" style="width:20%"></div></div>
+          </div>
+          <div class="subj-card sc-new" style="display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;opacity:.6;">
+            <div style="font-size:22px;">✨</div>
+            <div class="subj-name" style="font-size:11px;text-align:center;color:rgba(240,246,255,.4);">More coming soon!</div>
+          </div>
+        </div>
+
+        <!-- Achievements -->
+        <div style="font-size:13px;font-weight:700;color:rgba(240,246,255,.65);margin-bottom:10px;">Badges &amp; Achievements</div>
+        <div class="achievements-row">
+          <div class="ach-card ach-earned"><div class="ach-icon">🌟</div><div class="ach-name">First Steps</div></div>
+          <div class="ach-card ach-earned"><div class="ach-icon">🔥</div><div class="ach-name">5-Day Streak</div></div>
+          <div class="ach-card ach-earned"><div class="ach-icon">🧪</div><div class="ach-name">Science Star</div></div>
+          <div class="ach-card ach-earned"><div class="ach-icon">➕</div><div class="ach-name">Math Whiz</div></div>
+          <div class="ach-card ach-locked"><div class="ach-icon">🏆</div><div class="ach-name" style="opacity:.4;">Top of Class</div></div>
+          <div class="ach-card ach-locked"><div class="ach-icon">🚀</div><div class="ach-name" style="opacity:.4;">10-Day Streak</div></div>
+          <div class="ach-card ach-locked"><div class="ach-icon">📖</div><div class="ach-name" style="opacity:.4;">Bookworm</div></div>
+        </div>
+
+      </div>
+
+      <div class="cl-right">
+
+        <div class="today-card">
+          <div class="tc-title">📋 Today's Quest</div>
+          <div class="today-list">
+            <div class="tl-item done">
+              <div class="tli-check">✓</div>
+              <div class="tli-body"><div class="tli-skill">Counting by 5s</div><div class="tli-sub">Math · 5 questions</div></div>
+              <span class="tli-xp">+30 XP</span>
+            </div>
+            <div class="tl-item done">
+              <div class="tli-check">✓</div>
+              <div class="tli-body"><div class="tli-skill">Plant Parts</div><div class="tli-sub">Science · 4 questions</div></div>
+              <span class="tli-xp">+25 XP</span>
+            </div>
+            <div class="tl-item">
+              <div class="tli-check"></div>
+              <div class="tli-body"><div class="tli-skill">Plants &amp; Sunlight</div><div class="tli-sub">Science · 6 questions</div></div>
+              <span class="tli-xp">+40 XP</span>
+            </div>
+            <div class="tl-item" style="opacity:.5;">
+              <div class="tli-check"></div>
+              <div class="tli-body"><div class="tli-skill">Sentence Basics</div><div class="tli-sub">Reading · 5 questions</div></div>
+              <span class="tli-xp">+30 XP</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="leaderboard">
+          <div class="lb-title">🏆 Class This Week</div>
+          <div class="lb-rows">
+            <div class="lb-row">
+              <span class="lb-rank r1">1</span>
+              <div class="lb-avatar" style="background:linear-gradient(135deg,#ffd166,#ff7b6b);">M</div>
+              <span class="lb-name">Maya</span>
+              <span class="lb-xp">1,840 XP</span>
+            </div>
+            <div class="lb-row">
+              <span class="lb-rank r2">2</span>
+              <div class="lb-avatar" style="background:linear-gradient(135deg,#58e8c1,#50e890);">L</div>
+              <span class="lb-name">Liam</span>
+              <span class="lb-xp">1,520 XP</span>
+            </div>
+            <div class="lb-row lb-me">
+              <span class="lb-rank r3">3</span>
+              <div class="lb-avatar" style="background:linear-gradient(135deg,#9b72ff,#58e8c1);">J</div>
+              <span class="lb-name">Jasmine (you!)</span>
+              <span class="lb-xp">1,240 XP</span>
+            </div>
+            <div class="lb-row" style="opacity:.6;">
+              <span class="lb-rank">4</span>
+              <div class="lb-avatar" style="background:linear-gradient(135deg,#ff7b6b,#ffd166);">A</div>
+              <span class="lb-name">Aiden</span>
+              <span class="lb-xp">1,100 XP</span>
+            </div>
+            <div class="lb-row" style="opacity:.5;">
+              <span class="lb-rank">5</span>
+              <div class="lb-avatar" style="background:rgba(255,255,255,.2);">S</div>
+              <span class="lb-name">Sofia</span>
+              <span class="lb-xp">980 XP</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- PARENT LAUNCHER -->
+<div id="v-parent" class="screen">
+  <div class="parent-launcher">
+    <div class="pl-topbar">
+      <div><div class="pl-logo">WonderQuest <span>Family Dashboard</span></div></div>
+      <div class="pl-tabs">
+        <button class="pl-tab active">Overview</button>
+        <button class="pl-tab">Jasmine's Progress</button>
+        <button class="pl-tab">School</button>
+        <button class="pl-tab">Settings</button>
+      </div>
+      <div class="pl-actions">
+        <button class="pl-btn pl-btn-ghost">📊 Reports</button>
+        <button class="pl-btn pl-btn-primary">Start Learning →</button>
+      </div>
+    </div>
+    <div class="pl-hero">
+      <div class="plh-left">
+        <div class="plh-title">Jasmine is doing great! 🌟</div>
+        <div class="plh-sub">She completed 3 skills this week and earned a 5-day streak. Her strongest subject is Science, and she's making steady progress in Math.</div>
+        <div class="plh-cta-row">
+          <button class="plh-cta-main">View Full Report</button>
+          <button class="plh-cta-sec">Set Learning Goals</button>
+        </div>
+      </div>
+      <div class="plh-right">
+        <div class="child-summary-card">
+          <div class="csc-header">
+            <div class="csc-avatar">👧</div>
+            <div><div class="csc-name">Jasmine</div><div class="csc-school">Sunny Brook Primary · P1 K–1</div></div>
+          </div>
+          <div class="csc-stats">
+            <div class="csc-stat"><div class="csst-num">38</div><div class="csst-lbl">Skills Done</div></div>
+            <div class="csc-stat"><div class="csst-num">5🔥</div><div class="csst-lbl">Streak</div></div>
+            <div class="csc-stat"><div class="csst-num">1,240</div><div class="csst-lbl">XP</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Eng hint overlay (always visible for dev) -->
+<div style="padding:16px 24px;">
+  <div class="eng-hint">
+    <strong>ENG NOTE — Home Launcher Desktop v4:</strong> Two variants: Child Learner (gamified, emoji-rich, no performance anxiety) and Parent (clean dashboard overview).
+    <br><strong>No timer anywhere</strong> — critical play rule. XP/streaks are positive reinforcement only (not penalised for missing days in P0/P1).
+    <br>Leaderboard: class-only (not global); shows first names only; no surnames. Learner always sees themselves highlighted.
+    <br>Quest/daily tasks: teacher-assigned from school dashboard; defaults to adaptive engine if no teacher assignment.
+    <br>Parent view: shows child summary only; parent cannot see classmate names or other children's data.
+    <br>Child launcher background: uses CSS gradient + JS-generated stars (no media assets required for launch).
+  </div>
+</div>
+
+<script>
+function showVariant(v) {
+  document.querySelectorAll('.vb').forEach((b,i) => b.classList.toggle('active', ['child','parent'][i] === v));
+  document.getElementById('v-child').classList.toggle('active', v === 'child');
+  document.getElementById('v-parent').classList.toggle('active', v === 'parent');
+}
+
+// Generate background stars
+const bg = document.getElementById('bgStars');
+for (let i = 0; i < 60; i++) {
+  const s = document.createElement('div');
+  s.className = 'star';
+  const size = Math.random() * 2 + 1;
+  s.style.cssText = `width:${size}px;height:${size}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*3}s;animation-duration:${2+Math.random()*2}s`;
+  bg.appendChild(s);
+}
+</script>
+</body>
+</html>

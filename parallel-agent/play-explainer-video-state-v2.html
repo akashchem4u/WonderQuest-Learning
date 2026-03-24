@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-explainer-video-state-v2 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-explainer-video-state-v2.html      ║
+     ║                                                              ║
+     ║  Explainer panel variant where content is a short video      ║
+     ║  clip (10–20s) instead of text steps. Shown before a new     ║
+     ║  question type when a video explainer asset exists.          ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Loading       : skeleton + spinner before video     ║
+     ║  Tab 2 — Playing       : video playing, wave bars, progress  ║
+     ║  Tab 3 — Paused        : paused mid-play, resume CTA         ║
+     ║  Tab 4 — Ended         : video done, "Got it!" prompt        ║
+     ║  Tab 5 — Spec          : rules, dimensions, fallback         ║
+     ║                                                              ║
+     ║  VIDEO RULES                                                  ║
+     ║  • Max 20s — never longer for explainer clips                ║
+     ║  • Always has caption track (accessibility)                  ║
+     ║  • Muted by default — child taps to unmute (no autoplay      ║
+     ║    audio per browser policy)                                  ║
+     ║  • If video fails to load: fall back to text panel           ║
+     ║    (play-explainer-panel-v3.html)                            ║
+     ║  • Never block child — Skip always visible                   ║
+     ║  • Progress bar at top of video area (thin, 4px)             ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 48px;
+    gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  .phone {
+    width: 390px; height: 700px; border-radius: 40px;
+    background: #100b2e;
+    border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 24px 48px #00000088;
+    position: relative; overflow: hidden; flex-shrink: 0;
+  }
+
+  /* Question area (behind scrim) */
+  .q-area {
+    position: absolute; top: 0; left: 0; right: 0; height: 100%;
+    display: flex; flex-direction: column; padding: 20px 16px 16px; gap: 16px;
+  }
+  .topbar { display: flex; align-items: center; justify-content: space-between; }
+  .progress-segs { display: flex; gap: 4px; flex: 1; }
+  .seg { flex: 1; height: 6px; border-radius: 3px; background: #2a2050; }
+  .seg.filled { background: #9b72ff; }
+  .star-badge {
+    background: #1a1440; border: 1.5px solid #9b72ff55;
+    border-radius: 20px; padding: 4px 10px;
+    font-size: 0.8rem; font-weight: 900; color: #c0a8ff; margin-left: 10px;
+  }
+  .q-hero {
+    background: #1a1440; border: 2px solid #9b72ff44;
+    border-radius: 16px; padding: 20px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: #c0a8ff; font-weight: 700;
+  }
+  .q-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: auto; }
+  .q-choice {
+    background: #1a1440; border: 2px solid #2a1f60; border-radius: 14px;
+    height: 80px; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 4px; font-size: 2.2rem; font-weight: 900; color: #e8e0ff;
+  }
+
+  /* Scrim */
+  .scrim {
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(8,5,20,0.55);
+    backdrop-filter: blur(1.5px);
+    z-index: 5;
+  }
+
+  /* Bottom sheet */
+  .ex-sheet {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    border-radius: 24px 24px 0 0;
+    background: linear-gradient(180deg, #1a1040 0%, #100b2e 100%);
+    border-top: 2px solid #9b72ff55;
+    box-shadow: 0 -8px 32px #00000066;
+    z-index: 10; display: flex; flex-direction: column;
+  }
+  .ex-sheet::before {
+    content: ''; display: block;
+    width: 36px; height: 4px; border-radius: 2px;
+    background: rgba(255,255,255,0.18);
+    margin: 10px auto 0; flex-shrink: 0;
+  }
+  .ex-body { padding: 14px 20px 28px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* Type label */
+  .ex-type-label {
+    font-size: 0.72rem; font-weight: 900;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    color: #9b72ff; opacity: 0.8;
+  }
+  .ex-title { font-size: 1.2rem; font-weight: 900; color: #fff; line-height: 1.2; }
+  .ex-subtitle { font-size: 0.84rem; font-weight: 700; color: #b0a0e0; }
+
+  /* Video container */
+  .video-area {
+    border-radius: 14px; overflow: hidden;
+    background: #0a0820; position: relative;
+    aspect-ratio: 16/9;
+  }
+  .video-thumb {
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1a1040, #0a0528);
+    display: flex; align-items: center; justify-content: center;
+    position: relative;
+  }
+  /* Video progress bar at top */
+  .vid-progress-track {
+    position: absolute; top: 0; left: 0; right: 0; height: 4px;
+    background: rgba(255,255,255,0.12); z-index: 3;
+  }
+  .vid-progress-fill {
+    height: 100%; border-radius: 0 2px 2px 0;
+    background: #9b72ff; transition: width 0.3s;
+  }
+
+  /* Play button overlay */
+  .play-btn-overlay {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 2;
+  }
+  .play-btn {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(155,114,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 0 0 6px rgba(155,114,255,0.20);
+  }
+
+  /* Video frame representation */
+  .vid-frame-content {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 8px;
+  }
+  .vid-emoji { font-size: 3rem; }
+  .vid-caption {
+    font-size: 0.78rem; font-weight: 900; color: #c0a8ff;
+    background: rgba(10,5,32,0.7); border-radius: 6px;
+    padding: 3px 10px;
+  }
+
+  /* Animated wave bars (playing state) */
+  .wave-container {
+    position: absolute; bottom: 8px; right: 10px;
+    display: flex; align-items: flex-end; gap: 3px; z-index: 3;
+  }
+  .wave-bar {
+    width: 4px; border-radius: 2px; background: #9b72ff;
+    animation: wave-dance 0.6s ease-in-out infinite alternate;
+  }
+  .wave-bar:nth-child(1) { --max-h: 14px; animation-delay: 0s; }
+  .wave-bar:nth-child(2) { --max-h: 22px; animation-delay: 0.1s; }
+  .wave-bar:nth-child(3) { --max-h: 18px; animation-delay: 0.2s; }
+  .wave-bar:nth-child(4) { --max-h: 26px; animation-delay: 0.05s; }
+  .wave-bar:nth-child(5) { --max-h: 16px; animation-delay: 0.15s; }
+  @keyframes wave-dance {
+    from { height: 4px; }
+    to { height: var(--max-h, 16px); }
+  }
+
+  /* Skeleton */
+  .skel {
+    background: linear-gradient(90deg, #1a1440 25%, #221960 50%, #1a1440 75%);
+    background-size: 200% 100%;
+    animation: skel-shimmer 1.4s ease-in-out infinite;
+    border-radius: 8px;
+  }
+  @keyframes skel-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 36px; height: 36px; border-radius: 50%;
+    border: 3px solid #2a2050; border-top-color: #9b72ff;
+    animation: spin 0.7s linear infinite;
+    position: absolute;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Mute badge */
+  .mute-badge {
+    position: absolute; top: 8px; left: 10px; z-index: 3;
+    background: rgba(10,5,32,0.75);
+    border: 1.5px solid #2a1f60; border-radius: 12px;
+    padding: 3px 9px; font-size: 0.68rem; font-weight: 700;
+    color: #9080c0; display: flex; align-items: center; gap: 4px;
+  }
+
+  /* Pause overlay */
+  .pause-overlay {
+    position: absolute; inset: 0;
+    background: rgba(8,5,20,0.45);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 4;
+  }
+  .pause-icon {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: rgba(155,114,255,0.85);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+  }
+
+  /* Ended state */
+  .ended-check {
+    position: absolute; inset: 0;
+    background: rgba(8,5,20,0.55);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px; z-index: 4;
+  }
+  .ended-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: #9b72ff; display: flex; align-items: center; justify-content: center;
+    font-size: 1.5rem;
+  }
+  .ended-label { font-size: 0.82rem; font-weight: 900; color: #c0a8ff; }
+
+  /* Timestamp */
+  .timestamp {
+    position: absolute; bottom: 8px; left: 10px; z-index: 3;
+    font-size: 0.7rem; font-weight: 700; color: rgba(255,255,255,0.55);
+    background: rgba(0,0,0,0.4); border-radius: 4px; padding: 1px 6px;
+  }
+
+  /* CTA */
+  .btn-skip {
+    font-size: 0.78rem; font-weight: 700; color: #6050a0;
+    background: none; border: none; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  .btn-gotit {
+    flex: 1; height: 52px; border-radius: 26px; border: none;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    background: linear-gradient(135deg, #9b72ff, #7248e8); color: #fff;
+  }
+  .ex-actions { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; }
+
+  /* Replay small button */
+  .btn-replay-small {
+    height: 40px; padding: 0 16px; border-radius: 20px;
+    background: #221960; border: 1.5px solid #9b72ff44;
+    color: #b89eff; font-size: 0.8rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 10px; padding: 12px 16px;
+    font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  /* Spec */
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 10px; padding: 12px 14px;
+    font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+  .spec-card code { background: #f0e090; border-radius: 4px; padding: 1px 4px; font-size: 0.74rem; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-explainer-video-state-v2 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Loading</button>
+  <button class="tab-btn" onclick="showTab('t2')">Playing</button>
+  <button class="tab-btn" onclick="showTab('t3')">Paused</button>
+  <button class="tab-btn" onclick="showTab('t4')">Ended</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Loading ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Loading State — Skeleton + Spinner</h4>
+    Video asset is fetching. Skeleton fills the video area.
+    Spinner centered over skeleton. Title + subtitle shown (no skeleton there).
+    Skip always visible even during load.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero"><div style="font-size:2.5rem">🐝</div><div>What letter starts "bee"?</div></div>
+      <div class="q-choices">
+        <div class="q-choice">B</div><div class="q-choice">S</div>
+        <div class="q-choice">D</div><div class="q-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label">✨ New Question Type</div>
+        <div class="ex-title">Beginning Sounds</div>
+        <div class="ex-subtitle">Watch this quick tip before you start!</div>
+        <!-- Skeleton video area -->
+        <div class="video-area">
+          <div class="video-thumb skel" style="height:160px;border-radius:14px;">
+            <div class="spinner"></div>
+          </div>
+        </div>
+        <!-- Skeleton caption bar -->
+        <div class="skel" style="height:14px;border-radius:7px;width:70%;margin-top:2px;"></div>
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: Playing ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>Playing State</h4>
+    Video is playing. Progress bar fills across top of video area.
+    Wave bars animated in bottom-right corner (audio visualizer).
+    Muted badge top-left (tap to unmute). Timestamp bottom-left.
+    "Got it!" button disabled until video ends or child skips.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero"><div style="font-size:2.5rem">🐝</div><div>What letter starts "bee"?</div></div>
+      <div class="q-choices">
+        <div class="q-choice">B</div><div class="q-choice">S</div>
+        <div class="q-choice">D</div><div class="q-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label">▶ Now Playing</div>
+        <div class="ex-title">Beginning Sounds</div>
+        <div class="video-area" style="height:160px;position:relative;border-radius:14px;overflow:hidden;">
+          <!-- Progress bar -->
+          <div class="vid-progress-track">
+            <div class="vid-progress-fill" style="width:42%"></div>
+          </div>
+          <!-- Video frame content -->
+          <div class="vid-frame-content" style="background:linear-gradient(135deg,#1a1040,#0a0528);height:100%;">
+            <div class="vid-emoji">🦁</div>
+            <div style="font-size:0.88rem;font-weight:900;color:#fff;">Coach Leo says:</div>
+            <div class="vid-caption">"Buh! Buh! What starts with B?"</div>
+          </div>
+          <!-- Mute badge -->
+          <div class="mute-badge">🔇 Tap to unmute</div>
+          <!-- Timestamp -->
+          <div class="timestamp">0:08 / 0:15</div>
+          <!-- Wave bars -->
+          <div class="wave-container">
+            <div class="wave-bar"></div><div class="wave-bar"></div>
+            <div class="wave-bar"></div><div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+        </div>
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Paused ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Paused State</h4>
+    Child tapped video to pause. Semi-transparent overlay with pause icon.
+    Progress bar stays frozen at current position. Resume CTA replaces disabled "Got it!".
+    Skip still available.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero"><div style="font-size:2.5rem">🐝</div><div>What letter starts "bee"?</div></div>
+      <div class="q-choices">
+        <div class="q-choice">B</div><div class="q-choice">S</div>
+        <div class="q-choice">D</div><div class="q-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label">⏸ Paused</div>
+        <div class="ex-title">Beginning Sounds</div>
+        <div class="video-area" style="height:160px;position:relative;border-radius:14px;overflow:hidden;">
+          <div class="vid-progress-track">
+            <div class="vid-progress-fill" style="width:42%"></div>
+          </div>
+          <div class="vid-frame-content" style="background:linear-gradient(135deg,#1a1040,#0a0528);height:100%;">
+            <div class="vid-emoji">🦁</div>
+            <div style="font-size:0.88rem;font-weight:900;color:#fff;opacity:0.55;">Coach Leo says:</div>
+            <div class="vid-caption" style="opacity:0.55;">"Buh! Buh! What starts with B?"</div>
+          </div>
+          <!-- Pause overlay -->
+          <div class="pause-overlay">
+            <div class="pause-icon">▶</div>
+          </div>
+          <div class="timestamp">0:08 / 0:15</div>
+        </div>
+        <div class="ex-actions">
+          <button class="btn-skip">Skip</button>
+          <button class="btn-replay-small">▶ Resume</button>
+          <button class="btn-gotit" style="opacity:0.45;pointer-events:none;flex:unset;padding:0 16px;">Got it →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Ended ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Ended State</h4>
+    Video has finished playing. Green checkmark overlay on video area.
+    "Got it! Let's go →" button becomes fully active.
+    "Watch again" small button appears next to Skip.
+    Progress bar at 100%.
+  </div>
+  <div class="phone">
+    <div class="q-area">
+      <div class="topbar">
+        <div class="progress-segs">
+          <div class="seg filled"></div><div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+      <div class="q-hero"><div style="font-size:2.5rem">🐝</div><div>What letter starts "bee"?</div></div>
+      <div class="q-choices">
+        <div class="q-choice">B</div><div class="q-choice">S</div>
+        <div class="q-choice">D</div><div class="q-choice">R</div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="ex-sheet">
+      <div class="ex-body">
+        <div class="ex-type-label" style="color:#50e890;">✓ Video complete!</div>
+        <div class="ex-title">Beginning Sounds</div>
+        <div class="video-area" style="height:160px;position:relative;border-radius:14px;overflow:hidden;">
+          <div class="vid-progress-track">
+            <div class="vid-progress-fill" style="width:100%;background:#50e890;"></div>
+          </div>
+          <div class="vid-frame-content" style="background:linear-gradient(135deg,#1a1040,#0a0528);height:100%;">
+            <div class="vid-emoji">🦁</div>
+            <div class="vid-caption">"Buh! Buh! What starts with B?"</div>
+          </div>
+          <!-- Ended overlay -->
+          <div class="ended-check">
+            <div class="ended-icon" style="background:#50e890;">✓</div>
+            <div class="ended-label" style="color:#90f0b8;">Nice! Ready to play?</div>
+          </div>
+        </div>
+        <div class="ex-actions">
+          <button class="btn-replay-small">↺ Watch again</button>
+          <button class="btn-gotit">Got it! Let's go →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Video Asset Rules</h4>
+      <ul>
+        <li>Max clip length: <strong>20 seconds</strong></li>
+        <li>Dimensions: 16:9, rendered 350px wide in sheet</li>
+        <li>Always muted on start (browser autoplay policy)</li>
+        <li>Mute badge tap → <code>video.muted = false</code></li>
+        <li>Always has captions track (<code>&lt;track kind="captions"&gt;</code>)</li>
+        <li class="dont">❌ No explainer clips longer than 20s</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>State Transitions</h4>
+      <ul>
+        <li>Loading → Playing: <code>canplay</code> event fires</li>
+        <li>Playing → Paused: child taps video area</li>
+        <li>Paused → Playing: child taps pause overlay</li>
+        <li>Playing → Ended: <code>ended</code> event fires</li>
+        <li>Ended → Playing: "Watch again" button</li>
+        <li>Any state → Dismissed: Skip or "Got it!" (after ended)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Progress Bar</h4>
+      <ul>
+        <li>Position: <code>absolute; top: 0</code> of video container</li>
+        <li>Height: 4px; border-radius 0 2px 2px 0 on fill</li>
+        <li>Color: <code>#9b72ff</code> playing → <code>#50e890</code> ended</li>
+        <li>Update via <code>timeupdate</code> event: <code>(currentTime / duration) * 100%</code></li>
+        <li class="dont">❌ Never show timestamp as primary time cue (anxiety)</li>
+        <li>Timestamp shown in small text, low opacity — secondary</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Fallback</h4>
+      <ul>
+        <li>If video fails to load → render text explainer panel instead</li>
+        <li>Text panel: <code>play-explainer-panel-v3.html</code></li>
+        <li>Failure detection: <code>error</code> event on <code>&lt;video&gt;</code></li>
+        <li>No error message shown to child — silent swap to text panel</li>
+        <li class="do">✅ Skip always visible regardless of load/error state</li>
+        <li class="dont">❌ Never show "Video failed to load" to child</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>"Got it!" Gating</h4>
+      <ul>
+        <li>Button disabled (opacity 0.45, pointer-events none) during Loading + Playing + Paused</li>
+        <li>Button enabled after: video <code>ended</code> OR child taps Skip</li>
+        <li>Skip always enabled (no gating)</li>
+        <li>"Watch again" only shown in Ended state</li>
+        <li class="dont">❌ Never auto-advance to question after video ends</li>
+        <li>Child must tap "Got it!" to proceed</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Wave Bars (Playing)</h4>
+      <ul>
+        <li>5 bars, bottom-right of video container</li>
+        <li>Color: <code>#9b72ff</code> (band color)</li>
+        <li><code>wave-dance</code> keyframe: height 4px → var(--max-h)</li>
+        <li>Staggered <code>animation-delay</code> per bar</li>
+        <li>Bars hidden in Paused + Ended states</li>
+        <li>Bars represent TTS/video audio — cosmetic only</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

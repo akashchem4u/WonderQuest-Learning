@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Owner Live Incident Center Mobile — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone */
+.phone{width:375px;border-radius:36px;border:6px solid #0d1117;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.4);background:#0d1117;display:flex;flex-direction:column}
+.notch{width:110px;height:26px;background:#0d1117;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0;border:1px solid #1c2128}
+
+/* Header */
+.mob-hdr-incident{background:#1a0507;border-bottom:2px solid rgba(248,81,73,.4);padding:0 14px;height:50px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mhi-back{color:rgba(248,81,73,.5);font-size:16px}
+.mhi-title{font-size:12px;font-weight:800;color:#f85149;flex:1}
+.mhi-timer{font-size:10px;font-weight:700;color:rgba(248,81,73,.7);font-variant-numeric:tabular-nums}
+
+.mob-hdr-clear{background:#010409;border-bottom:1px solid rgba(80,232,144,.12);padding:0 14px;height:50px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mhc-dot{width:8px;height:8px;border-radius:50%;background:#50e890;flex-shrink:0}
+.mhc-title{font-size:13px;font-weight:800;color:#f0f6ff;flex:1}
+
+/* Status strip */
+.status-strip{display:flex;gap:1px;background:rgba(255,255,255,.06);flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.05)}
+.ss-cell{flex:1;background:#0d1117;padding:7px 8px;text-align:center}
+.ssc-n{font-size:13px;font-weight:900}
+.ssc-l{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:rgba(255,255,255,.25);margin-top:1px}
+
+/* Content */
+.mob-content{background:#0d1117;padding:10px 12px;overflow-y:auto}
+
+/* Timeline cards */
+.timeline-item{display:flex;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.timeline-item:last-child{border-bottom:none}
+.ti-dot{width:7px;height:7px;border-radius:50%;margin-top:3px;flex-shrink:0}
+.ti-body{flex:1}
+.ti-text{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.ti-sub{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px;line-height:1.4}
+.ti-time{font-size:9px;color:rgba(255,255,255,.2)}
+
+/* Meta strip */
+.meta-strip{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px}
+.ms-chip{background:#161b22;border-radius:6px;padding:5px 8px;border:1px solid rgba(255,255,255,.06)}
+.msc-l{font-size:8px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);letter-spacing:.04em}
+.msc-v{font-size:10px;font-weight:700;color:#f0f6ff;margin-top:1px}
+
+/* Add update */
+.add-update-box{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.aub-label{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.25);margin-bottom:6px}
+.aub-ta{width:100%;background:#0d1117;border:1px solid rgba(255,255,255,.1);border-radius:6px;padding:7px 9px;font-size:10px;color:#f0f6ff;font-family:system-ui;resize:none;height:60px;outline:none}
+.aub-btns{display:flex;gap:5px;margin-top:6px}
+.aub-post{flex:1;padding:7px;background:#50e890;color:#010409;border:none;border-radius:6px;font-size:10px;font-weight:800;font-family:system-ui;cursor:pointer}
+.aub-resolve{flex:1;padding:7px;background:rgba(80,232,144,.1);color:#50e890;border:1px solid rgba(80,232,144,.2);border-radius:6px;font-size:10px;font-weight:800;font-family:system-ui;cursor:pointer}
+
+/* Mob section card */
+.mob-card{background:#161b22;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid rgba(255,255,255,.05)}
+.mc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:rgba(255,255,255,.25);margin-bottom:7px}
+
+/* On-call row */
+.ocall-row{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.ocall-row:last-child{border-bottom:none}
+.ocall-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.ocall-name{font-size:10px;color:rgba(255,255,255,.6);flex:1}
+.ocall-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+.ocs-ack{background:rgba(80,232,144,.1);color:#50e890}
+.ocs-paged{background:rgba(245,158,11,.1);color:#f59e0b}
+
+/* Action bar */
+.mob-action-row{display:flex;gap:5px;padding:10px 12px;background:#010409;flex-shrink:0;border-top:1px solid rgba(255,255,255,.06)}
+.mob-act{flex:1;padding:9px 4px;border-radius:7px;font-size:10px;font-weight:700;font-family:system-ui;border:none;cursor:pointer;text-align:center}
+.ma-pd{background:rgba(248,81,73,.12);color:#f85149}
+.ma-update{background:rgba(255,255,255,.06);color:rgba(255,255,255,.5)}
+.ma-resolve{background:rgba(80,232,144,.15);color:#50e890}
+
+/* History items */
+.hist-row{display:flex;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.hist-row:last-child{border-bottom:none}
+.hr-sev{font-size:9px;font-weight:800;padding:1px 5px;border-radius:3px;flex-shrink:0;margin-top:1px}
+.hs-p0{background:rgba(248,81,73,.2);color:#f85149}
+.hs-p1{background:rgba(245,158,11,.15);color:#f59e0b}
+.hr-body{flex:1}
+.hr-title{font-size:10px;font-weight:700;color:rgba(255,255,255,.6)}
+.hr-meta{font-size:9px;color:rgba(255,255,255,.3);margin-top:1px}
+
+/* Bottom tabs */
+.mob-tabs{background:#010409;height:54px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.05)}
+.mt{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer}
+.mt.active .mt-icon,.mt.active .mt-label{color:#50e890}
+.mt-icon{font-size:17px;color:rgba(255,255,255,.3)}
+.mt-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.04em}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — owner-live-incident-center-mobile-v2.html</strong><br>
+  Mobile version of the live incident center. Same 3 states as desktop (Active P0 / All Clear / Post-Incident) but single-column layout.<br>
+  <strong>Mobile priority:</strong> Push notification fires for P0 declaration (FCM/APNs). Incident screen auto-opens when notification is tapped. Non-dismissible P0 banner also appears on home screen.<br>
+  <strong>Actions pinned to footer:</strong> PD link / Add Update / Resolve — available throughout the incident detail view.<br>
+  <strong>Differences from desktop:</strong> Timeline is primary content. On-call and affected routes collapsed into single section cards. Add-update textarea in main content (not sidebar). Post-incident summary condensed to single card.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active P0</button>
+  <button class="tab-btn" onclick="showTab('clear')">All Clear</button>
+  <button class="tab-btn" onclick="showTab('resolved')">Post-Incident</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Active P0 ───────────────────────────────────────────── -->
+<div id="tab-active" class="screen active">
+  <p class="section-title">Live incident center mobile — active P0</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr-incident">
+      <div class="mhi-back">←</div>
+      <div class="mhi-title">🚨 P0 — Assignment Engine Down</div>
+      <div class="mhi-timer">⏱ 5h 23m</div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-n" style="color:#f85149">P0</div><div class="ssc-l">Severity</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#f85149">1</div><div class="ssc-l">Down</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#f59e0b">9</div><div class="ssc-l">Schools</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">On</div><div class="ssc-l">On-Call</div></div>
+    </div>
+    <div class="mob-content">
+
+      <div class="meta-strip">
+        <div class="ms-chip"><div class="msc-l">Route</div><div class="msc-v">Assignment Engine</div></div>
+        <div class="ms-chip"><div class="msc-l">Started</div><div class="msc-v">6:10 AM</div></div>
+        <div class="ms-chip"><div class="msc-l">PagerDuty</div><div class="msc-v" style="color:#f59e0b">PD-4412</div></div>
+      </div>
+
+      <div class="mob-card" style="border-color:rgba(248,81,73,.15)">
+        <div class="mc-label">Incident Timeline</div>
+        <div class="timeline-item">
+          <div class="ti-dot" style="background:#9b72ff"></div>
+          <div class="ti-body"><div class="ti-text">Root cause identified — Redis consumer crash</div><div class="ti-sub">Fix in progress. Hotfix branch created. ETA deploy 11:30 AM.</div></div>
+          <div class="ti-time">10:05 AM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="ti-dot" style="background:#9b72ff"></div>
+          <div class="ti-body"><div class="ti-text">Scoping — 9 schools confirmed affected</div><div class="ti-sub">Play sessions unaffected. Only assignment delivery impacted.</div></div>
+          <div class="ti-time">8:45 AM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="ti-dot" style="background:#f59e0b"></div>
+          <div class="ti-body"><div class="ti-text">On-call acknowledged — Sam (Lead Eng)</div></div>
+          <div class="ti-time">6:22 AM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="ti-dot" style="background:#f85149"></div>
+          <div class="ti-body"><div class="ti-text">Escalated → PD-4412 · #incidents Slack notified</div></div>
+          <div class="ti-time">6:15 AM</div>
+        </div>
+        <div class="timeline-item">
+          <div class="ti-dot" style="background:rgba(255,255,255,.3)"></div>
+          <div class="ti-body"><div class="ti-text">P0 Declared · Status page updated</div></div>
+          <div class="ti-time">6:10 AM</div>
+        </div>
+      </div>
+
+      <div class="add-update-box">
+        <div class="aub-label">Add Update</div>
+        <textarea class="aub-ta" placeholder="Post to #incidents Slack automatically…"></textarea>
+        <div class="aub-btns">
+          <button class="aub-post">Post Update</button>
+          <button class="aub-resolve">✓ Resolve</button>
+        </div>
+      </div>
+
+      <div class="mob-card">
+        <div class="mc-label">On-Call Team</div>
+        <div class="ocall-row">
+          <div class="ocall-av" style="background:rgba(80,232,144,.12);color:#50e890">S</div>
+          <div class="ocall-name">Sam (Lead Eng)</div>
+          <span class="ocall-status ocs-ack">Acked</span>
+        </div>
+        <div class="ocall-row">
+          <div class="ocall-av" style="background:rgba(245,158,11,.1);color:#f59e0b">J</div>
+          <div class="ocall-name">Jordan (Infra)</div>
+          <span class="ocall-status ocs-paged">Paged</span>
+        </div>
+      </div>
+
+    </div>
+    <div class="mob-action-row">
+      <button class="mob-act ma-pd">PD-4412</button>
+      <button class="mob-act ma-resolve">✓ Resolve</button>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon" style="color:#f85149">🏠</div><div class="mt-label" style="color:#f85149">Home</div></div>
+      <div class="mt active" style="color:#f85149"><div class="mt-icon" style="color:#f85149">📡</div><div class="mt-label" style="color:#f85149">Routes</div></div>
+      <div class="mt"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── All Clear ───────────────────────────────────────────── -->
+<div id="tab-clear" class="screen">
+  <p class="section-title">Live incident center mobile — all clear</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr-clear">
+      <div class="mhc-dot"></div>
+      <div class="mhc-title">All Systems Operational</div>
+      <div style="font-size:11px;font-weight:700;color:#f85149;cursor:pointer">+ Declare</div>
+    </div>
+    <div class="status-strip">
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">0</div><div class="ssc-l">Active</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">10</div><div class="ssc-l">Healthy</div></div>
+      <div class="ss-cell"><div class="ssc-n" style="color:#50e890">99.8%</div><div class="ssc-l">30d Up</div></div>
+      <div class="ss-cell"><div class="ssc-n">4</div><div class="ssc-l">Incid 30d</div></div>
+    </div>
+    <div class="mob-content">
+      <div class="mob-card">
+        <div class="mc-label">Incident History — Last 30 Days</div>
+        <div class="hist-row"><span class="hr-sev hs-p0">P0</span><div class="hr-body"><div class="hr-title">SSO token expiry</div><div class="hr-meta">Auth · 3h 18m · Mar 24</div></div><div style="font-size:10px;font-weight:700;color:#50e890">3h 18m</div></div>
+        <div class="hist-row"><span class="hr-sev hs-p0">P0</span><div class="hr-body"><div class="hr-title">Assignment queue failure</div><div class="hr-meta">Assignment · 5h 45m · Mar 17</div></div><div style="font-size:10px;font-weight:700;color:#f59e0b">5h 45m</div></div>
+        <div class="hist-row"><span class="hr-sev hs-p1">P1</span><div class="hr-body"><div class="hr-title">Mastery score lag spike</div><div class="hr-meta">Mastery · 22h · Mar 10</div></div><div style="font-size:10px;font-weight:700;color:#f59e0b">22h</div></div>
+        <div class="hist-row"><span class="hr-sev hs-p1">P1</span><div class="hr-body"><div class="hr-title">Content CDN cache miss</div><div class="hr-meta">Content · 4h · Feb 28</div></div><div style="font-size:10px;font-weight:700;color:#50e890">4h</div></div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt active"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Post-Incident ───────────────────────────────────────── -->
+<div id="tab-resolved" class="screen">
+  <p class="section-title">Live incident center mobile — post-incident summary</p>
+  <div class="phone">
+    <div class="notch"></div>
+    <div class="mob-hdr-clear">
+      <div class="mhc-dot"></div>
+      <div class="mhc-title">Incident Resolved — PD-4412</div>
+    </div>
+    <div class="mob-content">
+      <div class="mob-card" style="border-color:rgba(80,232,144,.12)">
+        <div style="font-size:12px;font-weight:800;color:#50e890;margin-bottom:8px">✅ Resolved — 5h 20m</div>
+        <div style="display:flex;flex-direction:column;gap:0">
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:rgba(255,255,255,.4)">Incident</span><span style="color:#f0f6ff;font-weight:600">P0 Assignment Queue Failure</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:rgba(255,255,255,.4)">Root cause</span><span style="color:#f0f6ff;font-weight:600">Redis null payload crash</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:rgba(255,255,255,.4)">Fix</span><span style="color:#f0f6ff;font-weight:600">Hotfix v2.5.1</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:rgba(255,255,255,.4)">Schools affected</span><span style="color:#f0f6ff;font-weight:600">9</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px;border-bottom:1px solid rgba(255,255,255,.04)"><span style="color:rgba(255,255,255,.4)">TTR</span><span style="color:#f59e0b;font-weight:700">5h 20m (SLA missed by 1h 20m)</span></div>
+          <div style="display:flex;justify-content:space-between;padding:4px 0;font-size:10px"><span style="color:rgba(255,255,255,.4)">Post-mortem</span><span style="color:#9b72ff;font-weight:600">Thu 10 AM</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mt"><div class="mt-icon">🏠</div><div class="mt-label">Home</div></div>
+      <div class="mt active"><div class="mt-icon">📡</div><div class="mt-label">Routes</div></div>
+      <div class="mt"><div class="mt-icon">💬</div><div class="mt-label">Feedback</div></div>
+      <div class="mt"><div class="mt-icon">🚀</div><div class="mt-label">Release</div></div>
+      <div class="mt"><div class="mt-icon">⋯</div><div class="mt-label">More</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ──────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> owner-live-incident-center-mobile-v2.html<br>
+      <strong>Mobile incident center.</strong> Same 3 states as desktop. Push notification opens directly to active incident view.
+    </div>
+    <h2 class="spec-h2">Push Notification Behaviour</h2>
+    <p class="spec-p">P0 declaration fires a push notification to the owner's device (FCM/APNs). Tapping the notification navigates directly to the Active P0 view (not the home screen). Notification title: "P0 Incident Declared — [Route Name]". Body: "On-call team paged. Tap to manage."</p>
+    <h2 class="spec-h2">Layout Differences from Desktop</h2>
+    <p class="spec-p">Desktop: 2-col (timeline + sidebar). Mobile: single-column. On-call team + affected routes collapsed into section cards below the timeline. Add-update form in main content flow (not sidebar). Post-incident condensed to single summary card.</p>
+    <h2 class="spec-h2">Footer Action Bar</h2>
+    <p class="spec-p">PD link (opens PagerDuty), Resolve button pinned in footer throughout active incident. This ensures the owner can resolve without scrolling to the bottom of the timeline.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

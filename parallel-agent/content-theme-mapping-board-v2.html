@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Theme Mapping Board — WonderQuest Content CMS v2</title>
+<style>
+/* ─── ENGINEERING HINT ─────────────────────────────────────────── */
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;margin:0 0 22px;font-family:monospace;font-size:12px;line-height:1.6;color:#5a4a00;}
+.eng-hint strong{color:#b8860b;}
+
+/* ─── TOKENS ────────────────────────────────────────────────────── */
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#0d1117;color:#f0f6ff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;min-height:100vh;}
+
+.page-header{background:#161b22;border-bottom:1px solid rgba(255,255,255,.06);padding:14px 28px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.page-header h1{font-size:16px;font-weight:600;}
+.ph-sub{font-size:12px;color:rgba(240,246,255,.45);}
+.ph-actions{margin-left:auto;display:flex;gap:8px;}
+.btn{padding:7px 14px;border-radius:7px;border:none;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:#50e890;color:#0d1117;}
+.btn-secondary{background:transparent;color:#f0f6ff;border:1px solid rgba(255,255,255,.18);}
+.btn-secondary:hover{background:rgba(255,255,255,.06);}
+.page-body{padding:24px 28px;}
+
+/* ─── TABS ───────────────────────────────────────────────────────── */
+.tabs{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:24px;}
+.tab-btn{padding:9px 18px;background:none;border:none;color:rgba(240,246,255,.45);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;}
+.tab-btn:hover{color:#f0f6ff;}
+.tab-btn.active{color:#50e890;border-bottom-color:#50e890;}
+.screen{display:none;}
+.screen.active{display:block;}
+
+/* ─── THEME BOARD ────────────────────────────────────────────────── */
+.board-wrap{overflow-x:auto;}
+.board{display:flex;gap:14px;min-width:max-content;padding-bottom:16px;}
+.theme-col{width:220px;flex-shrink:0;}
+.tc-header{padding:12px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:8px;}
+.tc-icon{font-size:18px;}
+.tc-name{font-size:13px;font-weight:700;color:#f0f6ff;}
+.tc-count{font-size:11px;margin-left:auto;opacity:.65;}
+.tc-cards{display:flex;flex-direction:column;gap:8px;padding:8px 0;}
+
+/* Theme colour headers */
+.th-adventure{background:rgba(255,123,107,.12);border:1px solid rgba(255,123,107,.2);}
+.th-nature{background:rgba(80,232,144,.08);border:1px solid rgba(80,232,144,.15);}
+.th-space{background:rgba(155,114,255,.1);border:1px solid rgba(155,114,255,.2);}
+.th-city{background:rgba(88,232,193,.08);border:1px solid rgba(88,232,193,.15);}
+.th-animals{background:rgba(255,209,102,.1);border:1px solid rgba(255,209,102,.2);}
+.th-ocean{background:rgba(80,160,232,.1);border:1px solid rgba(80,160,232,.2);}
+
+/* Skill cards within themes */
+.sk-card{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:7px;padding:8px 10px;cursor:grab;transition:all .12s;}
+.sk-card:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.03);}
+.sk-card.unmapped{background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.1);}
+.skc-id{font-size:10px;color:rgba(240,246,255,.3);font-family:monospace;margin-bottom:3px;}
+.skc-title{font-size:12px;color:#f0f6ff;line-height:1.35;margin-bottom:5px;}
+.skc-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.skc-band{font-size:9px;font-weight:700;padding:1px 5px;border-radius:7px;}
+.sc-p0{background:rgba(255,209,102,.15);color:#ffd166;}
+.sc-p1{background:rgba(155,114,255,.15);color:#9b72ff;}
+.sc-p2{background:rgba(88,232,193,.15);color:#58e8c1;}
+.sc-p3{background:rgba(255,123,107,.15);color:#ff7b6b;}
+.skc-subject{font-size:10px;color:rgba(240,246,255,.4);}
+.skc-status{font-size:9px;font-weight:700;padding:1px 5px;border-radius:7px;margin-left:auto;}
+.ss-pub{background:rgba(80,232,144,.12);color:#50e890;}
+.ss-rev{background:rgba(240,192,64,.1);color:#f0c040;}
+.ss-dft{background:rgba(255,255,255,.06);color:rgba(240,246,255,.45);}
+
+/* Unmapped bucket */
+.unmapped-bucket{background:rgba(255,255,255,.02);border:1px dashed rgba(255,255,255,.12);border-radius:10px;padding:14px;}
+.ub-title{font-size:12px;font-weight:600;color:rgba(240,246,255,.5);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.ub-badge{background:rgba(240,192,64,.15);color:#f0c040;font-size:10px;font-weight:700;padding:2px 6px;border-radius:9px;}
+
+/* ─── THEME STAT TABLE ───────────────────────────────────────────── */
+.section-block{background:#161b22;border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:16px 18px;margin-bottom:16px;}
+.sb-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.sb-title{font-size:13px;font-weight:600;color:#f0f6ff;}
+.theme-table{width:100%;border-collapse:collapse;font-size:13px;}
+.theme-table th{text-align:left;color:rgba(240,246,255,.35);font-weight:500;padding:7px 10px;border-bottom:1px solid rgba(255,255,255,.08);}
+.theme-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.04);vertical-align:middle;}
+.theme-table tr:last-child td{border-bottom:none;}
+.th-swatch{width:14px;height:14px;border-radius:4px;display:inline-block;vertical-align:middle;margin-right:6px;}
+.th-bar{height:6px;border-radius:3px;display:inline-block;vertical-align:middle;}
+.btn-xs{padding:3px 8px;border-radius:5px;border:1px solid rgba(255,255,255,.15);background:transparent;color:rgba(240,246,255,.6);font-size:11px;cursor:pointer;font-family:inherit;}
+
+/* ─── CROSS-THEME SKILLS ─────────────────────────────────────────── */
+.multi-theme-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05);}
+.mtr-skill{flex:1;font-size:13px;color:#f0f6ff;}
+.mtr-themes{display:flex;gap:5px;flex-wrap:wrap;}
+.mtr-theme-dot{font-size:10px;padding:2px 7px;border-radius:9px;font-weight:600;}
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Theme Mapping Board</h1>
+  <span class="ph-sub">Assign content themes to skills — themes power the WonderQuest story/adventure wrapper</span>
+  <div class="ph-actions">
+    <button class="btn btn-secondary">⬇ Export Map</button>
+    <button class="btn btn-primary">+ Add Theme</button>
+  </div>
+</div>
+
+<div class="page-body">
+
+  <div class="eng-hint">
+    <strong>ENG NOTE — Theme Mapping Board v2:</strong> Themes are narrative wrappers applied over skills in the child-facing app.
+    A skill can belong to 1–3 themes (many-to-many via skill_themes table: skill_id, theme_id, primary BOOL).
+    <br><strong>Themes defined:</strong> Adventure / Nature / Space / City Life / Animals / Ocean World (v2.6; more in v3.0 roadmap).
+    <br>A skill with no theme = unmapped; unmapped skills cannot appear in theme-based adventure modes (only freeplay mode).
+    <br>Theme mapping is curriculum team responsibility. Does NOT affect adaptive difficulty or delivery_locked status.
+    <br>Tabs: Kanban Board / Theme Statistics / Multi-Theme Skills / Spec.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showTab('board')">Kanban Board</button>
+    <button class="tab-btn" onclick="showTab('stats')">Theme Statistics</button>
+    <button class="tab-btn" onclick="showTab('multi')">Multi-Theme Skills</button>
+    <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+  </div>
+
+  <!-- TAB: BOARD -->
+  <div id="tab-board" class="screen active">
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
+      <span style="font-size:12px;color:rgba(240,246,255,.4);">Filter band:</span>
+      <span class="tab-btn" style="padding:4px 10px;border:1px solid rgba(255,255,255,.12);border-radius:12px;font-size:11px;cursor:pointer;color:rgba(240,246,255,.55);" onclick="this.style.background='#50e890';this.style.color='#0d1117'">All</span>
+      <span style="font-size:12px;color:rgba(240,246,255,.35);margin-left:8px;">Drag skills between theme columns to remap. Click skill to edit.</span>
+      <span style="margin-left:auto;font-size:12px;color:#f0c040;">⚠ 23 unmapped skills</span>
+    </div>
+
+    <div class="board-wrap">
+      <div class="board">
+
+        <!-- Adventure -->
+        <div class="theme-col">
+          <div class="tc-header th-adventure">
+            <span class="tc-icon">🗺</span>
+            <span class="tc-name">Adventure</span>
+            <span class="tc-count" style="color:#ff7b6b;">18</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0062</div>
+              <div class="skc-title">Word problems: add/subtract</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Math</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0161</div>
+              <div class="skc-title">Long division with remainders</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Math</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0214</div>
+              <div class="skc-title">Plants need sunlight to grow</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Science</span><span class="skc-status ss-rev">Rev</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0088</div>
+              <div class="skc-title">Counting sides of shapes</div>
+              <div class="skc-meta"><span class="skc-band sc-p0">P0</span><span class="skc-subject">Math</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Nature -->
+        <div class="theme-col">
+          <div class="tc-header th-nature">
+            <span class="tc-icon">🌿</span>
+            <span class="tc-name">Nature</span>
+            <span class="tc-count" style="color:#50e890;">24</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0082</div>
+              <div class="skc-title">Plant needs (water/sunlight/soil)</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0215</div>
+              <div class="skc-title">Parts of a plant and their jobs</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0041</div>
+              <div class="skc-title">Animals: habitats</div>
+              <div class="skc-meta"><span class="skc-band sc-p0">P0</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0312</div>
+              <div class="skc-title">Water cycle</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Science</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Space -->
+        <div class="theme-col">
+          <div class="tc-header th-space">
+            <span class="tc-icon">🚀</span>
+            <span class="tc-name">Space</span>
+            <span class="tc-count" style="color:#9b72ff;">11</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0201</div>
+              <div class="skc-title">Planets of the solar system</div>
+              <div class="skc-meta"><span class="skc-band sc-p2">P2</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0202</div>
+              <div class="skc-title">Stars: size and brightness</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Science</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0162</div>
+              <div class="skc-title">Order of operations (PEMDAS)</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Math</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- City Life -->
+        <div class="theme-col">
+          <div class="tc-header th-city">
+            <span class="tc-icon">🏙</span>
+            <span class="tc-name">City Life</span>
+            <span class="tc-count" style="color:#58e8c1;">16</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0047</div>
+              <div class="skc-title">Community helpers</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Social Studies</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0311</div>
+              <div class="skc-title">Branches of government</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Social Studies</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0101</div>
+              <div class="skc-title">Skip counting by 2s and 5s</div>
+              <div class="skc-meta"><span class="skc-band sc-p1">P1</span><span class="skc-subject">Math</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Animals -->
+        <div class="theme-col">
+          <div class="tc-header th-animals">
+            <span class="tc-icon">🐾</span>
+            <span class="tc-name">Animals</span>
+            <span class="tc-count" style="color:#ffd166;">21</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0042</div>
+              <div class="skc-title">Animals and their legs</div>
+              <div class="skc-meta"><span class="skc-band sc-p0">P0</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0058</div>
+              <div class="skc-title">Animal body parts</div>
+              <div class="skc-meta"><span class="skc-band sc-p0">P0</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0189</div>
+              <div class="skc-title">Food chains basics</div>
+              <div class="skc-meta"><span class="skc-band sc-p2">P2</span><span class="skc-subject">Science</span><span class="skc-status ss-rev">Rev</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Ocean World -->
+        <div class="theme-col">
+          <div class="tc-header th-ocean">
+            <span class="tc-icon">🌊</span>
+            <span class="tc-name">Ocean World</span>
+            <span class="tc-count" style="color:#50aaff;">9</span>
+          </div>
+          <div class="tc-cards">
+            <div class="sk-card">
+              <div class="skc-id">SK-0241</div>
+              <div class="skc-title">Ocean animals: fish vs mammals</div>
+              <div class="skc-meta"><span class="skc-band sc-p2">P2</span><span class="skc-subject">Science</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div class="sk-card">
+              <div class="skc-id">SK-0192</div>
+              <div class="skc-title">Water: liquid and solid states</div>
+              <div class="skc-meta"><span class="skc-band sc-p2">P2</span><span class="skc-subject">Science</span><span class="skc-status ss-pub">✓</span></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Unmapped -->
+        <div class="theme-col">
+          <div class="unmapped-bucket">
+            <div class="ub-title">📦 Unmapped <span class="ub-badge">23</span></div>
+            <div class="sk-card unmapped" style="margin-bottom:6px;">
+              <div class="skc-id">SK-0061</div>
+              <div class="skc-title">Fractions: half of a shape</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Math</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div class="sk-card unmapped" style="margin-bottom:6px;">
+              <div class="skc-id">SK-0319</div>
+              <div class="skc-title">Map reading basics</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Soc. Studies</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div class="sk-card unmapped">
+              <div class="skc-id">SK-0172</div>
+              <div class="skc-title">Introduction to algebra</div>
+              <div class="skc-meta"><span class="skc-band sc-p3">P3</span><span class="skc-subject">Math</span><span class="skc-status ss-dft">Dft</span></div>
+            </div>
+            <div style="font-size:11px;color:rgba(240,246,255,.3);margin-top:8px;text-align:center;">+20 more</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: STATISTICS -->
+  <div id="tab-stats" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Theme Coverage Statistics</span></div>
+      <table class="theme-table">
+        <thead><tr><th>Theme</th><th>Mapped Skills</th><th>Coverage %</th><th>P0</th><th>P1</th><th>P2</th><th>P3</th><th>Action</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(255,123,107,.4)"></span>Adventure</td>
+            <td>18</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:72px;background:rgba(255,123,107,.3)"></div>18%</div></td>
+            <td>4</td><td>6</td><td>5</td><td>3</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(80,232,144,.35)"></span>Nature</td>
+            <td>24</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:96px;background:rgba(80,232,144,.3)"></div>24%</div></td>
+            <td>6</td><td>8</td><td>7</td><td>3</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(155,114,255,.4)"></span>Space</td>
+            <td>11</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:44px;background:rgba(155,114,255,.3)"></div>11%</div></td>
+            <td>1</td><td>2</td><td>5</td><td>3</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(88,232,193,.35)"></span>City Life</td>
+            <td>16</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:64px;background:rgba(88,232,193,.3)"></div>16%</div></td>
+            <td>3</td><td>5</td><td>5</td><td>3</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(255,209,102,.4)"></span>Animals</td>
+            <td>21</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:84px;background:rgba(255,209,102,.3)"></div>21%</div></td>
+            <td>8</td><td>7</td><td>4</td><td>2</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr>
+            <td><span class="th-swatch" style="background:rgba(80,160,232,.4)"></span>Ocean World</td>
+            <td>9</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:36px;background:rgba(80,160,232,.3)"></div>9%</div></td>
+            <td>1</td><td>2</td><td>4</td><td>2</td>
+            <td><button class="btn-xs">+ Map</button></td>
+          </tr>
+          <tr style="background:rgba(255,255,255,.02);">
+            <td style="color:rgba(240,246,255,.5);font-style:italic;">Unmapped</td>
+            <td style="color:#f0c040;font-weight:600;">23</td>
+            <td><div style="display:flex;align-items:center;gap:8px;"><div class="th-bar" style="width:92px;background:rgba(240,192,64,.2)"></div><span style="color:#f0c040;">23%</span></div></td>
+            <td style="color:rgba(240,246,255,.4);">1</td><td style="color:rgba(240,246,255,.4);">4</td><td style="color:rgba(240,246,255,.4);">6</td><td style="color:#f0c040;">12</td>
+            <td><button class="btn-xs" style="border-color:rgba(240,192,64,.3);color:#f0c040;">Map All</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB: MULTI-THEME -->
+  <div id="tab-multi" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Skills with Multiple Theme Assignments</span><span style="font-size:11px;color:rgba(240,246,255,.35);">Max 3 themes per skill</span></div>
+      <div style="font-size:12px;color:rgba(240,246,255,.45);margin-bottom:14px;">Skills appearing in multiple themes can serve learners in different adventure mode contexts. Primary theme marked in bold.</div>
+      <div>
+        <div class="multi-theme-row">
+          <div class="mtr-skill"><strong>SK-0214</strong> · Plants need sunlight to grow</div>
+          <div class="mtr-themes">
+            <span class="mtr-theme-dot" style="background:rgba(255,123,107,.15);color:#ff7b6b;font-weight:700;">Adventure ★</span>
+            <span class="mtr-theme-dot" style="background:rgba(80,232,144,.1);color:#50e890;">Nature</span>
+          </div>
+        </div>
+        <div class="multi-theme-row">
+          <div class="mtr-skill"><strong>SK-0101</strong> · Skip counting by 2s and 5s</div>
+          <div class="mtr-themes">
+            <span class="mtr-theme-dot" style="background:rgba(88,232,193,.12);color:#58e8c1;font-weight:700;">City Life ★</span>
+            <span class="mtr-theme-dot" style="background:rgba(255,123,107,.12);color:#ff7b6b;">Adventure</span>
+          </div>
+        </div>
+        <div class="multi-theme-row">
+          <div class="mtr-skill"><strong>SK-0041</strong> · Animals: habitats</div>
+          <div class="mtr-themes">
+            <span class="mtr-theme-dot" style="background:rgba(80,232,144,.1);color:#50e890;font-weight:700;">Nature ★</span>
+            <span class="mtr-theme-dot" style="background:rgba(255,209,102,.15);color:#ffd166;">Animals</span>
+            <span class="mtr-theme-dot" style="background:rgba(80,160,232,.12);color:#50aaff;">Ocean</span>
+          </div>
+        </div>
+        <div class="multi-theme-row">
+          <div class="mtr-skill"><strong>SK-0192</strong> · Water: liquid and solid states</div>
+          <div class="mtr-themes">
+            <span class="mtr-theme-dot" style="background:rgba(80,160,232,.12);color:#50aaff;font-weight:700;">Ocean ★</span>
+            <span class="mtr-theme-dot" style="background:rgba(80,232,144,.1);color:#50e890;">Nature</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB: SPEC -->
+  <div id="tab-spec" class="screen">
+    <div class="section-block">
+      <div class="sb-head"><span class="sb-title">Theme Mapping Rules</span></div>
+      <div style="font-size:13px;color:rgba(240,246,255,.6);line-height:1.8;">
+        <p>1. Each skill may be mapped to <strong>1–3 themes</strong>. First theme = primary (used for default adventure mode grouping).</p>
+        <p>2. Unmapped skills appear only in <strong>Free Play mode</strong>, not in themed adventure modes.</p>
+        <p>3. Theme assignment does NOT affect <strong>adaptive difficulty, skill ordering, or delivery_locked</strong> status.</p>
+        <p>4. ELA skills typically map to Adventure or City Life (story contexts). Science → Nature/Space/Animals/Ocean. Math → Adventure/City Life.</p>
+        <p>5. Social Studies → City Life preferred. Arts &amp; Music → any theme.</p>
+        <p>6. Theme content assets (backgrounds, characters) are managed separately in the <strong>Asset Library</strong> (type=theme_asset).</p>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function showTab(tab) {
+  const tabs = ['board','stats','multi','spec'];
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', tabs[i] === tab));
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  const el = document.getElementById('tab-' + tab);
+  if (el) el.classList.add('active');
+}
+</script>
+</body>
+</html>

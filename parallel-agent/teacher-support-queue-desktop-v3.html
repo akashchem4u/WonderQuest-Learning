@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Support Queue — Desktop — WonderQuest v3</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:960px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:1100px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* App shell */
+.app-shell{width:1060px;height:660px;display:flex;border-radius:16px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.2);border:1px solid #222}
+.sidebar{width:220px;background:#0f172a;display:flex;flex-direction:column;flex-shrink:0}
+.sb-logo{padding:20px 18px 14px;font-size:15px;font-weight:900;color:#fff;border-bottom:1px solid rgba(255,255,255,.06)}
+.sb-logo span{color:#2563eb}
+.sb-section{padding:14px 12px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3)}
+.sb-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;margin:1px 6px;font-size:13px;font-weight:600;color:rgba(255,255,255,.55);cursor:pointer;transition:all .15s}
+.sb-item.active{background:#2563eb22;color:#2563eb}
+.sb-item:hover{background:rgba(255,255,255,.05);color:#fff}
+.sb-icon{font-size:14px;width:20px;text-align:center}
+.sb-badge{margin-left:auto;background:#ef4444;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:8px}
+.sb-spacer{flex:1}
+.sb-footer{padding:12px;border-top:1px solid rgba(255,255,255,.06)}
+.sb-av{width:30px;height:30px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+.sb-name{font-size:12px;font-weight:700;color:rgba(255,255,255,.7)}
+.sb-role{font-size:10px;color:rgba(255,255,255,.35)}
+
+/* Main */
+.main-area{flex:1;background:#f0f4f8;display:flex;flex-direction:column;overflow:hidden}
+.main-topbar{background:#fff;border-bottom:1px solid #e8ecf0;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.topbar-title{font-size:16px;font-weight:800;color:#1a1440}
+.topbar-sub{font-size:11px;color:#8a7a6a;margin-top:2px}
+.topbar-actions{display:flex;gap:8px}
+.btn-primary{padding:8px 16px;background:#2563eb;color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+.btn-secondary{padding:8px 16px;background:#fff;color:#2563eb;border:1.5px solid #dbe7ff;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:system-ui}
+
+.main-content{flex:1;overflow-y:auto;padding:18px 20px;display:flex;gap:16px}
+
+/* ── Filter sidebar ───────────────────────────────────────────────── */
+.filter-col{width:200px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+.filter-card{background:#fff;border-radius:12px;padding:14px;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.filter-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440;margin-bottom:10px}
+.filter-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f5f7fa;cursor:pointer}
+.filter-item:last-child{border-bottom:none}
+.filter-check{width:14px;height:14px;border-radius:4px;border:2px solid #dbe7ff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.filter-check.checked{background:#2563eb;border-color:#2563eb;color:#fff;font-size:9px}
+.filter-label{font-size:12px;font-weight:600;color:#444;flex:1}
+.filter-count{font-size:11px;font-weight:700;color:#aaa}
+
+/* ── Queue list ───────────────────────────────────────────────────── */
+.queue-col{flex:1;display:flex;flex-direction:column;gap:10px}
+
+/* Queue item expanded card */
+.qitem{background:#fff;border-radius:14px;padding:0;box-shadow:0 2px 8px rgba(0,0,0,.07);overflow:hidden}
+.qitem-amber{border-left:4px solid #f59e0b}
+.qitem-blue{border-left:4px solid #3b82f6}
+.qitem-header{display:flex;align-items:center;gap:12px;padding:14px 16px;cursor:pointer}
+.qitem-icon{font-size:20px;flex-shrink:0}
+.qitem-title-col{flex:1}
+.qitem-name{font-size:14px;font-weight:800;color:#1a1440}
+.qitem-trigger{font-size:12px;color:#666;margin-top:2px}
+.qitem-meta{display:flex;gap:6px;margin-top:6px}
+.meta-chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px}
+.mc-amber{background:#fef3c7;color:#92400e}
+.mc-blue{background:#eff6ff;color:#2563eb}
+.mc-gray{background:#f5f5f5;color:#666}
+.qitem-right{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.qitem-since{font-size:11px;color:#aaa}
+.dismiss-btn{padding:6px 12px;background:transparent;color:#aaa;border:1.5px solid #eee;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui}
+.act-btn{padding:6px 14px;background:#2563eb;color:#fff;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:system-ui}
+
+/* Expanded detail */
+.qitem-detail{padding:0 16px 14px;border-top:1px solid #f5f7fa}
+.detail-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#aaa;margin:10px 0 6px}
+.detail-text{font-size:13px;color:#444;line-height:1.5}
+.skill-pattern-row{display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid #f5f7fa;font-size:12px;color:#444}
+.skill-pattern-row:last-child{border-bottom:none}
+.spr-skill{font-weight:700;flex:1;color:#1a1440}
+.spr-hits{font-size:11px;color:#f59e0b;font-weight:700}
+.spr-bar-bg{width:60px;height:4px;background:#f0f4f8;border-radius:2px;overflow:hidden}
+.spr-bar-fill{height:100%;background:#f59e0b;border-radius:2px}
+.action-row{display:flex;gap:8px;margin-top:12px}
+
+/* Empty state */
+.empty-queue{text-align:center;padding:40px 20px;color:#aaa}
+.empty-icon{font-size:42px;margin-bottom:14px}
+.empty-title{font-size:16px;font-weight:800;color:#1a1440;margin-bottom:6px}
+.empty-sub{font-size:13px;color:#888;line-height:1.5}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:960px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-amber{background:#fef3c7;color:#92400e}
+.tag-blue{background:#eff6ff;color:#2563eb}
+.tag-red{background:#fff0f0;color:#dc2626}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-support-queue-desktop-v3.html</strong><br>
+  Dedicated support queue page — full list of students needing teacher attention, with expanded detail cards.<br>
+  <strong>Queue triggers (4 types):</strong><br>
+  &nbsp;&nbsp;• ⚠️ Confidence floor: confidence_floor_hit ≥ 3 on same skill (amber)<br>
+  &nbsp;&nbsp;• 📅 Absence: no sessions ≥ 5 calendar days (amber)<br>
+  &nbsp;&nbsp;• 💡 Hint pattern: hint_requests ≥ 5 on same skill this week (amber)<br>
+  &nbsp;&nbsp;• 💙 Band ceiling: at band max, ready to advance (blue/positive)<br>
+  <strong>Expanded card shows:</strong> trigger detail, skill context, suggested action — NOT wrong answers, NOT accuracy %, NOT specific question text.<br>
+  <strong>Actions per item:</strong> View student / Resolve / Dismiss / Note (log teacher note).<br>
+  <strong>Filters:</strong> by trigger type, by band, by status (new / acknowledged / resolved).<br>
+  <strong>Privacy:</strong> first names only, pattern-level skill data, no parent contact info.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('queue')">Full Queue</button>
+  <button class="tab-btn" onclick="showTab('expanded')">Expanded Item</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Full Queue ──────────────────────────────────────────────────── -->
+<div id="tab-queue" class="screen active">
+  <p class="section-title">Desktop — full support queue list with filter panel</p>
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sb-logo">Wonder<span>Quest</span></div>
+      <div class="sb-section">Class</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item"><span class="sb-icon">🎛️</span>Command Center</div>
+      <div class="sb-item"><span class="sb-icon">👥</span>Students</div>
+      <div class="sb-item active"><span class="sb-icon">⚠️</span>Support Queue <span class="sb-badge">4</span></div>
+      <div class="sb-section">Analytics</div>
+      <div class="sb-item"><span class="sb-icon">📊</span>Progress Report</div>
+      <div class="sb-item"><span class="sb-icon">📈</span>Skill Trends</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="sb-av">MS</div>
+          <div><div class="sb-name">Ms. Sharma</div><div class="sb-role">Grade 4 · 4B</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="main-area">
+      <div class="main-topbar">
+        <div>
+          <div class="topbar-title">⚠️ Support Queue</div>
+          <div class="topbar-sub">4 students — 3 amber · 1 blue (positive)</div>
+        </div>
+        <div class="topbar-actions">
+          <button class="btn-secondary">Dismiss all amber</button>
+          <button class="btn-primary">📤 Export</button>
+        </div>
+      </div>
+
+      <div class="main-content">
+
+        <!-- Filter column -->
+        <div class="filter-col">
+          <div class="filter-card">
+            <div class="filter-title">Trigger type</div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">⚠️ Confidence floor</div>
+              <div class="filter-count">1</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">📅 Absence</div>
+              <div class="filter-count">1</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">💡 Hint pattern</div>
+              <div class="filter-count">1</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">💙 Band ceiling</div>
+              <div class="filter-count">1</div>
+            </div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-title">Band</div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">P1 K–1</div>
+              <div class="filter-count">1</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">P2 G2–3</div>
+              <div class="filter-count">3</div>
+            </div>
+          </div>
+          <div class="filter-card">
+            <div class="filter-title">Status</div>
+            <div class="filter-item">
+              <div class="filter-check checked">✓</div>
+              <div class="filter-label">New</div>
+              <div class="filter-count">3</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check"></div>
+              <div class="filter-label">Acknowledged</div>
+              <div class="filter-count">1</div>
+            </div>
+            <div class="filter-item">
+              <div class="filter-check"></div>
+              <div class="filter-label">Resolved</div>
+              <div class="filter-count">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Queue list -->
+        <div class="queue-col">
+
+          <!-- Confidence floor item -->
+          <div class="qitem qitem-amber">
+            <div class="qitem-header">
+              <div class="qitem-icon">⚠️</div>
+              <div class="qitem-title-col">
+                <div class="qitem-name">Jordan</div>
+                <div class="qitem-trigger">Confidence floor hit 3× on same skill</div>
+                <div class="qitem-meta">
+                  <span class="meta-chip mc-amber">Confidence floor</span>
+                  <span class="meta-chip mc-gray">P2 · G2–3</span>
+                  <span class="meta-chip mc-gray">Fractions: Division</span>
+                </div>
+              </div>
+              <div class="qitem-right">
+                <div class="qitem-since">Triggered 2 days ago</div>
+                <div style="display:flex;gap:6px">
+                  <button class="dismiss-btn">Dismiss</button>
+                  <button class="act-btn">View student</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Absence item -->
+          <div class="qitem qitem-amber">
+            <div class="qitem-header">
+              <div class="qitem-icon">📅</div>
+              <div class="qitem-title-col">
+                <div class="qitem-name">Priya</div>
+                <div class="qitem-trigger">No sessions in 5 days</div>
+                <div class="qitem-meta">
+                  <span class="meta-chip mc-amber">Absence</span>
+                  <span class="meta-chip mc-gray">P1 · K–1</span>
+                  <span class="meta-chip mc-gray">Last active Thu</span>
+                </div>
+              </div>
+              <div class="qitem-right">
+                <div class="qitem-since">5 days ago</div>
+                <div style="display:flex;gap:6px">
+                  <button class="dismiss-btn">Dismiss</button>
+                  <button class="act-btn">View student</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hint pattern -->
+          <div class="qitem qitem-amber">
+            <div class="qitem-header">
+              <div class="qitem-icon">💡</div>
+              <div class="qitem-title-col">
+                <div class="qitem-name">Sam</div>
+                <div class="qitem-trigger">Repeated hint requests on same skill this week</div>
+                <div class="qitem-meta">
+                  <span class="meta-chip mc-amber">Hint pattern</span>
+                  <span class="meta-chip mc-gray">P2 · G2–3</span>
+                  <span class="meta-chip mc-gray">Place Value: Hundreds</span>
+                </div>
+              </div>
+              <div class="qitem-right">
+                <div class="qitem-since">Triggered today</div>
+                <div style="display:flex;gap:6px">
+                  <button class="dismiss-btn">Dismiss</button>
+                  <button class="act-btn">View student</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Band ceiling (positive) -->
+          <div class="qitem qitem-blue">
+            <div class="qitem-header">
+              <div class="qitem-icon">💙</div>
+              <div class="qitem-title-col">
+                <div class="qitem-name">Marcus</div>
+                <div class="qitem-trigger">Consistently reaching band ceiling — ready to advance</div>
+                <div class="qitem-meta">
+                  <span class="meta-chip mc-blue">Band ceiling</span>
+                  <span class="meta-chip mc-gray">P2 → P3</span>
+                  <span class="meta-chip mc-gray">3 weeks at ceiling</span>
+                </div>
+              </div>
+              <div class="qitem-right">
+                <div class="qitem-since">3 weeks</div>
+                <div style="display:flex;gap:6px">
+                  <button class="dismiss-btn">Dismiss</button>
+                  <button class="act-btn" style="background:#3b82f6">Review band</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Expanded Item ────────────────────────────────────────────────── -->
+<div id="tab-expanded" class="screen">
+  <p class="section-title">Expanded queue item — confidence floor with skill pattern detail</p>
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sb-logo">Wonder<span>Quest</span></div>
+      <div class="sb-section">Class</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item active"><span class="sb-icon">⚠️</span>Support Queue <span class="sb-badge">4</span></div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer"><div style="display:flex;align-items:center;gap:8px"><div class="sb-av">MS</div><div><div class="sb-name">Ms. Sharma</div><div class="sb-role">Grade 4 · 4B</div></div></div></div>
+    </div>
+    <div class="main-area">
+      <div class="main-topbar">
+        <div><div class="topbar-title">⚠️ Support Queue</div><div class="topbar-sub">4 students</div></div>
+        <div class="topbar-actions"><button class="btn-primary">📤 Export</button></div>
+      </div>
+      <div class="main-content" style="display:block;padding:18px 20px">
+
+        <!-- Expanded confidence floor card -->
+        <div class="qitem qitem-amber" style="margin-bottom:12px">
+          <div class="qitem-header">
+            <div class="qitem-icon">⚠️</div>
+            <div class="qitem-title-col">
+              <div class="qitem-name">Jordan · Confidence floor</div>
+              <div class="qitem-trigger">Hit confidence floor 3× on Fractions: Division this week</div>
+              <div class="qitem-meta">
+                <span class="meta-chip mc-amber">Confidence floor</span>
+                <span class="meta-chip mc-gray">P2 · G2–3</span>
+              </div>
+            </div>
+            <div class="qitem-right">
+              <div class="qitem-since">Triggered 2 days ago</div>
+              <div style="display:flex;gap:6px">
+                <button class="dismiss-btn">Dismiss</button>
+                <button class="act-btn">View full profile</button>
+              </div>
+            </div>
+          </div>
+          <div class="qitem-detail">
+            <div class="detail-label">Skill pattern (this week)</div>
+            <div class="skill-pattern-row">
+              <div class="spr-skill">Fractions: Division (equal parts)</div>
+              <div class="spr-hits">3× floor</div>
+              <div class="spr-bar-bg"><div class="spr-bar-fill" style="width:100%"></div></div>
+            </div>
+            <div class="skill-pattern-row">
+              <div class="spr-skill">Fractions: Basic (what is a fraction)</div>
+              <div class="spr-hits">1× floor</div>
+              <div class="spr-bar-bg"><div class="spr-bar-fill" style="width:33%"></div></div>
+            </div>
+            <div class="detail-label">Suggested support</div>
+            <div class="detail-text">Jordan may benefit from revisiting the concept of equal parts before continuing with division of fractions. Consider pairing with a concrete model activity or one-on-one check-in. The system has slightly reduced difficulty while this flag is active.</div>
+            <div class="action-row">
+              <button class="act-btn">View Jordan's profile</button>
+              <button class="btn-secondary">Log a note</button>
+              <button class="dismiss-btn">Mark resolved</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Note about what is NOT shown -->
+        <div style="background:#eff6ff;border-radius:10px;padding:12px 14px;font-size:12px;color:#1e3a8a;line-height:1.5">
+          <strong>ℹ️ Privacy note:</strong> This card shows skill-category patterns and floor-hit counts only. It does NOT show specific questions Jordan answered, exact answers given, or accuracy percentages. Wrong-answer data is never surfaced in teacher views.
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty State ─────────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty state — no students in queue</p>
+  <div class="app-shell">
+    <div class="sidebar">
+      <div class="sb-logo">Wonder<span>Quest</span></div>
+      <div class="sb-section">Class</div>
+      <div class="sb-item"><span class="sb-icon">🏠</span>Home</div>
+      <div class="sb-item active"><span class="sb-icon">✅</span>Support Queue</div>
+      <div class="sb-spacer"></div>
+      <div class="sb-footer"><div style="display:flex;align-items:center;gap:8px"><div class="sb-av">MS</div><div><div class="sb-name">Ms. Sharma</div><div class="sb-role">Grade 4 · 4B</div></div></div></div>
+    </div>
+    <div class="main-area">
+      <div class="main-topbar">
+        <div><div class="topbar-title">✅ Support Queue</div><div class="topbar-sub">No students need attention right now</div></div>
+      </div>
+      <div class="main-content" style="display:flex;align-items:center;justify-content:center">
+        <div class="empty-queue">
+          <div class="empty-icon">🎉</div>
+          <div class="empty-title">All clear!</div>
+          <div class="empty-sub">No students in the support queue right now.<br>The queue updates automatically as new triggers are detected.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-support-queue-desktop-v3.html<br>
+      <strong>Route:</strong> /teacher/support-queue<br>
+      <strong>Queue badge:</strong> Red count badge on sidebar nav item when queue_count > 0.
+    </div>
+    <h2 class="spec-h2">Queue Trigger Types</h2>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Trigger condition</th><th>Colour</th><th>Suggested action</th></tr>
+      <tr><td>⚠️ Confidence floor</td><td>confidence_floor_hit ≥ 3 on same skill</td><td><span class="tag tag-amber">Amber</span></td><td>Check-in / adjust difficulty</td></tr>
+      <tr><td>📅 Absence</td><td>No sessions in ≥ 5 calendar days</td><td><span class="tag tag-amber">Amber</span></td><td>Welfare check / re-engagement</td></tr>
+      <tr><td>💡 Hint pattern</td><td>hint_requests ≥ 5 on same skill this week</td><td><span class="tag tag-amber">Amber</span></td><td>Concept review / group activity</td></tr>
+      <tr><td>💙 Band ceiling</td><td>Consistently at band max for 2+ weeks</td><td><span class="tag tag-blue">Blue (positive)</span></td><td>Review band advancement</td></tr>
+    </table>
+    <h2 class="spec-h2">Expanded Card — What IS and IS NOT Shown</h2>
+    <table class="spec-table">
+      <tr><th>Data</th><th>Shown</th><th>Reason</th></tr>
+      <tr><td>Skill category + floor-hit count</td><td><span class="tag tag-blue">YES</span></td><td>Pattern-level — gives context without exposing specific answers</td></tr>
+      <tr><td>Suggested support action</td><td><span class="tag tag-blue">YES</span></td><td>Curated suggestions from pedagogical library</td></tr>
+      <tr><td>Specific questions answered</td><td><span class="tag tag-red">NEVER</span></td><td>Individual question data not surfaced in teacher views</td></tr>
+      <tr><td>Accuracy % on the skill</td><td><span class="tag tag-red">NEVER</span></td><td>Not shown in queue items — available in progress report with context</td></tr>
+      <tr><td>Specific wrong answers given</td><td><span class="tag tag-red">NEVER</span></td><td>Wrong-answer data never surfaced in any teacher view</td></tr>
+    </table>
+    <h2 class="spec-h2">Actions per Queue Item</h2>
+    <p class="spec-p">View student (→ student profile) | Log a note (freetext teacher note, timestamped) | Mark resolved (removes from queue, archived 30 days) | Dismiss (hides for 7 days, re-surfaces if trigger repeats).</p>
+    <h2 class="spec-h2">Automatic Queue Management</h2>
+    <p class="spec-p">Queue items are auto-resolved when: student has not hit the trigger condition in 5 days (confidence floor / hint pattern) | student resumes sessions (absence) | teacher marks resolved. Band ceiling is never auto-resolved — requires teacher action.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

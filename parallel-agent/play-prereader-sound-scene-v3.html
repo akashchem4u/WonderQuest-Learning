@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play Pre-Reader Sound Scene — v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 900px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #ffd166; color: #e8e0ff; }
+  .tab-btn.active { background: #ffd166; border-color: #ffd166; color: #1a1000; }
+
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  .scene-card {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+
+  /* Gold Pre-K top bar */
+  .scene-topbar {
+    background: linear-gradient(135deg, #2a1800, #1a0c00);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid #3a2400;
+  }
+  .sct-back { background: rgba(255,209,102,0.15); border: 1.5px solid #ffd166; border-radius: 8px; color: #ffd166; font-family: 'Nunito', sans-serif; font-size: 11px; font-weight: 700; padding: 4px 10px; cursor: pointer; }
+  .sct-info { flex: 1; }
+  .sct-name { font-size: 13px; font-weight: 900; color: #fff8e0; }
+  .sct-sub { font-size: 10px; color: #c4a840; margin-top: 1px; }
+  .sct-stars { font-size: 13px; font-weight: 900; color: #ffd166; }
+
+  .prog-row {
+    display: flex;
+    gap: 3px;
+    padding: 8px 20px;
+    background: #1a0c00;
+    border-bottom: 1px solid #2a1800;
+  }
+  .pr-seg { flex: 1; height: 6px; border-radius: 3px; background: #2a1800; }
+  .pr-seg.done { background: #ffd166; }
+  .pr-seg.active { background: #f0a000; animation: seg-pulse 1.5s ease-in-out infinite; }
+  @keyframes seg-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+
+  /* Scene area */
+  .scene-area {
+    padding: 28px 40px 24px;
+    text-align: center;
+    background: linear-gradient(180deg, #100b2e, #12103a);
+  }
+  .scene-q-label { font-size: 11px; font-weight: 900; color: #c4a840; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 14px; }
+
+  /* Big audio button — the main interaction for sound scene */
+  .audio-hero-btn {
+    width: 160px;
+    height: 160px;
+    background: linear-gradient(135deg, #2a1800, #3a2200);
+    border: 4px solid #ffd166;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 60px;
+    margin: 0 auto 16px;
+    cursor: pointer;
+    box-shadow: 0 0 30px rgba(255,209,102,0.2);
+    transition: transform 0.15s, box-shadow 0.15s;
+    position: relative;
+  }
+  .audio-hero-btn:hover { transform: scale(1.05); box-shadow: 0 0 50px rgba(255,209,102,0.35); }
+  .audio-hero-btn.playing {
+    animation: audio-pulse 0.8s ease-in-out infinite;
+  }
+  @keyframes audio-pulse {
+    0%, 100% { box-shadow: 0 0 20px rgba(255,209,102,0.3), 0 0 40px rgba(255,209,102,0.15); }
+    50% { box-shadow: 0 0 40px rgba(255,209,102,0.6), 0 0 80px rgba(255,209,102,0.25); }
+  }
+  .ahb-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #ffd166;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  /* Wave bars below audio button (playing state) */
+  .wave-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    justify-content: center;
+    height: 24px;
+    margin-bottom: 12px;
+  }
+  .wb { width: 5px; border-radius: 3px; background: #ffd166; animation: wave-dance var(--dur) ease-in-out infinite; }
+  @keyframes wave-dance {
+    0%, 100% { height: 4px; }
+    50% { height: var(--max-h); }
+  }
+
+  .scene-prompt { font-size: 20px; font-weight: 900; color: #e8e0ff; margin-bottom: 4px; }
+  .scene-sub { font-size: 13px; color: #9b8ec4; margin-bottom: 20px; }
+
+  /* Letter answer choices */
+  .letter-choices {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    margin-bottom: 16px;
+  }
+  .letter-choice {
+    width: 80px;
+    height: 80px;
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    font-weight: 900;
+    color: #e8e0ff;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s, background 0.15s;
+  }
+  .letter-choice:hover { border-color: #ffd166; transform: scale(1.08); background: #2a1800; color: #ffd166; }
+  .letter-choice.correct { border-color: #50e890; background: #1a3a20; color: #50e890; }
+  .letter-choice.wrong { border-color: #ff7b6b; background: #2a1010; color: #ff7b6b; animation: shake 0.4s; }
+
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+
+  /* Coach */
+  .coach-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #1a1540;
+    border-radius: 12px;
+    padding: 10px 14px;
+    max-width: 460px;
+    margin: 0 auto 8px;
+  }
+  .cr-avatar { font-size: 26px; }
+  .cr-speech { font-size: 12px; font-weight: 700; color: #c4b0ff; }
+
+  .star-safe-scene { display: inline-flex; align-items: center; gap: 5px; background: #1a2a15; border: 1.5px solid #50e890; border-radius: 14px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #50e890; margin-bottom: 16px; }
+
+  /* Bottom */
+  .scene-bottom {
+    padding: 12px 20px;
+    background: #12103a;
+    border-top: 1px solid #1a1540;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .sb-btn { background: #1a1540; border: 2px solid #2a2060; border-radius: 10px; color: #9b8ec4; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; padding: 8px 14px; cursor: pointer; }
+  .sb-btn.audio { border-color: #ffd166; color: #ffd166; }
+  .sb-btn.idk { border-color: #ff7b6b44; color: #ff7b6b; background: transparent; }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #ffd166; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — play-prereader-sound-scene-v3.html</strong><br>
+  States: <strong>Ready (tap to listen)</strong> / <strong>Playing audio</strong> / <strong>Correct</strong> / <strong>Spec</strong><br>
+  Pre-K gold theme. Circular audio hero button (160px) — primary interaction is listening.<br>
+  Scene type: hear a phoneme sound → pick the letter that makes that sound. Audio plays on tap.<br>
+  Wave bars animate while audio plays. Letter choices: 4 large buttons (A/B/C/D style). No text prompt — pure audio listening task.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('ready')">Ready (Tap to Listen)</button>
+  <button class="tab-btn" onclick="showTab('playing')">Playing Audio</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct!</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: READY ── -->
+<div class="screen active" id="tab-ready">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div class="sct-info">
+        <div class="sct-name">Sound Quest!</div>
+        <div class="sct-sub">Forest Glen · Node 2 · Q4</div>
+      </div>
+      <div class="sct-stars">🌟 7</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg active"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area">
+      <div class="scene-q-label">Listen to the sound — then pick the letter!</div>
+
+      <div class="audio-hero-btn">
+        🔊
+        <div class="ahb-label">TAP TO HEAR</div>
+      </div>
+
+      <!-- Silent wave bar placeholder -->
+      <div class="wave-row" style="opacity:0.2">
+        <div class="wb" style="--dur:0.6s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.8s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.5s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.7s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.6s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.9s;--max-h:6px;height:6px"></div>
+        <div class="wb" style="--dur:0.5s;--max-h:6px;height:6px"></div>
+      </div>
+
+      <div class="scene-prompt">Which letter makes that sound?</div>
+      <div class="scene-sub">Tap 🔊 to hear the sound, then pick the right letter!</div>
+
+      <div class="letter-choices">
+        <div class="letter-choice">A</div>
+        <div class="letter-choice">B</div>
+        <div class="letter-choice">D</div>
+        <div class="letter-choice">S</div>
+      </div>
+
+      <div class="coach-row">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech">Tap the big sound button to hear the mystery sound! Then find its letter! 👂</div>
+      </div>
+      <div class="star-safe-scene">⭐ Your stars are safe!</div>
+    </div>
+
+    <div class="scene-bottom">
+      <button class="sb-btn audio">🔊 Hear again</button>
+      <button class="sb-btn">💡 Hint</button>
+      <button class="sb-btn idk">🤷 I don't know yet</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: PLAYING ── -->
+<div class="screen" id="tab-playing">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div class="sct-info">
+        <div class="sct-name">Sound Quest!</div>
+        <div class="sct-sub" style="color:#ffd166">Playing sound...</div>
+      </div>
+      <div class="sct-stars">🌟 7</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg active"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area">
+      <div class="scene-q-label" style="color:#ffd166">🎵 Listen carefully...</div>
+
+      <div class="audio-hero-btn playing">
+        🔊
+        <div class="ahb-label">PLAYING...</div>
+      </div>
+
+      <div class="wave-row">
+        <div class="wb" style="--dur:0.6s;--max-h:20px"></div>
+        <div class="wb" style="--dur:0.4s;--max-h:18px;animation-delay:0.05s"></div>
+        <div class="wb" style="--dur:0.8s;--max-h:22px;animation-delay:0.1s"></div>
+        <div class="wb" style="--dur:0.5s;--max-h:16px;animation-delay:0.15s"></div>
+        <div class="wb" style="--dur:0.7s;--max-h:20px;animation-delay:0.2s"></div>
+        <div class="wb" style="--dur:0.6s;--max-h:24px;animation-delay:0.08s"></div>
+        <div class="wb" style="--dur:0.9s;--max-h:18px;animation-delay:0.12s"></div>
+      </div>
+
+      <div class="scene-prompt">Which letter makes that sound?</div>
+      <div class="scene-sub">The sound is playing — listen close! 👂</div>
+
+      <div class="letter-choices">
+        <div class="letter-choice" style="opacity:0.5;cursor:default">A</div>
+        <div class="letter-choice" style="opacity:0.5;cursor:default">B</div>
+        <div class="letter-choice" style="opacity:0.5;cursor:default">D</div>
+        <div class="letter-choice" style="opacity:0.5;cursor:default">S</div>
+      </div>
+
+      <div class="coach-row" style="border-color:#ffd166">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech" style="color:#ffd166">Sshh — listen! What letter makes this sound? 🎵</div>
+      </div>
+      <div class="star-safe-scene">⭐ Your stars are safe!</div>
+    </div>
+
+    <div class="scene-bottom">
+      <div style="font-size:12px;color:#ffd166;font-weight:700;animation:seg-pulse 1s ease-in-out infinite">🎵 Listening...</div>
+      <div></div><div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: CORRECT ── -->
+<div class="screen" id="tab-correct">
+  <div class="scene-card">
+    <div class="scene-topbar">
+      <button class="sct-back">← Home</button>
+      <div class="sct-info">
+        <div class="sct-name">Sound Quest!</div>
+        <div class="sct-sub" style="color:#50e890">Q4 ✓ You got it!</div>
+      </div>
+      <div class="sct-stars" style="color:#50e890">🌟 8 +1!</div>
+    </div>
+    <div class="prog-row">
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done"></div>
+      <div class="pr-seg done" style="background:#ffd166"></div>
+      <div class="pr-seg"></div>
+      <div class="pr-seg"></div>
+    </div>
+
+    <div class="scene-area" style="background:radial-gradient(ellipse at 50% 30%,rgba(80,232,144,0.08) 0%,transparent 70%)">
+      <div class="scene-q-label" style="color:#50e890">✓ That's right!</div>
+
+      <div class="audio-hero-btn" style="border-color:#50e890;background:linear-gradient(135deg,#1a3a20,#2a5a30);cursor:default">
+        🎵
+        <div class="ahb-label" style="color:#50e890">BUH-BUH-BUH!</div>
+      </div>
+
+      <div class="wave-row">
+        <div class="wb" style="--dur:0.6s;--max-h:20px;background:#50e890"></div>
+        <div class="wb" style="--dur:0.4s;--max-h:18px;background:#50e890;animation-delay:0.05s"></div>
+        <div class="wb" style="--dur:0.8s;--max-h:22px;background:#50e890;animation-delay:0.1s"></div>
+        <div class="wb" style="--dur:0.5s;--max-h:16px;background:#50e890;animation-delay:0.15s"></div>
+        <div class="wb" style="--dur:0.7s;--max-h:20px;background:#50e890;animation-delay:0.2s"></div>
+      </div>
+
+      <div class="scene-prompt" style="color:#50e890">🎉 B makes the buh-buh sound!</div>
+      <div class="scene-sub">You have amazing listening ears!</div>
+
+      <div class="letter-choices">
+        <div class="letter-choice" style="opacity:0.35">A</div>
+        <div class="letter-choice correct">B</div>
+        <div class="letter-choice" style="opacity:0.35">D</div>
+        <div class="letter-choice" style="opacity:0.35">S</div>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:center;margin-bottom:10px">
+        <div style="background:#1a3a20;border:2px solid #50e890;border-radius:12px;padding:8px 18px;font-size:14px;font-weight:900;color:#50e890">+1 ⭐</div>
+      </div>
+
+      <div class="coach-row" style="background:#1a3a20;border:1px solid #50e890">
+        <div class="cr-avatar">🦁</div>
+        <div class="cr-speech" style="color:#50e890">Buh-buh-buh = B! Your ears are superpower ears! 🌟</div>
+      </div>
+
+      <button style="margin-top:12px;background:linear-gradient(135deg,#ffd166,#f0a000);border:none;border-radius:12px;color:#1a1000;font-family:'Nunito',sans-serif;font-size:14px;font-weight:900;padding:12px 28px;cursor:pointer">Next Sound →</button>
+    </div>
+
+    <div class="scene-bottom">
+      <div style="font-size:12px;color:#50e890;font-weight:700">✓ Saved!</div>
+      <div></div><div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">play-prereader-sound-scene-v3.html</div></div>
+    <div class="spec-row"><div class="spec-k">Band</div><div class="spec-v">Pre-K · Gold theme</div></div>
+    <div class="spec-row"><div class="spec-k">Scene type</div><div class="spec-v">Hear phoneme sound → pick letter that makes it</div></div>
+
+    <h3>Audio Hero Button</h3>
+    <div class="spec-row"><div class="spec-k">Size</div><div class="spec-v">160×160px circle · 60px 🔊 emoji · "TAP TO HEAR" label</div></div>
+    <div class="spec-row"><div class="spec-k">Playing state</div><div class="spec-v">audio-pulse: glow box-shadow expands/contracts, 0.8s loop</div></div>
+    <div class="spec-row"><div class="spec-k">Letter choices locked</div><div class="spec-v">During playback: choices 50% opacity, cursor:default — wait to respond</div></div>
+    <div class="spec-row"><div class="spec-k">Correct state</div><div class="spec-v">Button turns green + shows phoneme text ("BUH-BUH-BUH!")</div></div>
+
+    <h3>Wave Bars</h3>
+    <div class="spec-row"><div class="spec-k">Count</div><div class="spec-v">7 bars · 5px wide · staggered animation-delay</div></div>
+    <div class="spec-row"><div class="spec-k">Idle</div><div class="spec-v">20% opacity · flat 6px height</div></div>
+    <div class="spec-row"><div class="spec-k">Playing</div><div class="spec-v">Full opacity · wave-dance keyframe with --max-h CSS var per bar</div></div>
+    <div class="spec-row"><div class="spec-k">Correct</div><div class="spec-v">Green color (#50e890) · still animating</div></div>
+
+    <h3>Letter Choices</h3>
+    <div class="spec-row"><div class="spec-k">Size</div><div class="spec-v">80×80px · 40px font · 18px radius</div></div>
+    <div class="spec-row"><div class="spec-k">Interaction</div><div class="spec-v">Available after audio plays (or immediately if tapped before)</div></div>
+
+    <h3>Rules</h3>
+    <div class="spec-row"><div class="spec-k">Audio-first</div><div class="spec-v">Primary interaction is listening — button is the hero element</div></div>
+    <div class="spec-row"><div class="spec-k">No visual letter</div><div class="spec-v">Prompt is purely auditory — "hear the sound then find the letter"</div></div>
+    <div class="spec-row"><div class="spec-k">No timer</div><div class="spec-v">Child can replay audio as many times as needed</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

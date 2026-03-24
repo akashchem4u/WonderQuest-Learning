@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Mobile Route Shell — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Phone frame */
+.phone{width:375px;height:700px;border-radius:36px;border:6px solid #1a1440;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.3);position:relative;background:#f0f4f8;display:flex;flex-direction:column}
+.phone-notch{width:110px;height:26px;background:#1a1440;border-radius:0 0 16px 16px;margin:0 auto;flex-shrink:0}
+
+/* Mobile header */
+.mob-header{background:#0f172a;padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.mob-header-title{font-size:14px;font-weight:800;color:#fff}
+.mob-header-right{display:flex;gap:8px;align-items:center}
+.mob-icon-btn{width:32px;height:32px;border-radius:8px;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer}
+.mob-badge{position:absolute;top:-4px;right:-4px;width:14px;height:14px;background:#ef4444;border-radius:50%;border:2px solid #0f172a;font-size:8px;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900}
+
+/* Back header */
+.mob-back-header{background:#0f172a;padding:0 16px;height:52px;display:flex;align-items:center;gap:8px;flex-shrink:0}
+.mob-back-btn{color:rgba(255,255,255,.65);font-size:18px;cursor:pointer;padding:4px}
+.mob-back-title{font-size:14px;font-weight:800;color:#fff}
+
+/* Content area */
+.mob-content{flex:1;overflow-y:auto;background:#f0f4f8;padding:14px}
+
+/* Bottom tab bar */
+.mob-tabs{background:#0f172a;height:56px;display:flex;flex-shrink:0;border-top:1px solid rgba(255,255,255,.06)}
+.mob-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;position:relative}
+.mob-tab.active .mob-tab-icon{color:#2563eb}
+.mob-tab.active .mob-tab-label{color:#2563eb}
+.mob-tab-icon{font-size:18px;color:rgba(255,255,255,.4)}
+.mob-tab-label{font-size:9px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.04em}
+.tab-badge{position:absolute;top:6px;right:calc(50% - 14px);background:#ef4444;border-radius:8px;font-size:8px;color:#fff;font-weight:900;padding:1px 4px;min-width:14px;text-align:center;border:1.5px solid #0f172a}
+
+/* Side drawer overlay */
+.drawer-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);z-index:10}
+.drawer{position:absolute;right:0;top:0;bottom:0;width:240px;background:#fff;z-index:11;display:flex;flex-direction:column}
+.drawer-header{background:#0f172a;padding:16px 16px;display:flex;align-items:center;justify-content:space-between}
+.drawer-title{font-size:13px;font-weight:800;color:#fff}
+.drawer-close{color:rgba(255,255,255,.6);font-size:18px;cursor:pointer}
+.drawer-section{padding:12px 14px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#aaa}
+.drawer-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;font-size:13px;font-weight:600;color:#333}
+.drawer-item:hover{background:#f8f8f8}
+.drawer-item-icon{font-size:16px;width:20px;text-align:center}
+.drawer-footer{margin-top:auto;padding:14px 16px;border-top:1px solid #f0f0f0;display:flex;align-items:center;gap:10px}
+.drawer-av{width:32px;height:32px;border-radius:50%;background:#2563eb;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff}
+
+/* Content placeholders */
+.content-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 6px rgba(0,0,0,.06);margin-bottom:10px}
+.content-card-title{font-size:12px;font-weight:800;color:#1a1440;margin-bottom:8px}
+.placeholder-row{height:10px;border-radius:5px;background:#f0f4f8;margin-bottom:6px}
+.placeholder-row:last-child{margin-bottom:0;width:70%}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-mobile-route-shell-v2.html</strong><br>
+  Teacher mobile navigation shell — defines the chrome (header, bottom tabs, side drawer) for all teacher mobile routes.<br>
+  <strong>Bottom tab bar (5 items):</strong> Home | Students | Queue | Messages | More<br>
+  <strong>Header variants:</strong> Main header (title + icons) for root routes. Back header (back arrow + title) for child routes.<br>
+  <strong>Side drawer (More):</strong> Opens from More tab. Contains: Assignments, Watchlist, Analytics, Feedback, Settings, Sign out.<br>
+  <strong>Badge system:</strong> Queue badge = open queue item count. Messages badge = unread message count. Both shown on tab icons and in drawer.<br>
+  <strong>Safe area:</strong> Bottom tab bar respects iOS safe area (home indicator). Add padding-bottom: env(safe-area-inset-bottom) on mobile.<br>
+  <strong>Back navigation:</strong> Stack-based. Back header shown on: student detail, skill drilldown, intervention detail, assignment detail.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('shell')">Shell — Home</button>
+  <button class="tab-btn" onclick="showTab('back')">Back Header</button>
+  <button class="tab-btn" onclick="showTab('drawer')">Side Drawer</button>
+  <button class="tab-btn" onclick="showTab('routes')">All Routes</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── Main Shell ─────────────────────────────────────────────────── -->
+<div id="tab-shell" class="screen active">
+  <p class="section-title">Mobile shell — Home tab (root route)</p>
+  <div class="phone">
+    <div class="phone-notch"></div>
+    <div class="mob-header">
+      <div class="mob-header-title">Class 4B</div>
+      <div class="mob-header-right">
+        <div style="position:relative">
+          <div class="mob-icon-btn">🔔</div>
+          <div class="mob-badge">2</div>
+        </div>
+        <div class="mob-icon-btn">👤</div>
+      </div>
+    </div>
+    <div class="mob-content">
+      <!-- Placeholder content to show shell -->
+      <div style="font-size:11px;font-weight:700;color:#8a7a6a;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Today — Tuesday</div>
+      <div class="content-card">
+        <div class="content-card-title">Class Stats</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Support Queue (4)</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Recent Wins</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Recommendations (3)</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mob-tab active">
+        <div class="mob-tab-icon">🏠</div>
+        <div class="mob-tab-label">Home</div>
+      </div>
+      <div class="mob-tab">
+        <div class="mob-tab-icon">👥</div>
+        <div class="mob-tab-label">Students</div>
+      </div>
+      <div class="mob-tab" style="position:relative">
+        <div class="mob-tab-icon">⚠️</div>
+        <div class="mob-tab-label">Queue</div>
+        <div class="tab-badge">4</div>
+      </div>
+      <div class="mob-tab" style="position:relative">
+        <div class="mob-tab-icon">✉️</div>
+        <div class="mob-tab-label">Messages</div>
+        <div class="tab-badge">1</div>
+      </div>
+      <div class="mob-tab">
+        <div class="mob-tab-icon">⋯</div>
+        <div class="mob-tab-label">More</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Back Header ────────────────────────────────────────────────── -->
+<div id="tab-back" class="screen">
+  <p class="section-title">Back header — child route (student detail)</p>
+  <div class="phone">
+    <div class="phone-notch"></div>
+    <div class="mob-back-header">
+      <div class="mob-back-btn">←</div>
+      <div class="mob-back-title">Jordan — Student Detail</div>
+      <div style="margin-left:auto">
+        <div class="mob-icon-btn" style="background:rgba(255,255,255,.1);font-size:13px">⋮</div>
+      </div>
+    </div>
+    <div class="mob-content">
+      <div class="content-card" style="display:flex;gap:12px;align-items:center">
+        <div style="width:40px;height:40px;border-radius:50%;background:#475569;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900;font-size:14px;flex-shrink:0">J</div>
+        <div>
+          <div style="font-size:14px;font-weight:800;color:#1a1440">Jordan</div>
+          <div style="font-size:11px;color:#888">P2 · G2–3 · Active streak: 5 days 🔥</div>
+        </div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Stats</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Skills in progress</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+      <div class="content-card">
+        <div class="content-card-title">Recent sessions</div>
+        <div class="placeholder-row"></div>
+        <div class="placeholder-row"></div>
+      </div>
+    </div>
+    <div class="mob-tabs">
+      <div class="mob-tab active">
+        <div class="mob-tab-icon">📊</div>
+        <div class="mob-tab-label">Overview</div>
+      </div>
+      <div class="mob-tab">
+        <div class="mob-tab-icon">💪</div>
+        <div class="mob-tab-label">Skills</div>
+      </div>
+      <div class="mob-tab">
+        <div class="mob-tab-icon">📅</div>
+        <div class="mob-tab-label">Sessions</div>
+      </div>
+      <div class="mob-tab">
+        <div class="mob-tab-icon">📝</div>
+        <div class="mob-tab-label">Notes</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Side Drawer ────────────────────────────────────────────────── -->
+<div id="tab-drawer" class="screen">
+  <p class="section-title">Side drawer — opened from More tab</p>
+  <div class="phone">
+    <div class="phone-notch"></div>
+    <div class="mob-header">
+      <div class="mob-header-title">Class 4B</div>
+    </div>
+    <!-- Blurred content behind -->
+    <div class="mob-content" style="filter:blur(2px)">
+      <div class="content-card"><div class="placeholder-row"></div><div class="placeholder-row"></div></div>
+      <div class="content-card"><div class="placeholder-row"></div></div>
+    </div>
+    <div class="mob-tabs" style="filter:blur(2px)">
+      <div class="mob-tab"><div class="mob-tab-icon">🏠</div><div class="mob-tab-label">Home</div></div>
+      <div class="mob-tab"><div class="mob-tab-icon">👥</div><div class="mob-tab-label">Students</div></div>
+      <div class="mob-tab"><div class="mob-tab-icon">⚠️</div><div class="mob-tab-label">Queue</div></div>
+      <div class="mob-tab"><div class="mob-tab-icon">✉️</div><div class="mob-tab-label">Messages</div></div>
+      <div class="mob-tab active"><div class="mob-tab-icon" style="color:#2563eb">⋯</div><div class="mob-tab-label" style="color:#2563eb">More</div></div>
+    </div>
+    <!-- Drawer overlay -->
+    <div class="drawer-overlay" style="position:absolute;inset:0;background:rgba(0,0,0,.4);z-index:10"></div>
+    <div class="drawer" style="position:absolute;right:0;top:0;bottom:0;width:230px;background:#fff;z-index:11;display:flex;flex-direction:column">
+      <div class="drawer-header">
+        <div class="drawer-title">More</div>
+        <div class="drawer-close">✕</div>
+      </div>
+      <div class="drawer-section">Teacher tools</div>
+      <div class="drawer-item"><span class="drawer-item-icon">📋</span>Assignments</div>
+      <div class="drawer-item"><span class="drawer-item-icon">👁</span>Watchlist</div>
+      <div class="drawer-item" style="position:relative">
+        <span class="drawer-item-icon">📊</span>Analytics
+      </div>
+      <div class="drawer-section">Support</div>
+      <div class="drawer-item"><span class="drawer-item-icon">💬</span>Send feedback</div>
+      <div class="drawer-item"><span class="drawer-item-icon">❓</span>Help centre</div>
+      <div class="drawer-section">Account</div>
+      <div class="drawer-item"><span class="drawer-item-icon">⚙️</span>Settings</div>
+      <div class="drawer-item" style="color:#dc2626"><span class="drawer-item-icon">🚪</span>Sign out</div>
+      <div class="drawer-footer">
+        <div class="drawer-av">MS</div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#333">Ms. Sharma</div>
+          <div style="font-size:10px;color:#aaa">Class 4B teacher</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Route Map ─────────────────────────────────────────────────── -->
+<div id="tab-routes" class="screen">
+  <div style="background:#fff;border-radius:16px;padding:22px;max-width:700px;box-shadow:0 2px 10px rgba(0,0,0,.08)">
+    <div style="font-size:14px;font-weight:800;color:#1a1440;margin-bottom:16px">Teacher Mobile Route Map</div>
+
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Bottom Tab: Home</div>
+    <div style="font-size:12px;color:#444;line-height:2;padding-left:12px;border-left:3px solid #2563eb;margin-bottom:16px">
+      /teacher/home → Main header + Home bottom tabs<br>
+      /teacher/home/session-banner → Full-screen session readiness detail
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Bottom Tab: Students</div>
+    <div style="font-size:12px;color:#444;line-height:2;padding-left:12px;border-left:3px solid #9b72ff;margin-bottom:16px">
+      /teacher/students → Student list with filter chips<br>
+      /teacher/students/:id → Back header + 4-tab student detail (Overview/Skills/Sessions/Notes)<br>
+      /teacher/students/:id/skill/:skill_id → Back header + skill drilldown
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Bottom Tab: Queue</div>
+    <div style="font-size:12px;color:#444;line-height:2;padding-left:12px;border-left:3px solid #f59e0b;margin-bottom:16px">
+      /teacher/queue → Queue list with filter chips<br>
+      /teacher/queue/:id → Back header + intervention detail<br>
+      /teacher/queue/:id/timeline → Back header + intervention timeline
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Bottom Tab: Messages</div>
+    <div style="font-size:12px;color:#444;line-height:2;padding-left:12px;border-left:3px solid #22c55e;margin-bottom:16px">
+      /teacher/messages → Thread list<br>
+      /teacher/messages/:thread_id → Back header + message view
+    </div>
+
+    <div style="font-size:11px;font-weight:700;color:#888;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Drawer: More</div>
+    <div style="font-size:12px;color:#444;line-height:2;padding-left:12px;border-left:3px solid #e0e0e0;margin-bottom:16px">
+      /teacher/assignments → Assignment list + detail<br>
+      /teacher/watchlist → Watchlist panel<br>
+      /teacher/analytics → Class overview (tablet/mobile)<br>
+      /teacher/feedback → Feedback form<br>
+      /teacher/settings → Account settings
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-mobile-route-shell-v2.html<br>
+      <strong>Framework:</strong> React Native or Next.js PWA. Shell is a layout component — header + tab bar wrap route content.
+    </div>
+    <h2 class="spec-h2">Header Variants</h2>
+    <table class="spec-table">
+      <tr><th>Variant</th><th>Shown on</th><th>Left</th><th>Centre</th><th>Right</th></tr>
+      <tr><td>Main header</td><td>Root tab routes</td><td>—</td><td>Class name</td><td>Bell + Avatar</td></tr>
+      <tr><td>Back header</td><td>Child routes</td><td>← Back</td><td>Route title</td><td>⋮ menu</td></tr>
+    </table>
+    <h2 class="spec-h2">Bottom Tab Bar</h2>
+    <table class="spec-table">
+      <tr><th>Tab</th><th>Icon</th><th>Badge source</th><th>Route</th></tr>
+      <tr><td>Home</td><td>🏠</td><td>None</td><td>/teacher/home</td></tr>
+      <tr><td>Students</td><td>👥</td><td>None</td><td>/teacher/students</td></tr>
+      <tr><td>Queue</td><td>⚠️</td><td>open_queue_count</td><td>/teacher/queue</td></tr>
+      <tr><td>Messages</td><td>✉️</td><td>unread_message_count</td><td>/teacher/messages</td></tr>
+      <tr><td>More</td><td>⋯</td><td>None</td><td>Opens drawer</td></tr>
+    </table>
+    <h2 class="spec-h2">Safe Area</h2>
+    <p class="spec-p">Bottom tab bar must include padding-bottom: env(safe-area-inset-bottom, 0px) for iOS home indicator. Min height 56px + safe area. Header min height 52px + status bar inset.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

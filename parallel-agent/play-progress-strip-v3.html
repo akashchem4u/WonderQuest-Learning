@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>play-progress-strip-v3 · WonderQuest</title>
+
+<!-- ╔══════════════════════════════════════════════════════════════╗
+     ║  ENGINEERING HINT — play-progress-strip-v3.html             ║
+     ║                                                              ║
+     ║  The session progress strip at the top of every play screen. ║
+     ║  Shows how far through the current session the child is.     ║
+     ║                                                              ║
+     ║  STATES IN THIS FILE                                         ║
+     ║  Tab 1 — Default       : 5-seg strip, 2 filled (K-1 violet) ║
+     ║  Tab 2 — States        : empty/partial/full/completed        ║
+     ║  Tab 3 — Boss Node     : special last-question indicator     ║
+     ║  Tab 4 — Band Variants : all 4 band color themes             ║
+     ║  Tab 5 — Spec          : sizing, animation, rules            ║
+     ║                                                              ║
+     ║  STRIP RULES                                                  ║
+     ║  • Always 5 segments (one per question in session)           ║
+     ║  • Each seg: flex:1, height 6px, border-radius 3px           ║
+     ║  • Gap between segs: 4px                                     ║
+     ║  • Filled = answered (correct or incorrect — star-safe)      ║
+     ║  • Never shows "wrong" on strip (no red segs)                ║
+     ║  • Boss node: last seg has gold star icon overlay            ║
+     ║  • Star counter lives to the right of the strip              ║
+     ╚══════════════════════════════════════════════════════════════╝ -->
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0a0a12;
+    font-family: 'Nunito', system-ui, sans-serif;
+    color: #e8e0ff;
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 24px 16px 48px; gap: 20px;
+  }
+  @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .tab-btn {
+    padding: 7px 14px; border-radius: 20px;
+    border: 1.5px solid #2a2050; background: #14102a;
+    color: #9080c0; font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .screen.active { display: flex; }
+
+  /* ── Demo strip component (standalone, full width) ── */
+  .strip-demo {
+    width: 390px; background: #14102a; border: 1.5px solid #2a2050;
+    border-radius: 14px; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .strip-label { font-size: 0.72rem; font-weight: 700; color: #6050a0; }
+
+  /* ── Core strip ── */
+  .progress-row {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .progress-segs {
+    display: flex; gap: 4px; flex: 1;
+  }
+  .seg {
+    flex: 1; height: 6px; border-radius: 3px; background: #2a2050;
+    position: relative; overflow: visible;
+  }
+  .seg.filled { background: #9b72ff; }
+  .seg.current {
+    background: #9b72ff44;
+    animation: seg-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes seg-pulse {
+    0%, 100% { background: #9b72ff44; }
+    50% { background: #9b72ff88; }
+  }
+
+  /* Boss node: last seg gets star pip */
+  .seg.boss {
+    background: #2a2050;
+    overflow: visible;
+  }
+  .seg.boss::after {
+    content: '⭐';
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 0.7rem;
+    line-height: 1;
+    pointer-events: none;
+  }
+  .seg.boss.filled { background: #ffd166; }
+  .seg.boss.filled::after { content: '⭐'; }
+
+  /* ── Star badge ── */
+  .star-badge {
+    background: #1a1440; border: 1.5px solid #9b72ff55; border-radius: 20px;
+    padding: 4px 10px; font-size: 0.8rem; font-weight: 900; color: #c0a8ff;
+    white-space: nowrap; flex-shrink: 0;
+  }
+  /* star-bump animation */
+  .star-badge.bump { animation: star-bump 0.4s cubic-bezier(0.34,1.56,0.64,1); }
+  @keyframes star-bump {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.3); }
+    100% { transform: scale(1); }
+  }
+
+  /* ── Phone frame for contextual states ── */
+  .phone {
+    width: 390px; height: 260px; border-radius: 32px;
+    background: #100b2e; border: 2.5px solid #2a1f60;
+    box-shadow: 0 0 0 1px #9b72ff22, 0 12px 32px #00000077;
+    display: flex; flex-direction: column;
+    padding: 20px 20px 16px; gap: 12px;
+    flex-shrink: 0;
+  }
+
+  /* ── States grid ── */
+  .states-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px; width: 390px;
+  }
+  .state-card {
+    background: #14102a; border: 1.5px solid #2a2050; border-radius: 12px;
+    padding: 14px 16px; display: flex; flex-direction: column; gap: 8px;
+  }
+  .state-name { font-size: 0.72rem; font-weight: 700; color: #6050a0; }
+
+  /* ── Band color rows ── */
+  .band-rows { display: flex; flex-direction: column; gap: 10px; width: 390px; }
+  .band-row {
+    background: #14102a; border: 1.5px solid #2a2050; border-radius: 10px;
+    padding: 12px 16px; display: flex; flex-direction: column; gap: 6px;
+  }
+  .band-name { font-size: 0.72rem; font-weight: 700; }
+
+  /* seg fill colors per band */
+  .gold-fill { background: #ffd166 !important; }
+  .violet-fill { background: #9b72ff !important; }
+  .mint-fill { background: #58e8c1 !important; }
+  .coral-fill { background: #ff7b6b !important; }
+
+  /* current pulse per band */
+  .gold-current { animation: gold-pulse 1.2s ease-in-out infinite; }
+  @keyframes gold-pulse { 0%,100%{background:#ffd16640;} 50%{background:#ffd16688;} }
+  .mint-current { animation: mint-pulse 1.2s ease-in-out infinite; }
+  @keyframes mint-pulse { 0%,100%{background:#58e8c140;} 50%{background:#58e8c188;} }
+  .coral-current { animation: coral-pulse 1.2s ease-in-out infinite; }
+  @keyframes coral-pulse { 0%,100%{background:#ff7b6b40;} 50%{background:#ff7b6b88;} }
+
+  /* star badge per band */
+  .star-gold { border-color: #ffd16655; color: #ffe08a; }
+  .star-mint  { border-color: #58e8c144; color: #7af0d0; }
+  .star-coral { border-color: #ff7b6b44; color: #ffa090; }
+
+  /* Fill animation for segment transition */
+  @keyframes seg-fill {
+    from { transform: scaleX(0); transform-origin: left; }
+    to   { transform: scaleX(1); transform-origin: left; }
+  }
+  .seg.filling { animation: seg-fill 0.3s ease-out forwards; }
+
+  /* ── Boss node explainer card ── */
+  .boss-card {
+    width: 390px; background: #14102a; border: 2px solid #ffd16644;
+    border-radius: 14px; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .boss-header { display: flex; align-items: center; gap: 10px; }
+  .boss-star-icon { font-size: 1.8rem; }
+  .boss-title { font-size: 1rem; font-weight: 900; color: #ffd166; }
+  .boss-desc { font-size: 0.84rem; font-weight: 700; color: #ffe8a0; line-height: 1.5; }
+
+  .anno {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 16px; font-size: 0.78rem; font-weight: 700; color: #3a2800;
+    line-height: 1.6; max-width: 390px; width: 100%;
+  }
+  .anno h4 { font-size: 0.82rem; margin-bottom: 6px; color: #7a4800; }
+
+  .spec-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 760px; width: 100%; }
+  .spec-card {
+    background: #fffbea; border: 2px solid #f0c040; border-radius: 10px;
+    padding: 12px 14px; font-size: 0.75rem; font-weight: 700; color: #3a2800; line-height: 1.6;
+  }
+  .spec-card h4 { font-size: 0.8rem; margin-bottom: 6px; color: #7a4800; }
+  .spec-card ul { padding-left: 14px; }
+  .spec-card li { margin-bottom: 3px; }
+  .spec-card .do { color: #1a6030; }
+  .spec-card .dont { color: #8a1010; }
+  .spec-card code { background: #f0e090; border-radius: 4px; padding: 1px 4px; font-size: 0.74rem; }
+
+  .page-title { font-size: 1rem; font-weight: 900; color: #6050a0; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+
+<p class="page-title">play-progress-strip-v3 · WonderQuest Design System</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('t1')">Default</button>
+  <button class="tab-btn" onclick="showTab('t2')">States</button>
+  <button class="tab-btn" onclick="showTab('t3')">Boss Node</button>
+  <button class="tab-btn" onclick="showTab('t4')">Band Variants</button>
+  <button class="tab-btn" onclick="showTab('t5')">Spec</button>
+</div>
+
+<!-- ── Tab 1: Default ── -->
+<div class="screen active" id="t1">
+  <div class="anno">
+    <h4>Default — 5-Segment Strip (K-1 Violet)</h4>
+    Progress strip sits in the topbar. 5 segs = 5 questions per session.
+    Filled segs = answered questions (no color difference for correct vs wrong — star-safe design).
+    Current question seg pulses gently. Star counter to the right.
+  </div>
+
+  <!-- Isolated strip demo -->
+  <div class="strip-demo">
+    <div class="strip-label">Q2 of 5 — 1 answered, 1 current, 3 remaining</div>
+    <div class="progress-row">
+      <div class="progress-segs">
+        <div class="seg filled"></div>
+        <div class="seg current"></div>
+        <div class="seg"></div>
+        <div class="seg"></div>
+        <div class="seg"></div>
+      </div>
+      <div class="star-badge">⭐ 3</div>
+    </div>
+  </div>
+
+  <!-- Strip in phone context -->
+  <div class="phone">
+    <div class="progress-row">
+      <div class="progress-segs">
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg current"></div>
+        <div class="seg"></div>
+        <div class="seg"></div>
+      </div>
+      <div class="star-badge">⭐ 5</div>
+    </div>
+    <div style="text-align:center;font-size:0.8rem;font-weight:700;color:#6050a0;margin-top:8px;">
+      ↑ Strip in phone frame context (Q3 of 5)
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 2: States ── -->
+<div class="screen" id="t2">
+  <div class="anno">
+    <h4>All Strip States</h4>
+    Empty (session start) · Partial (mid-session) · Current pulse (active question) · Full (all done).
+    Filled color is always band accent — never red (even after wrong answers).
+    Filled = question attempted, not "question correct."
+  </div>
+  <div class="states-grid">
+    <!-- Empty -->
+    <div class="state-card">
+      <div class="state-name">Empty — Session Start (Q1)</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg current"></div>
+          <div class="seg"></div><div class="seg"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 0</div>
+      </div>
+    </div>
+    <!-- 2 filled -->
+    <div class="state-card">
+      <div class="state-name">Partial — Q3 Active</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg current"></div>
+          <div class="seg"></div><div class="seg"></div>
+        </div>
+        <div class="star-badge">⭐ 4</div>
+      </div>
+    </div>
+    <!-- 4 filled -->
+    <div class="state-card">
+      <div class="state-name">Almost Done — Q5 Active</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg current"></div>
+        </div>
+        <div class="star-badge">⭐ 6</div>
+      </div>
+    </div>
+    <!-- All filled (session complete) -->
+    <div class="state-card">
+      <div class="state-name">Complete — All 5 Done</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+        </div>
+        <div class="star-badge" style="border-color:#50e89044;color:#50e890;">⭐ 7</div>
+      </div>
+    </div>
+    <!-- 3 filled, last = boss -->
+    <div class="state-card">
+      <div class="state-name">Boss Node — Q5 is Boss</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg current"></div>
+          <div class="seg boss"></div>
+        </div>
+        <div class="star-badge">⭐ 5</div>
+      </div>
+    </div>
+    <!-- Boss filled -->
+    <div class="state-card">
+      <div class="state-name">Boss Complete</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg filled"></div>
+          <div class="seg boss filled"></div>
+        </div>
+        <div class="star-badge" style="border-color:#ffd16655;color:#ffe08a;">⭐ 7</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 3: Boss Node ── -->
+<div class="screen" id="t3">
+  <div class="anno">
+    <h4>Boss Node — Last Question is Special</h4>
+    When session's final question is a "boss" (hard/milestone), last seg shows ⭐ pip.
+    On boss complete: last seg fills with gold regardless of band color.
+    Bigger celebration on correct (play-reward-pulse-overlay-v3.html may trigger).
+    Boss node happens ~20% of sessions — not every session.
+  </div>
+
+  <!-- Boss card explanation -->
+  <div class="boss-card">
+    <div class="boss-header">
+      <div class="boss-star-icon">⭐</div>
+      <div>
+        <div class="boss-title">Boss Question Ahead!</div>
+        <div class="boss-desc">The last segment shows ⭐ when it's a boss question. Answer it to complete the session with a bonus celebration!</div>
+      </div>
+    </div>
+    <!-- Annotated strip -->
+    <div class="progress-row">
+      <div class="progress-segs">
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg boss current" style="animation:gold-pulse 1.2s ease-in-out infinite;"></div>
+      </div>
+      <div class="star-badge star-gold">⭐ 6</div>
+    </div>
+    <div style="font-size:0.8rem;font-weight:700;color:#ffe08a;text-align:center;">
+      ⬆ Q5 is active — it's a boss! Pulsing gold.
+    </div>
+  </div>
+
+  <!-- Before boss -->
+  <div class="strip-demo" style="border-color:#ffd16633;">
+    <div class="strip-label" style="color:#ffd166;">Before Boss — Q4 Active, Boss Segment Visible</div>
+    <div class="progress-row">
+      <div class="progress-segs">
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg current"></div>
+        <div class="seg boss"></div>
+      </div>
+      <div class="star-badge star-gold">⭐ 5</div>
+    </div>
+    <div style="font-size:0.76rem;font-weight:700;color:#9070a0;">Boss pip visible before boss is active — child can see it coming</div>
+  </div>
+
+  <!-- Boss completed -->
+  <div class="strip-demo" style="border-color:#50e89033;">
+    <div class="strip-label" style="color:#50e890;">Boss Complete! All segs filled.</div>
+    <div class="progress-row">
+      <div class="progress-segs">
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg filled"></div>
+        <div class="seg boss filled"></div>
+      </div>
+      <div class="star-badge" style="border-color:#50e89044;color:#50e890;">⭐ 8</div>
+    </div>
+    <div style="font-size:0.76rem;font-weight:700;color:#9070a0;">Boss seg fills gold on completion regardless of band theme</div>
+  </div>
+</div>
+
+<!-- ── Tab 4: Band Variants ── -->
+<div class="screen" id="t4">
+  <div class="anno">
+    <h4>Band Variants — All 4 Themes</h4>
+    Each band uses its accent color for filled segs, current pulse, and star badge border/text.
+    Strip structure is identical across all bands.
+    Boss node last seg always fills gold regardless of band.
+  </div>
+  <div class="band-rows">
+    <!-- Pre-K gold -->
+    <div class="band-row">
+      <div class="band-name" style="color:#ffd166;">Pre-K · Gold</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg gold-fill"></div>
+          <div class="seg gold-fill"></div>
+          <div class="seg gold-current"></div>
+          <div class="seg"></div>
+          <div class="seg boss"></div>
+        </div>
+        <div class="star-badge star-gold">⭐ 3</div>
+      </div>
+    </div>
+    <!-- K-1 violet -->
+    <div class="band-row">
+      <div class="band-name" style="color:#9b72ff;">K-1 · Violet</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg violet-fill"></div>
+          <div class="seg violet-fill"></div>
+          <div class="seg current"></div>
+          <div class="seg"></div>
+          <div class="seg boss"></div>
+        </div>
+        <div class="star-badge">⭐ 5</div>
+      </div>
+    </div>
+    <!-- G2-3 mint -->
+    <div class="band-row">
+      <div class="band-name" style="color:#58e8c1;">G2-3 · Mint</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg mint-fill"></div>
+          <div class="seg mint-fill"></div>
+          <div class="seg mint-current"></div>
+          <div class="seg"></div>
+          <div class="seg boss"></div>
+        </div>
+        <div class="star-badge star-mint">⭐ 11</div>
+      </div>
+    </div>
+    <!-- G4-5 coral -->
+    <div class="band-row">
+      <div class="band-name" style="color:#ff7b6b;">G4-5 · Coral</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg coral-fill"></div>
+          <div class="seg coral-fill"></div>
+          <div class="seg coral-current"></div>
+          <div class="seg"></div>
+          <div class="seg boss"></div>
+        </div>
+        <div class="star-badge star-coral">⭐ 18</div>
+      </div>
+    </div>
+    <!-- With boss filled (gold always) -->
+    <div class="band-row" style="border-color:#ffd16633;">
+      <div class="band-name" style="color:#ffd166;">G2-3 · Boss Complete (gold seg override)</div>
+      <div class="progress-row">
+        <div class="progress-segs">
+          <div class="seg mint-fill"></div>
+          <div class="seg mint-fill"></div>
+          <div class="seg mint-fill"></div>
+          <div class="seg mint-fill"></div>
+          <div class="seg boss gold-fill"></div>
+        </div>
+        <div class="star-badge star-mint">⭐ 14</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tab 5: Spec ── -->
+<div class="screen" id="t5">
+  <div class="spec-grid">
+    <div class="spec-card">
+      <h4>Strip Dimensions</h4>
+      <ul>
+        <li>Segments: always 5 (one per session question)</li>
+        <li>Height: <code>6px</code></li>
+        <li>Border-radius: <code>3px</code> per seg</li>
+        <li>Gap between segs: <code>4px</code></li>
+        <li>Container: <code>display: flex; gap: 4px; flex: 1</code></li>
+        <li>Topbar padding: <code>16–20px</code> per side</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Fill Logic</h4>
+      <ul>
+        <li>Seg fills when child submits answer (correct OR wrong)</li>
+        <li>Fill = star-safe: no red segments — only filled/empty</li>
+        <li>Current question: pulsing animation (not filled yet)</li>
+        <li>Fill transition: <code>scaleX(0→1)</code> from left, 0.3s</li>
+        <li class="dont">❌ Never show wrong/red segments on progress strip</li>
+        <li class="dont">❌ Never decrement a filled segment</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Current Segment Pulse</h4>
+      <ul>
+        <li>Animation: <code>seg-pulse</code> — opacity-based fade between 40% and 88% tint</li>
+        <li>Duration: 1.2s, ease-in-out, infinite</li>
+        <li>Shows on active question's segment only</li>
+        <li>Stops when answer submitted (segment fills immediately)</li>
+        <li>Each band has own pulse keyframe with band color</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Boss Node</h4>
+      <ul>
+        <li>Last seg: <code>position: relative; overflow: visible</code></li>
+        <li>⭐ pip: <code>::after</code> pseudo-element, centered via <code>position: absolute</code></li>
+        <li>Boss pip visible BEFORE boss is active (teaser)</li>
+        <li>Boss active: pulsing gold animation</li>
+        <li>Boss complete: seg fills <code>#ffd166</code> regardless of band</li>
+        <li>Boss frequency: ~20% of sessions</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Star Badge</h4>
+      <ul>
+        <li>Position: right of strip, same topbar row</li>
+        <li>Format: <code>⭐ {count}</code></li>
+        <li><code>star-bump</code> animation on increment (scale 1→1.3→1, 0.4s spring)</li>
+        <li>Border/text color matches band accent (not white)</li>
+        <li class="dont">❌ Never show star count decreasing</li>
+        <li class="dont">❌ Never show accuracy % here (stars only)</li>
+      </ul>
+    </div>
+    <div class="spec-card">
+      <h4>Band Color Tokens</h4>
+      <ul>
+        <li>Pre-K: filled <code>#ffd166</code>, badge <code>#ffe08a</code> text</li>
+        <li>K-1: filled <code>#9b72ff</code>, badge <code>#c0a8ff</code> text</li>
+        <li>G2-3: filled <code>#58e8c1</code>, badge <code>#7af0d0</code> text</li>
+        <li>G4-5: filled <code>#ff7b6b</code>, badge <code>#ffa090</code> text</li>
+        <li>Boss override: always <code>#ffd166</code></li>
+        <li>All bands: unfilled seg <code>#2a2050</code></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

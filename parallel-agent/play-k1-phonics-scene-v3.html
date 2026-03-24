@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!--
+  ENGINEERING HINT — play-k1-phonics-scene-v3.html
+  ==================================================
+  K-1 phonics play scene. Violet (#9b72ff) theme throughout.
+  Four tabs: Active (Beginning Sound) / Correct / Wrong / Spec
+  - Prompt: large image/emoji + question "What sound does 🐝 start with?"
+  - Letter choices: 2×2 grid of large letter buttons (B / S / D / R)
+  - Coach reinforces: "Buh! Buh! B!" — phoneme first, then letter name
+  - Correct: chosen letter turns green, coach says full phoneme word link
+  - Wrong: "Say it slowly — what's the first sound you hear?" — no shame
+  - No timer, no accuracy %, stars never decrease
+  - Star-safe badge always visible
+  - obj-pop staggered animation on letter choice buttons
+  NEVER reference /ui-agent — build only in /parallel-agent
+-->
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Play · K-1 Phonics Scene v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #100b2e;
+    --card: #1a1440;
+    --card2: #221960;
+    --violet: #9b72ff;
+    --violet-dim: #5a3fa8;
+    --violet-dark: #0a061e;
+    --gold: #ffd166;
+    --mint: #58e8c1;
+    --coral: #ff7b6b;
+    --text: #f0eaff;
+    --muted: #8b7fb8;
+    --correct: #50e890;
+    --correct-bg: #0d2a1a;
+    --wrong: #ff7b6b;
+    --wrong-bg: #2a0e0e;
+  }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: #0a0820;
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+
+  h1 { font-size: 1.3rem; font-weight: 900; color: var(--violet); margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 0.8rem; color: var(--muted); text-align: center; margin-bottom: 20px; }
+
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 24px; }
+  .tab-btn {
+    padding: 8px 18px; border-radius: 20px; border: 2px solid #3a3060;
+    background: var(--card); color: var(--muted); font-family: inherit;
+    font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s;
+  }
+  .tab-btn:hover { border-color: var(--violet); color: var(--violet); }
+  .tab-btn.active { background: var(--violet); border-color: var(--violet); color: white; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  /* Phone frame */
+  .phone-frame {
+    width: 390px; min-height: 780px;
+    background: var(--bg);
+    border-radius: 40px; border: 2px solid #3a3060;
+    box-shadow: 0 0 0 2px #9b72ff22, 0 30px 80px rgba(0,0,0,0.7);
+    overflow: hidden; display: flex; flex-direction: column;
+    margin: 0 auto;
+  }
+
+  .status-bar {
+    height: 36px; background: var(--bg);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 20px; font-size: 0.7rem; color: var(--muted); font-weight: 700;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+
+  .top-bar {
+    background: var(--card);
+    padding: 10px 16px 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .back-btn {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: rgba(155,114,255,0.12); border: none;
+    color: var(--violet); font-size: 1.1rem; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .quest-name { font-size: 0.9rem; font-weight: 900; color: var(--text); }
+  .star-counter {
+    display: flex; align-items: center; gap: 4px;
+    background: rgba(155,114,255,0.15); padding: 4px 10px;
+    border-radius: 12px; border: 1px solid rgba(155,114,255,0.3);
+    font-size: 0.85rem; font-weight: 900; color: var(--violet);
+  }
+
+  /* Progress strip — dots for K-1 */
+  .progress-strip {
+    display: flex; gap: 3px; padding: 10px 16px;
+    background: var(--card); flex-shrink: 0; border-bottom: 1px solid #2a2050;
+  }
+  .ps-seg { flex: 1; height: 6px; border-radius: 3px; background: rgba(155,114,255,0.2); }
+  .ps-seg.done { background: var(--violet); }
+  .ps-seg.active { background: rgba(155,114,255,0.6); }
+
+  .scene-body {
+    flex: 1; display: flex; flex-direction: column;
+    padding: 18px 20px 12px; gap: 14px; overflow-y: auto;
+  }
+
+  /* Coach inline */
+  .coach-inline {
+    display: flex; align-items: flex-start; gap: 10px;
+    background: rgba(155,114,255,0.08); border-radius: 14px;
+    padding: 12px 14px; border: 1px solid rgba(155,114,255,0.2);
+  }
+  .coach-avatar-sm {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a1858, #9b72ff44);
+    border: 2px solid var(--violet);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+  }
+  .coach-bubble { flex: 1; font-size: 0.88rem; font-weight: 700; color: var(--text); line-height: 1.4; }
+  .coach-bubble .phonics { color: var(--violet); font-size: 1rem; font-weight: 900; }
+
+  /* Image prompt card */
+  .image-hero-wrap { display: flex; justify-content: center; }
+  .image-hero {
+    width: 160px; height: 160px;
+    background: var(--card2); border-radius: 20px;
+    border: 3px solid var(--violet);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 8px;
+    animation: violet-glow 2.5s ease-in-out infinite;
+  }
+  .image-hero .hero-emoji { font-size: 72px; line-height: 1; }
+  .image-hero .hero-word {
+    font-size: 0.9rem; font-weight: 900; color: var(--muted);
+    text-transform: lowercase; letter-spacing: 0.05em;
+  }
+  .image-hero.correct-hero {
+    background: var(--correct-bg); border-color: var(--correct);
+    animation: correct-glow 0.6s ease-out;
+  }
+
+  @keyframes violet-glow {
+    0%, 100% { box-shadow: 0 0 12px rgba(155,114,255,0.3), 0 0 30px rgba(155,114,255,0.1); }
+    50% { box-shadow: 0 0 24px rgba(155,114,255,0.6), 0 0 50px rgba(155,114,255,0.25); }
+  }
+  @keyframes correct-glow {
+    0% { box-shadow: 0 0 0 rgba(80,232,144,0); }
+    50% { box-shadow: 0 0 40px rgba(80,232,144,0.6), 0 0 80px rgba(80,232,144,0.3); }
+    100% { box-shadow: 0 0 20px rgba(80,232,144,0.3); }
+  }
+
+  .scene-question {
+    text-align: center; font-size: 1rem; font-weight: 700; color: var(--text);
+    line-height: 1.4;
+  }
+  .scene-question .q-accent { color: var(--violet); font-weight: 900; }
+
+  /* Letter choice grid */
+  .letter-choices {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+  }
+  .letter-btn {
+    height: 88px;
+    background: var(--card2); border: 3px solid #3a3060;
+    border-radius: 16px; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; transition: all 0.15s;
+    animation: obj-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) backwards;
+  }
+  .letter-btn:nth-child(1) { animation-delay: 0.05s; }
+  .letter-btn:nth-child(2) { animation-delay: 0.10s; }
+  .letter-btn:nth-child(3) { animation-delay: 0.15s; }
+  .letter-btn:nth-child(4) { animation-delay: 0.20s; }
+  .letter-btn .ltr-big {
+    font-family: 'Nunito', sans-serif;
+    font-size: 2.8rem; font-weight: 900; color: var(--text); line-height: 1;
+  }
+  .letter-btn .ltr-sound {
+    font-size: 0.72rem; font-weight: 700; color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .letter-btn:hover { border-color: var(--violet); transform: translateY(-2px); }
+  .letter-btn:hover .ltr-big { color: var(--violet); }
+  .letter-btn.selected-correct {
+    background: var(--correct-bg); border-color: var(--correct); animation: none;
+  }
+  .letter-btn.selected-correct .ltr-big { color: var(--correct); }
+  .letter-btn.selected-wrong {
+    background: var(--wrong-bg); border-color: var(--wrong);
+    animation: shake 0.5s ease-out;
+  }
+  .letter-btn.selected-wrong .ltr-big { color: var(--wrong); }
+  .letter-btn.dimmed { opacity: 0.35; pointer-events: none; }
+
+  @keyframes obj-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    20% { transform: translateX(-7px); }
+    40% { transform: translateX(7px); }
+    60% { transform: translateX(-4px); }
+    80% { transform: translateX(4px); }
+  }
+
+  .bottom-bar {
+    padding: 12px 16px 20px;
+    background: var(--card); border-top: 1px solid #2a2050;
+    flex-shrink: 0; display: flex; flex-direction: column; gap: 8px;
+  }
+  .bottom-actions { display: flex; gap: 8px; }
+  .btn-replay, .btn-hint, .btn-idk {
+    flex: 1; padding: 10px 6px;
+    border-radius: 12px; border: none; font-family: inherit;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+  }
+  .btn-replay { background: #2a2050; color: var(--violet); border: 1px solid #3a3060; }
+  .btn-hint { background: rgba(155,114,255,0.1); color: var(--violet); border: 1px solid rgba(155,114,255,0.25); }
+  .btn-idk { background: transparent; color: var(--wrong); border: 2px solid rgba(255,123,107,0.3); }
+
+  .correct-cta {
+    width: 100%; padding: 14px; border-radius: 14px; border: none;
+    background: linear-gradient(135deg, #9b72ff, #7248e8);
+    color: white; font-family: inherit;
+    font-size: 1rem; font-weight: 900; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+
+  .wrong-banner {
+    background: var(--wrong-bg); border: 2px solid var(--wrong);
+    border-radius: 12px; padding: 12px 14px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  .wrong-banner .w-icon { font-size: 1.4rem; flex-shrink: 0; }
+  .wrong-banner .w-text { font-size: 0.88rem; font-weight: 700; color: var(--wrong); line-height: 1.3; }
+  .wrong-banner .w-text span { color: var(--text); }
+
+  .star-safe {
+    background: #1a2a15; border: 2px solid #50e890;
+    border-radius: 12px; padding: 8px 12px;
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.78rem; font-weight: 700; color: #50e890; justify-content: center;
+  }
+
+  /* Spec */
+  .spec-wrap {
+    max-width: 720px; margin: 0 auto;
+    background: #fffbea; border: 2px solid #f0c040;
+    border-radius: 16px; padding: 28px 32px; color: #1a1200;
+    font-family: monospace;
+  }
+  .spec-wrap h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 16px; }
+  .spec-wrap h3 { font-size: 0.9rem; font-weight: 700; margin: 16px 0 6px; color: #4a3000; }
+  .spec-wrap ul { padding-left: 20px; }
+  .spec-wrap li { font-size: 0.82rem; line-height: 1.7; }
+  .spec-wrap code { background: #f0e070; padding: 1px 5px; border-radius: 3px; font-size: 0.8rem; }
+  .token { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.78rem; font-weight: 700; margin: 2px; }
+  .tok-violet { background: #9b72ff; color: white; }
+  .tok-green { background: #50e890; color: #0d2a1a; }
+  .tok-red { background: #ff7b6b; color: #2a0a00; }
+  .tok-muted { background: #ddd; color: #333; }
+</style>
+</head>
+<body>
+
+<h1>🔤 Play · K-1 Phonics Scene</h1>
+<p class="subtitle">v3 · Violet K-1 theme · 4 states · Beginning sound identification</p>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="showTab('active')">Active (Bee → B?)</button>
+  <button class="tab-btn" onclick="showTab('correct')">Correct</button>
+  <button class="tab-btn" onclick="showTab('wrong')">Wrong</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ===== ACTIVE STATE ===== -->
+<div id="tab-active" class="screen active">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 8</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter">⭐ 8</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline">
+        <div class="coach-avatar-sm">🦁</div>
+        <div class="coach-bubble">
+          <span class="phonics">Buh! Buh! What letter makes that sound?</span><br>
+          Listen to the beginning — tap the letter you hear!
+        </div>
+      </div>
+
+      <div class="image-hero-wrap">
+        <div class="image-hero">
+          <div class="hero-emoji">🐝</div>
+          <div class="hero-word">bee</div>
+        </div>
+      </div>
+
+      <div class="scene-question">
+        What sound does <span class="q-accent">"bee"</span> start with?
+      </div>
+
+      <div class="letter-choices">
+        <button class="letter-btn">
+          <span class="ltr-big">S</span>
+          <span class="ltr-sound">sss</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">B</span>
+          <span class="ltr-sound">buh</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">D</span>
+          <span class="ltr-sound">duh</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">R</span>
+          <span class="ltr-sound">rrr</span>
+        </button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — keep trying!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== CORRECT STATE ===== -->
+<div id="tab-correct" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 9</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter">⭐ 9</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="coach-inline" style="border-color:#50e890; background:#0d2a1a;">
+        <div class="coach-avatar-sm" style="border-color:#50e890;">🦁</div>
+        <div class="coach-bubble">
+          <span style="color:#50e890; font-size:1rem;">✨ Buh-buh-bee! B is right!</span><br>
+          Bee starts with the <strong>B</strong> sound — you heard it perfectly!
+        </div>
+      </div>
+
+      <div class="image-hero-wrap">
+        <div class="image-hero correct-hero">
+          <div class="hero-emoji">🐝</div>
+          <div class="hero-word" style="color:#50e890;">bee</div>
+        </div>
+      </div>
+
+      <div class="scene-question">
+        <span style="color:#50e890; font-size:1.1rem;">✓ B — "Buh" is the starting sound!</span>
+      </div>
+
+      <div class="letter-choices">
+        <button class="letter-btn dimmed">
+          <span class="ltr-big">S</span>
+          <span class="ltr-sound">sss</span>
+        </button>
+        <button class="letter-btn selected-correct">
+          <span class="ltr-big">B</span>
+          <span class="ltr-sound">buh ✓</span>
+        </button>
+        <button class="letter-btn dimmed">
+          <span class="ltr-big">D</span>
+          <span class="ltr-sound">duh</span>
+        </button>
+        <button class="letter-btn dimmed">
+          <span class="ltr-big">R</span>
+          <span class="ltr-sound">rrr</span>
+        </button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <button class="correct-cta">Next Sound ✨ +1⭐</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== WRONG STATE ===== -->
+<div id="tab-wrong" class="screen">
+  <div class="phone-frame">
+    <div class="status-bar"><span>9:41</span><span>⭐ 8</span></div>
+    <div class="top-bar">
+      <button class="back-btn">←</button>
+      <span class="quest-name">Phonics Quest</span>
+      <div class="star-counter">⭐ 8</div>
+    </div>
+    <div class="progress-strip">
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg done"></div>
+      <div class="ps-seg active"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+      <div class="ps-seg"></div>
+    </div>
+    <div class="scene-body">
+      <div class="wrong-banner">
+        <span class="w-icon">🔊</span>
+        <div class="w-text">
+          Not quite — say "bee" out loud.<br>
+          <span>What's the very first sound that comes out?</span>
+        </div>
+      </div>
+
+      <div class="image-hero-wrap">
+        <div class="image-hero">
+          <div class="hero-emoji">🐝</div>
+          <div class="hero-word">bee</div>
+        </div>
+      </div>
+
+      <div class="scene-question">
+        What sound does <span class="q-accent">"bee"</span> start with?
+      </div>
+
+      <div class="letter-choices">
+        <button class="letter-btn selected-wrong">
+          <span class="ltr-big">S</span>
+          <span class="ltr-sound">sss</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">B</span>
+          <span class="ltr-sound">buh</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">D</span>
+          <span class="ltr-sound">duh</span>
+        </button>
+        <button class="letter-btn">
+          <span class="ltr-big">R</span>
+          <span class="ltr-sound">rrr</span>
+        </button>
+      </div>
+    </div>
+    <div class="bottom-bar">
+      <div class="bottom-actions">
+        <button class="btn-replay">🔊 Replay</button>
+        <button class="btn-hint">💡 Hint</button>
+        <button class="btn-idk">🤷 IDK yet</button>
+      </div>
+      <div class="star-safe">⭐ Stars are safe — no star lost!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SPEC ===== -->
+<div id="tab-spec" class="screen">
+  <div class="spec-wrap">
+    <h2>📋 play-k1-phonics-scene-v3 · Engineering Spec</h2>
+
+    <h3>Purpose</h3>
+    <ul>
+      <li>K-1 phonics beginning-sound identification scene — child sees a picture/word and must tap the letter that makes the starting sound</li>
+      <li>Violet (#9b72ff) K-1 theme throughout — distinct from Pre-K gold</li>
+      <li>No timer, no accuracy %, stars never decrease</li>
+    </ul>
+
+    <h3>Tabs / States</h3>
+    <ul>
+      <li><span class="token tok-muted">Active</span> Emoji hero with word label, 2×2 letter choice grid (letter + phoneme label below), bottom 3 action buttons + star-safe</li>
+      <li><span class="token tok-green">Correct</span> Hero → green, correct letter btn gets <code>selected-correct</code>, others <code>dimmed</code>, violet CTA "Next Sound ✨ +1⭐"</li>
+      <li><span class="token tok-red">Wrong</span> Wrong btn gets <code>selected-wrong</code> + shake, red banner with physical cue ("Say 'bee' out loud"), other choices remain active</li>
+      <li><span class="token tok-muted">Spec</span> This document</li>
+    </ul>
+
+    <h3>Image Hero</h3>
+    <ul>
+      <li>160×160px card, <code>border-radius: 20px</code>, 3px violet border</li>
+      <li>Large emoji (72px) + word label below in muted color</li>
+      <li><code>violet-glow</code> animation: box-shadow 2.5s ease-in-out infinite</li>
+      <li>On correct: border → <code>#50e890</code>, bg → <code>#0d2a1a</code>, word label turns green</li>
+    </ul>
+
+    <h3>Letter Choice Buttons</h3>
+    <ul>
+      <li>2×2 grid, 88px tall, Nunito 900, 2.8rem letter + 0.72rem phoneme label</li>
+      <li>Phoneme label provides audio scaffold for hesitant readers: "buh" / "sss" / "duh" / "rrr"</li>
+      <li><code>obj-pop</code> staggered entry animation 0.05s per button</li>
+      <li>Hover: violet border + -2px lift + violet letter color</li>
+      <li>Wrong: shake + red border, other choices remain active for retry</li>
+      <li>Correct: green border, others dimmed to 0.35 opacity</li>
+    </ul>
+
+    <h3>Coach Script Examples</h3>
+    <ul>
+      <li>Active: "Buh! Buh! What letter makes that sound? Listen to the beginning!"</li>
+      <li>Correct: "Buh-buh-bee! B is right! Bee starts with the B sound — you heard it perfectly!"</li>
+      <li>Wrong: "Not quite — say 'bee' out loud. What's the very first sound that comes out?"</li>
+    </ul>
+
+    <h3>Phoneme Label Convention</h3>
+    <ul>
+      <li>Show the raw phoneme below each letter button: B="buh", S="sss", D="duh", R="rrr"</li>
+      <li>This provides audio scaffolding without giving the answer away</li>
+      <li>Letters grouped to avoid similar-sounding distractors at K-1 level</li>
+    </ul>
+
+    <h3>Progress Strip</h3>
+    <ul>
+      <li>Segment bars, flex:1, 6px height, violet theme: done=<code>#9b72ff</code>, active=<code>rgba(155,114,255,0.6)</code></li>
+    </ul>
+
+    <h3>Design Tokens (K-1 Violet Theme)</h3>
+    <ul>
+      <li>Violet accent: <code>#9b72ff</code> — progress segs, hero border, CTA</li>
+      <li>CTA: <code>linear-gradient(135deg, #9b72ff, #7248e8)</code>, white text</li>
+      <li>Topbar: standard dark <code>#1a1440</code> card bg (not gold gradient)</li>
+      <li>Correct: <code>#50e890</code> / <code>#0d2a1a</code> bg</li>
+      <li>Wrong: <code>#ff7b6b</code> / <code>#2a0e0e</code> bg</li>
+      <li>Star-safe badge: always visible on active + wrong states</li>
+    </ul>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

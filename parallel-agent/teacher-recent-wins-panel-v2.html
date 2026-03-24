@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teacher Recent Wins Panel — WonderQuest v2</title>
+<style>
+.eng-hint{background:#fffbea;border:2px solid #f0c040;border-radius:8px;padding:14px 18px;font-family:monospace;font-size:12.5px;line-height:1.7;margin-bottom:24px;max-width:900px}
+.eng-hint strong{color:#7a5c00}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,sans-serif;background:#e8e3d8;min-height:100vh;padding:24px}
+.tab-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:24px;max-width:960px}
+.tab-btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;font-family:system-ui;background:#fff;color:#555;transition:all .18s}
+.tab-btn.active{background:#2563eb;color:#fff}
+.screen{display:none;max-width:960px}
+.screen.active{display:block}
+.section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#8a7a6a;margin-bottom:16px}
+
+/* Panel */
+.wins-panel{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:480px}
+.wp-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.wp-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#1a1440}
+.wp-link{font-size:11px;font-weight:700;color:#2563eb;cursor:pointer}
+
+/* Win item */
+.win-item{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid #f5f7fa}
+.win-item:last-child{border-bottom:none;padding-bottom:0}
+.win-icon{font-size:22px;flex-shrink:0;margin-top:1px}
+.win-body{flex:1}
+.win-headline{font-size:13px;font-weight:800;color:#1a1440;margin-bottom:3px;line-height:1.3}
+.win-detail{font-size:11px;color:#666;line-height:1.4}
+.win-time{font-size:10px;color:#aaa;margin-top:4px}
+.win-chip{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;margin-top:4px}
+.wc-mastery{background:#dcfce7;color:#15803d}
+.wc-streak{background:#fef3c7;color:#92400e}
+.wc-band{background:#eff6ff;color:#2563eb}
+.wc-stars{background:#fef9c3;color:#92400e}
+
+/* Empty state */
+.empty-panel{text-align:center;padding:32px 20px}
+.ep-icon{font-size:36px;margin-bottom:10px}
+.ep-title{font-size:14px;font-weight:800;color:#1a1440;margin-bottom:5px}
+.ep-sub{font-size:12px;color:#888;line-height:1.5}
+
+/* Wide panel variant */
+.wins-panel-wide{background:#fff;border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(0,0,0,.08);max-width:860px}
+.wins-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.win-card{background:#f8faff;border-radius:12px;padding:12px 14px}
+.wc-head{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.wc-icon{font-size:20px}
+.wc-title{font-size:12px;font-weight:800;color:#1a1440}
+.wc-body{font-size:11px;color:#555;line-height:1.4}
+.wc-time{font-size:10px;color:#aaa;margin-top:5px}
+
+/* Spec */
+.spec-body{background:#fff;border-radius:12px;padding:24px;max-width:900px}
+.spec-h2{font-size:15px;font-weight:800;color:#1a1440;margin:20px 0 8px}
+.spec-h2:first-child{margin-top:0}
+.spec-p{font-size:13px;line-height:1.6;color:#444;margin-bottom:8px}
+.spec-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:16px}
+.spec-table th{background:#f0f7ff;padding:8px 12px;text-align:left;font-weight:700;color:#555;border-bottom:2px solid #dbe7ff}
+.spec-table td{padding:7px 12px;border-bottom:1px solid #f0f0f0;color:#444;vertical-align:top}
+.spec-table tr:last-child td{border-bottom:none}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.tag-blue{background:#eff6ff;color:#2563eb}
+.tag-red{background:#fff0f0;color:#dc2626}
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENG NOTE — teacher-recent-wins-panel-v2.html</strong><br>
+  Recent wins panel — shows positive class-level achievements: skills mastered, streaks reached, band advancements, star milestones.<br>
+  <strong>Placement:</strong> Right column of teacher home (desktop), below stats on mobile, in Class Overview analytics.<br>
+  <strong>Win types:</strong> skill_mastered | streak_milestone | band_advancement | class_star_milestone | perfect_session_streak.<br>
+  <strong>Privacy:</strong> Student first names only. Win events are POSITIVE by design — no negative signals here. This panel NEVER shows wrong answers, queue flags, or accuracy %.<br>
+  <strong>Framing:</strong> Always celebratory. "Bella mastered Long Division!" not "Bella completed Long Division".<br>
+  <strong>Deduplication:</strong> Max 1 win per student per event type per day (so a student who mastered 3 skills today shows as one combined entry, not 3).
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('list')">List Panel</button>
+  <button class="tab-btn" onclick="showTab('wide')">Wide Grid</button>
+  <button class="tab-btn" onclick="showTab('empty')">Empty State</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── List Panel ──────────────────────────────────────────────────── -->
+<div id="tab-list" class="screen active">
+  <p class="section-title">Recent wins — list panel (right column)</p>
+  <div class="wins-panel">
+    <div class="wp-header">
+      <div class="wp-title">🎉 Recent wins</div>
+      <div class="wp-link">See all</div>
+    </div>
+
+    <div class="win-item">
+      <div class="win-icon">💪</div>
+      <div class="win-body">
+        <div class="win-headline">Bella mastered Long Division!</div>
+        <div class="win-detail">Reached Strong on Long Division (P3 · G4–5). 8 sessions to get there.</div>
+        <div class="win-time">Today · 4:08pm</div>
+        <span class="win-chip wc-mastery">Skill mastered</span>
+      </div>
+    </div>
+
+    <div class="win-item">
+      <div class="win-icon">🔥</div>
+      <div class="win-body">
+        <div class="win-headline">Ethan hit a 7-day streak!</div>
+        <div class="win-detail">Played every day this week. Longest streak in the class right now.</div>
+        <div class="win-time">Today · 3:45pm</div>
+        <span class="win-chip wc-streak">Streak milestone</span>
+      </div>
+    </div>
+
+    <div class="win-item">
+      <div class="win-icon">🚀</div>
+      <div class="win-body">
+        <div class="win-headline">Marcus ready for P3!</div>
+        <div class="win-detail">Consistently reaching P2 ceiling — system flagged for band advancement review.</div>
+        <div class="win-time">Today · 11:20am</div>
+        <span class="win-chip wc-band">Band ceiling</span>
+      </div>
+    </div>
+
+    <div class="win-item">
+      <div class="win-icon">⭐</div>
+      <div class="win-body">
+        <div class="win-headline">Class hit 1,800 stars this week!</div>
+        <div class="win-detail">Best week so far this term. Class total: ⭐ 1,847.</div>
+        <div class="win-time">Today</div>
+        <span class="win-chip wc-stars">Class milestone</span>
+      </div>
+    </div>
+
+    <div class="win-item">
+      <div class="win-icon">💪</div>
+      <div class="win-body">
+        <div class="win-headline">8 students mastered Multiplication: Basic!</div>
+        <div class="win-detail">Class milestone — Aarav, Carlos, Divya and 5 others this week.</div>
+        <div class="win-time">This week</div>
+        <span class="win-chip wc-mastery">Class skill milestone</span>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Wide Grid ───────────────────────────────────────────────────── -->
+<div id="tab-wide" class="screen">
+  <p class="section-title">Wide grid variant — 2-column cards for analytics page</p>
+  <div class="wins-panel-wide">
+    <div class="wp-header">
+      <div class="wp-title">🎉 Recent wins — this week</div>
+      <div class="wp-link">See all</div>
+    </div>
+    <div class="wins-grid">
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">💪</div><div class="wc-title">Bella mastered Long Division!</div></div>
+        <div class="wc-body">P3 · G4–5. Reached Strong after 8 sessions.</div>
+        <div class="wc-time">Today · 4:08pm · Skill mastered</div>
+      </div>
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">🔥</div><div class="wc-title">Ethan: 7-day streak!</div></div>
+        <div class="wc-body">Longest streak in Class 4B right now.</div>
+        <div class="wc-time">Today · 3:45pm · Streak milestone</div>
+      </div>
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">🚀</div><div class="wc-title">Marcus: Band ceiling reached</div></div>
+        <div class="wc-body">Ready for P3 — review advancement.</div>
+        <div class="wc-time">Today · 11:20am · Band ceiling</div>
+      </div>
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">💪</div><div class="wc-title">8 students mastered Multiplication</div></div>
+        <div class="wc-body">Best week for class-level skill mastery.</div>
+        <div class="wc-time">This week · Class milestone</div>
+      </div>
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">⭐</div><div class="wc-title">Class hit 1,800 stars!</div></div>
+        <div class="wc-body">Best weekly total this term.</div>
+        <div class="wc-time">Today · Star milestone</div>
+      </div>
+      <div class="win-card">
+        <div class="wc-head"><div class="wc-icon">💪</div><div class="wc-title">Luna mastered Fractions: Comparing</div></div>
+        <div class="wc-body">P3 · 5 sessions. Mastery: 82/100.</div>
+        <div class="wc-time">Yesterday · Skill mastered</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Empty ───────────────────────────────────────────────────────── -->
+<div id="tab-empty" class="screen">
+  <p class="section-title">Empty state — no wins yet this week</p>
+  <div class="wins-panel">
+    <div class="wp-header">
+      <div class="wp-title">🎉 Recent wins</div>
+    </div>
+    <div class="empty-panel">
+      <div class="ep-icon">🌱</div>
+      <div class="ep-title">Wins are on the way!</div>
+      <div class="ep-sub">When students master skills, hit streaks, or reach milestones, they'll appear here. Usually a few days after the week starts.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Spec ─────────────────────────────────────────────────────────── -->
+<div id="tab-spec" class="screen">
+  <div class="spec-body">
+    <div class="eng-hint" style="margin-bottom:20px">
+      <strong>Component:</strong> teacher-recent-wins-panel-v2.html<br>
+      <strong>Placement:</strong> Right sidebar on teacher home desktop, bottom card on mobile, 2-col grid in analytics.<br>
+      <strong>Feed:</strong> Most recent 10 wins, sorted by timestamp desc. "See all" expands to full win history page.
+    </div>
+    <h2 class="spec-h2">Win Event Types</h2>
+    <table class="spec-table">
+      <tr><th>Type</th><th>Trigger</th><th>Student or class?</th></tr>
+      <tr><td>💪 Skill mastered</td><td>mastery_status transitions to Strong</td><td>Individual student</td></tr>
+      <tr><td>🔥 Streak milestone</td><td>current_streak_days reaches 3, 7, 14, 30</td><td>Individual student</td></tr>
+      <tr><td>🚀 Band ceiling</td><td>Same as support queue band ceiling — positive event</td><td>Individual student</td></tr>
+      <tr><td>⭐ Class star milestone</td><td>class_total_stars crosses round-number thresholds</td><td>Class level</td></tr>
+      <tr><td>💪 Class skill milestone</td><td>N students master same skill in same week (N ≥ 3)</td><td>Class level</td></tr>
+    </table>
+    <h2 class="spec-h2">Privacy</h2>
+    <p class="spec-p">Student-level wins show first name only (FERPA). Class-level wins show count + skill name — no individual names. This panel NEVER shows: accuracy %, wrong answers, mastery score (only status transition), queue flags, negative signals.</p>
+    <h2 class="spec-h2">Deduplication Rule</h2>
+    <p class="spec-p">Max 1 win per student per event type per calendar day. If a student mastered 3 skills today, show as "Bella mastered 3 skills today!" (combined). This prevents feed flooding.</p>
+  </div>
+</div>
+
+<script>
+function showTab(name){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
