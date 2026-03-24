@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { AppFrame } from "@/components/app-frame";
 import { ShellCard, StatTile } from "@/components/ui";
+import { PlayBetaSupport, type AssistMode } from "./play-beta-support";
 
 type SessionQuestion = {
   questionKey: string;
@@ -868,6 +869,21 @@ function buildQuestWorldLabel(launchBandCode: string) {
   }
 }
 
+function buildSupportTone(launchBandCode: string) {
+  switch (launchBandCode) {
+    case "PREK":
+      return "gold";
+    case "K1":
+      return "violet";
+    case "G23":
+      return "mint";
+    case "G45":
+      return "coral";
+    default:
+      return "violet";
+  }
+}
+
 function buildQuestNodes(
   questions: SessionQuestion[],
   currentIndex: number,
@@ -975,11 +991,14 @@ export default function PlayClient() {
   const [answerState, setAnswerState] = useState<AnswerPayload | null>(null);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [assistMode, setAssistMode] = useState<AssistMode>("voice");
+  const [replayNonce, setReplayNonce] = useState(0);
   const [coachMode, setCoachMode] = useState<"listen" | "clue" | "support">(
     "listen",
   );
   const [playedWelcomeVoice, setPlayedWelcomeVoice] = useState(false);
   const [rewardOverlay, setRewardOverlay] = useState<RewardOverlay | null>(null);
+  const voiceSupportRef = useRef(false);
 
   useEffect(() => {
     const voiceSupported =
@@ -987,9 +1006,11 @@ export default function PlayClient() {
       "speechSynthesis" in window &&
       typeof window.SpeechSynthesisUtterance !== "undefined";
 
+    voiceSupportRef.current = voiceSupported;
     setVoiceEnabled(voiceSupported);
 
     if (!voiceSupported || typeof window === "undefined") {
+      setAssistMode("visual");
       return;
     }
 
@@ -1037,6 +1058,8 @@ export default function PlayClient() {
 
         setSession(payload);
         setProgression(payload.progression);
+        setAssistMode(voiceSupportRef.current ? "voice" : "visual");
+        setReplayNonce(0);
         setCoachMode("listen");
         setPlayedWelcomeVoice(false);
         setRewardOverlay(null);
@@ -1105,22 +1128,41 @@ export default function PlayClient() {
       return;
     }
 
-    speakText(buildReadAloudText(currentQuestion, currentScene), "prompt");
+    if (assistMode === "visual") {
+      return;
+    }
+
+    speakText(
+      buildReadAloudText(currentQuestion, currentScene),
+      assistMode === "slow" ? "support" : "prompt",
+    );
 
     return () => {
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
       }
     };
-  }, [currentQuestion, currentScene, session, voiceEnabled, availableVoices]);
+  }, [
+    assistMode,
+    currentQuestion,
+    currentScene,
+    replayNonce,
+    session,
+    voiceEnabled,
+    availableVoices,
+  ]);
 
   useEffect(() => {
     if (!answerState?.needsRetry || !answerState.explainer || !voiceEnabled) {
       return;
     }
 
+    if (assistMode === "visual") {
+      return;
+    }
+
     speakText(answerState.explainer.script, "support");
-  }, [answerState, voiceEnabled, availableVoices]);
+  }, [assistMode, answerState, voiceEnabled, availableVoices]);
 
   useEffect(() => {
     if (!session || !answerState?.correct) {
@@ -1157,6 +1199,10 @@ export default function PlayClient() {
       return;
     }
 
+    if (assistMode === "visual") {
+      return;
+    }
+
     const welcomeBackCopy = buildWelcomeBackCopy(
       session.student.displayName,
       session.student.launchBandCode,
@@ -1166,6 +1212,7 @@ export default function PlayClient() {
     speakText(`${welcomeBackCopy.title} ${welcomeBackCopy.body}`, "support");
     setPlayedWelcomeVoice(true);
   }, [
+    assistMode,
     availableVoices,
     playedWelcomeVoice,
     progression,
@@ -1244,6 +1291,15 @@ export default function PlayClient() {
     setRewardOverlay(null);
     setCoachMode("listen");
     setQuestionStartedAt(Date.now());
+  }
+
+  function replayQuestion(mode: Exclude<AssistMode, "visual">) {
+    if (!session || !currentQuestion) {
+      return;
+    }
+
+    setAssistMode(mode);
+    setReplayNonce((value) => value + 1);
   }
 
   if (loading) {
@@ -1684,91 +1740,6 @@ export default function PlayClient() {
                     </div>
                   </div>
                 ) : null}
-                {earlyLearnerMode ? (
-                  <div className="question-support-row question-support-row-early">
-                    <div className="support-copy">
-                      <strong>Listen, look, then tap</strong>
-                      <p>{promptCue}</p>
-                    </div>
-                    {voiceEnabled ? (
-                      <button
-                        className="listen-button"
-                        onClick={() =>
-                          speakText(
-                            buildReadAloudText(currentQuestion, currentScene),
-                            "prompt",
-                          )
-                        }
-                        type="button"
-                      >
-                        Hear it slowly
-                      </button>
-                    ) : (
-                      <span className="listen-note">
-                        Voice read-aloud is not available in this browser.
-                      </span>
-                    )}
-                  </div>
-                ) : null}
-                {earlyLearnerMode ? (
-                  <div className={`voice-coach-card voice-coach-${coachMode}`}>
-                    <div className="voice-coach-header">
-                      <span className="voice-coach-icon" aria-hidden="true">
-                        {coachMode === "support" ? "🦉" : coachMode === "clue" ? "💡" : "🎧"}
-                      </span>
-                      <div className="voice-coach-copy">
-                        <span className="kid-prompt-label">
-                          {coachMode === "support"
-                            ? "Need a little help?"
-                            : coachMode === "clue"
-                              ? "Try the clue"
-                              : "Listen first"}
-                        </span>
-                        <strong>{coachCopy.title}</strong>
-                        <p>{coachCopy.body}</p>
-                      </div>
-                    </div>
-                    <div className="voice-coach-steps">
-                      {coachSteps.map((step, index) => (
-                        <div className="voice-coach-step" key={`${currentQuestion.questionKey}-${step}`}>
-                          <span className="voice-coach-step-index">{index + 1}</span>
-                          <span>{step}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="voice-coach-actions">
-                      {voiceEnabled ? (
-                        <button
-                          className="secondary-link button-link"
-                          onClick={() => {
-                            setCoachMode("listen");
-                            speakText(
-                              buildReadAloudText(currentQuestion, currentScene),
-                              "prompt",
-                            );
-                          }}
-                          type="button"
-                        >
-                          Hear it again
-                        </button>
-                      ) : null}
-                      <button
-                        className="secondary-link button-link"
-                        onClick={() => setCoachMode("clue")}
-                        type="button"
-                      >
-                        Show the clue
-                      </button>
-                      <button
-                        className="secondary-link button-link"
-                        onClick={() => setCoachMode("support")}
-                        type="button"
-                      >
-                        I don&apos;t know yet
-                      </button>
-                    </div>
-                  </div>
-                ) : null}
                 <div className="progress-rail" aria-hidden="true">
                   <span style={{ width: `${progressPercent}%` }} />
                 </div>
@@ -1967,70 +1938,35 @@ export default function PlayClient() {
               </div>
             </ShellCard>
 
-            <ShellCard className="play-support-card" eyebrow="Support" title="Adaptive help and recovery">
-              {answerState?.needsRetry && answerState.explainer ? (
-                <div className={`status-panel ${earlyLearnerMode ? "guide-panel" : ""}`}>
-                  {earlyLearnerMode ? (
-                    <div className="guide-row">
-                      <span className="guide-mascot" aria-hidden="true">
-                        🦉
-                      </span>
-                      <div>
-                        <strong>Let&apos;s try together.</strong>
-                        <p>{buildShortSupportLine(answerState.explainer.script)}</p>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <strong>Quick explainer ready.</strong>
-                      <p>{answerState.explainer.script}</p>
-                      <p className="soft-copy">
-                        Format: {answerState.explainer.format} · Media hint:{" "}
-                        {answerState.explainer.mediaHint}
-                      </p>
-                      <p className="soft-copy">
-                        Retry the same question after the explanation. Second-attempt
-                        wins still earn recovery points.
-                      </p>
-                    </>
-                  )}
-                  {voiceEnabled && earlyLearnerMode ? (
-                    <div className="form-actions">
-                      <button
-                        className="secondary-link button-link"
-                        onClick={() =>
-                          speakText(answerState.explainer?.script ?? "", "support")
-                        }
-                        type="button"
-                      >
-                        Hear the helper again
-                      </button>
-                    </div>
-                  ) : null}
-                </div>
-              ) : (
-                <>
-                  {earlyLearnerMode ? (
-                    <div className="status-panel guide-panel">
-                      <div className="guide-row">
-                        <span className="guide-mascot" aria-hidden="true">
-                          🌈
-                        </span>
-                        <div>
-                          <strong>We help, then we try again.</strong>
-                          <p>Misses are okay here. The next help step stays short and calm.</p>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <ul className="route-list">
-                      <li>Wrong answers trigger explainers instead of dead ends.</li>
-                      <li>Correct retries still earn points and keep motivation up.</li>
-                      <li>Progression updates immediately after each correct answer.</li>
-                    </ul>
-                  )}
-                </>
-              )}
+            <>
+              <PlayBetaSupport
+                assistMode={assistMode}
+                badges={progression?.badgeCount ?? 0}
+                coachBody={
+                  answerState?.needsRetry && answerState.explainer
+                    ? buildShortSupportLine(answerState.explainer.script)
+                    : coachCopy.body
+                }
+                coachSteps={coachSteps}
+                coachTitle={
+                  answerState?.needsRetry && answerState.explainer
+                    ? "Let's try together."
+                    : coachCopy.title
+                }
+                currentLevel={progression?.currentLevel ?? 1}
+                currentQuestionLabel={questSkillLabel}
+                helperMessage={promptCue}
+                helperTone={buildSupportTone(session.student.launchBandCode)}
+                isRetrying={Boolean(answerState?.needsRetry && answerState.explainer)}
+                progressPercent={progressPercent}
+                questionNumber={questionNumber}
+                stars={progression?.totalPoints ?? 0}
+                totalQuestions={session.questions.length}
+                trophies={progression?.trophyCount ?? 0}
+                voiceAvailable={voiceEnabled}
+                onReplay={replayQuestion}
+                onVisualOnly={() => setAssistMode("visual")}
+              />
               {answerState?.milestones.leveledUp ? (
                 <p className="status-banner status-success">Level up unlocked.</p>
               ) : null}
@@ -2048,7 +1984,7 @@ export default function PlayClient() {
                   Parent view
                 </Link>
               </div>
-            </ShellCard>
+            </>
           </div>
         </section>
       </main>
