@@ -413,6 +413,31 @@ export default function ParentAccessPage() {
         activeChildDashboard.strengths[0] ?? null,
       )
     : [];
+  const familyBadgeTotal = result
+    ? result.linkedChildren.reduce((total, child) => total + child.badgeCount, 0)
+    : 0;
+  const familyTrophyTotal = result
+    ? result.linkedChildren.reduce((total, child) => total + child.trophyCount, 0)
+    : 0;
+  const primaryStrength = activeChildDashboard?.strengths[0] ?? null;
+  const primarySupport = activeChildDashboard?.supportAreas[0] ?? null;
+  const parentQuickLinks = [
+    {
+      detail: notifyWeekly ? "Weekly summary on" : "Weekly summary off",
+      href: "#parent-feedback",
+      label: "Share feedback",
+    },
+    {
+      detail: `${result?.linkedChildren.length ?? 0} linked children`,
+      href: "#parent-family-hub",
+      label: "Switch child focus",
+    },
+    {
+      detail: `${familyBadgeTotal} badges · ${familyTrophyTotal} trophies`,
+      href: "#parent-family-detail",
+      label: "Open family detail",
+    },
+  ];
 
   useEffect(() => {
     if (!result) {
@@ -1037,27 +1062,35 @@ export default function ParentAccessPage() {
         ) : null}
 
         {result && activeChild && activeChildDashboard ? (
-          <section className="parent-hub-layout" id="parent-family-hub">
-            <div className="parent-hub-main">
-              <article className="parent-summary-rail">
-                <div
-                  className={`parent-summary-hero ${
-                    result.linkedChildren.length > 1 ? "is-family" : "is-single"
-                  }`}
-                >
-                  <div className="parent-hub-greeting">
-                    <span className="eyebrow">This week</span>
-                    <h2>{parentWeekSummary?.headline}</h2>
-                    <p>{parentWeekSummary?.body}</p>
-                    <div className="parent-week-chip-row">
-                      {parentWeekSummary?.chips.map((chip) => (
-                        <span className="parent-week-chip" key={chip}>
-                          {chip}
-                        </span>
-                      ))}
+          <>
+            <section className="parent-family-desk" id="parent-family-hub">
+              <aside className="parent-family-left-rail">
+                <article className="parent-family-panel parent-family-profile-card">
+                  <div className="parent-family-panel-label">Family account</div>
+                  <div className="parent-family-account-row">
+                    <span className="parent-family-account-avatar" aria-hidden="true">
+                      👨‍👩‍👧
+                    </span>
+                    <div>
+                      <strong>{result.guardian.displayName}</strong>
+                      <span>@{result.guardian.username}</span>
                     </div>
                   </div>
-                  <div className="parent-summary-actions">
+                  <div className="parent-family-mini-stats">
+                    <div>
+                      <span>Linked children</span>
+                      <strong>{result.linkedChildren.length}</strong>
+                    </div>
+                    <div>
+                      <span>Family sessions</span>
+                      <strong>{familyTotals?.completedSessions ?? 0}</strong>
+                    </div>
+                    <div>
+                      <span>Badges</span>
+                      <strong>{familyBadgeTotal}</strong>
+                    </div>
+                  </div>
+                  <div className="parent-family-profile-actions">
                     <button
                       className="secondary-link button-link"
                       onClick={() => openAccessManager("profile")}
@@ -1069,290 +1102,219 @@ export default function ParentAccessPage() {
                       Send feedback
                     </a>
                   </div>
-                </div>
+                </article>
 
-                <div className="parent-chip-strip" role="tablist" aria-label="Linked children">
-                  {result.linkedChildren.map((child) => (
-                    <button
-                      aria-selected={activeChildId === child.id}
-                      className={`parent-chip-button ${activeChildId === child.id ? "is-active" : ""}`}
-                      key={child.id}
-                      onClick={() => setSelectedChildId(child.id)}
-                      role="tab"
-                      type="button"
-                    >
-                      <span className="parent-chip-avatar" aria-hidden="true">
-                        {getAvatarSymbol(child.avatarKey)}
-                      </span>
-                      <span className="parent-chip-copy">
-                        <strong>{child.displayName}</strong>
-                        <small>{getBandLabel(child.launchBandCode)}</small>
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <article className="parent-family-panel">
+                  <div className="parent-family-panel-label">Your learners</div>
+                  <div className="parent-family-switcher-stack" role="tablist" aria-label="Linked children">
+                    {result.linkedChildren.map((child) => {
+                      const dashboard = result.childDashboards.find(
+                        (item) => item.studentId === child.id,
+                      );
 
-                <article className="parent-kpi-card">
-                  <div className="parent-kpi-compact-grid">
-                    <div className="parent-kpi-compact-cell">
-                      <span>Time playing</span>
-                      <strong>{formatMinutes(activeChildDashboard.totalTimeSpentMs)}</strong>
-                      <small>{activeChildDashboard.completedSessions} finished sessions</small>
+                      return (
+                        <button
+                          aria-selected={activeChildId === child.id}
+                          className={`parent-family-switch-card ${activeChildId === child.id ? "is-active" : ""}`}
+                          key={child.id}
+                          onClick={() => setSelectedChildId(child.id)}
+                          role="tab"
+                          type="button"
+                        >
+                          <span className="parent-family-switch-avatar" aria-hidden="true">
+                            {getAvatarSymbol(child.avatarKey)}
+                          </span>
+                          <div className="parent-family-switch-copy">
+                            <strong>{child.displayName}</strong>
+                            <span>{getBandLabel(child.launchBandCode)}</span>
+                            <small>
+                              {dashboard
+                                ? `${dashboard.readinessLabel} · ${dashboard.recommendedFocus}`
+                                : "Newly linked"}
+                            </small>
+                          </div>
+                          {activeChildId === child.id ? (
+                            <em>Active</em>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </article>
+
+                <article className="parent-family-panel parent-family-quick-links">
+                  <div className="parent-family-panel-label">Quick links</div>
+                  <div className="parent-family-quick-link-stack">
+                    {parentQuickLinks.map((link) => (
+                      <a className="parent-family-quick-link" href={link.href} key={link.label}>
+                        <div>
+                          <strong>{link.label}</strong>
+                          <span>{link.detail}</span>
+                        </div>
+                        <b>Open</b>
+                      </a>
+                    ))}
+                  </div>
+                </article>
+              </aside>
+
+              <div className="parent-family-center-rail">
+                <article
+                  className={`parent-family-week-hero ${
+                    result.linkedChildren.length > 1 ? "is-family" : "is-single"
+                  }`}
+                >
+                  <div className="parent-family-week-copy">
+                    <span className="eyebrow">This week</span>
+                    <h2>{parentWeekSummary?.headline}</h2>
+                    <p>{parentWeekSummary?.body}</p>
+                    <div className="parent-week-chip-row">
+                      {parentWeekSummary?.chips.map((chip) => (
+                        <span className="parent-week-chip" key={chip}>
+                          {chip}
+                        </span>
+                      ))}
                     </div>
-                    <div className="parent-kpi-compact-cell">
+                  </div>
+
+                  <div className="parent-family-week-metrics">
+                    <div className="parent-family-week-metric">
                       <span>Effective time</span>
                       <strong>{formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}</strong>
                       <small>{formatPercent(activeChildDashboard.averageEffectiveness)} productive play</small>
                     </div>
-                    <div className="parent-kpi-compact-cell">
-                      <span>Skills practiced</span>
-                      <strong>{activeSkillOptions.length}</strong>
-                      <small>{activeChildDashboard.strengths.length} growing strengths</small>
+                    <div className="parent-family-week-metric">
+                      <span>Sessions</span>
+                      <strong>{activeChildDashboard.completedSessions}</strong>
+                      <small>{formatMinutes(activeChildDashboard.totalTimeSpentMs)} total</small>
                     </div>
-                    <div className="parent-kpi-compact-cell">
-                      <span>Next up</span>
+                    <div className="parent-family-week-metric">
+                      <span>Points</span>
+                      <strong>{activeChild.totalPoints}</strong>
+                      <small>Level {activeChild.currentLevel}</small>
+                    </div>
+                    <div className="parent-family-week-metric">
+                      <span>Next focus</span>
                       <strong>{activeChildDashboard.recommendedFocus}</strong>
                       <small>{activeChildDashboard.readinessLabel}</small>
                     </div>
                   </div>
                 </article>
 
-                <div className="parent-status-line-banner">
-                  <span className="parent-status-line-dot" aria-hidden="true" />
-                  <div>
-                    <strong>{activeChild.displayName} is making progress this week.</strong>
+                <div className="parent-family-focus-grid">
+                  <article className="parent-family-focus-card is-strength">
+                    <span>Growing strength</span>
+                    <strong>{primaryStrength?.displayName ?? "A strength is forming"}</strong>
                     <p>
-                      Keep the next practice calm and short around {activeChildDashboard.recommendedFocus.toLowerCase()}.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="parent-summary-grid">
-                  <article className="parent-summary-card">
-                    <span>How is {activeChild.displayName} doing?</span>
-                    <strong>{activeChildDashboard.readinessLabel}</strong>
-                    <p>
-                      {formatPercent(activeChildDashboard.averageEffectiveness)} productive play and{" "}
-                      {formatPercent(activeChildDashboard.completionRate)} finished sessions recently.
+                      {primaryStrength
+                        ? `${primaryStrength.masteryRate}% mastery across ${primaryStrength.attempts} answered prompts.`
+                        : "Strength signals will appear after more completed sessions."}
                     </p>
                   </article>
-                  <article className="parent-summary-card">
-                    <span>What changed recently?</span>
-                    <strong>Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}</strong>
+                  <article className="parent-family-focus-card is-support">
+                    <span>Best next support</span>
+                    <strong>{primarySupport?.displayName ?? activeChildDashboard.recommendedFocus}</strong>
                     <p>
-                      {activeChild.badgeCount} badges, {activeChild.trophyCount} trophies, and{" "}
-                      {activeChildDashboard.completedSessions} completed sessions so far.
-                    </p>
-                  </article>
-                  <article className="parent-summary-card">
-                    <span>What should we try next?</span>
-                    <strong>{activeChildDashboard.recommendedFocus}</strong>
-                    <p>Keep the next practice short, calm, and focused on one support area.</p>
-                  </article>
-                </div>
-
-                <div className="parent-summary-signal-row">
-                  <span className="summary-chip">
-                    Weekly summary {notifyWeekly ? "on" : "off"}
-                  </span>
-                  <span className="summary-chip">
-                    Milestones {notifyMilestones ? "on" : "off"}
-                  </span>
-                  <span className="summary-chip">
-                    Productive time {formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}
-                  </span>
-                </div>
-              </article>
-
-              <ShellCard
-                className="shell-card-soft"
-                eyebrow="Family center"
-                title="Every linked child, one calmer family view"
-              >
-                <div className="parent-family-summary-row">
-                  <article className="parent-family-summary-card">
-                    <span>Linked children</span>
-                    <strong>{result.linkedChildren.length}</strong>
-                    <p>
-                      {result.linkedChildren.length === 1
-                        ? "One child is linked right now. This keeps the family view simple while you test the flow."
-                        : "Switch children without leaving the parent route and keep the active child obvious."}
-                    </p>
-                  </article>
-                  <article className="parent-family-summary-card">
-                    <span>Family sessions</span>
-                    <strong>{familyTotals?.completedSessions ?? 0}</strong>
-                    <p>Finished sessions across all currently linked children.</p>
-                  </article>
-                  <article className="parent-family-summary-card">
-                    <span>Family time</span>
-                    <strong>
-                      {familyTotals ? formatMinutes(familyTotals.totalTimeSpentMs) : "0 min"}
-                    </strong>
-                    <p>
-                      {familyTotals
-                        ? `${formatMinutes(familyTotals.effectiveTimeSpentMs)} effective time so far.`
-                        : "Family time will appear here as sessions complete."}
+                      {primarySupport
+                        ? buildParentSkillAction(primarySupport.skillCode, primarySupport.displayName)
+                        : "Keep the next practice short and centered on one calm success."}
                     </p>
                   </article>
                 </div>
 
-                <div className="parent-family-card-grid">
-                  {result.linkedChildren.map((child) => {
-                    const dashboard = result.childDashboards.find(
-                      (item) => item.studentId === child.id,
-                    );
-
-                    return (
-                      <button
-                        className={`parent-family-card ${activeChildId === child.id ? "is-active" : ""}`}
-                        key={child.id}
-                        onClick={() => setSelectedChildId(child.id)}
-                        type="button"
-                      >
-                        <div className="parent-family-card-top">
-                          <span className="parent-linked-avatar" aria-hidden="true">
-                            {getAvatarSymbol(child.avatarKey)}
-                          </span>
-                          <div className="parent-family-card-copy">
-                            <strong>{child.displayName}</strong>
-                            <span>{getBandLabel(child.launchBandCode)}</span>
-                          </div>
-                          {activeChildId === child.id ? (
-                            <span className="parent-family-active-pill">Active</span>
-                          ) : null}
+                <article className="parent-family-practice-card">
+                  <div className="parent-family-panel-label">Try this next</div>
+                  <div className="parent-family-practice-grid">
+                    {parentWeekendActivities.map((activity) => (
+                      <div className="parent-family-practice-row" key={activity.title}>
+                        <span className="parent-family-practice-icon" aria-hidden="true">
+                          {activity.icon}
+                        </span>
+                        <div>
+                          <strong>{activity.title}</strong>
+                          <p>{activity.body}</p>
                         </div>
-                        <p>
-                          {dashboard
-                            ? `${dashboard.readinessLabel}. Next focus: ${dashboard.recommendedFocus}.`
-                            : "No completed sessions yet, so recommendations will appear after the first play loop."}
-                        </p>
-                        <div className="summary-chip-row">
-                          <span className="summary-chip">
-                            Level {child.currentLevel}
-                          </span>
-                          <span className="summary-chip">
-                            {child.totalPoints} pts
-                          </span>
-                          <span className="summary-chip">
-                            {dashboard
-                              ? `${dashboard.completedSessions} sessions`
-                              : "Just linked"}
-                          </span>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <div className="parent-relink-banner">
-                  <div>
-                    <strong>Wrong child linked or family changed?</strong>
-                    <p>
-                      Use the access form to relink calmly. This keeps the active
-                      child clear without hiding the rest of the family view.
-                    </p>
+                        <small>{activity.tag}</small>
+                      </div>
+                    ))}
                   </div>
-                  <button
-                    className="secondary-link button-link"
-                    onClick={() => setShowAccessManager(true)}
-                    type="button"
-                  >
-                    Manage linkage
-                  </button>
-                </div>
-              </ShellCard>
-
-              <div className="parent-kpi-row">
-                <StatTile
-                  label="Current level"
-                  value={`${activeChild.currentLevel}`}
-                  detail={`${activeChild.totalPoints} total points`}
-                />
-                <StatTile
-                  label="Finished sessions"
-                  value={`${activeChildDashboard.completedSessions}`}
-                  detail="Across recent play"
-                />
-                <StatTile
-                  label="Productive time"
-                  value={formatMinutes(activeChildDashboard.effectiveTimeSpentMs)}
-                  detail={`${formatMinutes(activeChildDashboard.totalTimeSpentMs)} total`}
-                />
-                <StatTile
-                  label="Comfort signal"
-                  value={formatPercent(activeChildDashboard.averageEffectiveness)}
-                  detail={`Finished ${formatPercent(activeChildDashboard.completionRate)}`}
-                />
+                </article>
               </div>
 
+              <aside className="parent-family-right-rail">
+                <article className="parent-family-panel parent-family-message-card">
+                  <div className="parent-family-panel-label">From school</div>
+                  <div className="parent-teacher-strip-header">
+                    <span className="parent-teacher-avatar" aria-hidden="true">
+                      JL
+                    </span>
+                    <div>
+                      <strong>Teacher guidance</strong>
+                      <p>Shared in plain family language</p>
+                    </div>
+                  </div>
+                  <blockquote>{parentTeacherMessage}</blockquote>
+                </article>
+
+                <article className="parent-family-panel parent-family-settings-panel">
+                  <div className="parent-family-panel-label">Signals and notifications</div>
+                  <div className="parent-family-settings-row">
+                    <div>
+                      <strong>Weekly summary</strong>
+                      <span>Time, effectiveness, and next focus</span>
+                    </div>
+                    <b>{notifyWeekly ? "On" : "Off"}</b>
+                  </div>
+                  <div className="parent-family-settings-row">
+                    <div>
+                      <strong>Milestones</strong>
+                      <span>Badges, trophies, and level moments</span>
+                    </div>
+                    <b>{notifyMilestones ? "On" : "Off"}</b>
+                  </div>
+                  <div className="parent-family-settings-row">
+                    <div>
+                      <strong>Family view</strong>
+                      <span>{result.linkedChildren.length} child profiles visible</span>
+                    </div>
+                    <b>Live</b>
+                  </div>
+                </article>
+
+                <article className="parent-family-panel parent-family-snapshot-card">
+                  <div className="parent-family-panel-label">Snapshot</div>
+                  <strong>{activeChild.displayName}</strong>
+                  <p>
+                    Last active {formatLastSeen(activeChildDashboard.lastSessionAt)}.{" "}
+                    {activeChild.badgeCount} badges and {activeChild.trophyCount} trophies earned so far.
+                  </p>
+                  <div className="parent-family-snapshot-grid">
+                    <div>
+                      <span>Comfort</span>
+                      <strong>{formatPercent(activeChildDashboard.averageEffectiveness)}</strong>
+                    </div>
+                    <div>
+                      <span>Completion</span>
+                      <strong>{formatPercent(activeChildDashboard.completionRate)}</strong>
+                    </div>
+                    <div>
+                      <span>Family time</span>
+                      <strong>
+                        {familyTotals ? formatMinutes(familyTotals.totalTimeSpentMs) : "0 min"}
+                      </strong>
+                    </div>
+                    <div>
+                      <span>Trophies</span>
+                      <strong>{familyTrophyTotal}</strong>
+                    </div>
+                  </div>
+                </article>
+              </aside>
+            </section>
+
+            <section className="route-grid route-grid-parent parent-family-detail-grid" id="parent-family-detail">
               <ShellCard
                 className="shell-card-emphasis"
-                eyebrow="Dashboard"
-                title={`For ${activeChild.displayName} right now`}
-              >
-                <div className="summary-chip-row">
-                  <span className="summary-chip">{activeChild.displayName}</span>
-                  <span className="summary-chip">
-                    {activeChild.badgeCount} badges
-                  </span>
-                  <span className="summary-chip">
-                    {activeChild.trophyCount} trophies
-                  </span>
-                  <span className="summary-chip">
-                    Last seen {formatLastSeen(activeChildDashboard.lastSessionAt)}
-                  </span>
-                </div>
-                <div className="mini-grid">
-                  <div className="parent-skill-card">
-                    <strong>Getting more comfortable</strong>
-                    <div className="skill-list">
-                      {activeChildDashboard.strengths.map((item) => (
-                        <button
-                          className={`skill-meter skill-meter-button ${selectedSkillCode === item.skillCode ? "is-selected" : ""}`}
-                          key={item.skillCode}
-                          onClick={() => setSelectedSkillCode(item.skillCode)}
-                          type="button"
-                        >
-                          <div className="skill-meter-row">
-                            <strong>{item.displayName}</strong>
-                            <span>{item.masteryRate}%</span>
-                          </div>
-                          <div className="progress-rail" aria-hidden="true">
-                            <span style={{ width: `${item.masteryRate}%` }} />
-                          </div>
-                          <small>{item.attempts} answered prompts</small>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="parent-skill-card">
-                    <strong>Needs more support</strong>
-                    <div className="skill-list">
-                      {activeChildDashboard.supportAreas.map((item) => (
-                        <button
-                          className={`skill-meter skill-meter-button ${selectedSkillCode === item.skillCode ? "is-selected" : ""}`}
-                          key={item.skillCode}
-                          onClick={() => setSelectedSkillCode(item.skillCode)}
-                          type="button"
-                        >
-                          <div className="skill-meter-row">
-                            <strong>{item.displayName}</strong>
-                            <span>{item.masteryRate}%</span>
-                          </div>
-                          <div className="progress-rail" aria-hidden="true">
-                            <span style={{ width: `${item.masteryRate}%` }} />
-                          </div>
-                          <small>{item.attempts} answered prompts</small>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </ShellCard>
-
-              <ShellCard
-                className="shell-card-soft"
                 eyebrow="Skill detail"
                 title={activeSkill ? `${activeSkill.displayName}, explained simply` : "Skill detail"}
               >
@@ -1477,123 +1439,8 @@ export default function ParentAccessPage() {
                   </p>
                 )}
               </ShellCard>
-            </div>
-
-            <aside className="parent-hub-side">
-              <article className="parent-weekly-card">
-                <span className="parent-weekly-label">Weekly snapshot</span>
-                <strong>{activeChild.displayName}</strong>
-                <p>
-                  {activeChildDashboard.completedSessions} finished sessions,
-                  {" "}
-                  {formatMinutes(activeChildDashboard.totalTimeSpentMs)} of total
-                  time, and {formatPercent(activeChildDashboard.averageEffectiveness)}
-                  {" "}productive play so far.
-                </p>
-                <div className="parent-weekly-stats">
-                  <div>
-                    <span>Points</span>
-                    <strong>{activeChild.totalPoints}</strong>
-                  </div>
-                  <div>
-                    <span>Badges</span>
-                    <strong>{activeChild.badgeCount}</strong>
-                  </div>
-                  <div>
-                    <span>Trophies</span>
-                    <strong>{activeChild.trophyCount}</strong>
-                  </div>
-                </div>
-              </article>
-
-              <article className="parent-next-step-card">
-                <span className="parent-insight-label">What to try next at home</span>
-                <strong>{activeChildDashboard.recommendedFocus}</strong>
-                <p>
-                  Based on the latest answered prompts, this is the clearest next
-                  support area to reinforce at home.
-                </p>
-                <div className="parent-action-list">
-                  <div>
-                    <span>Readiness</span>
-                    <strong>{activeChildDashboard.readinessLabel}</strong>
-                  </div>
-                  <div>
-                    <span>Quiet summary</span>
-                    <strong>{notifyWeekly ? "On" : "Off"}</strong>
-                  </div>
-                  <div>
-                    <span>Milestones</span>
-                    <strong>{notifyMilestones ? "On" : "Off"}</strong>
-                  </div>
-                </div>
-              </article>
-
-              <article className="parent-teacher-strip-card">
-                <span className="parent-insight-label">From school</span>
-                <div className="parent-teacher-strip-header">
-                  <span className="parent-teacher-avatar" aria-hidden="true">
-                    JL
-                  </span>
-                  <div>
-                    <strong>Teacher guidance</strong>
-                    <p>Shared for the current family summary lane</p>
-                  </div>
-                </div>
-                <blockquote>{parentTeacherMessage}</blockquote>
-              </article>
-
-              <article className="parent-activity-card">
-                <span className="parent-insight-label">Try this weekend</span>
-                <div className="parent-activity-stack">
-                  {parentWeekendActivities.map((activity) => (
-                    <div className="parent-activity-row" key={activity.title}>
-                      <span className="parent-activity-icon" aria-hidden="true">
-                        {activity.icon}
-                      </span>
-                      <div>
-                        <strong>{activity.title}</strong>
-                        <p>{activity.body}</p>
-                      </div>
-                      <small>{activity.tag}</small>
-                    </div>
-                  ))}
-                </div>
-              </article>
-
-              <article className="parent-settings-card">
-                <span className="parent-insight-label">Family settings</span>
-                <strong>Notifications and linked-child controls</strong>
-                <p>
-                  Keep family updates calm while staying clear on who is linked
-                  and which alerts are enabled.
-                </p>
-                <div className="parent-settings-list">
-                  <div className="parent-settings-row">
-                    <div>
-                      <strong>Weekly summary</strong>
-                      <span>Time spent, effectiveness, and next focus</span>
-                    </div>
-                    <b>{notifyWeekly ? "On" : "Off"}</b>
-                  </div>
-                  <div className="parent-settings-row">
-                    <div>
-                      <strong>Milestones</strong>
-                      <span>Badges, trophies, and level moments</span>
-                    </div>
-                    <b>{notifyMilestones ? "On" : "Off"}</b>
-                  </div>
-                  <div className="parent-settings-row">
-                    <div>
-                      <strong>Linked children</strong>
-                      <span>{result.linkedChildren.length} available in this family view</span>
-                    </div>
-                    <b>Active</b>
-                  </div>
-                </div>
-              </article>
-            </aside>
-          </section>
+            </section>
+          </>
         ) : null}
 
         <section className="route-grid route-grid-parent">
