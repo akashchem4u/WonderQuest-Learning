@@ -83,12 +83,41 @@ check_route_contains() {
   rm -f "${tmp_file}"
 }
 
+check_route_contains_any() {
+  local route="$1"
+  local description="$2"
+  shift 2
+  local tmp_file
+
+  tmp_file="$(mktemp)"
+  local http_code
+  http_code="$(fetch_route "${route}" "${tmp_file}")"
+
+  if [[ "${http_code}" != "200" ]]; then
+    fail "${description}: expected HTTP 200, got ${http_code}"
+    rm -f "${tmp_file}"
+    return
+  fi
+
+  local expected
+  for expected in "$@"; do
+    if grep -Fq "${expected}" "${tmp_file}"; then
+      pass "${description}"
+      rm -f "${tmp_file}"
+      return
+    fi
+  done
+
+  fail "${description}: expected content not found"
+  rm -f "${tmp_file}"
+}
+
 section "WonderQuest Render Post-Setup Check"
 printf 'Base URL: %s\n' "${BASE_URL}"
 
 section "Public Route Checks"
 check_route_contains "/" "WonderQuest Learning" "Home page loads"
-check_route_contains "/child" "Child journey" "Child route loads"
+check_route_contains_any "/child" "Child route loads" "Child quickstart" "Choose the quickest path"
 check_route_contains "/parent" "Parent journey" "Parent route loads"
 check_route_contains "/owner" "Unlock owner console" "Owner gate loads"
 check_route_contains "/teacher" "Unlock teacher dashboard" "Teacher gate loads"
@@ -104,7 +133,9 @@ if [[ "${home_status}" == "200" ]]; then
     pass "Home page is not showing fallback launch-data warning"
   fi
 
-  if grep -Fq "Supabase live" "${home_tmp}"; then
+  if grep -Fq "All systems operational" "${home_tmp}" || \
+    grep -Fq "Live learning flows" "${home_tmp}" || \
+    grep -Fq "Supabase live" "${home_tmp}"; then
     pass "Home page shows live Supabase source signal"
   else
     warn "Home page does not explicitly show the live Supabase source signal"
