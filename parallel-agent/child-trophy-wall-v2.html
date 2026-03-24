@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Trophy Wall v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 20px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 28px 32px 60px; }
+.page-title { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.page-sub { font-size: 14px; color: #b8a0e8; font-weight: 700; margin-bottom: 28px; }
+
+/* ── Trophy shelf ── */
+.trophy-shelf {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 32px;
+  padding: 20px;
+  background: linear-gradient(180deg, #1a1060 0%, #0d0924 100%);
+  border-radius: 24px;
+  border: 2px solid #2a2060;
+  position: relative;
+}
+/* shelf bottom bar */
+.trophy-shelf::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 8px;
+  background: linear-gradient(90deg, #2a2060, #3a3080, #2a2060);
+  border-radius: 0 0 22px 22px;
+}
+
+/* Trophy item */
+.trophy-item {
+  display: flex; flex-direction: column; align-items: center;
+  cursor: pointer; transition: transform 0.2s;
+}
+.trophy-item:hover .ti-cup { transform: scale(1.08) translateY(-4px); }
+.ti-cup {
+  width: 100px; height: 110px;
+  border-radius: 20px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  position: relative;
+  transition: transform 0.2s;
+}
+.ti-cup.gold { background: linear-gradient(135deg, #3a2a10, #2a2010); border: 2px solid #ffd166; }
+.ti-cup.silver { background: linear-gradient(135deg, #2a2a2a, #1a1a1a); border: 2px solid #aaaaaa; }
+.ti-cup.bronze { background: linear-gradient(135deg, #3a1a08, #2a1408); border: 2px solid #c07040; }
+.ti-cup.locked { background: #1a1060; border: 2px dashed #2a2060; opacity: 0.35; cursor: default; }
+.ti-cup .tc-emoji { font-size: 44px; margin-bottom: 6px; animation: trophy-bob 3s ease-in-out infinite; }
+.ti-cup:nth-child(1) .tc-emoji { animation-delay: 0s; }
+.ti-cup:nth-child(2) .tc-emoji { animation-delay: 0.6s; }
+@keyframes trophy-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+.ti-cup .tc-shine { position: absolute; top: 10px; left: 12px; width: 18px; height: 8px; background: rgba(255,255,255,0.15); border-radius: 50%; transform: rotate(-30deg); }
+.ti-name { font-size: 12px; font-weight: 900; color: #c4a0ff; margin-top: 8px; text-align: center; max-width: 100px; }
+.ti-world { font-size: 10px; color: #5a4080; font-weight: 700; margin-top: 2px; }
+.ti-date { font-size: 10px; color: #4a3070; }
+
+/* ── Trophy detail ── */
+.trophy-detail {
+  background: linear-gradient(135deg, #2a2010, #1a1460);
+  border: 2px solid #ffd166;
+  border-radius: 24px;
+  padding: 28px;
+  text-align: center;
+  max-width: 480px;
+  margin: 0 auto 24px;
+}
+.td-cup { font-size: 80px; display: block; margin-bottom: 12px; animation: trophy-bob 2.5s ease-in-out infinite; }
+.td-world { font-size: 13px; font-weight: 900; color: #ffd166; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.td-name { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.td-desc { font-size: 14px; color: #b8a0a0; font-weight: 700; line-height: 1.5; margin-bottom: 14px; }
+.td-stars { font-size: 18px; font-weight: 700; color: #ffd166; }
+.td-date { font-size: 12px; color: #5a4080; margin-top: 8px; }
+
+/* Star rain animation for earned state */
+.star-rain { position: relative; overflow: hidden; }
+@keyframes star-fall { from { transform: translateY(-20px); opacity: 1; } to { transform: translateY(200px); opacity: 0; } }
+
+/* Locked empty shelf */
+.empty-trophy {
+  display: flex; flex-direction: column; align-items: center;
+  opacity: 0.35;
+}
+.et-silhouette { width: 100px; height: 110px; background: #1a1060; border: 2px dashed #2a2060; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 44px; filter: grayscale(1) brightness(0.5); }
+.et-name { font-size: 12px; font-weight: 700; color: #3a2a60; margin-top: 8px; text-align: center; }
+
+/* Spec */
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-trophy-wall-v2.html</strong><br>
+  Desktop 900px • 4 tabs: Wall (2 earned) / All earned / Trophy Detail / Spec<br>
+  Trophy shelf: horizontal row of cups on a "shelf" with bottom bar<br>
+  Cup tiers: gold (world complete) / silver (boss node) / bronze (special)<br>
+  Bob animation on earned cups · locked cups are 35% opacity silhouettes<br>
+  Detail card: large cup + world name + star count + earned date<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code> • Gold <code>#ffd166</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('wall')">Trophy Wall</button>
+  <button class="tab-btn" onclick="showTab('all')">All Trophies</button>
+  <button class="tab-btn" onclick="showTab('detail')">Trophy Detail</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- WALL -->
+<div id="screen-wall" class="screen active">
+  <div class="page-wrap">
+    <div class="page-title">Trophy Wall 🏆</div>
+    <div class="page-sub">Every trophy you've earned on your adventure — yours forever!</div>
+
+    <!-- Main shelf -->
+    <div class="trophy-shelf">
+      <!-- Earned -->
+      <div class="trophy-item">
+        <div class="ti-cup gold"><div class="tc-shine"></div><span class="tc-emoji">🏆</span></div>
+        <div class="ti-name">Forest Champion</div>
+        <div class="ti-world">🌲 Enchanted Forest</div>
+        <div class="ti-date">Earned 5 days ago</div>
+      </div>
+      <div class="trophy-item">
+        <div class="ti-cup gold"><div class="tc-shine"></div><span class="tc-emoji">🌊</span></div>
+        <div class="ti-name">Ocean Hero</div>
+        <div class="ti-world">🌊 Ocean Kingdom</div>
+        <div class="ti-date">Earned 4 days ago</div>
+      </div>
+      <!-- Locked -->
+      <div class="empty-trophy">
+        <div class="et-silhouette">🏆</div>
+        <div class="et-name">Crystal Caverns<br>Trophy</div>
+      </div>
+      <div class="empty-trophy">
+        <div class="et-silhouette">🏆</div>
+        <div class="et-name">Volcano Island<br>Trophy</div>
+      </div>
+    </div>
+
+    <!-- Secondary achievements -->
+    <div style="font-size:13px;font-weight:900;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Special Achievements</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+      <div style="background:linear-gradient(135deg,#2a1a08,#1a1060);border:2px solid #c07040;border-radius:16px;padding:16px;text-align:center;cursor:pointer;transition:all 0.15s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+        <div style="font-size:36px;margin-bottom:8px;animation:trophy-bob 3s ease-in-out infinite">🥉</div>
+        <div style="font-size:13px;font-weight:900;color:#c07040">Boss Slayer</div>
+        <div style="font-size:11px;color:#7a6090;font-weight:700">Defeated first boss</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#2a1a08,#1a1060);border:2px solid #c07040;border-radius:16px;padding:16px;text-align:center;cursor:pointer;transition:all 0.15s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'">
+        <div style="font-size:36px;margin-bottom:8px;animation:trophy-bob 3s 0.5s ease-in-out infinite">🥉</div>
+        <div style="font-size:13px;font-weight:900;color:#c07040">Star Collector</div>
+        <div style="font-size:11px;color:#7a6090;font-weight:700">Reached 25 stars</div>
+      </div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:16px;padding:16px;text-align:center;opacity:0.3">
+        <div style="font-size:36px;margin-bottom:8px">🥇</div>
+        <div style="font-size:13px;font-weight:700;color:#5a4080">World Champion</div>
+        <div style="font-size:11px;color:#3a2a60;font-weight:700">Complete 3 worlds</div>
+      </div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:16px;padding:16px;text-align:center;opacity:0.3">
+        <div style="font-size:36px;margin-bottom:8px">🥇</div>
+        <div style="font-size:13px;font-weight:700;color:#5a4080">Legend Status</div>
+        <div style="font-size:11px;color:#3a2a60;font-weight:700">30-day streak</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ALL TROPHIES -->
+<div id="screen-all" class="screen">
+  <div class="page-wrap">
+    <div class="page-title">All Trophies 🏆</div>
+    <div class="page-sub">2 earned · 6 more waiting for you!</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:14px">
+      <div style="background:linear-gradient(135deg,#3a2a10,#2a2010);border:2px solid #ffd166;border-radius:18px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'"><div style="font-size:40px;margin-bottom:8px;animation:trophy-bob 3s ease-in-out infinite">🏆</div><div style="font-size:13px;font-weight:900;color:#ffd166">Forest Champion</div><div style="font-size:10px;color:#6a5030;font-weight:700">5 days ago</div></div>
+      <div style="background:linear-gradient(135deg,#3a2a10,#2a2010);border:2px solid #ffd166;border-radius:18px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'"><div style="font-size:40px;margin-bottom:8px;animation:trophy-bob 3s 0.5s ease-in-out infinite">🌊</div><div style="font-size:13px;font-weight:900;color:#ffd166">Ocean Hero</div><div style="font-size:10px;color:#6a5030;font-weight:700">4 days ago</div></div>
+      <div style="background:linear-gradient(135deg,#2a1a08,#1a1060);border:2px solid #c07040;border-radius:18px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'"><div style="font-size:40px;margin-bottom:8px;animation:trophy-bob 3s 1s ease-in-out infinite">🥉</div><div style="font-size:13px;font-weight:900;color:#c07040">Boss Slayer</div><div style="font-size:10px;color:#6a4030;font-weight:700">3 days ago</div></div>
+      <div style="background:linear-gradient(135deg,#2a1a08,#1a1060);border:2px solid #c07040;border-radius:18px;padding:18px;text-align:center;cursor:pointer;transition:all 0.2s" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'"><div style="font-size:40px;margin-bottom:8px;animation:trophy-bob 3s 1.5s ease-in-out infinite">🥉</div><div style="font-size:13px;font-weight:900;color:#c07040">Star Collector</div><div style="font-size:10px;color:#6a4030;font-weight:700">today</div></div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:18px;padding:18px;text-align:center;opacity:0.3"><div style="font-size:40px;margin-bottom:8px">💎</div><div style="font-size:13px;font-weight:700;color:#5a4080">Crystal Master</div><div style="font-size:10px;color:#3a2a60;font-weight:700">Complete Crystal Caverns</div></div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:18px;padding:18px;text-align:center;opacity:0.3"><div style="font-size:40px;margin-bottom:8px">🌋</div><div style="font-size:13px;font-weight:700;color:#5a4080">Volcano Victor</div><div style="font-size:10px;color:#3a2a60;font-weight:700">Complete Volcano Island</div></div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:18px;padding:18px;text-align:center;opacity:0.3"><div style="font-size:40px;margin-bottom:8px">🏔️</div><div style="font-size:13px;font-weight:700;color:#5a4080">Peak Climber</div><div style="font-size:10px;color:#3a2a60;font-weight:700">Complete Frozen Peaks</div></div>
+      <div style="background:#1a1060;border:2px dashed #2a2060;border-radius:18px;padding:18px;text-align:center;opacity:0.3"><div style="font-size:40px;margin-bottom:8px">🥇</div><div style="font-size:13px;font-weight:700;color:#5a4080">World Champion</div><div style="font-size:10px;color:#3a2a60;font-weight:700">Complete 3 worlds</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL -->
+<div id="screen-detail" class="screen">
+  <div class="page-wrap">
+    <div class="page-title" style="margin-bottom:24px">Trophy Detail 🏆</div>
+    <div class="trophy-detail">
+      <span class="td-cup">🏆</span>
+      <div class="td-world">🌲 Enchanted Forest</div>
+      <div class="td-name">Forest Champion Trophy</div>
+      <div class="td-desc">You explored every single node in the Enchanted Forest — all 12! That takes skill, bravery, and a love of adventure!</div>
+      <div class="td-stars">⭐⭐⭐⭐⭐⭐⭐⭐⭐ 30 stars collected in this world</div>
+      <div class="td-date">Earned 5 days ago · Trophy #1</div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="page-wrap">
+    <div class="spec-section">
+      <div class="spec-title">Trophy Tiers</div>
+      <div class="spec-row"><span class="spec-key">Gold</span><span class="spec-val">World completion (#ffd166 border/theme)</span></div>
+      <div class="spec-row"><span class="spec-key">Silver</span><span class="spec-val">Major milestone (#aaaaaa border)</span></div>
+      <div class="spec-row"><span class="spec-key">Bronze</span><span class="spec-val">Special achievement (#c07040 border)</span></div>
+      <div class="spec-row"><span class="spec-key">Locked</span><span class="spec-val">35% opacity, dashed border, description visible</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Animations</div>
+      <div class="spec-row"><span class="spec-key">Bob</span><span class="spec-val">trophy-bob keyframe, 3s loop, staggered delays</span></div>
+      <div class="spec-row"><span class="spec-key">Hover</span><span class="spec-val">translateY(-3px) on trophy item hover</span></div>
+      <div class="spec-row"><span class="spec-key">Shine</span><span class="spec-val">Small white oval overlay (top-left of cup)</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Permanent</span><span class="spec-val">Trophies never removed — "yours forever"</span></div>
+      <div class="spec-row"><span class="spec-key">Accuracy</span><span class="spec-val">Not shown — only completion/star count on detail</span></div>
+      <div class="spec-row"><span class="spec-key">Locked desc</span><span class="spec-val">Always shown — aspirational visibility</span></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes trophy-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+</style>
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

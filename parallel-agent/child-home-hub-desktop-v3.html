@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Home Hub Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #100b2e;
+  min-height: 100vh;
+  font-family: 'Nunito', sans-serif;
+  color: #fff;
+}
+
+/* ── Engineering hint ── */
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #333;
+  margin: 16px;
+  line-height: 1.5;
+}
+.eng-hint strong { color: #b45309; }
+
+/* ── Tab bar ── */
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 16px 16px;
+}
+.tab-btn {
+  padding: 8px 16px;
+  background: #1e1a40;
+  border: 2px solid #2e2a50;
+  border-radius: 8px;
+  color: #aaa;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+/* ── Screen container ── */
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ════════════════════════════════════
+   SHARED DESKTOP CHROME
+════════════════════════════════════ */
+.desktop-frame {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  grid-template-rows: 64px 1fr;
+  min-height: calc(100vh - 120px);
+  gap: 0;
+}
+
+/* Top nav */
+.top-nav {
+  grid-column: 1 / -1;
+  background: #0d0924;
+  border-bottom: 2px solid #1e1860;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+}
+.nav-logo { font-size: 22px; font-weight: 900; color: #9b72ff; letter-spacing: -0.5px; }
+.nav-logo span { color: #ffd166; }
+.nav-spacer { flex: 1; }
+.nav-star-count { display: flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 900; color: #ffd166; }
+.nav-avatar {
+  width: 36px; height: 36px;
+  background: radial-gradient(circle at 35% 35%, #c4a0ff, #7c4ddb);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; cursor: pointer;
+}
+.nav-streak { display: flex; align-items: center; gap: 5px; font-size: 14px; font-weight: 700; color: #ff9d3b; }
+
+/* Left sidebar */
+.left-sidebar {
+  background: #0d0924;
+  border-right: 1px solid #1e1860;
+  padding: 20px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #7a6090;
+  cursor: pointer;
+  border-radius: 0;
+  transition: all 0.15s;
+  border-left: 3px solid transparent;
+}
+.sidebar-item:hover { background: #1a1460; color: #c4a0ff; }
+.sidebar-item.active { color: #9b72ff; border-left-color: #9b72ff; background: #1a1460; }
+.sidebar-item .icon { font-size: 20px; width: 24px; text-align: center; }
+.sidebar-item .badge {
+  margin-left: auto;
+  background: #9b72ff;
+  color: #fff;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2px 7px;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* Main content */
+.main-content { padding: 20px 24px; overflow-y: auto; }
+
+/* Right rail */
+.right-rail {
+  background: #0d0924;
+  border-left: 1px solid #1e1860;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ── Hero world card ── */
+.hero-world {
+  background: linear-gradient(135deg, #1a1060 0%, #2a1880 100%);
+  border: 2px solid #4a30b0;
+  border-radius: 20px;
+  padding: 20px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-world::before {
+  content: '';
+  position: absolute;
+  top: -30px; right: -30px;
+  width: 120px; height: 120px;
+  background: radial-gradient(circle, rgba(155,114,255,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+}
+.hero-label { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.hero-world-name { font-size: 28px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.hero-world-tagline { font-size: 14px; color: #b8a0e8; margin-bottom: 14px; }
+.hero-progress-bar {
+  height: 12px;
+  background: #2a1880;
+  border-radius: 7px;
+  overflow: hidden;
+  margin-bottom: 6px;
+}
+.hero-progress-fill {
+  height: 100%;
+  border-radius: 7px;
+  background: linear-gradient(90deg, #9b72ff, #c4a0ff);
+  position: relative;
+}
+.hero-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 16px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4));
+  animation: shimmer-right 1.5s ease-in-out infinite;
+}
+@keyframes shimmer-right {
+  0%,100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+.hero-progress-meta { display: flex; justify-content: space-between; font-size: 12px; font-weight: 700; color: #9b72ff; }
+.hero-play-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #9b72ff, #7c4ddb);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  margin-top: 14px;
+  box-shadow: 0 6px 20px rgba(155,114,255,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.hero-play-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(155,114,255,0.5); }
+.hero-play-btn:active { transform: scale(0.98); }
+
+/* ── Node map preview ── */
+.node-map {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.map-node {
+  width: 60px; height: 60px;
+  border-radius: 16px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  font-size: 26px;
+  border: 2px solid #2a2060;
+  background: #1a1060;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s;
+}
+.map-node:hover { transform: scale(1.06); }
+.map-node.done { border-color: #50e890; background: #0a2a15; }
+.map-node.active { border-color: #9b72ff; background: #2a1880; animation: node-active 1.5s ease-in-out infinite; }
+.map-node.locked { opacity: 0.35; cursor: default; }
+@keyframes node-active {
+  0%,100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); }
+  50% { box-shadow: 0 0 0 10px rgba(155,114,255,0); }
+}
+.map-node .check-mark {
+  position: absolute; top: -4px; right: -4px;
+  width: 18px; height: 18px;
+  background: #50e890; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; color: #0a2a15; font-weight: 900;
+}
+.map-node .node-num {
+  position: absolute; bottom: 2px;
+  font-size: 9px; font-weight: 900; color: #6a5090;
+}
+
+/* ── Section titles ── */
+.section-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #9b72ff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+
+/* ── Quick quests strip ── */
+.quests-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.quest-card {
+  background: #1a1060;
+  border: 2px solid #2a2060;
+  border-radius: 14px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.quest-card:hover { border-color: #9b72ff; background: #1e1870; }
+.quest-card .qc-icon { font-size: 28px; margin-bottom: 6px; }
+.quest-card .qc-name { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.quest-card .qc-meta { font-size: 11px; color: #7a6090; font-weight: 700; }
+.quest-card .qc-stars { font-size: 11px; color: #ffd166; font-weight: 700; margin-top: 4px; }
+
+/* ── Streak + Stars row ── */
+.stats-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.stat-card {
+  background: #1a1060;
+  border: 2px solid #2a2060;
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stat-card .stat-icon { font-size: 28px; }
+.stat-card .stat-val { font-size: 22px; font-weight: 900; color: #fff; line-height: 1; }
+.stat-card .stat-label { font-size: 11px; color: #7a6090; font-weight: 700; margin-top: 2px; }
+
+/* ── Right rail panels ── */
+.rail-panel {
+  background: #1a1460;
+  border: 1px solid #2a2060;
+  border-radius: 14px;
+  padding: 14px;
+}
+.rail-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.rail-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 1px solid #2a2060;
+  font-size: 13px;
+  color: #c4a0ff;
+  font-weight: 700;
+}
+.rail-row:last-child { border-bottom: none; }
+.rail-row .rr-icon { font-size: 18px; }
+.rail-row .rr-text { flex: 1; }
+.rail-row .rr-meta { font-size: 11px; color: #6a5090; }
+
+.badge-strip {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.badge-item {
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  background: #1e1a40;
+  border: 2px solid #3a2a60;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+.badge-item:hover { transform: scale(1.1); }
+.badge-item.locked { opacity: 0.3; }
+
+/* ── Band selector screen ── */
+.band-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-width: 700px;
+  margin: 20px auto;
+}
+.band-card {
+  border-radius: 20px;
+  padding: 24px;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.band-card:hover { transform: translateY(-3px); }
+.band-card.selected { border-color: #fff; }
+.band-card .band-icon { font-size: 48px; margin-bottom: 10px; }
+.band-card .band-name { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.band-card .band-ages { font-size: 13px; opacity: 0.8; font-weight: 700; }
+.band-card .band-desc { font-size: 12px; opacity: 0.7; margin-top: 6px; line-height: 1.4; }
+.band-p0 { background: linear-gradient(135deg, #2a2010, #1a1408); border-color: #ffd166; }
+.band-p0 .band-name { color: #ffd166; }
+.band-p1 { background: linear-gradient(135deg, #1a1060, #0d0830); border-color: #9b72ff; }
+.band-p1 .band-name { color: #9b72ff; }
+.band-p2 { background: linear-gradient(135deg, #0a2a28, #061a18); border-color: #58e8c1; }
+.band-p2 .band-name { color: #58e8c1; }
+.band-p3 { background: linear-gradient(135deg, #2a1010, #1a0808); border-color: #ff7b6b; }
+.band-p3 .band-name { color: #ff7b6b; }
+
+/* ── World map screen ── */
+.world-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.world-tile {
+  background: #1a1060;
+  border: 2px solid #2a2060;
+  border-radius: 16px;
+  padding: 18px;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+.world-tile:hover { border-color: #9b72ff; background: #1e1870; }
+.world-tile.current { border-color: #9b72ff; background: #2a1880; }
+.world-tile.locked { opacity: 0.4; cursor: default; }
+.world-tile .wt-emoji { font-size: 36px; margin-bottom: 8px; }
+.world-tile .wt-name { font-size: 15px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.world-tile .wt-nodes { font-size: 12px; color: #7a6090; font-weight: 700; }
+.world-tile .wt-prog {
+  height: 6px;
+  background: #2a2060;
+  border-radius: 4px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+.world-tile .wt-prog-fill {
+  height: 100%;
+  border-radius: 4px;
+  background: #9b72ff;
+}
+.world-tile .wt-current-badge {
+  display: inline-block;
+  background: #9b72ff;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 900;
+  padding: 2px 8px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Spec tab ── */
+.spec-outer { max-width: 900px; margin: 0 auto; padding: 16px; }
+.spec-section { margin-bottom: 18px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+.spec-note { font-size: 11px; color: #7a6090; margin-top: 8px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-home-hub-desktop-v3.html</strong><br>
+  Desktop 1280px • 3-col grid: 220px sidebar / 1fr main / 280px right rail<br>
+  Tabs: Home (default/active world) | Band Select | World Map | Spec<br>
+  Font: Nunito 900 • Dark cosmic <code>#100b2e</code> • Violet accent <code>#9b72ff</code><br>
+  No timers • No accuracy % • No grade labels • Stars never decrease<br>
+  Active node uses box-shadow pulse animation • world progress shimmer on fill bar
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('home')">Home Hub</button>
+  <button class="tab-btn" onclick="showTab('band')">Band Select</button>
+  <button class="tab-btn" onclick="showTab('worlds')">World Map</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ════════════════ TAB 1: HOME HUB ════════════════ -->
+<div id="screen-home" class="screen active">
+  <div class="desktop-frame">
+    <!-- Top nav -->
+    <div class="top-nav">
+      <div class="nav-logo">Wonder<span>Quest</span></div>
+      <div class="nav-spacer"></div>
+      <div class="nav-streak">🔥 5 days</div>
+      <div class="nav-star-count">⭐ 42</div>
+      <div class="nav-avatar">🦋</div>
+    </div>
+
+    <!-- Left sidebar -->
+    <div class="left-sidebar">
+      <div class="sidebar-item active"><span class="icon">🏠</span> Home</div>
+      <div class="sidebar-item"><span class="icon">🗺️</span> World Map</div>
+      <div class="sidebar-item"><span class="icon">⭐</span> My Stars</div>
+      <div class="sidebar-item"><span class="icon">🏅</span> Badges <span class="badge">3</span></div>
+      <div class="sidebar-item"><span class="icon">🏆</span> Trophies</div>
+      <div class="sidebar-item"><span class="icon">🎯</span> Daily Quest</div>
+    </div>
+
+    <!-- Main content -->
+    <div class="main-content">
+      <!-- Hero world card -->
+      <div class="hero-world">
+        <div class="hero-label">Current World</div>
+        <div class="hero-world-name">Crystal Caverns 💎</div>
+        <div class="hero-world-tagline">Unlock the secrets of the shining gems!</div>
+        <div class="hero-progress-bar">
+          <div class="hero-progress-fill" style="width:58%"></div>
+        </div>
+        <div class="hero-progress-meta">
+          <span>Node 7 of 12</span>
+          <span>58% explored</span>
+        </div>
+        <button class="hero-play-btn">▶ Continue Adventure</button>
+      </div>
+
+      <!-- Node map -->
+      <div class="section-title">Today's Nodes</div>
+      <div class="node-map">
+        <div class="map-node done">🌟<div class="check-mark">✓</div><div class="node-num">1</div></div>
+        <div class="map-node done">🔮<div class="check-mark">✓</div><div class="node-num">2</div></div>
+        <div class="map-node done">💎<div class="check-mark">✓</div><div class="node-num">3</div></div>
+        <div class="map-node done">🗝️<div class="check-mark">✓</div><div class="node-num">4</div></div>
+        <div class="map-node done">🌈<div class="check-mark">✓</div><div class="node-num">5</div></div>
+        <div class="map-node done">🔥<div class="check-mark">✓</div><div class="node-num">6</div></div>
+        <div class="map-node active">🏔️<div class="node-num">7</div></div>
+        <div class="map-node locked">🌙<div class="node-num">8</div></div>
+        <div class="map-node locked">⚡<div class="node-num">9</div></div>
+        <div class="map-node locked">🦋<div class="node-num">10</div></div>
+        <div class="map-node locked">🌟<div class="node-num">11</div></div>
+        <div class="map-node locked">👑<div class="node-num">12</div></div>
+      </div>
+
+      <!-- Stats row -->
+      <div class="stats-row">
+        <div class="stat-card">
+          <span class="stat-icon">🔥</span>
+          <div>
+            <div class="stat-val">5</div>
+            <div class="stat-label">Day quest streak</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <span class="stat-icon">⭐</span>
+          <div>
+            <div class="stat-val">42</div>
+            <div class="stat-label">Stars collected</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick quests -->
+      <div class="section-title">Jump Into a Quest</div>
+      <div class="quests-strip">
+        <div class="quest-card">
+          <div class="qc-icon">🔤</div>
+          <div class="qc-name">Word Builders</div>
+          <div class="qc-meta">Crystal Caverns</div>
+          <div class="qc-stars">⭐⭐⭐ earn up to 3</div>
+        </div>
+        <div class="quest-card">
+          <div class="qc-icon">🔢</div>
+          <div class="qc-name">Number Tower</div>
+          <div class="qc-meta">Crystal Caverns</div>
+          <div class="qc-stars">⭐⭐ earn up to 2</div>
+        </div>
+        <div class="quest-card">
+          <div class="qc-icon">🎵</div>
+          <div class="qc-name">Sound Hunt</div>
+          <div class="qc-meta">Crystal Caverns</div>
+          <div class="qc-stars">⭐⭐⭐ earn up to 3</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right rail -->
+    <div class="right-rail">
+      <!-- Recent wins -->
+      <div class="rail-panel">
+        <div class="rail-title">Recent Wins 🎉</div>
+        <div class="rail-row"><span class="rr-icon">⭐</span><span class="rr-text">Earned 3 stars!</span><span class="rr-meta">today</span></div>
+        <div class="rail-row"><span class="rr-icon">🏅</span><span class="rr-text">New badge unlocked</span><span class="rr-meta">today</span></div>
+        <div class="rail-row"><span class="rr-icon">🔥</span><span class="rr-text">5-day streak!</span><span class="rr-meta">today</span></div>
+        <div class="rail-row"><span class="rr-icon">🗝️</span><span class="rr-text">Node 6 complete</span><span class="rr-meta">yesterday</span></div>
+      </div>
+
+      <!-- Badges -->
+      <div class="rail-panel">
+        <div class="rail-title">My Badges 🏅</div>
+        <div class="badge-strip">
+          <div class="badge-item">🌟</div>
+          <div class="badge-item">🔥</div>
+          <div class="badge-item">💎</div>
+          <div class="badge-item locked">🏆</div>
+          <div class="badge-item locked">👑</div>
+          <div class="badge-item locked">🦋</div>
+        </div>
+      </div>
+
+      <!-- Daily challenge -->
+      <div class="rail-panel">
+        <div class="rail-title">Daily Challenge ⚡</div>
+        <div style="text-align:center; padding: 10px 0;">
+          <div style="font-size:32px;margin-bottom:8px">🎯</div>
+          <div style="font-size:14px;font-weight:900;color:#ffd166;margin-bottom:4px">Mystery Quest</div>
+          <div style="font-size:12px;color:#7a6090;font-weight:700;margin-bottom:12px">New challenge available!</div>
+          <button style="width:100%;padding:10px;border-radius:10px;border:none;background:#9b72ff;color:#fff;font-family:Nunito,sans-serif;font-size:14px;font-weight:900;cursor:pointer;">Try It! ⚡</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TAB 2: BAND SELECT ════════════════ -->
+<div id="screen-band" class="screen">
+  <div style="max-width:800px; margin: 0 auto; padding: 20px;">
+    <div style="text-align:center; margin-bottom:24px;">
+      <div style="font-size:24px;font-weight:900;color:#fff;margin-bottom:6px">Choose Your Adventure Level</div>
+      <div style="font-size:14px;color:#7a6090;font-weight:700">Pick the one that feels right — you can always change it</div>
+    </div>
+    <div class="band-grid">
+      <div class="band-card band-p0">
+        <div class="band-icon">🌈</div>
+        <div class="band-name">Pre-K Explorers</div>
+        <div class="band-ages">Ages 3–5 · Early learners</div>
+        <div class="band-desc">Letters, counting, shapes, and colors. Big pictures, voice-first.</div>
+      </div>
+      <div class="band-card band-p1 selected">
+        <div class="band-icon">⚡</div>
+        <div class="band-name">K–1 Adventurers</div>
+        <div class="band-ages">Ages 5–7 · Kindergarten–Grade 1</div>
+        <div class="band-desc">Phonics, first words, simple addition. Where the magic begins!</div>
+      </div>
+      <div class="band-card band-p2">
+        <div class="band-icon">🌊</div>
+        <div class="band-name">G2–3 Questers</div>
+        <div class="band-ages">Ages 7–9 · Grades 2–3</div>
+        <div class="band-desc">Reading, multiplication, problem solving. More challenge unlocked.</div>
+      </div>
+      <div class="band-card band-p3">
+        <div class="band-icon">🔥</div>
+        <div class="band-name">G4–5 Champions</div>
+        <div class="band-ages">Ages 9–11 · Grades 4–5</div>
+        <div class="band-desc">Complex math, reading comprehension, reasoning. For the bold.</div>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:20px">
+      <button style="padding:14px 40px;border-radius:14px;border:none;background:linear-gradient(135deg,#9b72ff,#7c4ddb);color:#fff;font-family:Nunito,sans-serif;font-size:18px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(155,114,255,0.4)">Start Questing! ⚡</button>
+      <div style="font-size:12px;color:#5a4080;font-weight:700;margin-top:10px">Your parent can adjust this any time</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TAB 3: WORLD MAP ════════════════ -->
+<div id="screen-worlds" class="screen">
+  <div style="max-width:1000px; margin: 0 auto; padding: 20px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="font-size:22px;font-weight:900;color:#fff">Choose Your World 🗺️</div>
+      <div style="font-size:13px;font-weight:700;color:#7a6090">K–1 Adventurers band</div>
+    </div>
+    <div class="world-grid">
+      <div class="world-tile done">
+        <div class="wt-emoji">🌲</div>
+        <div class="wt-name">Enchanted Forest</div>
+        <div class="wt-nodes">12/12 nodes complete</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:100%;background:#50e890"></div></div>
+      </div>
+      <div class="world-tile done">
+        <div class="wt-emoji">🌊</div>
+        <div class="wt-name">Ocean Kingdom</div>
+        <div class="wt-nodes">12/12 nodes complete</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:100%;background:#50e890"></div></div>
+      </div>
+      <div class="world-tile current">
+        <div class="wt-current-badge">current</div>
+        <div class="wt-emoji">💎</div>
+        <div class="wt-name">Crystal Caverns</div>
+        <div class="wt-nodes">7/12 nodes done</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:58%"></div></div>
+      </div>
+      <div class="world-tile">
+        <div class="wt-emoji">🌋</div>
+        <div class="wt-name">Volcano Island</div>
+        <div class="wt-nodes">0/12 nodes</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="world-tile locked">
+        <div class="wt-emoji">🏔️</div>
+        <div class="wt-name">Frozen Peaks</div>
+        <div class="wt-nodes">🔒 Unlock after Volcano</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:0%"></div></div>
+      </div>
+      <div class="world-tile locked">
+        <div class="wt-emoji">🌌</div>
+        <div class="wt-name">Galaxy Station</div>
+        <div class="wt-nodes">🔒 Coming soon</div>
+        <div class="wt-prog"><div class="wt-prog-fill" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ TAB 4: SPEC ════════════════ -->
+<div id="screen-spec" class="screen">
+  <div class="spec-outer">
+    <div class="spec-section">
+      <div class="spec-title">Layout</div>
+      <div class="spec-row"><span class="spec-key">Container</span><span class="spec-val">max-width 1280px, 3-col grid</span></div>
+      <div class="spec-row"><span class="spec-key">Left sidebar</span><span class="spec-val">220px, dark #0d0924, nav items</span></div>
+      <div class="spec-row"><span class="spec-key">Main content</span><span class="spec-val">1fr, hero card + nodes + quests</span></div>
+      <div class="spec-row"><span class="spec-key">Right rail</span><span class="spec-val">280px, recent wins + badges + daily</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Tabs</div>
+      <div class="spec-row"><span class="spec-key">Home Hub</span><span class="spec-val">Default — current world, nodes, quests, stats</span></div>
+      <div class="spec-row"><span class="spec-key">Band Select</span><span class="spec-val">4 band cards — P0/P1/P2/P3 with brand colors</span></div>
+      <div class="spec-row"><span class="spec-key">World Map</span><span class="spec-val">3×2 grid — done/current/locked states</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Design Tokens</div>
+      <div class="spec-row"><span class="spec-key">Background</span><span class="spec-val">#100b2e (dark cosmic)</span></div>
+      <div class="spec-row"><span class="spec-key">Accent</span><span class="spec-val">#9b72ff (K–1 violet)</span></div>
+      <div class="spec-row"><span class="spec-key">Stars/XP</span><span class="spec-val">#ffd166 (gold)</span></div>
+      <div class="spec-row"><span class="spec-key">Done/complete</span><span class="spec-val">#50e890 (green)</span></div>
+      <div class="spec-row"><span class="spec-key">Font</span><span class="spec-val">Nunito 900 throughout</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Stars</span><span class="spec-val">Never decrease — star count always shown as total</span></div>
+      <div class="spec-row"><span class="spec-key">Accuracy %</span><span class="spec-val">Never shown anywhere</span></div>
+      <div class="spec-row"><span class="spec-key">Timers</span><span class="spec-val">None</span></div>
+      <div class="spec-row"><span class="spec-key">Grade labels</span><span class="spec-val">Band names only (K–1 Adventurers, etc.)</span></div>
+      <div class="spec-row"><span class="spec-key">Locked nodes</span><span class="spec-val">35% opacity — never explain why locked</span></div>
+    </div>
+    <div class="spec-note">
+      Active node animates with box-shadow pulse. Progress bar fill has shimmer-right animation.
+      Band selection screen shows currently-selected band highlighted (K–1 default).
+      World map shows 3 done, 1 current (58%), 1 fresh, 2 locked.
+      Right rail wins feed uses append-only language ("Earned", "Unlocked", "Complete") — no failure framing.
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

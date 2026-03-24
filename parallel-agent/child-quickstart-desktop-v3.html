@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Quickstart Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #100b2e;
+  min-height: 100vh;
+  font-family: 'Nunito', sans-serif;
+  color: #fff;
+}
+
+.eng-hint {
+  background: #fffbea;
+  border: 2px solid #f0c040;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-family: monospace;
+  font-size: 12px;
+  color: #333;
+  margin: 16px;
+  line-height: 1.5;
+}
+.eng-hint strong { color: #b45309; }
+
+.tab-bar {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 0 16px 16px;
+}
+.tab-btn {
+  padding: 8px 16px;
+  background: #1e1a40;
+  border: 2px solid #2e2a50;
+  border-radius: 8px;
+  color: #aaa;
+  font-family: 'Nunito', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* ── Quickstart layout ── */
+.qs-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 32px 60px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Step indicator */
+.step-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 40px;
+}
+.step-dot {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+  border: 3px solid #2a2060;
+  background: #1a1060;
+  color: #5a4080;
+  transition: all 0.3s;
+}
+.step-dot.done { background: #50e890; border-color: #50e890; color: #0a2a15; }
+.step-dot.active { background: #9b72ff; border-color: #9b72ff; color: #fff; box-shadow: 0 0 0 6px rgba(155,114,255,0.2); }
+.step-line {
+  width: 60px; height: 3px;
+  background: #2a2060;
+  transition: background 0.3s;
+}
+.step-line.done { background: #50e890; }
+.step-label-row {
+  display: flex;
+  gap: 0;
+  margin-bottom: 32px;
+  width: 100%;
+  max-width: 540px;
+}
+.step-label {
+  flex: 1;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: #5a4080;
+}
+.step-label.active { color: #9b72ff; }
+.step-label.done { color: #50e890; }
+
+/* Quickstart card */
+.qs-card {
+  width: 100%;
+  max-width: 640px;
+  background: linear-gradient(135deg, #1a1060 0%, #140e50 100%);
+  border: 2px solid #2a2060;
+  border-radius: 24px;
+  padding: 36px 40px;
+  text-align: center;
+}
+
+.qs-emoji { font-size: 72px; margin-bottom: 16px; display: block; animation: qs-bounce 2s ease-in-out infinite; }
+@keyframes qs-bounce {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.qs-title { font-size: 32px; font-weight: 900; color: #fff; margin-bottom: 8px; line-height: 1.2; }
+.qs-sub { font-size: 16px; color: #b8a0e8; font-weight: 700; margin-bottom: 28px; }
+
+/* Name entry */
+.name-input {
+  width: 100%;
+  padding: 16px 20px;
+  border-radius: 14px;
+  border: 2px solid #4a30b0;
+  background: #0d0924;
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  text-align: center;
+  outline: none;
+  transition: border-color 0.2s;
+  margin-bottom: 20px;
+}
+.name-input:focus { border-color: #9b72ff; }
+.name-input::placeholder { color: #4a3070; }
+
+/* Avatar grid */
+.avatar-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+.avatar-pick {
+  width: 72px; height: 72px;
+  border-radius: 20px;
+  background: #1a1460;
+  border: 3px solid #2a2060;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 36px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.avatar-pick:hover { transform: scale(1.08); border-color: #9b72ff; }
+.avatar-pick.selected { border-color: #9b72ff; background: #2a1880; box-shadow: 0 0 0 4px rgba(155,114,255,0.25); }
+
+/* Band picker */
+.band-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+.band-opt {
+  border-radius: 16px;
+  padding: 18px 16px;
+  cursor: pointer;
+  border: 3px solid transparent;
+  transition: all 0.2s;
+  text-align: left;
+}
+.band-opt:hover { transform: translateY(-2px); }
+.band-opt.selected { border-color: #fff; }
+.band-opt .bo-icon { font-size: 32px; margin-bottom: 6px; }
+.band-opt .bo-name { font-size: 15px; font-weight: 900; margin-bottom: 2px; }
+.band-opt .bo-ages { font-size: 12px; opacity: 0.75; font-weight: 700; }
+.band-p0 { background: linear-gradient(135deg, #2a2010, #1a1408); }
+.band-p0 .bo-name { color: #ffd166; }
+.band-p1 { background: linear-gradient(135deg, #1a1060, #0d0830); }
+.band-p1 .bo-name { color: #9b72ff; }
+.band-p2 { background: linear-gradient(135deg, #0a2a28, #061a18); }
+.band-p2 .bo-name { color: #58e8c1; }
+.band-p3 { background: linear-gradient(135deg, #2a1010, #1a0808); }
+.band-p3 .bo-name { color: #ff7b6b; }
+
+/* World picker */
+.world-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+.world-opt {
+  background: #1a1060;
+  border: 3px solid #2a2060;
+  border-radius: 16px;
+  padding: 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.world-opt:hover { border-color: #9b72ff; transform: translateY(-2px); }
+.world-opt.selected { border-color: #9b72ff; background: #2a1880; }
+.world-opt .wo-emoji { font-size: 36px; margin-bottom: 6px; }
+.world-opt .wo-name { font-size: 13px; font-weight: 900; color: #fff; }
+.world-opt .wo-desc { font-size: 11px; color: #7a6090; margin-top: 2px; }
+
+/* CTA button */
+.cta-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #9b72ff, #7c4ddb);
+  color: #fff;
+  font-family: 'Nunito', sans-serif;
+  font-size: 20px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(155,114,255,0.4);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.cta-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(155,114,255,0.5); }
+.cta-btn:active { transform: scale(0.98); }
+.cta-note { font-size: 12px; color: #5a4080; font-weight: 700; margin-top: 10px; }
+
+/* Complete screen */
+.complete-screen {
+  text-align: center;
+  padding: 20px 0;
+}
+.complete-trophy { font-size: 96px; animation: trophy-spin 0.6s cubic-bezier(0.34,1.56,0.64,1); display: block; margin-bottom: 16px; }
+@keyframes trophy-spin {
+  from { transform: scale(0) rotate(-20deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+.complete-title { font-size: 36px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.complete-sub { font-size: 18px; color: #b8a0e8; font-weight: 700; margin-bottom: 24px; }
+.reward-chips {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-bottom: 28px;
+}
+.reward-chip {
+  display: flex; align-items: center; gap: 6px;
+  background: #1e1a40;
+  border: 2px solid #4a30b0;
+  border-radius: 24px;
+  padding: 10px 18px;
+  font-size: 16px; font-weight: 900; color: #fff;
+  animation: chip-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.reward-chip.gold { border-color: #ffd166; background: #2a2010; color: #ffd166; }
+@keyframes chip-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+.reward-chip:nth-child(1) { animation-delay: 0.1s; }
+.reward-chip:nth-child(2) { animation-delay: 0.2s; }
+.reward-chip:nth-child(3) { animation-delay: 0.3s; }
+
+/* Spec */
+.spec-outer { max-width: 900px; margin: 0 auto; padding: 20px; }
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+.spec-note { font-size: 11px; color: #7a6090; margin-top: 8px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-quickstart-desktop-v3.html</strong><br>
+  Desktop 1100px centered • 5 tabs: Step 1 Name &amp; Avatar / Step 2 Band / Step 3 World / Complete / Spec<br>
+  Step indicator shows done/active/pending states • Avatar grid 6-up selection<br>
+  Band options 2×2 grid with brand colors • World options 3-up<br>
+  Complete screen: trophy-spin animation + reward chips + staggered chip-pop<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code> • Violet <code>#9b72ff</code>
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('step1')">Step 1 — Name</button>
+  <button class="tab-btn" onclick="showTab('step2')">Step 2 — Band</button>
+  <button class="tab-btn" onclick="showTab('step3')">Step 3 — World</button>
+  <button class="tab-btn" onclick="showTab('complete')">Complete!</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ════════════════ STEP 1: NAME & AVATAR ════════════════ -->
+<div id="screen-step1" class="screen active">
+  <div class="qs-wrapper">
+    <div class="step-indicator">
+      <div class="step-dot active">1</div>
+      <div class="step-line"></div>
+      <div class="step-dot">2</div>
+      <div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="step-label-row" style="max-width:260px;margin-bottom:32px">
+      <div class="step-label active">Who are you?</div>
+      <div class="step-label">Your level</div>
+      <div class="step-label">Pick a world</div>
+    </div>
+
+    <div class="qs-card">
+      <span class="qs-emoji">🌟</span>
+      <div class="qs-title">What's your name?</div>
+      <div class="qs-sub">Tell us what to call you on your quest!</div>
+
+      <input class="name-input" type="text" placeholder="Type your name here..." value="Zara">
+
+      <div style="font-size:14px;font-weight:700;color:#9b72ff;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Pick your explorer</div>
+      <div class="avatar-grid">
+        <div class="avatar-pick selected">🦋</div>
+        <div class="avatar-pick">🦁</div>
+        <div class="avatar-pick">🐉</div>
+        <div class="avatar-pick">🦊</div>
+        <div class="avatar-pick">🐬</div>
+        <div class="avatar-pick">🦅</div>
+      </div>
+
+      <button class="cta-btn">That's me! Next →</button>
+      <div class="cta-note">You can change this any time</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ STEP 2: BAND ════════════════ -->
+<div id="screen-step2" class="screen">
+  <div class="qs-wrapper">
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step-dot active">2</div>
+      <div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
+    <div class="step-label-row" style="max-width:260px;margin-bottom:32px">
+      <div class="step-label done">Who are you?</div>
+      <div class="step-label active">Your level</div>
+      <div class="step-label">Pick a world</div>
+    </div>
+
+    <div class="qs-card">
+      <span class="qs-emoji">⚡</span>
+      <div class="qs-title">Hey Zara!<br>What kind of quester are you?</div>
+      <div class="qs-sub">Pick the one that feels right — you can always change it</div>
+
+      <div class="band-options">
+        <div class="band-opt band-p0">
+          <div class="bo-icon">🌈</div>
+          <div class="bo-name">Pre-K Explorers</div>
+          <div class="bo-ages">Ages 3–5</div>
+        </div>
+        <div class="band-opt band-p1 selected">
+          <div class="bo-icon">⚡</div>
+          <div class="bo-name">K–1 Adventurers</div>
+          <div class="bo-ages">Ages 5–7</div>
+        </div>
+        <div class="band-opt band-p2">
+          <div class="bo-icon">🌊</div>
+          <div class="bo-name">G2–3 Questers</div>
+          <div class="bo-ages">Ages 7–9</div>
+        </div>
+        <div class="band-opt band-p3">
+          <div class="bo-icon">🔥</div>
+          <div class="bo-name">G4–5 Champions</div>
+          <div class="bo-ages">Ages 9–11</div>
+        </div>
+      </div>
+
+      <button class="cta-btn">K–1 Adventurers it is! →</button>
+      <div class="cta-note">Your parent can also help you pick</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ STEP 3: WORLD ════════════════ -->
+<div id="screen-step3" class="screen">
+  <div class="qs-wrapper">
+    <div class="step-indicator">
+      <div class="step-dot done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step-dot done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step-dot active">3</div>
+    </div>
+    <div class="step-label-row" style="max-width:260px;margin-bottom:32px">
+      <div class="step-label done">Who are you?</div>
+      <div class="step-label done">Your level</div>
+      <div class="step-label active">Pick a world</div>
+    </div>
+
+    <div class="qs-card">
+      <span class="qs-emoji">🗺️</span>
+      <div class="qs-title">Pick your first world!</div>
+      <div class="qs-sub">Every world has amazing quests and stars to collect</div>
+
+      <div class="world-options">
+        <div class="world-opt selected">
+          <div class="wo-emoji">🌲</div>
+          <div class="wo-name">Enchanted Forest</div>
+          <div class="wo-desc">Magical creatures & hidden paths</div>
+        </div>
+        <div class="world-opt">
+          <div class="wo-emoji">🌊</div>
+          <div class="wo-name">Ocean Kingdom</div>
+          <div class="wo-desc">Underwater treasures & sea friends</div>
+        </div>
+        <div class="world-opt">
+          <div class="wo-emoji">💎</div>
+          <div class="wo-name">Crystal Caverns</div>
+          <div class="wo-desc">Shining gems & sparkling secrets</div>
+        </div>
+      </div>
+
+      <button class="cta-btn">Start in Enchanted Forest! 🌲</button>
+      <div class="cta-note">More worlds unlock as you explore</div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ COMPLETE ════════════════ -->
+<div id="screen-complete" class="screen">
+  <div class="qs-wrapper">
+    <div class="qs-card" style="max-width:640px">
+      <div class="complete-screen">
+        <span class="complete-trophy">🏆</span>
+        <div class="complete-title">You're all set, Zara!</div>
+        <div class="complete-sub">Your adventure in the Enchanted Forest begins NOW!</div>
+
+        <div class="reward-chips">
+          <div class="reward-chip gold">⭐ 3 starter stars</div>
+          <div class="reward-chip">🦋 Explorer avatar</div>
+          <div class="reward-chip">🌲 World unlocked</div>
+        </div>
+
+        <button class="cta-btn" style="font-size:22px">Let's Go! 🚀</button>
+        <div class="cta-note" style="margin-top:14px">Your parent will see your progress in their app</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════ SPEC ════════════════ -->
+<div id="screen-spec" class="screen">
+  <div class="spec-outer">
+    <div class="spec-section">
+      <div class="spec-title">Flow</div>
+      <div class="spec-row"><span class="spec-key">Step 1</span><span class="spec-val">Name input + avatar grid (6 choices, single-select)</span></div>
+      <div class="spec-row"><span class="spec-key">Step 2</span><span class="spec-val">Band selection — 4 options, 2×2 grid with brand colors</span></div>
+      <div class="spec-row"><span class="spec-key">Step 3</span><span class="spec-val">World selection — 3 starting worlds, single-select</span></div>
+      <div class="spec-row"><span class="spec-key">Complete</span><span class="spec-val">Trophy animation + reward chips + launch CTA</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Step Indicator</div>
+      <div class="spec-row"><span class="spec-key">Pending</span><span class="spec-val">Gray bg, gray border, gray number</span></div>
+      <div class="spec-row"><span class="spec-key">Active</span><span class="spec-val">#9b72ff bg, outer glow ring</span></div>
+      <div class="spec-row"><span class="spec-key">Done</span><span class="spec-val">#50e890 bg, checkmark, connecting line turns green</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Interactions</div>
+      <div class="spec-row"><span class="spec-key">Avatar pick</span><span class="spec-val">Single select, violet border + bg glow on selected</span></div>
+      <div class="spec-row"><span class="spec-key">Band select</span><span class="spec-val">Single select, white border on selected</span></div>
+      <div class="spec-row"><span class="spec-key">World select</span><span class="spec-val">Single select, violet border + dark violet bg on selected</span></div>
+      <div class="spec-row"><span class="spec-key">CTA label</span><span class="spec-val">Dynamically shows selected choice ("K-1 Adventurers it is!")</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Grade labels</span><span class="spec-val">Band names only, age ranges in smaller text</span></div>
+      <div class="spec-row"><span class="spec-key">Accuracy/timers</span><span class="spec-val">Never shown in quickstart</span></div>
+      <div class="spec-row"><span class="spec-key">Starter stars</span><span class="spec-val">3 awarded at completion — never decrease from here</span></div>
+    </div>
+    <div class="spec-note">
+      Name input accepts free text — no validation shown during setup (only after submit if empty).
+      Avatar selection is optional — default pre-selected is butterfly 🦋.
+      Band selection can be overridden by parent via parent app settings.
+      Complete screen reward chips animate with staggered chip-pop (0.1s / 0.2s / 0.3s delays).
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+
+// Avatar selection
+document.querySelectorAll('.avatar-pick').forEach(a => {
+  a.addEventListener('click', () => {
+    document.querySelectorAll('.avatar-pick').forEach(x => x.classList.remove('selected'));
+    a.classList.add('selected');
+  });
+});
+
+// Band selection
+document.querySelectorAll('.band-opt').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.band-opt').forEach(x => x.classList.remove('selected'));
+    b.classList.add('selected');
+  });
+});
+
+// World selection
+document.querySelectorAll('.world-opt').forEach(w => {
+  w.addEventListener('click', () => {
+    document.querySelectorAll('.world-opt').forEach(x => x.classList.remove('selected'));
+    w.classList.add('selected');
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Home Empty State — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 900px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 900px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 900px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── EMPTY STATE CANVAS ── */
+  .empty-canvas {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Star field background */
+  .star-field {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .star {
+    position: absolute;
+    border-radius: 50%;
+    background: #fff;
+    animation: twinkle var(--dur) ease-in-out infinite;
+  }
+  @keyframes twinkle {
+    0%, 100% { opacity: var(--min-op); }
+    50% { opacity: var(--max-op); }
+  }
+
+  /* ── FULL EMPTY (brand new, no progress) ── */
+  .full-empty {
+    text-align: center;
+    padding: 60px 40px;
+    position: relative;
+    z-index: 1;
+  }
+  .mascot-big {
+    font-size: 80px;
+    display: block;
+    margin-bottom: 16px;
+    animation: mascot-float 3s ease-in-out infinite;
+  }
+  @keyframes mascot-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .empty-title { font-size: 28px; font-weight: 900; color: #e8e0ff; margin-bottom: 8px; }
+  .empty-sub { font-size: 15px; color: #9b8ec4; margin-bottom: 28px; max-width: 420px; margin-left: auto; margin-right: auto; }
+
+  /* Starter CTA card */
+  .starter-card {
+    background: linear-gradient(135deg, #1e1470, #2a1060);
+    border: 2px solid #9b72ff;
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 380px;
+    margin: 0 auto 24px;
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.15s;
+    box-shadow: 0 0 30px rgba(155,114,255,0.15);
+  }
+  .starter-card:hover { transform: scale(1.02); }
+  .sc-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .sc-badge-icon {
+    width: 52px;
+    height: 52px;
+    background: #2d1f80;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 26px;
+    border: 2px solid #9b72ff;
+    flex-shrink: 0;
+  }
+  .sc-info-title { font-size: 17px; font-weight: 900; color: #e8e0ff; margin-bottom: 3px; }
+  .sc-info-sub { font-size: 12px; color: #9b8ec4; }
+  .sc-reward {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .sc-r-chip {
+    background: #2d1f80;
+    border: 1px solid #9b72ff;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b0ff;
+  }
+  .sc-cta {
+    width: 100%;
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 10px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 12px;
+    cursor: pointer;
+  }
+
+  /* ── PARTIAL EMPTY (has avatar+band, no world started) ── */
+  .partial-empty {
+    padding: 40px 30px;
+    position: relative;
+    z-index: 1;
+  }
+  .pe-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .pe-avatar {
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border-radius: 16px;
+    border: 3px solid #9b72ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+  }
+  .pe-greeting { font-size: 22px; font-weight: 900; color: #e8e0ff; margin-bottom: 4px; }
+  .pe-band { font-size: 12px; color: #9b8ec4; }
+
+  /* World picker strip */
+  .world-strip-label {
+    font-size: 11px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .world-strip {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+    margin-bottom: 20px;
+  }
+  .world-strip::-webkit-scrollbar { display: none; }
+  .world-pick-card {
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    border-radius: 16px;
+    padding: 16px 14px;
+    min-width: 140px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    flex-shrink: 0;
+    text-align: center;
+  }
+  .world-pick-card:hover { border-color: #9b72ff; transform: translateY(-2px); }
+  .world-pick-card.featured { border-color: #9b72ff; background: #1e1470; }
+  .wpc-icon { font-size: 32px; margin-bottom: 6px; }
+  .wpc-name { font-size: 13px; font-weight: 900; color: #e8e0ff; margin-bottom: 3px; }
+  .wpc-sub { font-size: 10px; color: #9b8ec4; }
+  .wpc-chip {
+    display: inline-block;
+    margin-top: 6px;
+    background: #2d1f80;
+    border-radius: 8px;
+    padding: 2px 8px;
+    font-size: 9px;
+    font-weight: 700;
+    color: #c4b0ff;
+  }
+  .world-pick-card.featured .wpc-chip { background: #9b72ff; color: #fff; }
+
+  .pe-cta {
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 14px 32px;
+    cursor: pointer;
+  }
+
+  /* ── LOADING EMPTY (skeleton) ── */
+  .skeleton-grid {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .skel {
+    background: linear-gradient(90deg, #1a1540 25%, #2a2060 50%, #1a1540 75%);
+    background-size: 200% 100%;
+    border-radius: 12px;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+
+  /* ── ALL WORLDS COMPLETE ── */
+  .all-done-wrap {
+    text-align: center;
+    padding: 50px 40px;
+    position: relative;
+    z-index: 1;
+  }
+  .trophy-spin-wrap {
+    font-size: 72px;
+    margin-bottom: 16px;
+    animation: trophy-spin 3s ease-in-out infinite;
+  }
+  @keyframes trophy-spin {
+    0%, 100% { transform: rotate(-5deg) scale(1); }
+    50% { transform: rotate(5deg) scale(1.05); }
+  }
+  .done-title { font-size: 28px; font-weight: 900; color: #ffd166; margin-bottom: 8px; }
+  .done-sub { font-size: 14px; color: #c4a840; margin-bottom: 20px; }
+  .done-stats {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+  }
+  .ds-chip {
+    background: #2a2010;
+    border: 2px solid #ffd166;
+    border-radius: 14px;
+    padding: 10px 18px;
+    font-size: 15px;
+    font-weight: 900;
+    color: #ffd166;
+    animation: chip-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .ds-chip:nth-child(1) { animation-delay: 0.1s; }
+  .ds-chip:nth-child(2) { animation-delay: 0.2s; }
+  .ds-chip:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes chip-pop {
+    from { opacity: 0; transform: scale(0.6); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .done-cta {
+    background: linear-gradient(135deg, #ffd166, #f0a000);
+    border: none;
+    border-radius: 12px;
+    color: #1a1000;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 14px 32px;
+    cursor: pointer;
+  }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-home-empty-state-v2.html</strong><br>
+  States: <strong>Brand New (no progress)</strong> / <strong>Has Avatar/Band, No World</strong> / <strong>Loading Skeleton</strong> / <strong>All Worlds Complete</strong> / <strong>Spec</strong><br>
+  Replaces home hub main content when nothing has been started yet. Star-field background (twinkling CSS dots). Mascot float animation.<br>
+  Brand new: starter CTA card with reward preview (+1⭐ First Quest badge). Has avatar/band: world picker strip (horizontal scroll).<br>
+  All complete: gold trophy celebration with stats chips + "New Adventures Coming!" CTA.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('brand-new')">Brand New</button>
+  <button class="tab-btn" onclick="showTab('has-band')">Has Avatar/Band</button>
+  <button class="tab-btn" onclick="showTab('loading')">Loading Skeleton</button>
+  <button class="tab-btn" onclick="showTab('all-done')">All Worlds Complete</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: BRAND NEW ── -->
+<div class="screen active" id="tab-brand-new">
+  <div class="empty-canvas">
+    <!-- Star field -->
+    <div class="star-field">
+      <div class="star" style="width:2px;height:2px;top:10%;left:15%;--dur:2.5s;--min-op:0.1;--max-op:0.7"></div>
+      <div class="star" style="width:3px;height:3px;top:20%;left:75%;--dur:3s;--min-op:0.15;--max-op:0.8"></div>
+      <div class="star" style="width:2px;height:2px;top:35%;left:88%;--dur:2s;--min-op:0.1;--max-op:0.6"></div>
+      <div class="star" style="width:2px;height:2px;top:55%;left:8%;--dur:2.8s;--min-op:0.1;--max-op:0.7"></div>
+      <div class="star" style="width:3px;height:3px;top:70%;left:42%;--dur:3.2s;--min-op:0.15;--max-op:0.9"></div>
+      <div class="star" style="width:2px;height:2px;top:80%;left:62%;--dur:2.3s;--min-op:0.1;--max-op:0.6"></div>
+      <div class="star" style="width:2px;height:2px;top:15%;left:52%;--dur:1.8s;--min-op:0.1;--max-op:0.5"></div>
+      <div class="star" style="width:3px;height:3px;top:45%;left:30%;--dur:2.7s;--min-op:0.1;--max-op:0.7"></div>
+      <div class="star" style="width:2px;height:2px;top:60%;left:90%;--dur:3.5s;--min-op:0.15;--max-op:0.8"></div>
+      <div class="star" style="width:2px;height:2px;top:88%;left:20%;--dur:2.1s;--min-op:0.1;--max-op:0.6"></div>
+    </div>
+
+    <div class="full-empty">
+      <span class="mascot-big">🦁</span>
+      <div class="empty-title">Welcome, Explorer!</div>
+      <div class="empty-sub">Your adventure is about to begin. Let's find your first quest! 🌟</div>
+
+      <div class="starter-card">
+        <div class="sc-top">
+          <div class="sc-badge-icon">🏰</div>
+          <div>
+            <div class="sc-info-title">Your First Adventure</div>
+            <div class="sc-info-sub">Cosmic Castle is calling you!</div>
+          </div>
+        </div>
+        <div class="sc-reward">
+          <span class="sc-r-chip">+1⭐ First Quest</span>
+          <span class="sc-r-chip">🎖️ Starter Badge</span>
+          <span class="sc-r-chip">🏰 World Unlocked</span>
+        </div>
+        <button class="sc-cta">🚀 Start My First Quest!</button>
+      </div>
+
+      <div style="font-size:12px;color:#9b8ec4">
+        Takes about 3 minutes · Stars are yours to keep forever ⭐
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: HAS AVATAR/BAND, NO WORLD ── -->
+<div class="screen" id="tab-has-band">
+  <div class="empty-canvas">
+    <div class="star-field">
+      <div class="star" style="width:2px;height:2px;top:8%;left:20%;--dur:2.5s;--min-op:0.1;--max-op:0.6"></div>
+      <div class="star" style="width:3px;height:3px;top:25%;left:80%;--dur:3.1s;--min-op:0.1;--max-op:0.8"></div>
+      <div class="star" style="width:2px;height:2px;top:60%;left:10%;--dur:2s;--min-op:0.1;--max-op:0.5"></div>
+      <div class="star" style="width:2px;height:2px;top:75%;left:70%;--dur:2.7s;--min-op:0.15;--max-op:0.7"></div>
+    </div>
+
+    <div class="partial-empty">
+      <div class="pe-header">
+        <div class="pe-avatar">🦁</div>
+        <div>
+          <div class="pe-greeting">Hey Emma! 👋</div>
+          <div class="pe-band">K–1 Explorer · Ready for your first world?</div>
+        </div>
+      </div>
+
+      <div class="world-strip-label">Pick your world to start →</div>
+      <div class="world-strip">
+        <div class="world-pick-card featured">
+          <div class="wpc-icon">🏰</div>
+          <div class="wpc-name">Cosmic Castle</div>
+          <div class="wpc-sub">Words + Numbers</div>
+          <div class="wpc-chip">⭐ Recommended</div>
+        </div>
+        <div class="world-pick-card">
+          <div class="wpc-icon">🌳</div>
+          <div class="wpc-name">Forest Glen</div>
+          <div class="wpc-sub">Letters + Sounds</div>
+          <div class="wpc-chip">Popular</div>
+        </div>
+        <div class="world-pick-card">
+          <div class="wpc-icon">🏔️</div>
+          <div class="wpc-name">Sky Peaks</div>
+          <div class="wpc-sub">Stories + Math</div>
+          <div class="wpc-chip">Adventure</div>
+        </div>
+        <div class="world-pick-card">
+          <div class="wpc-icon">🌊</div>
+          <div class="wpc-name">Ocean Deep</div>
+          <div class="wpc-sub">Science + Words</div>
+          <div class="wpc-chip">Explorer</div>
+        </div>
+      </div>
+
+      <div style="margin-bottom:16px;background:#1a1540;border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:20px">⭐</span>
+        <div>
+          <div style="font-size:13px;font-weight:900;color:#e8e0ff">Every quest earns you stars</div>
+          <div style="font-size:11px;color:#9b8ec4">Stars stay yours forever — they never go away!</div>
+        </div>
+      </div>
+
+      <button class="pe-cta">🏰 Start Cosmic Castle!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: LOADING SKELETON ── -->
+<div class="screen" id="tab-loading">
+  <div class="empty-canvas">
+    <div class="skeleton-grid">
+      <!-- Fake hero -->
+      <div class="skel" style="height:80px;border-radius:16px"></div>
+      <!-- Fake stats row -->
+      <div style="display:flex;gap:12px">
+        <div class="skel" style="flex:1;height:50px;border-radius:12px"></div>
+        <div class="skel" style="flex:1;height:50px;border-radius:12px"></div>
+        <div class="skel" style="flex:1;height:50px;border-radius:12px"></div>
+      </div>
+      <!-- Fake section label -->
+      <div class="skel" style="height:14px;width:120px;border-radius:6px"></div>
+      <!-- Fake card grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div class="skel" style="height:90px;border-radius:14px"></div>
+        <div class="skel" style="height:90px;border-radius:14px;animation-delay:0.1s"></div>
+        <div class="skel" style="height:90px;border-radius:14px;animation-delay:0.2s"></div>
+      </div>
+      <!-- Another section -->
+      <div class="skel" style="height:14px;width:150px;border-radius:6px"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="skel" style="height:60px;border-radius:12px;animation-delay:0.15s"></div>
+        <div class="skel" style="height:60px;border-radius:12px;animation-delay:0.25s"></div>
+      </div>
+      <!-- CTA skeleton -->
+      <div class="skel" style="height:48px;border-radius:12px;animation-delay:0.3s"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: ALL WORLDS COMPLETE ── -->
+<div class="screen" id="tab-all-done">
+  <div class="empty-canvas" style="background:linear-gradient(180deg,#1a1500 0%,#12103a 100%);border-color:#ffd166">
+    <div class="star-field">
+      <div class="star" style="width:3px;height:3px;top:5%;left:15%;--dur:1.5s;--min-op:0.3;--max-op:1"></div>
+      <div class="star" style="width:2px;height:2px;top:12%;left:75%;--dur:2s;--min-op:0.2;--max-op:0.9"></div>
+      <div class="star" style="width:3px;height:3px;top:30%;left:90%;--dur:1.8s;--min-op:0.3;--max-op:1"></div>
+      <div class="star" style="width:2px;height:2px;top:50%;left:5%;--dur:2.2s;--min-op:0.2;--max-op:0.8"></div>
+      <div class="star" style="width:3px;height:3px;top:70%;left:45%;--dur:1.6s;--min-op:0.3;--max-op:1"></div>
+      <div class="star" style="width:2px;height:2px;top:85%;left:60%;--dur:2.4s;--min-op:0.2;--max-op:0.9"></div>
+      <div class="star" style="width:3px;height:3px;top:15%;left:40%;--dur:1.7s;--min-op:0.25;--max-op:0.95"></div>
+      <div class="star" style="width:2px;height:2px;top:42%;left:25%;--dur:2.1s;--min-op:0.2;--max-op:0.85"></div>
+    </div>
+
+    <div class="all-done-wrap">
+      <div class="trophy-spin-wrap">🏆</div>
+      <div class="done-title">You Explored Every World!</div>
+      <div class="done-sub">Emma, you are a true WonderQuest Legend! 👑</div>
+      <div class="done-stats">
+        <span class="ds-chip">🌟 34 Stars</span>
+        <span class="ds-chip">🏅 12 Badges</span>
+        <span class="ds-chip">🏆 4 Trophies</span>
+      </div>
+      <div style="max-width:380px;margin:0 auto 20px;background:#2a2010;border:2px solid #ffd166;border-radius:14px;padding:16px;text-align:left">
+        <div style="font-size:13px;font-weight:900;color:#ffd166;margin-bottom:6px">🎁 More Adventures Are Coming!</div>
+        <div style="font-size:12px;color:#c4a840;line-height:1.5">
+          Your teachers are adding brand new worlds with amazing quests. We'll let you know the moment they're ready — stay tuned, Explorer! 🚀
+        </div>
+      </div>
+      <button class="done-cta">👑 See My Legend Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 5: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-home-empty-state-v2.html</div></div>
+    <div class="spec-row"><div class="spec-k">Usage</div><div class="spec-v">Replaces main content of home hub when progress is empty</div></div>
+    <div class="spec-row"><div class="spec-k">States</div><div class="spec-v">Brand New · Has Avatar/Band (no world) · Loading Skeleton · All Worlds Complete</div></div>
+    <div class="spec-row"><div class="spec-k">Layout</div><div class="spec-v">Full-width card container with star-field background · max-width fits home hub main column</div></div>
+
+    <h3>Brand New State</h3>
+    <div class="spec-row"><div class="spec-k">Mascot</div><div class="spec-v">mascot-float: translateY 0→-10px, 3s loop</div></div>
+    <div class="spec-row"><div class="spec-k">Starter card</div><div class="spec-v">violet gradient · reward chips preview (+1⭐, badge, world) · single CTA</div></div>
+    <div class="spec-row"><div class="spec-k">Reassurance</div><div class="spec-v">"Takes about 3 minutes · Stars are yours to keep forever ⭐"</div></div>
+
+    <h3>Has Avatar/Band State</h3>
+    <div class="spec-row"><div class="spec-k">Greeting</div><div class="spec-v">Shows child's name and avatar in header</div></div>
+    <div class="spec-row"><div class="spec-k">World strip</div><div class="spec-v">Horizontal scroll, 4 worlds, "Recommended" chip on first world</div></div>
+    <div class="spec-row"><div class="spec-k">Star promise</div><div class="spec-v">"Stars stay yours forever — they never go away!" before CTA</div></div>
+
+    <h3>Loading Skeleton</h3>
+    <div class="spec-row"><div class="spec-k">Animation</div><div class="spec-v">shimmer: background-position 200%→-200%, 1.5s loop. Per-element stagger via animation-delay.</div></div>
+    <div class="spec-row"><div class="spec-k">Structure</div><div class="spec-v">Mirrors real home hub layout (hero + stats + cards + CTA)</div></div>
+
+    <h3>All Worlds Complete</h3>
+    <div class="spec-row"><div class="spec-k">Theme</div><div class="spec-v">Gold border + bg gradient · gold star-field · trophy-spin animation</div></div>
+    <div class="spec-row"><div class="spec-k">Stats chips</div><div class="spec-v">chip-pop staggered: Stars / Badges / Trophies</div></div>
+    <div class="spec-row"><div class="spec-k">Forward CTA</div><div class="spec-v">"New Adventures Coming Soon!" — never dead end. CTA → Legend Profile</div></div>
+
+    <h3>Star-Safety</h3>
+    <div class="spec-row"><div class="spec-k">Brand new</div><div class="spec-v">Promise shown below starter card: "Stars are yours to keep forever"</div></div>
+    <div class="spec-row"><div class="spec-k">Has band</div><div class="spec-v">Star promise card above CTA button</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

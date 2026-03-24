@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Skill Preview Cards — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 1000px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 1000px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 1000px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* Grid of skill cards */
+  .skill-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+  }
+
+  /* Skill card */
+  .skill-card {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color 0.15s, transform 0.15s;
+    cursor: pointer;
+    animation: card-pop 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .skill-card:hover { border-color: #9b72ff; transform: translateY(-2px); }
+  .skill-card.locked-sc { opacity: 0.5; cursor: default; }
+  .skill-card.locked-sc:hover { transform: none; border-color: #2a2060; }
+  .skill-card.done-sc { border-color: #50e890; }
+  .skill-card:nth-child(1) { animation-delay: 0.05s; }
+  .skill-card:nth-child(2) { animation-delay: 0.10s; }
+  .skill-card:nth-child(3) { animation-delay: 0.15s; }
+  .skill-card:nth-child(4) { animation-delay: 0.20s; }
+  .skill-card:nth-child(5) { animation-delay: 0.25s; }
+  .skill-card:nth-child(6) { animation-delay: 0.30s; }
+  @keyframes card-pop {
+    from { opacity: 0; transform: scale(0.92) translateY(8px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  /* Card image area */
+  .sc-hero {
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 44px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sc-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.3;
+  }
+  .sc-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 10px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  /* Card body */
+  .sc-body { padding: 14px; }
+  .sc-category {
+    font-size: 9px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 4px;
+  }
+  .sc-name { font-size: 15px; font-weight: 900; color: #e8e0ff; margin-bottom: 4px; line-height: 1.2; }
+  .sc-desc { font-size: 11px; color: #9b8ec4; margin-bottom: 10px; line-height: 1.4; }
+
+  .sc-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .sc-meta-chip {
+    background: #1a1540;
+    border-radius: 8px;
+    padding: 3px 8px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #9b8ec4;
+  }
+
+  /* Stars row */
+  .sc-stars { font-size: 13px; margin-left: auto; }
+
+  /* Progress bar on cards that are partially done */
+  .sc-progress {
+    margin-top: 10px;
+    height: 5px;
+    background: #1a1540;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .sc-prog-fill {
+    height: 100%;
+    border-radius: 3px;
+  }
+
+  /* Section separator */
+  .grid-section-label {
+    font-size: 12px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin: 20px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .gsl-line { flex: 1; height: 1px; background: #2a2060; }
+
+  /* Detail view */
+  .detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+    align-items: start;
+  }
+  .detail-hero {
+    height: 160px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 70px;
+    margin-bottom: 16px;
+    position: relative;
+  }
+  .dh-badge {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 10px;
+    padding: 4px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #c4b0ff;
+  }
+  .detail-title { font-size: 24px; font-weight: 900; color: #e8e0ff; margin-bottom: 6px; }
+  .detail-sub { font-size: 14px; color: #9b8ec4; margin-bottom: 16px; }
+  .detail-desc {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 14px;
+    font-size: 13px;
+    color: #c4b0ff;
+    line-height: 1.6;
+    margin-bottom: 14px;
+  }
+  .detail-meta-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .dm-chip {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #e8e0ff;
+    text-align: center;
+  }
+  .dm-chip span { display: block; font-size: 10px; color: #9b8ec4; font-weight: 400; margin-top: 2px; }
+
+  /* Related skills panel */
+  .related-panel {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 16px;
+    padding: 16px;
+  }
+  .rp-title {
+    font-size: 12px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .related-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    background: #1a1540;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: border 0.15s;
+    border: 2px solid transparent;
+  }
+  .related-item:hover { border-color: #9b72ff; }
+  .ri-icon { font-size: 20px; }
+  .ri-name { font-size: 12px; font-weight: 900; color: #e8e0ff; flex: 1; }
+  .ri-stars { font-size: 11px; color: #ffd166; }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 180px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-skill-preview-cards-v2.html</strong><br>
+  States: <strong>Grid (K–1 Reading skills)</strong> / <strong>Grid (K–1 Mixed: some done/locked)</strong> / <strong>Detail view</strong> / <strong>Spec</strong><br>
+  Desktop grid (auto-fill minmax 240px). Shown before a quest begins — "here's what you'll practice!".<br>
+  No skill IDs, no accuracy %, no "grade" labels on cards. Skill described in child-friendly language (what it DOES, not what it IS).<br>
+  Stars per skill: up to ⭐⭐⭐. Done skills show stars earned. Locked at 50% opacity. Card entry: card-pop animation with staggered delays.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('reading')">K–1 Reading Skills</button>
+  <button class="tab-btn" onclick="showTab('mixed')">Mixed States</button>
+  <button class="tab-btn" onclick="showTab('detail')">Skill Detail</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: READING SKILLS ── -->
+<div class="screen active" id="tab-reading">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+    <div>
+      <div style="font-size:18px;font-weight:900;color:#e8e0ff">Story Builder — Skills</div>
+      <div style="font-size:12px;color:#9b8ec4">Here's what you'll practice in this quest!</div>
+    </div>
+    <div style="background:#1e1470;border:2px solid #9b72ff;border-radius:10px;padding:8px 14px;font-size:13px;font-weight:700;color:#c4b0ff">up to ⭐⭐⭐</div>
+  </div>
+
+  <div class="skill-grid">
+    <div class="skill-card">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#1e1470,#2a1060)">
+        📖
+        <span class="sc-badge" style="background:#2d1f80;color:#c4b0ff;border:1px solid #9b72ff">Reading</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#9b72ff">Sight Words</div>
+        <div class="sc-name">Find the Word!</div>
+        <div class="sc-desc">See a picture and find the matching word from four choices.</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">👁️ Visual</span>
+          <span class="sc-meta-chip">8 turns</span>
+          <div class="sc-stars">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skill-card">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#1e1470,#0a2a6a)">
+        🔤
+        <span class="sc-badge" style="background:#2d1f80;color:#c4b0ff;border:1px solid #9b72ff">Phonics</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#9b72ff">Phonics</div>
+        <div class="sc-name">Letter Sounds</div>
+        <div class="sc-desc">Listen to a sound and pick the letter that makes it.</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">🔊 Audio</span>
+          <span class="sc-meta-chip">6 turns</span>
+          <div class="sc-stars">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skill-card">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#0a2a6a,#1a3a80)">
+        🎵
+        <span class="sc-badge" style="background:#1a1040;color:#9b8ec4;border:1px solid #4040aa">Rhyming</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#9b72ff">Rhyming</div>
+        <div class="sc-name">Words that Match!</div>
+        <div class="sc-desc">Hear a word and find another word that sounds like it.</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">👂 Listening</span>
+          <span class="sc-meta-chip">5 turns</span>
+          <div class="sc-stars">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skill-card">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#2a1060,#3a1880)">
+        📝
+        <span class="sc-badge" style="background:#2d1f80;color:#c4b0ff;border:1px solid #9b72ff">Sentences</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#9b72ff">Sequencing</div>
+        <div class="sc-name">Story Order</div>
+        <div class="sc-desc">Put pictures in order to tell a short story — first, then, last.</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">🧩 Ordering</span>
+          <span class="sc-meta-chip">4 turns</span>
+          <div class="sc-stars">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;display:flex;gap:10px">
+    <button style="flex:1;background:linear-gradient(135deg,#9b72ff,#7c4dff);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;padding:13px;cursor:pointer">▶ Start Story Builder!</button>
+    <button style="background:transparent;border:2px solid #2a2060;border-radius:12px;color:#9b8ec4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;padding:13px 16px;cursor:pointer">← Back</button>
+  </div>
+</div>
+
+<!-- ── TAB 2: MIXED STATES ── -->
+<div class="screen" id="tab-mixed">
+  <div style="margin-bottom:12px">
+    <div style="font-size:18px;font-weight:900;color:#e8e0ff">Aim High — Your Skills</div>
+    <div style="font-size:12px;color:#9b8ec4">Some done, some new!</div>
+  </div>
+
+  <div class="grid-section-label">
+    <span>Already earned</span>
+    <div class="gsl-line"></div>
+    <span style="color:#50e890;font-size:10px">2 done</span>
+  </div>
+
+  <div class="skill-grid">
+    <div class="skill-card done-sc">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#1a3a20,#2a5a30)">
+        📖
+        <span class="sc-badge" style="background:#1a3a20;color:#50e890;border:1px solid #50e890">✓ Done</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#50e890">Sight Words</div>
+        <div class="sc-name">Find the Word!</div>
+        <div class="sc-desc">Already mastered this one! Replay anytime.</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">👁️ Visual</span>
+          <div class="sc-stars">⭐⭐⭐</div>
+        </div>
+        <div class="sc-progress"><div class="sc-prog-fill" style="width:100%;background:#50e890"></div></div>
+      </div>
+    </div>
+
+    <div class="skill-card done-sc">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#1a3a20,#1a4a10)">
+        🔤
+        <span class="sc-badge" style="background:#1a3a20;color:#50e890;border:1px solid #50e890">✓ Done</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#50e890">Phonics</div>
+        <div class="sc-name">Letter Sounds</div>
+        <div class="sc-desc">Earned 2 stars here. Keep going!</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">🔊 Audio</span>
+          <div class="sc-stars">⭐⭐☆</div>
+        </div>
+        <div class="sc-progress"><div class="sc-prog-fill" style="width:67%;background:#50e890"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid-section-label" style="margin-top:16px">
+    <span>Up next</span>
+    <div class="gsl-line"></div>
+    <span style="color:#ffd166;font-size:10px">2 new</span>
+  </div>
+
+  <div class="skill-grid">
+    <div class="skill-card" style="border-color:#9b72ff;background:#1e1470">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#2a1060,#3a1880)">
+        🎵
+        <span class="sc-badge" style="background:#2d1f80;color:#c4b0ff;border:1px solid #9b72ff">▶ Next</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#c4b0ff">Rhyming</div>
+        <div class="sc-name">Words that Match!</div>
+        <div class="sc-desc">Hear a word and find one that sounds like it!</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip">👂 Listening</span>
+          <div class="sc-stars" style="color:#9b8ec4">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="skill-card locked-sc">
+      <div class="sc-hero" style="background:linear-gradient(135deg,#1a1540,#2a2060)">
+        📝
+        <span class="sc-badge" style="background:#1a1540;color:#555;border:1px solid #2a2060">🔒 Locked</span>
+      </div>
+      <div class="sc-body">
+        <div class="sc-category" style="color:#555">Sequencing</div>
+        <div class="sc-name">Story Order</div>
+        <div class="sc-desc">Finish Words that Match first to unlock this one!</div>
+        <div class="sc-meta">
+          <span class="sc-meta-chip" style="color:#555">🧩 Ordering</span>
+          <div class="sc-stars" style="color:#555">up to ⭐⭐⭐</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: DETAIL VIEW ── -->
+<div class="screen" id="tab-detail">
+  <div class="detail-layout">
+    <div>
+      <div class="detail-hero" style="background:linear-gradient(135deg,#1e1470,#2a1060)">
+        📖
+        <span class="dh-badge">Reading</span>
+      </div>
+      <div class="detail-title">Find the Word!</div>
+      <div class="detail-sub">Sight Words · K–1 Band</div>
+      <div class="detail-desc">
+        You'll see a picture and hear a word. Then pick the matching word from 4 choices. Some words you'll recognize — and some will be brand new adventures! 🌟
+      </div>
+      <div class="detail-meta-row">
+        <div class="dm-chip">8 <span>questions</span></div>
+        <div class="dm-chip">⭐⭐⭐ <span>stars possible</span></div>
+        <div class="dm-chip">👁️ <span>visual skill</span></div>
+        <div class="dm-chip">🔊 <span>audio hints</span></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button style="flex:1;background:linear-gradient(135deg,#9b72ff,#7c4dff);border:none;border-radius:12px;color:#fff;font-family:'Nunito',sans-serif;font-size:15px;font-weight:900;padding:13px;cursor:pointer">▶ Start This Skill!</button>
+        <button style="background:transparent;border:2px solid #2a2060;border-radius:12px;color:#9b8ec4;font-family:'Nunito',sans-serif;font-size:13px;font-weight:700;padding:13px 14px;cursor:pointer">← All Skills</button>
+      </div>
+    </div>
+
+    <div class="related-panel">
+      <div class="rp-title">Also in Story Builder</div>
+      <div class="related-item">
+        <div class="ri-icon">🔤</div>
+        <div class="ri-name">Letter Sounds</div>
+        <div class="ri-stars">⭐⭐⭐</div>
+      </div>
+      <div class="related-item">
+        <div class="ri-icon">🎵</div>
+        <div class="ri-name">Words that Match!</div>
+        <div class="ri-stars">up to ⭐⭐⭐</div>
+      </div>
+      <div class="related-item" style="opacity:0.4;cursor:default">
+        <div class="ri-icon">📝</div>
+        <div class="ri-name">Story Order</div>
+        <div class="ri-stars" style="color:#555">🔒</div>
+      </div>
+      <div style="margin-top:14px;background:#1a2a15;border:2px solid #50e890;border-radius:10px;padding:10px 12px;font-size:11px;font-weight:700;color:#50e890">
+        ⭐ Stars are always safe — replay skills anytime!
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-skill-preview-cards-v2.html</div></div>
+    <div class="spec-row"><div class="spec-k">Usage</div><div class="spec-v">Shown before quest starts, on quest selector detail, and in /child/skills view</div></div>
+    <div class="spec-row"><div class="spec-k">Layout</div><div class="spec-v">Grid: auto-fill minmax(240px,1fr). Detail: 2-col (1fr + 300px related panel)</div></div>
+
+    <h3>Card States</h3>
+    <div class="spec-row"><div class="spec-k">New/available</div><div class="spec-v">Default border + card-pop entry animation</div></div>
+    <div class="spec-row"><div class="spec-k">Active next</div><div class="spec-v">violet border + darker bg (#1e1470)</div></div>
+    <div class="spec-row"><div class="spec-k">done-sc</div><div class="spec-v">Green border (#50e890) + progress bar at 100% or partial</div></div>
+    <div class="spec-row"><div class="spec-k">locked-sc</div><div class="spec-v">50% opacity · "Finish X first" unlock message</div></div>
+
+    <h3>Language Rules</h3>
+    <div class="spec-row"><div class="spec-k">Skill names</div><div class="spec-v">Child-friendly action phrases ("Find the Word!" not "Word Recognition")</div></div>
+    <div class="spec-row"><div class="spec-k">No grade labels</div><div class="spec-v">"K–1 Band" never "Grade 1". No skill IDs in child view.</div></div>
+    <div class="spec-row"><div class="spec-k">No accuracy %</div><div class="spec-v">Stars only. Never "you got X% correct".</div></div>
+    <div class="spec-row"><div class="spec-k">Done desc</div><div class="spec-v">"Already mastered this one! Replay anytime." — encouragement not metrics</div></div>
+
+    <h3>Star Safety</h3>
+    <div class="spec-row"><div class="spec-k">Replay</div><div class="spec-v">All completed skills replayable. Stars never decrease on replay.</div></div>
+    <div class="spec-row"><div class="spec-k">Badge</div><div class="spec-v">"⭐ Stars are always safe — replay anytime!" on related panel</div></div>
+
+    <h3>Animation</h3>
+    <div class="spec-row"><div class="spec-k">Entry</div><div class="spec-v">card-pop: opacity+scale(0.92)+translateY(8px) → normal · 0.4s spring</div></div>
+    <div class="spec-row"><div class="spec-k">Stagger</div><div class="spec-v">nth-child delays 0.05s per card (up to 6 cards)</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

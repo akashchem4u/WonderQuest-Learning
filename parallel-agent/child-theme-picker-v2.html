@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Theme Picker — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 1000px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 1000px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 1000px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── PICKER LAYOUT ── */
+  .picker-wrap {
+    display: grid;
+    grid-template-columns: 1fr 320px;
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* Preview pane */
+  .preview-pane {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 20px;
+    overflow: hidden;
+    min-height: 480px;
+    position: relative;
+    transition: background 0.4s ease;
+  }
+  .preview-pane.theme-cosmic { background: #100b2e; }
+  .preview-pane.theme-forest { background: #0a1a0e; }
+  .preview-pane.theme-ocean { background: #040e28; }
+  .preview-pane.theme-sunset { background: #1a0a08; }
+  .preview-pane.theme-candy { background: #1a0820; }
+  .preview-pane.theme-midnight { background: #08080e; }
+
+  .preview-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .preview-icon { font-size: 28px; }
+  .preview-title { font-size: 18px; font-weight: 900; }
+  .preview-stars { font-size: 13px; opacity: 0.8; }
+
+  .preview-mock-nodes {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+  .pm-node {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .pm-conn { width: 32px; height: 4px; border-radius: 2px; flex-shrink: 0; margin-bottom: 0; }
+
+  .preview-card {
+    margin: 0 20px 16px;
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .pc-title { font-size: 14px; font-weight: 900; margin-bottom: 4px; }
+  .pc-meta { font-size: 11px; opacity: 0.7; }
+
+  .preview-cta {
+    margin: 0 20px 20px;
+    border: none;
+    border-radius: 12px;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 12px;
+    width: calc(100% - 40px);
+    cursor: default;
+    display: block;
+    text-align: center;
+  }
+
+  .preview-label {
+    position: absolute;
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.6);
+    border-radius: 20px;
+    padding: 4px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+  }
+
+  /* Right: picker panel */
+  .picker-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .picker-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #e8e0ff;
+  }
+  .picker-sub {
+    font-size: 13px;
+    color: #9b8ec4;
+    margin-top: 2px;
+  }
+
+  /* Theme grid */
+  .theme-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .theme-swatch {
+    border-radius: 14px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    position: relative;
+  }
+  .theme-swatch:hover { transform: scale(1.04); }
+  .theme-swatch.selected { border-color: #fff; }
+  .theme-swatch.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(255,255,255,0.9);
+    color: #100b2e;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ts-preview {
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+  }
+  .ts-label {
+    padding: 6px 8px;
+    font-size: 11px;
+    font-weight: 900;
+    text-align: center;
+  }
+
+  /* Theme color variants */
+  .ts-cosmic .ts-preview { background: linear-gradient(135deg, #100b2e, #1e1470); }
+  .ts-cosmic .ts-label { background: #12103a; color: #c4b0ff; }
+  .ts-forest .ts-preview { background: linear-gradient(135deg, #0a1a0e, #1a3a1a); }
+  .ts-forest .ts-label { background: #0e1a10; color: #90e890; }
+  .ts-ocean .ts-preview { background: linear-gradient(135deg, #040e28, #0a1e5a); }
+  .ts-ocean .ts-label { background: #060e20; color: #58c8e8; }
+  .ts-sunset .ts-preview { background: linear-gradient(135deg, #1a0a08, #3a1a10); }
+  .ts-sunset .ts-label { background: #1a0a08; color: #ff8860; }
+  .ts-candy .ts-preview { background: linear-gradient(135deg, #1a0820, #2a1040); }
+  .ts-candy .ts-label { background: #160820; color: #ff88cc; }
+  .ts-midnight .ts-preview { background: linear-gradient(135deg, #08080e, #101018); }
+  .ts-midnight .ts-label { background: #080810; color: #8888cc; }
+
+  /* Accent color row */
+  .accent-section {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .as-title {
+    font-size: 12px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+  }
+  .accent-row {
+    display: flex;
+    gap: 8px;
+  }
+  .accent-dot {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s, border-color 0.15s;
+    flex-shrink: 0;
+  }
+  .accent-dot:hover { transform: scale(1.15); }
+  .accent-dot.selected { border-color: #fff; }
+  .accent-violet { background: #9b72ff; }
+  .accent-mint { background: #58e8c1; }
+  .accent-gold { background: #ffd166; }
+  .accent-coral { background: #ff7b6b; }
+  .accent-cyan { background: #4ad0ee; }
+  .accent-rose { background: #ff88cc; }
+
+  /* Save button */
+  .save-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 13px;
+    cursor: pointer;
+    transition: transform 0.15s;
+  }
+  .save-btn:hover { transform: scale(1.01); }
+
+  .saved-confirm {
+    text-align: center;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #50e890;
+    display: none;
+  }
+  .saved-confirm.show { display: block; }
+
+  /* ── MOBILE VIEW ── */
+  .phone-outer {
+    display: flex;
+    justify-content: center;
+  }
+  .phone {
+    width: 390px;
+    background: #100b2e;
+    border-radius: 40px;
+    border: 2px solid #2a2060;
+    box-shadow: inset 0 0 0 2px #9b72ff22;
+    overflow: hidden;
+    transition: background 0.4s;
+  }
+  .phone-status {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 20px 4px;
+    font-size: 11px;
+    color: #9b8ec4;
+    font-weight: 700;
+  }
+  .phone-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+  .phone-title { font-size: 17px; font-weight: 900; color: #e8e0ff; }
+  .phone-close {
+    background: transparent;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    width: 30px; height: 30px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px;
+  }
+
+  .phone-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 14px;
+  }
+  .phone-swatch {
+    border-radius: 12px;
+    overflow: hidden;
+    border: 3px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.15s;
+    position: relative;
+  }
+  .phone-swatch.selected { border-color: #fff; }
+  .phone-swatch.selected::after {
+    content: '✓';
+    position: absolute;
+    top: 4px; right: 4px;
+    background: rgba(255,255,255,0.9);
+    color: #100b2e;
+    border-radius: 50%;
+    width: 16px; height: 16px;
+    font-size: 9px; font-weight: 900;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .phone-swatch .ts-preview { height: 48px; font-size: 18px; }
+  .phone-swatch .ts-label { font-size: 9px; padding: 4px 6px; }
+
+  .phone-accents {
+    display: flex;
+    gap: 10px;
+    padding: 0 14px 12px;
+    justify-content: center;
+  }
+  .phone-accent-dot {
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: transform 0.15s;
+  }
+  .phone-accent-dot:hover { transform: scale(1.1); }
+  .phone-accent-dot.selected { border-color: #fff; }
+
+  .phone-save {
+    margin: 0 14px 20px;
+    width: calc(100% - 28px);
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 14px;
+    font-weight: 900;
+    padding: 13px;
+    cursor: pointer;
+  }
+
+  /* Spec */
+  .spec-table { background: #12103a; border: 2px solid #2a2060; border-radius: 14px; padding: 20px; font-size: 13px; line-height: 2; }
+  .spec-table h3 { font-size: 15px; font-weight: 900; color: #9b72ff; margin: 16px 0 8px; }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row { display: grid; grid-template-columns: 200px 1fr; gap: 12px; padding: 4px 0; border-bottom: 1px solid #1a1540; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+
+  /* Selected theme styles for preview */
+  .preview-pane[data-theme="cosmic"] { --accent: #9b72ff; --node-bg: #1e1470; --card-bg: #12103a; --text: #e8e0ff; --conn: #9b72ff; }
+  .preview-pane[data-theme="forest"] { --accent: #58e890; --node-bg: #1a3a1a; --card-bg: #0e2010; --text: #d0f0d0; --conn: #58e890; }
+  .preview-pane[data-theme="ocean"] { --accent: #58c8e8; --node-bg: #0a1e5a; --card-bg: #060e20; --text: #c0e8f8; --conn: #58c8e8; }
+  .preview-pane[data-theme="sunset"] { --accent: #ff8860; --node-bg: #3a1a10; --card-bg: #1a0a08; --text: #f8d0c0; --conn: #ff8860; }
+  .preview-pane[data-theme="candy"] { --accent: #ff88cc; --node-bg: #2a1040; --card-bg: #160820; --text: #f8c8e8; --conn: #ff88cc; }
+  .preview-pane[data-theme="midnight"] { --accent: #8888cc; --node-bg: #101018; --card-bg: #08080e; --text: #c8c8e8; --conn: #8888cc; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-theme-picker-v2.html</strong><br>
+  States: <strong>Default (Cosmic)</strong> / <strong>Forest Selected</strong> / <strong>Ocean Selected</strong> / <strong>Spec</strong><br>
+  Desktop: 2-col layout (preview pane 1fr + picker panel 320px). Mobile: phone 390px, 3-col swatch grid + accent row.<br>
+  6 themes: Cosmic / Forest / Ocean / Sunset / Candy / Midnight. 6 accent color dots (per-band swaps).<br>
+  Preview pane updates live on theme click (JS). Save button → confirmation chip. Theme stored to user profile (child-level setting).<br>
+  No functional changes — pure cosmetic preference. Stars/progress unaffected. No "locked" themes.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('default')">Default (Cosmic)</button>
+  <button class="tab-btn" onclick="showTab('forest')">Forest Selected</button>
+  <button class="tab-btn" onclick="showTab('ocean')">Ocean Selected</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: DEFAULT / COSMIC ── -->
+<div class="screen active" id="tab-default">
+  <div class="picker-wrap">
+    <!-- Preview -->
+    <div>
+      <div style="font-size:11px;font-weight:900;color:#9b8ec4;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Live Preview</div>
+      <div class="preview-pane theme-cosmic" id="preview-cosmic">
+        <div class="preview-header" style="background:rgba(30,20,112,0.4)">
+          <span class="preview-icon">🦁</span>
+          <div>
+            <div class="preview-title" style="color:#e8e0ff">Emma's World</div>
+            <div class="preview-stars" style="color:#9b8ec4">🌟 18 stars · Node 7</div>
+          </div>
+        </div>
+        <div class="preview-mock-nodes">
+          <div class="pm-node" style="background:linear-gradient(135deg,#1a4a2a,#2d6b3d);border:3px solid #50e890">🔤</div>
+          <div class="pm-conn" style="background:#50e890"></div>
+          <div class="pm-node" style="background:linear-gradient(135deg,#1e1470,#3b28cc);border:3px solid #9b72ff;animation:node-pulse 2s ease-in-out infinite">🎯</div>
+          <div class="pm-conn" style="background:#2a2060"></div>
+          <div class="pm-node" style="background:#1a1540;border:3px solid #2a2060;opacity:0.45">🌊</div>
+        </div>
+        <div class="preview-card" style="background:#1e1470;border:2px solid #9b72ff">
+          <div class="pc-title" style="color:#e8e0ff">Story Builder</div>
+          <div class="pc-meta" style="color:#9b8ec4">Aim High · Quest 2 of 3</div>
+        </div>
+        <button class="preview-cta" style="background:linear-gradient(135deg,#9b72ff,#7c4dff);color:#fff">▶ Continue Quest</button>
+        <div class="preview-label">Cosmic (Default)</div>
+      </div>
+    </div>
+
+    <!-- Picker panel -->
+    <div class="picker-panel">
+      <div>
+        <div class="picker-title">Choose your theme</div>
+        <div class="picker-sub">Makes everything look different — just for you!</div>
+      </div>
+
+      <div class="theme-grid" id="theme-grid-cosmic">
+        <div class="theme-swatch ts-cosmic selected" onclick="selectTheme('cosmic', this)">
+          <div class="ts-preview">🌌</div>
+          <div class="ts-label">Cosmic</div>
+        </div>
+        <div class="theme-swatch ts-forest" onclick="selectTheme('forest', this)">
+          <div class="ts-preview">🌿</div>
+          <div class="ts-label">Forest</div>
+        </div>
+        <div class="theme-swatch ts-ocean" onclick="selectTheme('ocean', this)">
+          <div class="ts-preview">🌊</div>
+          <div class="ts-label">Ocean</div>
+        </div>
+        <div class="theme-swatch ts-sunset" onclick="selectTheme('sunset', this)">
+          <div class="ts-preview">🌅</div>
+          <div class="ts-label">Sunset</div>
+        </div>
+        <div class="theme-swatch ts-candy" onclick="selectTheme('candy', this)">
+          <div class="ts-preview">🍬</div>
+          <div class="ts-label">Candy</div>
+        </div>
+        <div class="theme-swatch ts-midnight" onclick="selectTheme('midnight', this)">
+          <div class="ts-preview">🌙</div>
+          <div class="ts-label">Midnight</div>
+        </div>
+      </div>
+
+      <div class="accent-section">
+        <div class="as-title">Accent color</div>
+        <div class="accent-row" id="accent-row-cosmic">
+          <div class="accent-dot accent-violet selected" onclick="selectAccent(this)" title="Violet"></div>
+          <div class="accent-dot accent-mint" onclick="selectAccent(this)" title="Mint"></div>
+          <div class="accent-dot accent-gold" onclick="selectAccent(this)" title="Gold"></div>
+          <div class="accent-dot accent-coral" onclick="selectAccent(this)" title="Coral"></div>
+          <div class="accent-dot accent-cyan" onclick="selectAccent(this)" title="Cyan"></div>
+          <div class="accent-dot accent-rose" onclick="selectAccent(this)" title="Rose"></div>
+        </div>
+      </div>
+
+      <button class="save-btn" onclick="saveTheme()">✓ Save My Theme</button>
+      <div class="saved-confirm" id="save-confirm-cosmic">🎉 Theme saved! Looks amazing!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: FOREST SELECTED ── -->
+<div class="screen" id="tab-forest">
+  <div class="picker-wrap">
+    <div>
+      <div style="font-size:11px;font-weight:900;color:#9b8ec4;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Live Preview — Forest Theme</div>
+      <div class="preview-pane" style="background:#0a1a0e">
+        <div class="preview-header" style="background:rgba(26,58,26,0.6)">
+          <span class="preview-icon">🦁</span>
+          <div>
+            <div class="preview-title" style="color:#d0f0d0">Emma's World</div>
+            <div class="preview-stars" style="color:#90c890">🌟 18 stars · Node 7</div>
+          </div>
+        </div>
+        <div class="preview-mock-nodes">
+          <div class="pm-node" style="background:linear-gradient(135deg,#1a4a1a,#2d6b2d);border:3px solid #58e890">🔤</div>
+          <div class="pm-conn" style="background:#58e890"></div>
+          <div class="pm-node" style="background:linear-gradient(135deg,#1a3a1a,#2a5a2a);border:3px solid #58e890;box-shadow:0 0 0 4px rgba(88,232,144,0.2)">🎯</div>
+          <div class="pm-conn" style="background:#1a2a1a"></div>
+          <div class="pm-node" style="background:#0e1a0e;border:3px solid #1a2a1a;opacity:0.45">🌊</div>
+        </div>
+        <div class="preview-card" style="background:#1a3a1a;border:2px solid #58e890">
+          <div class="pc-title" style="color:#d0f0d0">Story Builder</div>
+          <div class="pc-meta" style="color:#90c890">Aim High · Quest 2 of 3</div>
+        </div>
+        <button class="preview-cta" style="background:linear-gradient(135deg,#3a8a3a,#2a6a2a);color:#d0f8d0">▶ Continue Quest</button>
+        <div class="preview-label">Forest Theme — Active</div>
+      </div>
+    </div>
+
+    <div class="picker-panel">
+      <div>
+        <div class="picker-title">Choose your theme</div>
+        <div class="picker-sub">Forest is selected! ✓</div>
+      </div>
+
+      <div class="theme-grid">
+        <div class="theme-swatch ts-cosmic" onclick="">
+          <div class="ts-preview">🌌</div>
+          <div class="ts-label">Cosmic</div>
+        </div>
+        <div class="theme-swatch ts-forest selected">
+          <div class="ts-preview">🌿</div>
+          <div class="ts-label">Forest</div>
+        </div>
+        <div class="theme-swatch ts-ocean">
+          <div class="ts-preview">🌊</div>
+          <div class="ts-label">Ocean</div>
+        </div>
+        <div class="theme-swatch ts-sunset">
+          <div class="ts-preview">🌅</div>
+          <div class="ts-label">Sunset</div>
+        </div>
+        <div class="theme-swatch ts-candy">
+          <div class="ts-preview">🍬</div>
+          <div class="ts-label">Candy</div>
+        </div>
+        <div class="theme-swatch ts-midnight">
+          <div class="ts-preview">🌙</div>
+          <div class="ts-label">Midnight</div>
+        </div>
+      </div>
+
+      <div class="accent-section" style="background:#0e2010;border-color:#2a4a2a">
+        <div class="as-title">Accent color</div>
+        <div class="accent-row">
+          <div class="accent-dot accent-violet"></div>
+          <div class="accent-dot accent-mint selected" style="background:#58e890"></div>
+          <div class="accent-dot accent-gold"></div>
+          <div class="accent-dot accent-coral"></div>
+          <div class="accent-dot accent-cyan"></div>
+          <div class="accent-dot accent-rose"></div>
+        </div>
+      </div>
+
+      <button class="save-btn" style="background:linear-gradient(135deg,#3a8a3a,#2a6a2a)">✓ Save Forest Theme</button>
+      <div class="saved-confirm show" style="display:block">🌿 Forest theme saved! So fresh!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: OCEAN SELECTED ── -->
+<div class="screen" id="tab-ocean">
+  <div class="picker-wrap">
+    <div>
+      <div style="font-size:11px;font-weight:900;color:#9b8ec4;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">Live Preview — Ocean Theme</div>
+      <div class="preview-pane" style="background:#040e28">
+        <div class="preview-header" style="background:rgba(10,30,90,0.5)">
+          <span class="preview-icon">🦁</span>
+          <div>
+            <div class="preview-title" style="color:#c0e8f8">Emma's World</div>
+            <div class="preview-stars" style="color:#80c8e8">🌟 18 stars · Node 7</div>
+          </div>
+        </div>
+        <div class="preview-mock-nodes">
+          <div class="pm-node" style="background:linear-gradient(135deg,#0a2a5a,#1a3a7a);border:3px solid #58c8e8">🔤</div>
+          <div class="pm-conn" style="background:#58c8e8"></div>
+          <div class="pm-node" style="background:linear-gradient(135deg,#0a1e5a,#1a2e7a);border:3px solid #58c8e8;box-shadow:0 0 0 4px rgba(88,200,232,0.2)">🎯</div>
+          <div class="pm-conn" style="background:#0a1a3a"></div>
+          <div class="pm-node" style="background:#040e28;border:3px solid #0a1a3a;opacity:0.45">🌊</div>
+        </div>
+        <div class="preview-card" style="background:#0a1e5a;border:2px solid #58c8e8">
+          <div class="pc-title" style="color:#c0e8f8">Story Builder</div>
+          <div class="pc-meta" style="color:#80c8e8">Aim High · Quest 2 of 3</div>
+        </div>
+        <button class="preview-cta" style="background:linear-gradient(135deg,#1a6a9a,#0a4a7a);color:#c0e8f8">▶ Continue Quest</button>
+        <div class="preview-label">Ocean Theme — Active</div>
+      </div>
+    </div>
+
+    <div class="picker-panel">
+      <div>
+        <div class="picker-title">Choose your theme</div>
+        <div class="picker-sub">Ocean is selected! ✓</div>
+      </div>
+
+      <div class="theme-grid">
+        <div class="theme-swatch ts-cosmic"><div class="ts-preview">🌌</div><div class="ts-label">Cosmic</div></div>
+        <div class="theme-swatch ts-forest"><div class="ts-preview">🌿</div><div class="ts-label">Forest</div></div>
+        <div class="theme-swatch ts-ocean selected"><div class="ts-preview">🌊</div><div class="ts-label">Ocean</div></div>
+        <div class="theme-swatch ts-sunset"><div class="ts-preview">🌅</div><div class="ts-label">Sunset</div></div>
+        <div class="theme-swatch ts-candy"><div class="ts-preview">🍬</div><div class="ts-label">Candy</div></div>
+        <div class="theme-swatch ts-midnight"><div class="ts-preview">🌙</div><div class="ts-label">Midnight</div></div>
+      </div>
+
+      <div class="accent-section" style="background:#060e20;border-color:#0a1e5a">
+        <div class="as-title">Accent color</div>
+        <div class="accent-row">
+          <div class="accent-dot accent-violet"></div>
+          <div class="accent-dot accent-mint"></div>
+          <div class="accent-dot accent-gold"></div>
+          <div class="accent-dot accent-coral"></div>
+          <div class="accent-dot accent-cyan selected" style="background:#4ad0ee"></div>
+          <div class="accent-dot accent-rose"></div>
+        </div>
+      </div>
+
+      <button class="save-btn" style="background:linear-gradient(135deg,#1a6a9a,#0a4a7a)">✓ Save Ocean Theme</button>
+      <div class="saved-confirm" style="display:block;color:#58c8e8">🌊 Ocean theme saved! Dive in!</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-theme-picker-v2.html</div></div>
+    <div class="spec-row"><div class="spec-k">Route</div><div class="spec-v">/child/settings/theme · also accessible from home hub settings gear</div></div>
+    <div class="spec-row"><div class="spec-k">Layout</div><div class="spec-v">Desktop: 1000px, 2-col (1fr preview + 320px picker). Mobile: phone 390px, full-width.</div></div>
+
+    <h3>Themes</h3>
+    <div class="spec-row"><div class="spec-k">Cosmic (default)</div><div class="spec-v">bg #100b2e · accent #9b72ff violet · preview icon 🌌</div></div>
+    <div class="spec-row"><div class="spec-k">Forest</div><div class="spec-v">bg #0a1a0e · accent #58e890 mint · preview icon 🌿</div></div>
+    <div class="spec-row"><div class="spec-k">Ocean</div><div class="spec-v">bg #040e28 · accent #58c8e8 cyan · preview icon 🌊</div></div>
+    <div class="spec-row"><div class="spec-k">Sunset</div><div class="spec-v">bg #1a0a08 · accent #ff8860 coral · preview icon 🌅</div></div>
+    <div class="spec-row"><div class="spec-k">Candy</div><div class="spec-v">bg #1a0820 · accent #ff88cc rose · preview icon 🍬</div></div>
+    <div class="spec-row"><div class="spec-k">Midnight</div><div class="spec-v">bg #08080e · accent #8888cc indigo · preview icon 🌙</div></div>
+
+    <h3>Accent Colors</h3>
+    <div class="spec-row"><div class="spec-k">6 options</div><div class="spec-v">Violet #9b72ff · Mint #58e8c1 · Gold #ffd166 · Coral #ff7b6b · Cyan #4ad0ee · Rose #ff88cc</div></div>
+    <div class="spec-row"><div class="spec-k">Usage</div><div class="spec-v">Overrides CTA button, active node border, connector color, badge borders</div></div>
+
+    <h3>Preview Pane</h3>
+    <div class="spec-row"><div class="spec-k">Updates</div><div class="spec-v">Live on swatch click — no save required to preview</div></div>
+    <div class="spec-row"><div class="spec-k">Contents</div><div class="spec-v">Header (avatar + name + stars) · 3-node mock path · Quest card · CTA button</div></div>
+
+    <h3>Save</h3>
+    <div class="spec-row"><div class="spec-k">Trigger</div><div class="spec-v">"Save My Theme" button → confirmation chip below button</div></div>
+    <div class="spec-row"><div class="spec-k">Storage</div><div class="spec-v">Child profile: { themeId, accentColor } — persists across sessions</div></div>
+    <div class="spec-row"><div class="spec-k">No impact</div><div class="spec-v">Stars, progress, quests, streaks — all unaffected. Pure cosmetic.</div></div>
+    <div class="spec-row"><div class="spec-k">No locked themes</div><div class="spec-v">All 6 themes free. Never gated by progress or purchase.</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+
+  const themeMap = {
+    cosmic: { bg: '#100b2e', previewClass: 'theme-cosmic' },
+    forest: { bg: '#0a1a0e', previewClass: 'theme-forest' },
+    ocean: { bg: '#040e28', previewClass: 'theme-ocean' },
+    sunset: { bg: '#1a0a08', previewClass: 'theme-sunset' },
+    candy: { bg: '#1a0820', previewClass: 'theme-candy' },
+    midnight: { bg: '#08080e', previewClass: 'theme-midnight' },
+  };
+
+  function selectTheme(theme, el) {
+    const grid = el.closest('.theme-grid');
+    grid.querySelectorAll('.theme-swatch').forEach(s => s.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function selectAccent(el) {
+    const row = el.closest('.accent-row');
+    row.querySelectorAll('.accent-dot').forEach(d => d.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function saveTheme() {
+    const confirm = document.getElementById('save-confirm-cosmic');
+    confirm.classList.add('show');
+    confirm.style.display = 'block';
+    setTimeout(() => { confirm.style.display = 'none'; }, 3000);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child World Journey — Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+  }
+
+  /* Engineering hint */
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin: 0 auto 20px;
+    max-width: 1100px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    max-width: 1100px;
+    margin: 0 auto 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; max-width: 1100px; margin: 0 auto; }
+  .screen.active { display: block; }
+
+  /* ── WORLD JOURNEY LAYOUT ── */
+  .journey-wrap {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* Left panel */
+  .world-panel {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 16px;
+    padding: 20px;
+    position: sticky;
+    top: 24px;
+  }
+  .world-badge {
+    width: 72px;
+    height: 72px;
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border-radius: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 36px;
+    margin: 0 auto 12px;
+    border: 3px solid #9b72ff;
+    box-shadow: 0 0 20px rgba(155,114,255,0.3);
+  }
+  .world-name {
+    font-size: 20px;
+    font-weight: 900;
+    color: #e8e0ff;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  .world-subtitle {
+    font-size: 12px;
+    color: #9b8ec4;
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .world-progress-bar {
+    background: #1a1540;
+    border-radius: 8px;
+    height: 10px;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  .world-progress-fill {
+    height: 100%;
+    border-radius: 8px;
+    background: linear-gradient(90deg, #9b72ff, #58e8c1);
+    transition: width 0.6s ease;
+  }
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #9b8ec4;
+    margin-bottom: 16px;
+  }
+
+  .world-stats {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .w-stat {
+    flex: 1;
+    background: #1a1540;
+    border-radius: 10px;
+    padding: 10px 6px;
+    text-align: center;
+  }
+  .w-stat-val { font-size: 18px; font-weight: 900; color: #e8e0ff; }
+  .w-stat-lbl { font-size: 10px; color: #9b8ec4; margin-top: 2px; }
+
+  .world-cta {
+    width: 100%;
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 12px;
+    cursor: pointer;
+    transition: transform 0.15s;
+    margin-bottom: 10px;
+  }
+  .world-cta:hover { transform: scale(1.02); }
+
+  .world-nav {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .w-nav-btn {
+    flex: 1;
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 10px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 6px;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s;
+  }
+  .w-nav-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .w-nav-btn.disabled { opacity: 0.35; cursor: default; }
+
+  /* Right: Journey map */
+  .journey-map {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .zone-section {
+    margin-bottom: 28px;
+  }
+  .zone-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding: 0 4px;
+  }
+  .zone-label {
+    font-size: 13px;
+    font-weight: 900;
+    color: #9b8ec4;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .zone-line {
+    flex: 1;
+    height: 1px;
+    background: #2a2060;
+  }
+
+  /* Node row */
+  .node-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    row-gap: 12px;
+  }
+
+  .jnode {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    position: relative;
+  }
+  .jnode-circle {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    position: relative;
+    transition: transform 0.2s;
+  }
+  .jnode-circle:hover { transform: scale(1.1); }
+
+  .jnode.done .jnode-circle {
+    background: linear-gradient(135deg, #1a4a2a, #2d6b3d);
+    border: 3px solid #50e890;
+    box-shadow: 0 0 14px rgba(80,232,144,0.25);
+  }
+  .jnode.active .jnode-circle {
+    background: linear-gradient(135deg, #1e1470, #3b28cc);
+    border: 3px solid #9b72ff;
+    animation: node-pulse 2s ease-in-out infinite;
+  }
+  .jnode.locked .jnode-circle {
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    opacity: 0.5;
+  }
+  .jnode.boss .jnode-circle {
+    width: 70px;
+    height: 70px;
+    background: linear-gradient(135deg, #2a2010, #5a4200);
+    border: 3px solid #ffd166;
+    box-shadow: 0 0 20px rgba(255,209,102,0.35);
+  }
+
+  @keyframes node-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(155,114,255,0); }
+  }
+
+  .jnode-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #9b8ec4;
+    text-align: center;
+    max-width: 60px;
+    line-height: 1.2;
+  }
+  .jnode.active .jnode-label { color: #c4b0ff; }
+  .jnode.done .jnode-label { color: #50e890; }
+
+  .jnode-stars {
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  /* Star badge on done nodes */
+  .star-badge {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    background: #2a2010;
+    border: 2px solid #ffd166;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+  }
+
+  /* Connector between nodes */
+  .jconn {
+    flex: 1;
+    min-width: 20px;
+    max-width: 60px;
+    height: 4px;
+    border-radius: 2px;
+    margin-bottom: 22px; /* align with circle center */
+  }
+  .jconn.done { background: #50e890; }
+  .jconn.active { background: linear-gradient(90deg, #50e890, #9b72ff); }
+  .jconn.locked { background: #2a2060; }
+
+  /* Active arrow indicator */
+  .active-arrow {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 16px;
+    animation: arrow-bob 1s ease-in-out infinite;
+  }
+  @keyframes arrow-bob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-4px); }
+  }
+
+  /* Quest card strip */
+  .quest-strip {
+    margin-top: 16px;
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 16px;
+  }
+  .quest-strip-title {
+    font-size: 13px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 12px;
+  }
+  .quest-cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+  }
+  .quest-card {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+  }
+  .quest-card:hover { border-color: #9b72ff; transform: translateY(-2px); }
+  .quest-card.active-q { border-color: #9b72ff; background: #1e1470; }
+  .quest-card.done-q { border-color: #50e890; opacity: 0.75; }
+  .quest-card.locked-q { opacity: 0.4; cursor: default; }
+  .quest-card.locked-q:hover { transform: none; border-color: #2a2060; }
+  .q-icon { font-size: 22px; margin-bottom: 6px; }
+  .q-name { font-size: 12px; font-weight: 900; color: #e8e0ff; margin-bottom: 4px; }
+  .q-meta { font-size: 10px; color: #9b8ec4; }
+  .q-chip {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    margin-top: 6px;
+  }
+  .q-chip.active { background: #2d1f80; color: #c4b0ff; }
+  .q-chip.done { background: #1a3a20; color: #50e890; }
+  .q-chip.locked { background: #1a1540; color: #555; }
+
+  /* ── COMPLETED STATE ── */
+  .completed-hero {
+    text-align: center;
+    padding: 40px 20px 24px;
+    background: linear-gradient(180deg, #1a2a10 0%, #12103a 100%);
+    border: 2px solid #50e890;
+    border-radius: 20px;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .completed-hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at 50% 0%, rgba(80,232,144,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .trophy-big {
+    font-size: 72px;
+    display: block;
+    margin-bottom: 12px;
+    animation: trophy-bob 2s ease-in-out infinite;
+  }
+  @keyframes trophy-bob {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+  .completed-title {
+    font-size: 32px;
+    font-weight: 900;
+    color: #50e890;
+    margin-bottom: 6px;
+  }
+  .completed-sub {
+    font-size: 16px;
+    color: #9b8ec4;
+    margin-bottom: 20px;
+  }
+  .reward-chips {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .rc {
+    background: #1a2a10;
+    border: 2px solid #50e890;
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 900;
+    color: #50e890;
+    animation: chip-pop 0.5s cubic-bezier(0.34,1.56,0.64,1) both;
+  }
+  .rc:nth-child(1) { animation-delay: 0.1s; border-color: #ffd166; color: #ffd166; background: #1a1500; }
+  .rc:nth-child(2) { animation-delay: 0.2s; }
+  .rc:nth-child(3) { animation-delay: 0.3s; border-color: #9b72ff; color: #9b72ff; background: #12083a; }
+  @keyframes chip-pop {
+    from { opacity: 0; transform: scale(0.5); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .next-world-cta {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin-top: 20px;
+  }
+  .nw-btn {
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 12px 28px;
+    cursor: pointer;
+  }
+  .nw-btn.ghost {
+    background: transparent;
+    border: 2px solid #2a2060;
+    color: #9b8ec4;
+  }
+
+  /* ── BOSS NODE SECTION ── */
+  .boss-card {
+    background: linear-gradient(135deg, #1a1500, #2a2010);
+    border: 2px solid #ffd166;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    box-shadow: 0 0 20px rgba(255,209,102,0.12);
+  }
+  .boss-icon {
+    font-size: 56px;
+    flex-shrink: 0;
+    animation: trophy-bob 2s ease-in-out infinite;
+  }
+  .boss-info { flex: 1; }
+  .boss-title {
+    font-size: 11px;
+    font-weight: 900;
+    color: #ffd166;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 6px;
+  }
+  .boss-name {
+    font-size: 22px;
+    font-weight: 900;
+    color: #fff8e0;
+    margin-bottom: 6px;
+  }
+  .boss-desc {
+    font-size: 13px;
+    color: #c4a840;
+    margin-bottom: 12px;
+  }
+  .boss-reward {
+    display: flex;
+    gap: 8px;
+  }
+  .boss-r-chip {
+    background: #2a2010;
+    border: 1px solid #ffd166;
+    border-radius: 10px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #ffd166;
+  }
+  .boss-cta {
+    background: linear-gradient(135deg, #ffd166, #f0a000);
+    border: none;
+    border-radius: 12px;
+    color: #1a1000;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 12px 24px;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* ── SPEC ── */
+  .spec-table {
+    background: #12103a;
+    border: 2px solid #2a2060;
+    border-radius: 14px;
+    padding: 20px;
+    font-size: 13px;
+    line-height: 2;
+  }
+  .spec-table h3 {
+    font-size: 16px;
+    font-weight: 900;
+    color: #9b72ff;
+    margin-bottom: 12px;
+    margin-top: 16px;
+  }
+  .spec-table h3:first-child { margin-top: 0; }
+  .spec-row {
+    display: grid;
+    grid-template-columns: 200px 1fr;
+    gap: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #1a1540;
+  }
+  .spec-key { color: #9b8ec4; font-weight: 700; }
+  .spec-val { color: #e8e0ff; }
+
+  /* Star-safe badge */
+  .star-safe {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #1a2a15;
+    border: 2px solid #50e890;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #50e890;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-world-journey-desktop-v3.html</strong><br>
+  States: <strong>Journey (in-progress)</strong> / <strong>Boss Node</strong> / <strong>World Complete</strong> / <strong>Spec</strong><br>
+  Layout: 1100px max, 2-col (280px left panel + 1fr right map). Left panel sticky. 3 zone sections: Foundation / Adventure / Final Boss.<br>
+  Node types: <code>.jnode.done</code> (green) · <code>.jnode.active</code> (violet pulse) · <code>.jnode.locked</code> (35% opacity) · <code>.jnode.boss</code> (gold, 70px).<br>
+  Quest strip: 3-up grid below zone sections showing quests for active node. Stars stored per node; never decrease.<br>
+  Route: <code>/child/worlds/:worldId/journey</code>. <code>worldId</code> = cosmic-castle in demo. Boss card unlocks after all Adventure nodes done.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('journey')">Journey (In Progress)</button>
+  <button class="tab-btn" onclick="showTab('boss')">Boss Node</button>
+  <button class="tab-btn" onclick="showTab('complete')">World Complete</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: JOURNEY ── -->
+<div class="screen active" id="tab-journey">
+  <div class="journey-wrap">
+    <!-- Left panel -->
+    <div class="world-panel">
+      <div class="world-badge">🏰</div>
+      <div class="world-name">Cosmic Castle</div>
+      <div class="world-subtitle">Band K–1 · World 2 of 4</div>
+
+      <div class="world-progress-bar">
+        <div class="world-progress-fill" style="width:58%"></div>
+      </div>
+      <div class="progress-label">
+        <span>Node 7 of 12</span>
+        <span>58%</span>
+      </div>
+
+      <div class="world-stats">
+        <div class="w-stat">
+          <div class="w-stat-val">🌟 18</div>
+          <div class="w-stat-lbl">Stars</div>
+        </div>
+        <div class="w-stat">
+          <div class="w-stat-val">6</div>
+          <div class="w-stat-lbl">Done</div>
+        </div>
+        <div class="w-stat">
+          <div class="w-stat-val">5</div>
+          <div class="w-stat-lbl">Left</div>
+        </div>
+      </div>
+
+      <button class="world-cta">▶ Continue Quest</button>
+      <div class="star-safe">⭐ Your stars are safe!</div>
+
+      <div class="world-nav" style="margin-top:16px">
+        <button class="w-nav-btn disabled">← Forest Glen</button>
+        <button class="w-nav-btn">Sky Peaks →</button>
+      </div>
+    </div>
+
+    <!-- Right: Map -->
+    <div class="journey-map">
+
+      <!-- Zone 1: Foundation -->
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Foundation</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#50e890;font-weight:700;">✓ 4/4 done</div>
+        </div>
+        <div class="node-row">
+          <div class="jnode done">
+            <div class="jnode-circle">🔤
+              <div class="star-badge">⭐3</div>
+            </div>
+            <div class="jnode-label">Letters</div>
+            <div class="jnode-stars">⭐⭐⭐</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🔊
+              <div class="star-badge">⭐3</div>
+            </div>
+            <div class="jnode-label">Sounds</div>
+            <div class="jnode-stars">⭐⭐⭐</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🔢
+              <div class="star-badge">⭐2</div>
+            </div>
+            <div class="jnode-label">Numbers</div>
+            <div class="jnode-stars">⭐⭐☆</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🖼️
+              <div class="star-badge">⭐3</div>
+            </div>
+            <div class="jnode-label">Shapes</div>
+            <div class="jnode-stars">⭐⭐⭐</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone 2: Adventure -->
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Adventure</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#c4b0ff;font-weight:700;">2/4 done · On node 3</div>
+        </div>
+        <div class="node-row">
+          <div class="jnode done">
+            <div class="jnode-circle">📖
+              <div class="star-badge">⭐2</div>
+            </div>
+            <div class="jnode-label">Word Hunt</div>
+            <div class="jnode-stars">⭐⭐☆</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🧩
+              <div class="star-badge">⭐3</div>
+            </div>
+            <div class="jnode-label">Puzzle Trail</div>
+            <div class="jnode-stars">⭐⭐⭐</div>
+          </div>
+          <div class="jconn active"></div>
+          <div class="jnode active">
+            <div class="jnode-circle">🎯
+              <div class="active-arrow">▼</div>
+            </div>
+            <div class="jnode-label">Aim High</div>
+            <div class="jnode-stars" style="color:#9b8ec4">play me!</div>
+          </div>
+          <div class="jconn locked"></div>
+          <div class="jnode locked">
+            <div class="jnode-circle">🌊</div>
+            <div class="jnode-label">River Rush</div>
+            <div class="jnode-stars" style="color:#555">🔒</div>
+          </div>
+        </div>
+
+        <!-- Quest strip for active node -->
+        <div class="quest-strip" style="margin-top:16px;">
+          <div class="quest-strip-title">🎯 Aim High — Quests</div>
+          <div class="quest-cards">
+            <div class="quest-card done-q">
+              <div class="q-icon">🔤</div>
+              <div class="q-name">Rhyme Time</div>
+              <div class="q-meta">5 questions</div>
+              <span class="q-chip done">✓ Done ⭐⭐⭐</span>
+            </div>
+            <div class="quest-card active-q">
+              <div class="q-icon">📚</div>
+              <div class="q-name">Story Builder</div>
+              <div class="q-meta">8 questions</div>
+              <span class="q-chip active">▶ In Progress</span>
+            </div>
+            <div class="quest-card locked-q">
+              <div class="q-icon">🧠</div>
+              <div class="q-name">Brain Blast</div>
+              <div class="q-meta">6 questions</div>
+              <span class="q-chip locked">🔒 Locked</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone 3: Final Boss (locked) -->
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Final Boss</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#9b8ec4;font-weight:700;">Finish Adventure first</div>
+        </div>
+        <div class="node-row">
+          <div class="jconn locked" style="max-width:80px;margin-bottom:34px;"></div>
+          <div class="jnode boss locked" style="opacity:0.35">
+            <div class="jnode-circle" style="font-size:26px">🐉</div>
+            <div class="jnode-label" style="color:#c4a840;">Castle King</div>
+            <div class="jnode-stars" style="color:#666">🔒 Boss</div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- end journey-map -->
+  </div>
+</div>
+
+<!-- ── TAB 2: BOSS NODE ── -->
+<div class="screen" id="tab-boss">
+  <div class="journey-wrap">
+    <div class="world-panel">
+      <div class="world-badge">🏰</div>
+      <div class="world-name">Cosmic Castle</div>
+      <div class="world-subtitle">Band K–1 · World 2 of 4</div>
+      <div class="world-progress-bar">
+        <div class="world-progress-fill" style="width:92%"></div>
+      </div>
+      <div class="progress-label">
+        <span>Boss Node Unlocked!</span>
+        <span>92%</span>
+      </div>
+      <div class="world-stats">
+        <div class="w-stat">
+          <div class="w-stat-val">🌟 29</div>
+          <div class="w-stat-lbl">Stars</div>
+        </div>
+        <div class="w-stat">
+          <div class="w-stat-val">11</div>
+          <div class="w-stat-lbl">Done</div>
+        </div>
+        <div class="w-stat">
+          <div class="w-stat-val">1</div>
+          <div class="w-stat-lbl">Left</div>
+        </div>
+      </div>
+      <button class="world-cta" style="background:linear-gradient(135deg,#ffd166,#f0a000);color:#1a1000;">⚔️ Face the Boss!</button>
+      <div class="star-safe">⭐ Your stars are safe!</div>
+    </div>
+
+    <div class="journey-map">
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Foundation</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#50e890;font-weight:700;">✓ 4/4 done</div>
+        </div>
+        <div class="node-row">
+          <div class="jnode done">
+            <div class="jnode-circle">🔤<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">Letters</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🔊<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">Sounds</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🔢<div class="star-badge">⭐2</div></div>
+            <div class="jnode-label">Numbers</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🖼️<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">Shapes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Adventure</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#50e890;font-weight:700;">✓ 4/4 done</div>
+        </div>
+        <div class="node-row">
+          <div class="jnode done">
+            <div class="jnode-circle">📖<div class="star-badge">⭐2</div></div>
+            <div class="jnode-label">Word Hunt</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🧩<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">Puzzle Trail</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🎯<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">Aim High</div>
+          </div>
+          <div class="jconn done"></div>
+          <div class="jnode done">
+            <div class="jnode-circle">🌊<div class="star-badge">⭐3</div></div>
+            <div class="jnode-label">River Rush</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Boss card -->
+      <div class="zone-section">
+        <div class="zone-header">
+          <div class="zone-label">Final Boss</div>
+          <div class="zone-line"></div>
+          <div style="font-size:11px;color:#ffd166;font-weight:700;">🔓 Unlocked!</div>
+        </div>
+        <div class="jconn active" style="max-width:80px;margin-bottom:0;margin-left:30px;margin-bottom:16px;"></div>
+        <div class="boss-card">
+          <div class="boss-icon">🐉</div>
+          <div class="boss-info">
+            <div class="boss-title">🏆 Final Boss</div>
+            <div class="boss-name">Castle King</div>
+            <div class="boss-desc">The ultimate challenge of Cosmic Castle! Use everything you've learned to beat the Castle King and complete this world.</div>
+            <div class="boss-reward">
+              <span class="boss-r-chip">+5⭐</span>
+              <span class="boss-r-chip">🏆 Gold Trophy</span>
+              <span class="boss-r-chip">World Badge</span>
+              <span class="boss-r-chip">🔓 Sky Peaks</span>
+            </div>
+          </div>
+          <button class="boss-cta">⚔️ Face the Boss!</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: WORLD COMPLETE ── -->
+<div class="screen" id="tab-complete">
+  <div class="completed-hero">
+    <span class="trophy-big">🏆</span>
+    <div class="completed-title">Cosmic Castle Complete!</div>
+    <div class="completed-sub">You beat every quest and conquered the Castle King 🐉</div>
+    <div class="reward-chips">
+      <span class="rc">🌟 +34 Stars Total</span>
+      <span class="rc">✓ World Badge Earned</span>
+      <span class="rc">🔓 Sky Peaks Unlocked</span>
+    </div>
+    <div class="next-world-cta">
+      <button class="nw-btn">🗺️ Start Sky Peaks →</button>
+      <button class="nw-btn ghost">🏠 Back to Home</button>
+    </div>
+  </div>
+
+  <!-- All nodes shown as done -->
+  <div class="journey-map">
+    <div class="zone-section">
+      <div class="zone-header">
+        <div class="zone-label">Foundation</div>
+        <div class="zone-line"></div>
+        <div style="font-size:11px;color:#50e890;font-weight:700;">✓ 4/4 done</div>
+      </div>
+      <div class="node-row">
+        <div class="jnode done"><div class="jnode-circle">🔤<div class="star-badge">⭐3</div></div><div class="jnode-label">Letters</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🔊<div class="star-badge">⭐3</div></div><div class="jnode-label">Sounds</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🔢<div class="star-badge">⭐2</div></div><div class="jnode-label">Numbers</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🖼️<div class="star-badge">⭐3</div></div><div class="jnode-label">Shapes</div></div>
+      </div>
+    </div>
+    <div class="zone-section">
+      <div class="zone-header">
+        <div class="zone-label">Adventure</div>
+        <div class="zone-line"></div>
+        <div style="font-size:11px;color:#50e890;font-weight:700;">✓ 4/4 done</div>
+      </div>
+      <div class="node-row">
+        <div class="jnode done"><div class="jnode-circle">📖<div class="star-badge">⭐2</div></div><div class="jnode-label">Word Hunt</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🧩<div class="star-badge">⭐3</div></div><div class="jnode-label">Puzzle Trail</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🎯<div class="star-badge">⭐3</div></div><div class="jnode-label">Aim High</div></div>
+        <div class="jconn done"></div>
+        <div class="jnode done"><div class="jnode-circle">🌊<div class="star-badge">⭐3</div></div><div class="jnode-label">River Rush</div></div>
+      </div>
+    </div>
+    <div class="zone-section">
+      <div class="zone-header">
+        <div class="zone-label">Final Boss</div>
+        <div class="zone-line"></div>
+        <div style="font-size:11px;color:#ffd166;font-weight:700;">🏆 Defeated!</div>
+      </div>
+      <div class="node-row">
+        <div class="jconn done" style="max-width:80px;margin-bottom:34px;margin-left:30px;"></div>
+        <div class="jnode boss done" style="border-color:#50e890">
+          <div class="jnode-circle" style="font-size:26px;border-color:#ffd166;">🐉<div class="star-badge">⭐5</div></div>
+          <div class="jnode-label" style="color:#ffd166;">Castle King</div>
+          <div class="jnode-stars" style="color:#ffd166">🏆 Defeated</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="spec-table">
+    <h3>Component</h3>
+    <div class="spec-row"><div class="spec-key">File</div><div class="spec-val">child-world-journey-desktop-v3.html</div></div>
+    <div class="spec-row"><div class="spec-key">Route</div><div class="spec-val">/child/worlds/:worldId/journey</div></div>
+    <div class="spec-row"><div class="spec-key">Layout</div><div class="spec-val">1100px max-width · 2-col (280px + 1fr) · left panel sticky</div></div>
+    <div class="spec-row"><div class="spec-key">States</div><div class="spec-val">In-Progress · Boss Unlocked · World Complete</div></div>
+
+    <h3>Node System</h3>
+    <div class="spec-row"><div class="spec-key">Node types</div><div class="spec-val">done (green) / active (violet pulse) / locked (35% opacity) / boss (gold, 70px)</div></div>
+    <div class="spec-row"><div class="spec-key">Connector colors</div><div class="spec-val">done=green #50e890 / active=gradient green→violet / locked=#2a2060</div></div>
+    <div class="spec-row"><div class="spec-key">Zone sections</div><div class="spec-val">Foundation · Adventure · Final Boss — each with zone header + done count</div></div>
+    <div class="spec-row"><div class="spec-key">Stars per node</div><div class="spec-val">1–3 stars shown below done nodes. Never decrease. Badge bottom-right of circle.</div></div>
+    <div class="spec-row"><div class="spec-key">Active arrow</div><div class="spec-val">▼ bouncing above active node with arrow-bob animation</div></div>
+
+    <h3>Quest Strip</h3>
+    <div class="spec-row"><div class="spec-key">Trigger</div><div class="spec-val">Shown below zone section when an active node exists in that zone</div></div>
+    <div class="spec-row"><div class="spec-key">Quest states</div><div class="spec-val">done-q (green chip) / active-q (violet bg) / locked-q (40% opacity)</div></div>
+
+    <h3>Boss Card</h3>
+    <div class="spec-row"><div class="spec-key">Unlock trigger</div><div class="spec-val">All Adventure nodes complete → boss connector turns active → boss-card shown</div></div>
+    <div class="spec-row"><div class="spec-key">Rewards preview</div><div class="spec-val">+5⭐, Gold Trophy, World Badge, next-world unlock</div></div>
+
+    <h3>World Complete</h3>
+    <div class="spec-row"><div class="spec-key">Trophy animation</div><div class="spec-val">trophy-bob keyframe (translateY 0→-8px, 2s loop)</div></div>
+    <div class="spec-row"><div class="spec-key">Reward chips</div><div class="spec-val">chip-pop keyframe, staggered 0.1/0.2/0.3s delays, 3 color variants</div></div>
+    <div class="spec-row"><div class="spec-key">CTA</div><div class="spec-val">Primary: Start next world. Ghost: Back to home.</div></div>
+
+    <h3>Star-Safety</h3>
+    <div class="spec-row"><div class="spec-key">Rule</div><div class="spec-val">Stars never decrease. Shown in left panel at all times. No accuracy %.</div></div>
+    <div class="spec-row"><div class="spec-key">Badge</div><div class="spec-val">"⭐ Your stars are safe!" green badge always visible in left panel</div></div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

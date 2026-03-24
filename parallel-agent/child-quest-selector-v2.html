@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Child Quest Selector — v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0820;
+    font-family: 'Nunito', sans-serif;
+    min-height: 100vh;
+    padding: 24px 16px;
+    color: #e8e0ff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .eng-hint {
+    background: #fffbea;
+    border: 2px solid #f0c040;
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    width: 100%;
+    max-width: 820px;
+    font-family: monospace;
+    font-size: 12px;
+    color: #333;
+    line-height: 1.6;
+  }
+  .eng-hint strong { color: #b45309; }
+
+  .tab-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 820px;
+    width: 100%;
+  }
+  .tab-btn {
+    background: #1a1540;
+    border: 2px solid #2a2060;
+    border-radius: 8px;
+    color: #9b8ec4;
+    font-family: 'Nunito', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 7px 16px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tab-btn:hover { border-color: #9b72ff; color: #e8e0ff; }
+  .tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+  .screen { display: none; width: 100%; max-width: 820px; }
+  .screen.active { display: flex; justify-content: center; }
+
+  /* Phone */
+  .phone {
+    width: 390px;
+    background: #100b2e;
+    border-radius: 40px;
+    border: 2px solid #2a2060;
+    box-shadow: inset 0 0 0 2px #9b72ff22, 0 20px 50px rgba(0,0,0,0.6);
+    overflow: hidden;
+  }
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 20px 4px;
+    font-size: 11px;
+    color: #9b8ec4;
+    font-weight: 700;
+  }
+
+  /* Node context header */
+  .node-ctx {
+    padding: 12px 16px;
+    background: linear-gradient(135deg, #1e1470, #2a1060);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #2a2060;
+  }
+  .ctx-icon {
+    width: 40px;
+    height: 40px;
+    background: #2d1f80;
+    border-radius: 10px;
+    border: 2px solid #9b72ff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .ctx-info { flex: 1; }
+  .ctx-node { font-size: 14px; font-weight: 900; color: #e8e0ff; }
+  .ctx-world { font-size: 10px; color: #9b8ec4; margin-top: 1px; }
+  .ctx-stars { font-size: 12px; font-weight: 700; color: #ffd166; }
+
+  /* Section label */
+  .section-label {
+    font-size: 10px;
+    font-weight: 900;
+    color: #9b8ec4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 12px 16px 8px;
+  }
+
+  /* Quest list */
+  .quest-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0 12px 14px;
+  }
+  .quest-item {
+    background: #1a1540;
+    border: 3px solid #2a2060;
+    border-radius: 14px;
+    padding: 14px;
+    display: flex;
+    gap: 12px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+  .quest-item:hover { border-color: #9b72ff; }
+  .quest-item.active-q { border-color: #9b72ff; background: #1e1470; }
+  .quest-item.done-q { border-color: #50e890; background: #0e2010; opacity: 0.85; cursor: default; }
+  .quest-item.locked-q { opacity: 0.4; cursor: default; }
+  .quest-item.locked-q:hover { border-color: #2a2060; }
+
+  .qi-icon-wrap { position: relative; flex-shrink: 0; }
+  .qi-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    background: #12083a;
+  }
+  .qi-status-dot {
+    position: absolute;
+    bottom: -2px;
+    right: -2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #100b2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+  }
+  .qi-status-dot.done { background: #50e890; color: #fff; }
+  .qi-status-dot.active { background: #9b72ff; animation: dot-pulse 2s ease-in-out infinite; }
+  .qi-status-dot.locked { background: #2a2060; color: #555; }
+  @keyframes dot-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(155,114,255,0.5); }
+    50% { box-shadow: 0 0 0 4px rgba(155,114,255,0); }
+  }
+
+  .qi-info { flex: 1; }
+  .qi-name { font-size: 14px; font-weight: 900; color: #e8e0ff; margin-bottom: 2px; }
+  .quest-item.done-q .qi-name { color: #c0e8c0; }
+  .qi-meta { font-size: 11px; color: #9b8ec4; margin-bottom: 6px; }
+  .qi-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+  .qi-tag {
+    padding: 2px 8px;
+    border-radius: 8px;
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .qi-tag.type { background: #12083a; color: #9b8ec4; }
+  .qi-tag.status-active { background: #2d1f80; color: #c4b0ff; }
+  .qi-tag.status-done { background: #1a3a20; color: #50e890; }
+  .qi-tag.status-new { background: #1a1a00; color: #ffd166; }
+
+  .qi-stars {
+    font-size: 13px;
+    color: #ffd166;
+    font-weight: 700;
+    flex-shrink: 0;
+    align-self: center;
+  }
+  .quest-item.active-q .qi-stars { color: #ffd166; }
+  .quest-item.done-q .qi-stars { color: #50e890; }
+
+  /* Bottom CTA */
+  .bottom-cta {
+    padding: 12px 16px;
+    border-top: 1px solid #1a1540;
+    background: #12103a;
+  }
+  .bc-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #9b72ff, #7c4dff);
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-size: 15px;
+    font-weight: 900;
+    padding: 13px;
+    cursor: pointer;
+  }
+
+  /* Star safe badge */
+  .star-safe-m {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #1a2a15;
+    border: 1.5px solid #50e890;
+    border-radius: 16px;
+    padding: 5px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: #50e890;
+    margin: 0 12px 8px;
+  }
+
+  /* Spec */
+  .spec-scroll {
+    padding: 14px 16px;
+    font-size: 10px;
+    line-height: 1.7;
+    max-height: 540px;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+  .spec-scroll::-webkit-scrollbar { display: none; }
+  .spec-h { font-size: 11px; font-weight: 900; color: #9b72ff; margin: 10px 0 4px; }
+  .spec-row { display: grid; grid-template-columns: 120px 1fr; gap: 6px; padding: 3px 0; border-bottom: 1px solid #1a1540; font-size: 10px; }
+  .spec-k { color: #9b8ec4; font-weight: 700; }
+  .spec-v { color: #e8e0ff; }
+</style>
+</head>
+<body>
+
+<div class="eng-hint">
+  <strong>Engineering — child-quest-selector-v2.html</strong><br>
+  States: <strong>Active node (2 done, 1 active, 1 locked)</strong> / <strong>Fresh node (all new)</strong> / <strong>Node complete</strong> / <strong>Spec</strong><br>
+  390px phone. Quest list for current node. Each quest: icon + name + meta + tags + star count (earned or potential).<br>
+  Quest states: done (green), active (violet pulse), locked (40% opacity). Replay of done quests always allowed (star-safe).<br>
+  Context header shows current node name + world + star total. CTA = "Start [Quest Name]" or "Continue" if in progress.
+</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('active')">Active Node</button>
+  <button class="tab-btn" onclick="showTab('fresh')">Fresh Node (All New)</button>
+  <button class="tab-btn" onclick="showTab('nodecomplete')">Node Complete</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ── TAB 1: ACTIVE NODE ── -->
+<div class="screen active" id="tab-active">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <div class="node-ctx">
+      <div class="ctx-icon">🎯</div>
+      <div class="ctx-info">
+        <div class="ctx-node">Aim High</div>
+        <div class="ctx-world">Cosmic Castle · Node 7</div>
+      </div>
+      <div class="ctx-stars">🌟 18</div>
+    </div>
+
+    <div class="star-safe-m">⭐ Your stars are safe — can always replay!</div>
+
+    <div class="section-label">Quests on this node</div>
+
+    <div class="quest-list">
+      <!-- Done -->
+      <div class="quest-item done-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">🔤</div>
+          <div class="qi-status-dot done">✓</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Rhyme Time</div>
+          <div class="qi-meta">5 questions · Listening + Rhyming</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Listening</span>
+            <span class="qi-tag status-done">✓ Completed</span>
+          </div>
+        </div>
+        <div class="qi-stars">⭐⭐⭐</div>
+      </div>
+
+      <!-- Active -->
+      <div class="quest-item active-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#2d1f80">📚</div>
+          <div class="qi-status-dot active">▶</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Story Builder</div>
+          <div class="qi-meta">8 questions · Reading + Sequencing</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Reading</span>
+            <span class="qi-tag status-active">▶ In Progress (Q4)</span>
+          </div>
+        </div>
+        <div class="qi-stars" style="color:#9b8ec4">⭐⭐☆</div>
+      </div>
+
+      <!-- Done -->
+      <div class="quest-item done-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">🎵</div>
+          <div class="qi-status-dot done">✓</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Melody Match</div>
+          <div class="qi-meta">6 questions · Phonics + Sounds</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Phonics</span>
+            <span class="qi-tag status-done">✓ Completed</span>
+          </div>
+        </div>
+        <div class="qi-stars">⭐⭐⭐</div>
+      </div>
+
+      <!-- Locked -->
+      <div class="quest-item locked-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon">🧠</div>
+          <div class="qi-status-dot locked">🔒</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Brain Blast</div>
+          <div class="qi-meta">6 questions · Mixed challenge</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Mixed</span>
+            <span class="qi-tag" style="background:#1a1000;color:#555">🔒 Finish Story Builder first</span>
+          </div>
+        </div>
+        <div class="qi-stars" style="color:#555">⭐⭐⭐</div>
+      </div>
+    </div>
+
+    <div class="bottom-cta">
+      <button class="bc-btn">▶ Continue Story Builder</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 2: FRESH NODE ── -->
+<div class="screen" id="tab-fresh">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <div class="node-ctx" style="background:linear-gradient(135deg,#1a3a20,#0e2010);border-bottom-color:#50e890">
+      <div class="ctx-icon" style="background:#1a3a20;border-color:#50e890">🌊</div>
+      <div class="ctx-info">
+        <div class="ctx-node" style="color:#e8e0ff">River Rush</div>
+        <div class="ctx-world">Cosmic Castle · Node 8 🆕 Just unlocked!</div>
+      </div>
+      <div class="ctx-stars">🌟 21</div>
+    </div>
+
+    <div class="star-safe-m">⭐ Your stars are safe — can always replay!</div>
+
+    <div class="section-label">Brand new quests!</div>
+
+    <div class="quest-list">
+      <div class="quest-item" style="border-color:#50e890;background:#0e2010">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">🌊</div>
+          <div class="qi-status-dot active" style="background:#50e890">✦</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">River Words</div>
+          <div class="qi-meta">7 questions · Sight words</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Reading</span>
+            <span class="qi-tag status-new">🆕 New!</span>
+          </div>
+        </div>
+        <div class="qi-stars" style="color:#9b8ec4">up to ⭐⭐⭐</div>
+      </div>
+
+      <div class="quest-item locked-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon">🐟</div>
+          <div class="qi-status-dot locked">🔒</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Fish Count</div>
+          <div class="qi-meta">5 questions · Numbers + Counting</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Math</span>
+            <span class="qi-tag" style="background:#1a1000;color:#555">🔒 Do River Words first</span>
+          </div>
+        </div>
+        <div class="qi-stars" style="color:#555">up to ⭐⭐⭐</div>
+      </div>
+
+      <div class="quest-item locked-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon">🚣</div>
+          <div class="qi-status-dot locked">🔒</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Rapid Fire</div>
+          <div class="qi-meta">10 questions · Mixed challenge</div>
+          <div class="qi-tags">
+            <span class="qi-tag type">Mixed</span>
+            <span class="qi-tag" style="background:#1a1000;color:#555">🔒 Do both quests first</span>
+          </div>
+        </div>
+        <div class="qi-stars" style="color:#555">up to ⭐⭐⭐</div>
+      </div>
+    </div>
+
+    <div class="bottom-cta" style="background:#0e2010;border-top-color:#1a3a20">
+      <button class="bc-btn" style="background:linear-gradient(135deg,#50e890,#3ab870);color:#0a1a0a">▶ Start River Words!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 3: NODE COMPLETE ── -->
+<div class="screen" id="tab-nodecomplete">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>K–1 Band</span><span>🔋</span></div>
+
+    <div class="node-ctx">
+      <div class="ctx-icon" style="background:#1a3a20;border-color:#50e890">🎯</div>
+      <div class="ctx-info">
+        <div class="ctx-node">Aim High ✓</div>
+        <div class="ctx-world">Cosmic Castle · All quests done!</div>
+      </div>
+      <div class="ctx-stars" style="color:#50e890">🌟 21</div>
+    </div>
+
+    <div style="padding:12px 16px;background:linear-gradient(135deg,#1a2a10,#0e2010);border-bottom:1px solid #50e890;text-align:center">
+      <div style="font-size:32px;margin-bottom:6px">🎉</div>
+      <div style="font-size:16px;font-weight:900;color:#50e890;margin-bottom:2px">Node Complete!</div>
+      <div style="font-size:12px;color:#9b8ec4">You earned 9 stars on Aim High</div>
+    </div>
+
+    <div class="section-label">All quests finished</div>
+
+    <div class="quest-list">
+      <div class="quest-item done-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">🔤</div>
+          <div class="qi-status-dot done">✓</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Rhyme Time</div>
+          <div class="qi-meta">Tap to replay — stars are safe!</div>
+          <div class="qi-tags"><span class="qi-tag status-done">✓ Done</span></div>
+        </div>
+        <div class="qi-stars">⭐⭐⭐</div>
+      </div>
+      <div class="quest-item done-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">📚</div>
+          <div class="qi-status-dot done">✓</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Story Builder</div>
+          <div class="qi-meta">Tap to replay — stars are safe!</div>
+          <div class="qi-tags"><span class="qi-tag status-done">✓ Done</span></div>
+        </div>
+        <div class="qi-stars">⭐⭐⭐</div>
+      </div>
+      <div class="quest-item done-q">
+        <div class="qi-icon-wrap">
+          <div class="qi-icon" style="background:#1a3a20">🎵</div>
+          <div class="qi-status-dot done">✓</div>
+        </div>
+        <div class="qi-info">
+          <div class="qi-name">Melody Match</div>
+          <div class="qi-meta">Tap to replay — stars are safe!</div>
+          <div class="qi-tags"><span class="qi-tag status-done">✓ Done</span></div>
+        </div>
+        <div class="qi-stars">⭐⭐⭐</div>
+      </div>
+    </div>
+
+    <div class="star-safe-m">⭐ Replay any quest — your stars stay safe!</div>
+
+    <div class="bottom-cta">
+      <button class="bc-btn">🗺️ Go to Next Node!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TAB 4: SPEC ── -->
+<div class="screen" id="tab-spec">
+  <div class="phone">
+    <div class="status-bar"><span>9:41</span><span>Spec</span><span>🔋</span></div>
+    <div class="spec-scroll">
+      <div class="spec-h">Component</div>
+      <div class="spec-row"><div class="spec-k">File</div><div class="spec-v">child-quest-selector-v2.html</div></div>
+      <div class="spec-row"><div class="spec-k">Route</div><div class="spec-v">/child/worlds/:id/node/:id · shown when tapping active node</div></div>
+      <div class="spec-row"><div class="spec-k">Frame</div><div class="spec-v">390px phone · scrollable quest list</div></div>
+
+      <div class="spec-h">Quest States</div>
+      <div class="spec-row"><div class="spec-k">done</div><div class="spec-v">Green border + bg · ✓ dot badge · star count shown earned</div></div>
+      <div class="spec-row"><div class="spec-k">active</div><div class="spec-v">Violet border + bg · ▶ pulsing dot · in-progress tag</div></div>
+      <div class="spec-row"><div class="spec-k">locked</div><div class="spec-v">40% opacity · 🔒 dot · unlock-prerequisite in tag</div></div>
+      <div class="spec-row"><div class="spec-k">new</div><div class="spec-v">Green border (fresh node) · ✦ dot · "🆕 New!" tag</div></div>
+
+      <div class="spec-h">Star Safety</div>
+      <div class="spec-row"><div class="spec-k">Replay</div><div class="spec-v">Done quests always tappable for replay. "Stars are safe!" shown.</div></div>
+      <div class="spec-row"><div class="spec-k">Stars shown</div><div class="spec-v">Earned stars on done quests · "up to ⭐⭐⭐" on fresh quests</div></div>
+      <div class="spec-row"><div class="spec-k">Never 0</div><div class="spec-v">Existing stars never decrease from replay</div></div>
+
+      <div class="spec-h">Context Header</div>
+      <div class="spec-row"><div class="spec-k">Contents</div><div class="spec-v">Node icon + name + world name + total star count</div></div>
+      <div class="spec-row"><div class="spec-k">Fresh node</div><div class="spec-v">Green gradient + "🆕 Just unlocked!" label</div></div>
+      <div class="spec-row"><div class="spec-k">Complete</div><div class="spec-v">Green icon border + "All quests done!" sub-label</div></div>
+
+      <div class="spec-h">CTA</div>
+      <div class="spec-row"><div class="spec-k">Active state</div><div class="spec-v">"Continue [Quest Name]" if in-progress · "Start [Quest Name]" if new</div></div>
+      <div class="spec-row"><div class="spec-k">Complete state</div><div class="spec-v">"Go to Next Node!" navigates to next unlocked node</div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function showTab(tab) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + tab).classList.add('active');
+    event.currentTarget.classList.add('active');
+  }
+</script>
+</body>
+</html>

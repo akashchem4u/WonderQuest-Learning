@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Band Selection Grid v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 16px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.page-wrap { max-width: 900px; margin: 0 auto; padding: 40px 32px 60px; }
+.page-title { font-size: 32px; font-weight: 900; color: #fff; text-align: center; margin-bottom: 8px; }
+.page-sub { font-size: 16px; color: #b8a0e8; font-weight: 700; text-align: center; margin-bottom: 32px; }
+
+/* ── 2×2 band grid ── */
+.band-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 28px; }
+.band-card {
+  border-radius: 24px; padding: 28px 24px;
+  cursor: pointer; border: 3px solid transparent;
+  transition: all 0.2s; position: relative; overflow: hidden;
+}
+.band-card:hover { transform: translateY(-4px); }
+.band-card.selected { border-color: #fff; transform: scale(1.02); }
+.band-card .bc-check {
+  position: absolute; top: 14px; right: 14px;
+  width: 28px; height: 28px; background: rgba(255,255,255,0.9);
+  border-radius: 50%; display: none; align-items: center; justify-content: center;
+  font-size: 14px; font-weight: 900;
+}
+.band-card.selected .bc-check { display: flex; }
+.band-card .bc-icon { font-size: 52px; margin-bottom: 12px; display: block; }
+.band-card .bc-name { font-size: 20px; font-weight: 900; margin-bottom: 4px; }
+.band-card .bc-ages { font-size: 13px; font-weight: 700; opacity: 0.75; margin-bottom: 8px; }
+.band-card .bc-skills { font-size: 12px; opacity: 0.65; line-height: 1.5; }
+/* colors */
+.b-p0 { background: linear-gradient(135deg, #2a2010 0%, #1a1408 100%); }
+.b-p0 .bc-name { color: #ffd166; }
+.b-p0 .bc-check { color: #2a2010; }
+.b-p1 { background: linear-gradient(135deg, #1e1470 0%, #100b3a 100%); }
+.b-p1 .bc-name { color: #9b72ff; }
+.b-p1 .bc-check { color: #100b3a; }
+.b-p2 { background: linear-gradient(135deg, #0a2a28 0%, #061a18 100%); }
+.b-p2 .bc-name { color: #58e8c1; }
+.b-p2 .bc-check { color: #0a2a28; }
+.b-p3 { background: linear-gradient(135deg, #2a1010 0%, #1a0808 100%); }
+.b-p3 .bc-name { color: #ff7b6b; }
+.b-p3 .bc-check { color: #2a1010; }
+
+/* comparison table */
+.compare-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.compare-table th { padding: 10px 14px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #2a2060; text-align: left; }
+.compare-table th.col-p0 { color: #ffd166; }
+.compare-table th.col-p1 { color: #9b72ff; }
+.compare-table th.col-p2 { color: #58e8c1; }
+.compare-table th.col-p3 { color: #ff7b6b; }
+.compare-table td { padding: 8px 14px; border-bottom: 1px solid #1a1060; color: #c4a0ff; font-weight: 700; }
+.compare-table tr:last-child td { border-bottom: none; }
+.compare-table .row-label { color: #7a6090; font-size: 11px; }
+
+/* cta */
+.cta-row { display: flex; gap: 12px; align-items: center; }
+.cta-btn { flex: 1; padding: 16px; border-radius: 16px; border: none; background: linear-gradient(135deg, #9b72ff, #7c4ddb); color: #fff; font-family: 'Nunito', sans-serif; font-size: 18px; font-weight: 900; cursor: pointer; box-shadow: 0 6px 20px rgba(155,114,255,0.4); }
+.cta-note { font-size: 12px; color: #5a4080; font-weight: 700; text-align: center; margin-top: 12px; }
+
+/* spec */
+.spec-wrap { max-width: 800px; margin: 0 auto; padding: 20px; }
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-band-selection-grid-v3.html</strong><br>
+  Desktop 900px • 4 tabs: Default / Selected (K–1) / Compare table / Spec<br>
+  2×2 band card grid • Each card: per-band gradient bg + colored name + skills list<br>
+  Selected: white border + scale(1.02) + checkmark badge top-right<br>
+  Comparison table shows ages/focus/examples across all 4 bands<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('default')">Default</button>
+  <button class="tab-btn" onclick="showTab('selected')">K–1 Selected</button>
+  <button class="tab-btn" onclick="showTab('compare')">Compare</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- DEFAULT -->
+<div id="screen-default" class="screen active">
+  <div class="page-wrap">
+    <div class="page-title">What kind of quester are you? ⚡</div>
+    <div class="page-sub">Pick your adventure level — you can always change it later!</div>
+    <div class="band-grid">
+      <div class="band-card b-p0" onclick="selectBand(this)">
+        <div class="bc-check">✓</div>
+        <span class="bc-icon">🌈</span>
+        <div class="bc-name">Pre-K Explorers</div>
+        <div class="bc-ages">Ages 3–5 · Early learners</div>
+        <div class="bc-skills">Letters, counting, shapes, colors. Big pictures and voice-first learning!</div>
+      </div>
+      <div class="band-card b-p1" onclick="selectBand(this)">
+        <div class="bc-check">✓</div>
+        <span class="bc-icon">⚡</span>
+        <div class="bc-name">K–1 Adventurers</div>
+        <div class="bc-ages">Ages 5–7 · Kindergarten–Grade 1</div>
+        <div class="bc-skills">Phonics, first words, simple math. Where the real magic begins!</div>
+      </div>
+      <div class="band-card b-p2" onclick="selectBand(this)">
+        <div class="bc-check">✓</div>
+        <span class="bc-icon">🌊</span>
+        <div class="bc-name">G2–3 Questers</div>
+        <div class="bc-ages">Ages 7–9 · Grades 2–3</div>
+        <div class="bc-skills">Reading comprehension, multiplication, problem solving. More challenge unlocked!</div>
+      </div>
+      <div class="band-card b-p3" onclick="selectBand(this)">
+        <div class="bc-check">✓</div>
+        <span class="bc-icon">🔥</span>
+        <div class="bc-name">G4–5 Champions</div>
+        <div class="bc-ages">Ages 9–11 · Grades 4–5</div>
+        <div class="bc-skills">Complex math, reading mastery, reasoning. For bold adventurers!</div>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:14px;font-weight:700;color:#5a4080">Tap a card to choose your level</div>
+  </div>
+</div>
+
+<!-- SELECTED -->
+<div id="screen-selected" class="screen">
+  <div class="page-wrap">
+    <div class="page-title">What kind of quester are you? ⚡</div>
+    <div class="page-sub">Pick your adventure level — you can always change it later!</div>
+    <div class="band-grid">
+      <div class="band-card b-p0"><div class="bc-check">✓</div><span class="bc-icon">🌈</span><div class="bc-name">Pre-K Explorers</div><div class="bc-ages">Ages 3–5 · Early learners</div><div class="bc-skills">Letters, counting, shapes, colors. Big pictures and voice-first learning!</div></div>
+      <div class="band-card b-p1 selected"><div class="bc-check">✓</div><span class="bc-icon">⚡</span><div class="bc-name">K–1 Adventurers</div><div class="bc-ages">Ages 5–7 · Kindergarten–Grade 1</div><div class="bc-skills">Phonics, first words, simple math. Where the real magic begins!</div></div>
+      <div class="band-card b-p2"><div class="bc-check">✓</div><span class="bc-icon">🌊</span><div class="bc-name">G2–3 Questers</div><div class="bc-ages">Ages 7–9 · Grades 2–3</div><div class="bc-skills">Reading comprehension, multiplication, problem solving. More challenge unlocked!</div></div>
+      <div class="band-card b-p3"><div class="bc-check">✓</div><span class="bc-icon">🔥</span><div class="bc-name">G4–5 Champions</div><div class="bc-ages">Ages 9–11 · Grades 4–5</div><div class="bc-skills">Complex math, reading mastery, reasoning. For bold adventurers!</div></div>
+    </div>
+    <div class="cta-row">
+      <button class="cta-btn">K–1 Adventurers it is! ⚡</button>
+    </div>
+    <div class="cta-note">Your parent can change this from their app at any time</div>
+  </div>
+</div>
+
+<!-- COMPARE -->
+<div id="screen-compare" class="screen">
+  <div class="page-wrap">
+    <div class="page-title">Not sure which to pick? 🤔</div>
+    <div class="page-sub">Here's what each level covers — pick whatever feels right!</div>
+    <div style="background:#1a1060;border-radius:16px;overflow:hidden;margin-bottom:24px">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th style="color:#7a6090">Level</th>
+            <th class="col-p0">🌈 Pre-K</th>
+            <th class="col-p1">⚡ K–1</th>
+            <th class="col-p2">🌊 G2–3</th>
+            <th class="col-p3">🔥 G4–5</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="row-label">Ages</td><td>3–5</td><td>5–7</td><td>7–9</td><td>9–11</td></tr>
+          <tr><td class="row-label">Reading</td><td>Letters, ABCs</td><td>Phonics, words</td><td>Comprehension</td><td>Mastery</td></tr>
+          <tr><td class="row-label">Math</td><td>Counting, shapes</td><td>+/− basics</td><td>×/÷, fractions</td><td>Multi-step</td></tr>
+          <tr><td class="row-label">Voice</td><td>All voice-first</td><td>Voice + text</td><td>Text + voice</td><td>Text-primary</td></tr>
+          <tr><td class="row-label">Questions</td><td>Big picture</td><td>Card choices</td><td>Mixed format</td><td>Complex</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="band-grid">
+      <div class="band-card b-p0"><div class="bc-check">✓</div><span class="bc-icon">🌈</span><div class="bc-name">Pre-K Explorers</div><div class="bc-ages">Ages 3–5</div></div>
+      <div class="band-card b-p1 selected"><div class="bc-check">✓</div><span class="bc-icon">⚡</span><div class="bc-name">K–1 Adventurers</div><div class="bc-ages">Ages 5–7</div></div>
+      <div class="band-card b-p2"><div class="bc-check">✓</div><span class="bc-icon">🌊</span><div class="bc-name">G2–3 Questers</div><div class="bc-ages">Ages 7–9</div></div>
+      <div class="band-card b-p3"><div class="bc-check">✓</div><span class="bc-icon">🔥</span><div class="bc-name">G4–5 Champions</div><div class="bc-ages">Ages 9–11</div></div>
+    </div>
+    <div class="cta-row"><button class="cta-btn">K–1 Adventurers it is! ⚡</button></div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="spec-wrap">
+    <div class="spec-section">
+      <div class="spec-title">Cards</div>
+      <div class="spec-row"><span class="spec-key">Grid</span><span class="spec-val">2×2, gap 16px, full desktop width</span></div>
+      <div class="spec-row"><span class="spec-key">Default</span><span class="spec-val">No selection, no CTA shown</span></div>
+      <div class="spec-row"><span class="spec-key">Selected</span><span class="spec-val">White border, scale 1.02, checkmark badge, CTA appears</span></div>
+      <div class="spec-row"><span class="spec-key">CTA label</span><span class="spec-val">Dynamically shows chosen band name</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Band colors</div>
+      <div class="spec-row"><span class="spec-key">Pre-K</span><span class="spec-val">#ffd166 gold · bg gradient #2a2010</span></div>
+      <div class="spec-row"><span class="spec-key">K–1</span><span class="spec-val">#9b72ff violet · bg gradient #1e1470</span></div>
+      <div class="spec-row"><span class="spec-key">G2–3</span><span class="spec-val">#58e8c1 mint · bg gradient #0a2a28</span></div>
+      <div class="spec-row"><span class="spec-key">G4–5</span><span class="spec-val">#ff7b6b coral · bg gradient #2a1010</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Grade labels</span><span class="spec-val">Band names only — ages in subtitle</span></div>
+      <div class="spec-row"><span class="spec-key">Parent override</span><span class="spec-val">Allowed any time from parent app</span></div>
+      <div class="spec-row"><span class="spec-key">Adaptive</span><span class="spec-val">System adapts within band — child never sees difficulty</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+function selectBand(card) {
+  document.querySelectorAll('#screen-default .band-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+}
+</script>
+</body>
+</html>

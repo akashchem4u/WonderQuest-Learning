@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Badge Collection Desktop v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #100b2e; min-height: 100vh; font-family: 'Nunito', sans-serif; color: #fff; }
+.eng-hint { background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 16px 16px; }
+.tab-btn { padding: 8px 14px; background: #1e1a40; border: 2px solid #2e2a50; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2650; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 32px; }
+.page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+.page-title { font-size: 28px; font-weight: 900; color: #fff; }
+.badge-count { background: #1a1060; border: 2px solid #9b72ff; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 700; color: #9b72ff; }
+
+/* Category filter */
+.cat-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; }
+.cf-btn { padding: 7px 16px; border-radius: 20px; border: 2px solid #2a2060; background: #1a1060; color: #7a6090; font-family: 'Nunito', sans-serif; font-size: 13px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.cf-btn:hover { border-color: #9b72ff; color: #c4a0ff; }
+.cf-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+/* Badge grid */
+.badge-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 32px; }
+
+.badge-item {
+  background: #1a1060;
+  border: 2px solid #2a2060;
+  border-radius: 20px;
+  padding: 20px 16px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.badge-item:hover { border-color: #9b72ff; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(155,114,255,0.2); }
+.badge-item.earned { border-color: transparent; }
+.badge-item.locked { opacity: 0.35; cursor: default; }
+.badge-item.locked:hover { transform: none; box-shadow: none; }
+
+.badge-item .bi-emoji { font-size: 48px; margin-bottom: 10px; display: block; }
+.badge-item.earned .bi-emoji { animation: badge-float 3s ease-in-out infinite; }
+.badge-item:nth-child(2) .bi-emoji { animation-delay: 0.5s; }
+.badge-item:nth-child(3) .bi-emoji { animation-delay: 1s; }
+@keyframes badge-float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+
+.badge-item .bi-name { font-size: 14px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.badge-item .bi-desc { font-size: 11px; color: #7a6090; font-weight: 700; line-height: 1.3; }
+.badge-item .bi-date { font-size: 10px; color: #5a4080; margin-top: 6px; }
+
+/* Badge shimmer for earned */
+.badge-shimmer {
+  position: absolute; inset: 0;
+  border-radius: 18px;
+  background: linear-gradient(135deg, transparent 30%, rgba(255,255,255,0.04) 50%, transparent 70%);
+  pointer-events: none;
+}
+
+/* NEW indicator */
+.new-dot {
+  position: absolute; top: 8px; right: 8px;
+  width: 10px; height: 10px; background: #ff7b6b;
+  border-radius: 50%; border: 2px solid #100b2e;
+  animation: new-blink 1.5s ease-in-out infinite;
+}
+@keyframes new-blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+/* Category colors */
+.cat-quest { background: linear-gradient(135deg, #1a1060, #2a1880); border-color: #9b72ff; }
+.cat-streak { background: linear-gradient(135deg, #2a1808, #1a1060); border-color: #ff9d3b; }
+.cat-star { background: linear-gradient(135deg, #2a2010, #1a1060); border-color: #ffd166; }
+.cat-world { background: linear-gradient(135deg, #0a2a15, #1a1060); border-color: #50e890; }
+.cat-special { background: linear-gradient(135deg, #2a1010, #1a1060); border-color: #ff7b6b; }
+
+/* Detail modal */
+.badge-detail {
+  max-width: 480px;
+  background: #1a1060;
+  border: 2px solid #4a30b0;
+  border-radius: 24px;
+  padding: 28px;
+  text-align: center;
+  margin: 0 auto 24px;
+}
+.bd-emoji { font-size: 80px; display: block; margin-bottom: 14px; animation: badge-float 3s ease-in-out infinite; }
+.bd-name { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 8px; }
+.bd-desc { font-size: 14px; color: #b8a0e8; font-weight: 700; line-height: 1.5; margin-bottom: 16px; }
+.bd-date { font-size: 12px; color: #5a4080; font-weight: 700; }
+.bd-tag { display: inline-block; padding: 5px 14px; border-radius: 20px; font-size: 12px; font-weight: 900; margin-bottom: 14px; }
+
+/* Spec */
+.spec-section { margin-bottom: 14px; background: #1a1060; border-radius: 12px; padding: 14px; max-width: 800px; }
+.spec-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 12px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 65%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-badge-collection-desktop-v3.html</strong><br>
+  Desktop 1100px • 4 tabs: All Badges / Earned Detail / Locked Preview / Spec<br>
+  Earned badges: gradient backgrounds, float animation, NEW dot for recently awarded<br>
+  Locked badges: 35% opacity, no hover effect<br>
+  Category filter tabs: Quest / Streak / Star / World / Special<br>
+  Badge grid: auto-fill columns, min 160px per cell<br>
+  Nunito 900 • Dark cosmic <code>#100b2e</code>
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('all')">All Badges</button>
+  <button class="tab-btn" onclick="showTab('detail')">Badge Detail</button>
+  <button class="tab-btn" onclick="showTab('locked')">Locked Preview</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<!-- ALL BADGES -->
+<div id="screen-all" class="screen active">
+  <div class="page-wrap">
+    <div class="page-header">
+      <div class="page-title">My Badge Collection 🏅</div>
+      <div class="badge-count">3 earned · 12 to unlock</div>
+    </div>
+    <div class="cat-filter">
+      <button class="cf-btn active">All (15)</button>
+      <button class="cf-btn">⚡ Quest (4)</button>
+      <button class="cf-btn">🔥 Streak (3)</button>
+      <button class="cf-btn">⭐ Star (4)</button>
+      <button class="cf-btn">🌍 World (2)</button>
+      <button class="cf-btn">✨ Special (2)</button>
+    </div>
+    <div class="badge-grid">
+      <!-- Earned: 3 -->
+      <div class="badge-item earned cat-quest">
+        <div class="badge-shimmer"></div>
+        <div class="new-dot"></div>
+        <span class="bi-emoji">🌟</span>
+        <div class="bi-name">First Quest!</div>
+        <div class="bi-desc">Completed your very first quest</div>
+        <div class="bi-date">Earned 3 days ago</div>
+      </div>
+      <div class="badge-item earned cat-world">
+        <div class="badge-shimmer"></div>
+        <span class="bi-emoji">🌲</span>
+        <div class="bi-name">Forest Explorer</div>
+        <div class="bi-desc">Completed the Enchanted Forest</div>
+        <div class="bi-date">Earned 5 days ago</div>
+      </div>
+      <div class="badge-item earned cat-streak">
+        <div class="badge-shimmer"></div>
+        <span class="bi-emoji">🔥</span>
+        <div class="bi-name">On Fire!</div>
+        <div class="bi-desc">Reached a 5-day quest streak</div>
+        <div class="bi-date">Earned today</div>
+      </div>
+      <!-- Locked: 12 -->
+      <div class="badge-item locked"><span class="bi-emoji">🌊</span><div class="bi-name">Ocean Hero</div><div class="bi-desc">Complete Ocean Kingdom</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">💎</span><div class="bi-name">Crystal Master</div><div class="bi-desc">Complete Crystal Caverns</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">⭐</span><div class="bi-name">Star Collector</div><div class="bi-desc">Collect 50 stars</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🏆</span><div class="bi-name">World Champion</div><div class="bi-desc">Complete 3 worlds</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🔟</span><div class="bi-name">10-Day Streak</div><div class="bi-desc">Quest 10 days in a row</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">💯</span><div class="bi-name">100 Stars!</div><div class="bi-desc">Collect 100 total stars</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🦋</span><div class="bi-name">Butterfly Effect</div><div class="bi-desc">Pick Flutter as your explorer</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🐉</span><div class="bi-name">Dragon Tamer</div><div class="bi-desc">Complete a boss node</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🌈</span><div class="bi-name">Rainbow Seeker</div><div class="bi-desc">Play in 3 different worlds in one day</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🌙</span><div class="bi-name">Night Owl</div><div class="bi-desc">Complete a quest after 8pm</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">⚡</span><div class="bi-name">Speed Quester</div><div class="bi-desc">Complete 5 quests in one day</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">👑</span><div class="bi-name">Grand Champion</div><div class="bi-desc">Earn every other badge!</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- BADGE DETAIL (earned) -->
+<div id="screen-detail" class="screen">
+  <div class="page-wrap">
+    <div class="page-title" style="margin-bottom:24px">Badge Detail 🏅</div>
+    <div class="badge-detail">
+      <span class="bd-emoji">🔥</span>
+      <div class="bd-tag" style="background:#2a1808;border:2px solid #ff9d3b;color:#ff9d3b">🔥 Streak Badge</div>
+      <div class="bd-name">On Fire!</div>
+      <div class="bd-desc">You quested 5 days in a row — that's an amazing streak! Keep the fire going to unlock even bigger badges!</div>
+      <div class="bd-date">Earned today · Badge #3</div>
+    </div>
+    <div class="badge-grid" style="max-width:640px;margin:0 auto">
+      <div class="badge-item earned cat-quest"><div class="badge-shimmer"></div><span class="bi-emoji">🌟</span><div class="bi-name">First Quest!</div><div class="bi-date">3 days ago</div></div>
+      <div class="badge-item earned cat-world"><div class="badge-shimmer"></div><span class="bi-emoji">🌲</span><div class="bi-name">Forest Explorer</div><div class="bi-date">5 days ago</div></div>
+      <div class="badge-item earned cat-streak" style="border-color:#ff9d3b"><div class="badge-shimmer"></div><div class="new-dot"></div><span class="bi-emoji">🔥</span><div class="bi-name">On Fire!</div><div class="bi-date">Today ← this one!</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- LOCKED PREVIEW -->
+<div id="screen-locked" class="screen">
+  <div class="page-wrap">
+    <div class="page-title" style="margin-bottom:8px">What's Coming Next? 🔮</div>
+    <div style="font-size:14px;font-weight:700;color:#b8a0e8;margin-bottom:24px">Unlock these by adventuring — you're close on several!</div>
+    <div class="badge-grid">
+      <!-- Tantalizing "close" badges shown at 60% opacity with progress -->
+      <div class="badge-item" style="border-color:#9b72ff;opacity:0.8">
+        <span class="bi-emoji">⭐</span>
+        <div class="bi-name">Star Collector</div>
+        <div class="bi-desc">Collect 50 stars</div>
+        <div style="height:6px;background:#2a2060;border-radius:4px;margin-top:8px;overflow:hidden"><div style="height:100%;width:84%;background:#ffd166;border-radius:4px"></div></div>
+        <div style="font-size:10px;font-weight:700;color:#ffd166;margin-top:4px">42/50 stars ✨ so close!</div>
+      </div>
+      <div class="badge-item" style="border-color:#50e890;opacity:0.8">
+        <span class="bi-emoji">💎</span>
+        <div class="bi-name">Crystal Master</div>
+        <div class="bi-desc">Complete Crystal Caverns</div>
+        <div style="height:6px;background:#2a2060;border-radius:4px;margin-top:8px;overflow:hidden"><div style="height:100%;width:58%;background:#50e890;border-radius:4px"></div></div>
+        <div style="font-size:10px;font-weight:700;color:#50e890;margin-top:4px">7/12 nodes · keep going!</div>
+      </div>
+      <div class="badge-item locked"><span class="bi-emoji">🏆</span><div class="bi-name">World Champion</div><div class="bi-desc">Complete 3 worlds</div><div style="font-size:10px;font-weight:700;color:#5a4080;margin-top:6px">2/3 worlds done</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🔟</span><div class="bi-name">10-Day Streak</div><div class="bi-desc">Quest 10 days in a row</div><div style="font-size:10px;font-weight:700;color:#5a4080;margin-top:6px">5/10 days</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">💯</span><div class="bi-name">100 Stars!</div><div class="bi-desc">Collect 100 total stars</div><div style="font-size:10px;font-weight:700;color:#5a4080;margin-top:6px">42/100 stars</div></div>
+      <div class="badge-item locked"><span class="bi-emoji">🐉</span><div class="bi-name">Dragon Tamer</div><div class="bi-desc">Complete a boss node</div><div style="font-size:10px;font-weight:700;color:#5a4080;margin-top:6px">Finish Crystal Caverns!</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- SPEC -->
+<div id="screen-spec" class="screen">
+  <div class="page-wrap">
+    <div class="spec-section">
+      <div class="spec-title">Badge States</div>
+      <div class="spec-row"><span class="spec-key">Earned</span><span class="spec-val">Gradient bg, float animation, optional NEW dot</span></div>
+      <div class="spec-row"><span class="spec-key">Locked</span><span class="spec-val">35% opacity, no hover, no animation</span></div>
+      <div class="spec-row"><span class="spec-key">Progress</span><span class="spec-val">Shown on close-to-unlock badges (% bar + count)</span></div>
+      <div class="spec-row"><span class="spec-key">NEW dot</span><span class="spec-val">Red blinking dot for badges earned in last 24h</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Categories</div>
+      <div class="spec-row"><span class="spec-key">Quest</span><span class="spec-val">Violet gradient · completing quests/nodes</span></div>
+      <div class="spec-row"><span class="spec-key">Streak</span><span class="spec-val">Amber gradient · consecutive day milestones</span></div>
+      <div class="spec-row"><span class="spec-key">Star</span><span class="spec-val">Gold gradient · star count milestones</span></div>
+      <div class="spec-row"><span class="spec-key">World</span><span class="spec-val">Green gradient · world completion</span></div>
+      <div class="spec-row"><span class="spec-key">Special</span><span class="spec-val">Coral gradient · hidden / surprise badges</span></div>
+    </div>
+    <div class="spec-section">
+      <div class="spec-title">Rules</div>
+      <div class="spec-row"><span class="spec-key">Accuracy</span><span class="spec-val">Never on badges — only star/completion triggers</span></div>
+      <div class="spec-row"><span class="spec-key">Remove</span><span class="spec-val">Badges never removed once earned</span></div>
+      <div class="spec-row"><span class="spec-key">Locked desc</span><span class="spec-val">Always visible — kids can plan/aspire</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+document.querySelectorAll('.cf-btn').forEach(b => {
+  b.addEventListener('click', () => { document.querySelectorAll('.cf-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); });
+});
+</script>
+</body>
+</html>

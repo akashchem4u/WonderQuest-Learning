@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child PIN Lockout State v2</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 40px; font-family: 'Nunito', sans-serif; }
+.eng-hint { width: 100%; max-width: 700px; background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin-bottom: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { width: 100%; max-width: 700px; display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tab-btn { flex: 1; min-width: 80px; padding: 8px 10px; background: #1e1e3a; border: 2px solid #2e2e4e; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2a4e; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.phone-frame { width: 390px; min-height: 780px; background: #100b2e; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 0 0 2px #2a2060; }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 6px; font-size: 12px; font-weight: 700; color: #9b72ff; }
+.status-bar .time { font-size: 14px; color: #e0d4ff; font-weight: 900; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.lock-body { display: flex; flex-direction: column; align-items: center; padding: 32px 28px 36px; text-align: center; }
+
+/* Lock icon */
+.lock-icon { font-size: 80px; margin-bottom: 16px; animation: lock-appear 0.5s cubic-bezier(0.34,1.56,0.64,1); }
+@keyframes lock-appear { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+.lock-title { font-size: 24px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.lock-sub { font-size: 14px; color: #b8a0a8; font-weight: 700; margin-bottom: 24px; line-height: 1.4; }
+
+/* Countdown ring */
+.countdown-ring {
+  position: relative;
+  width: 100px; height: 100px;
+  margin-bottom: 20px;
+}
+.countdown-ring svg { transform: rotate(-90deg); }
+.ring-bg { fill: none; stroke: #2a2060; stroke-width: 6; }
+.ring-fill { fill: none; stroke: #9b72ff; stroke-width: 6; stroke-linecap: round; stroke-dasharray: 251; stroke-dashoffset: 126; transition: stroke-dashoffset 1s linear; }
+.countdown-num { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 28px; font-weight: 900; color: #fff; }
+.countdown-label { font-size: 9px; font-weight: 700; color: #7a6090; text-transform: uppercase; letter-spacing: 1px; position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); }
+
+/* Step card */
+.step-card {
+  width: 100%;
+  background: #1a1060; border: 1px solid #2a2060;
+  border-radius: 16px; padding: 16px; margin-bottom: 14px;
+}
+.step-card .sc-title { font-size: 12px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+.step-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid #2a2060; }
+.step-row:last-child { border-bottom: none; }
+.step-row .sr-num { width: 24px; height: 24px; border-radius: 50%; background: #2a1880; border: 2px solid #9b72ff; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 900; color: #9b72ff; flex-shrink: 0; margin-top: 1px; }
+.step-row .sr-text { font-size: 13px; font-weight: 700; color: #c4a0ff; line-height: 1.4; }
+
+/* CTA */
+.cta-parent { width: 100%; padding: 14px; border-radius: 14px; border: none; background: linear-gradient(135deg, #9b72ff, #7c4ddb); color: #fff; font-family: 'Nunito', sans-serif; font-size: 16px; font-weight: 900; cursor: pointer; box-shadow: 0 6px 20px rgba(155,114,255,0.4); margin-bottom: 10px; }
+.cta-wait { width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #2a2060; background: transparent; color: #6a5090; font-family: 'Nunito', sans-serif; font-size: 14px; font-weight: 700; cursor: pointer; }
+
+/* Unlocked state */
+.unlocked-body { display: flex; flex-direction: column; align-items: center; padding: 32px 28px 36px; text-align: center; }
+
+/* Spec */
+.spec-body { padding: 14px 20px; }
+.spec-section { margin-bottom: 12px; background: #1a1060; border-radius: 12px; padding: 12px; }
+.spec-title { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 11px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 58%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-pin-lockout-state-v2.html</strong><br>
+  Phone 390px • 4 tabs: Locked (cooldown) / Parent-required / Unlocked / Spec<br>
+  Cooldown: animated countdown ring SVG (stroke-dashoffset) · 60-second cooldown<br>
+  Parent-required: after repeated lockouts — parent must reset PIN from their app<br>
+  Unlocked: celebration after cooldown expires or parent resets<br>
+  Friendly tone — no shame, no scare; forward-looking language throughout
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('locked')">Locked</button>
+  <button class="tab-btn" onclick="showTab('parent')">Parent Required</button>
+  <button class="tab-btn" onclick="showTab('unlocked')">Unlocked</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span>WonderQuest</span>
+    <span>🔋 94%</span>
+  </div>
+
+  <!-- LOCKED -->
+  <div id="screen-locked" class="screen active">
+    <div class="lock-body">
+      <div class="lock-icon">🔒</div>
+      <div class="lock-title">Taking a short break!</div>
+      <div class="lock-sub">Too many tries — just wait a moment and then you can try again!</div>
+
+      <div class="countdown-ring">
+        <svg width="100" height="100" viewBox="0 0 100 100">
+          <circle class="ring-bg" cx="50" cy="50" r="40"/>
+          <circle class="ring-fill" cx="50" cy="50" r="40"/>
+        </svg>
+        <div class="countdown-num">45</div>
+        <div class="countdown-label">seconds</div>
+      </div>
+
+      <div class="step-card">
+        <div class="sc-title">What to do now</div>
+        <div class="step-row">
+          <div class="sr-num">1</div>
+          <div class="sr-text">Wait for the timer to finish — it won't be long!</div>
+        </div>
+        <div class="step-row">
+          <div class="sr-num">2</div>
+          <div class="sr-text">Try your magic code again when the timer reaches zero</div>
+        </div>
+        <div class="step-row">
+          <div class="sr-num">3</div>
+          <div class="sr-text">If you still need help, ask a parent to reset it for you</div>
+        </div>
+      </div>
+
+      <button class="cta-parent">Get a Parent to Help 💙</button>
+      <button class="cta-wait">Wait for the timer ⏳</button>
+    </div>
+  </div>
+
+  <!-- PARENT REQUIRED -->
+  <div id="screen-parent" class="screen">
+    <div class="lock-body">
+      <div class="lock-icon">🔐</div>
+      <div class="lock-title">Ask a parent to help!</div>
+      <div class="lock-sub">Your code has been locked for safety. A parent needs to reset it from their app.</div>
+
+      <div class="step-card" style="border-color:#4a30b0">
+        <div class="sc-title" style="color:#c4a0ff">Parent steps</div>
+        <div class="step-row">
+          <div class="sr-num">1</div>
+          <div class="sr-text">Parent opens WonderQuest on their phone</div>
+        </div>
+        <div class="step-row">
+          <div class="sr-num">2</div>
+          <div class="sr-text">Goes to Zara's profile → Settings → Reset PIN</div>
+        </div>
+        <div class="step-row">
+          <div class="sr-num">3</div>
+          <div class="sr-text">Sets a new 4-digit code for Zara to use</div>
+        </div>
+      </div>
+
+      <div style="background:#1a1060;border:1px solid #2a2060;border-radius:12px;padding:14px;margin-bottom:16px;text-align:center;width:100%">
+        <div style="font-size:13px;font-weight:700;color:#b8a0e8;line-height:1.5">Don't worry — all your stars ⭐ and worlds are 100% safe. Nothing is lost!</div>
+      </div>
+
+      <button class="cta-parent" style="margin-bottom:0">Okay, I'll ask a parent 💙</button>
+    </div>
+  </div>
+
+  <!-- UNLOCKED -->
+  <div id="screen-unlocked" class="screen">
+    <div class="unlocked-body">
+      <div style="font-size:72px;margin-bottom:14px;animation:pop 0.5s cubic-bezier(0.34,1.56,0.64,1)">🔓</div>
+      <div style="font-size:26px;font-weight:900;color:#50e890;margin-bottom:6px">All clear, Zara!</div>
+      <div style="font-size:14px;font-weight:700;color:#b8a0e8;margin-bottom:28px;line-height:1.4">The cooldown is over — enter your magic code to jump back in!</div>
+
+      <div style="background:#1a2a15;border:2px solid #50e890;border-radius:14px;padding:14px;margin-bottom:24px;width:100%;display:flex;gap:10px;align-items:center">
+        <span style="font-size:22px">⭐</span>
+        <span style="font-size:13px;font-weight:700;color:#50e890">All 42 stars still safe — nothing changed!</span>
+      </div>
+
+      <!-- Mini numpad ready to go -->
+      <div style="display:flex;gap:14px;margin-bottom:20px">
+        <div style="width:22px;height:22px;border-radius:50%;background:#2a2060;border:2px solid #4a30b0"></div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#2a2060;border:2px solid #4a30b0"></div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#2a2060;border:2px solid #4a30b0"></div>
+        <div style="width:22px;height:22px;border-radius:50%;background:#2a2060;border:2px solid #4a30b0"></div>
+      </div>
+
+      <button style="width:100%;padding:14px;border-radius:14px;border:none;background:linear-gradient(135deg,#50e890,#30c870);color:#0a2a15;font-family:Nunito,sans-serif;font-size:17px;font-weight:900;cursor:pointer;box-shadow:0 6px 20px rgba(80,232,144,0.35)">Enter My Code 🚀</button>
+    </div>
+  </div>
+
+  <!-- SPEC -->
+  <div id="screen-spec" class="screen">
+    <div class="spec-body">
+      <div class="spec-section">
+        <div class="spec-title">Lockout Logic</div>
+        <div class="spec-row"><span class="spec-key">Trigger</span><span class="spec-val">4th consecutive wrong PIN</span></div>
+        <div class="spec-row"><span class="spec-key">Cooldown 1</span><span class="spec-val">60-second timer (countdown ring)</span></div>
+        <div class="spec-row"><span class="spec-key">Cooldown 2</span><span class="spec-val">5 min (2nd lockout same session)</span></div>
+        <div class="spec-row"><span class="spec-key">Parent lock</span><span class="spec-val">After 3 lockouts — parent-only reset</span></div>
+        <div class="spec-row"><span class="spec-key">Data safety</span><span class="spec-val">Stars/progress NEVER affected by lockout</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Countdown Ring</div>
+        <div class="spec-row"><span class="spec-key">SVG circle</span><span class="spec-val">r=40, stroke-dasharray=251 (circumference)</span></div>
+        <div class="spec-row"><span class="spec-key">Animation</span><span class="spec-val">stroke-dashoffset 251→0 over 60s via JS</span></div>
+        <div class="spec-row"><span class="spec-key">Color</span><span class="spec-val">#9b72ff fill, #2a2060 track</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Tone rules</div>
+        <div class="spec-row"><span class="spec-key">Language</span><span class="spec-val">"Short break" — not "locked out" to child</span></div>
+        <div class="spec-row"><span class="spec-key">Stars</span><span class="spec-val">Always reassure stars are safe on lockout</span></div>
+        <div class="spec-row"><span class="spec-key">Parent msg</span><span class="spec-val">"Safety" framing — not punishment</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+</style>
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+</script>
+</body>
+</html>

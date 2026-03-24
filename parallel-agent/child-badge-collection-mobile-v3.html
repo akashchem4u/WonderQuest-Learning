@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WonderQuest — Child Badge Collection Mobile v3</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: #1a1a2e; min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 20px 16px 40px; font-family: 'Nunito', sans-serif; }
+.eng-hint { width: 100%; max-width: 700px; background: #fffbea; border: 2px solid #f0c040; border-radius: 8px; padding: 12px 16px; font-family: monospace; font-size: 12px; color: #333; margin-bottom: 16px; line-height: 1.5; }
+.eng-hint strong { color: #b45309; }
+.tab-bar { width: 100%; max-width: 700px; display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.tab-btn { flex: 1; min-width: 80px; padding: 8px 10px; background: #1e1e3a; border: 2px solid #2e2e4e; border-radius: 8px; color: #aaa; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; text-align: center; transition: all 0.2s; }
+.tab-btn:hover { background: #2a2a4e; color: #ddd; }
+.tab-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+.phone-frame { width: 390px; min-height: 844px; background: #100b2e; border-radius: 40px; overflow: hidden; box-shadow: 0 24px 64px rgba(0,0,0,0.6), inset 0 0 0 2px #2a2060; }
+.status-bar { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px 6px; font-size: 12px; font-weight: 700; color: #9b72ff; }
+.status-bar .time { font-size: 14px; color: #e0d4ff; font-weight: 900; }
+.screen { display: none; }
+.screen.active { display: block; }
+
+.scroll-body { padding: 14px 18px 80px; }
+.pg-title { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 4px; }
+.pg-sub { font-size: 12px; color: #b8a0e8; font-weight: 700; margin-bottom: 14px; }
+
+/* Category scroll */
+.cat-scroll { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 14px; scrollbar-width: none; }
+.cat-scroll::-webkit-scrollbar { display: none; }
+.cs-btn { flex-shrink: 0; padding: 6px 14px; border-radius: 18px; border: 2px solid #2a2060; background: #1a1060; color: #7a6090; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 700; cursor: pointer; transition: all 0.15s; }
+.cs-btn.active { background: #9b72ff; border-color: #9b72ff; color: #fff; }
+
+/* Badge grid mobile 3-col */
+.badge-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+.badge-cell {
+  border-radius: 16px; padding: 12px 8px;
+  text-align: center; cursor: pointer;
+  position: relative; transition: all 0.15s;
+}
+.badge-cell:hover { transform: scale(1.04); }
+.badge-cell.locked { opacity: 0.3; cursor: default; }
+.badge-cell.locked:hover { transform: none; }
+.badge-cell .bc-emoji { font-size: 32px; display: block; margin-bottom: 6px; }
+.badge-cell.earned .bc-emoji { animation: bf 3s ease-in-out infinite; }
+@keyframes bf { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.badge-cell .bc-name { font-size: 10px; font-weight: 900; color: #fff; line-height: 1.2; }
+.badge-cell .new-dot { position: absolute; top: 6px; right: 6px; width: 8px; height: 8px; background: #ff7b6b; border-radius: 50%; border: 1px solid #100b2e; animation: blink 1.5s ease-in-out infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+.badge-cell.cat-quest { background: linear-gradient(135deg, #1a1060, #2a1880); border: 2px solid #9b72ff; }
+.badge-cell.cat-streak { background: linear-gradient(135deg, #2a1808, #1a1060); border: 2px solid #ff9d3b; }
+.badge-cell.cat-world { background: linear-gradient(135deg, #0a2a15, #1a1060); border: 2px solid #50e890; }
+.badge-cell.cat-star { background: linear-gradient(135deg, #2a2010, #1a1060); border: 2px solid #ffd166; }
+.badge-cell.cat-locked { background: #1a1060; border: 2px solid #2a2060; }
+
+/* Progress badge (close-to-unlock) */
+.badge-cell .bc-prog { height: 4px; background: #2a2060; border-radius: 3px; margin-top: 5px; overflow: hidden; }
+.badge-cell .bc-prog-fill { height: 100%; border-radius: 3px; }
+
+/* Earned new badge overlay */
+.new-earned-overlay {
+  background: linear-gradient(135deg, #1a1060, #2a1880);
+  border: 2px solid #9b72ff;
+  border-radius: 20px;
+  padding: 20px;
+  text-align: center;
+  margin-bottom: 16px;
+  position: relative;
+}
+.neo-emoji { font-size: 64px; display: block; margin-bottom: 10px; animation: bf 2.5s ease-in-out infinite; }
+.neo-title { font-size: 14px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.neo-name { font-size: 20px; font-weight: 900; color: #fff; margin-bottom: 6px; }
+.neo-desc { font-size: 12px; color: #b8a0e8; font-weight: 700; line-height: 1.4; }
+.neo-dismiss { position: absolute; top: 10px; right: 14px; font-size: 16px; color: #5a4080; cursor: pointer; }
+
+/* Spec */
+.spec-section { margin-bottom: 12px; background: #1a1060; border-radius: 12px; padding: 12px; }
+.spec-title { font-size: 11px; font-weight: 900; color: #9b72ff; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 7px; }
+.spec-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #2a2060; font-size: 11px; }
+.spec-row:last-child { border-bottom: none; }
+.spec-key { color: #7a6090; font-weight: 700; }
+.spec-val { color: #e0d4ff; font-weight: 700; text-align: right; max-width: 58%; }
+</style>
+</head>
+<body>
+<div class="eng-hint">
+  <strong>ENGINEERING HINT — child-badge-collection-mobile-v3.html</strong><br>
+  Phone 390px • 4 tabs: All / New Earned / Progress / Spec<br>
+  3-col grid of badge cells · earned have gradient bg + float animation<br>
+  New earned: full-width banner card above grid<br>
+  Category scroll bar (horizontal, no scrollbar)<br>
+  Progress bar on close-to-unlock locked badges
+</div>
+<div class="tab-bar">
+  <button class="tab-btn active" onclick="showTab('all')">All</button>
+  <button class="tab-btn" onclick="showTab('earned')">New Earned</button>
+  <button class="tab-btn" onclick="showTab('progress')">Progress</button>
+  <button class="tab-btn" onclick="showTab('spec')">Spec</button>
+</div>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <span>🏅 3 badges</span>
+    <span>🔋 94%</span>
+  </div>
+
+  <!-- ALL -->
+  <div id="screen-all" class="screen active">
+    <div class="scroll-body">
+      <div class="pg-title">My Badges 🏅</div>
+      <div class="pg-sub">3 earned · 12 more to unlock!</div>
+      <div class="cat-scroll">
+        <button class="cs-btn active">All (15)</button>
+        <button class="cs-btn">⚡ Quest</button>
+        <button class="cs-btn">🔥 Streak</button>
+        <button class="cs-btn">⭐ Stars</button>
+        <button class="cs-btn">🌍 World</button>
+        <button class="cs-btn">✨ Special</button>
+      </div>
+      <div class="badge-grid">
+        <div class="badge-cell earned cat-quest"><div class="new-dot"></div><span class="bc-emoji">🌟</span><div class="bc-name">First Quest!</div></div>
+        <div class="badge-cell earned cat-world"><span class="bc-emoji">🌲</span><div class="bc-name">Forest Explorer</div></div>
+        <div class="badge-cell earned cat-streak"><div class="new-dot"></div><span class="bc-emoji">🔥</span><div class="bc-name">On Fire!</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">🌊</span><div class="bc-name">Ocean Hero</div></div>
+        <div class="badge-cell cat-locked" style="border-color:#9b72ff;opacity:0.75"><span class="bc-emoji">💎</span><div class="bc-name">Crystal Master</div><div class="bc-prog"><div class="bc-prog-fill" style="width:58%;background:#9b72ff"></div></div></div>
+        <div class="badge-cell cat-locked" style="border-color:#ffd166;opacity:0.8"><span class="bc-emoji">⭐</span><div class="bc-name">Star Collector</div><div class="bc-prog"><div class="bc-prog-fill" style="width:84%;background:#ffd166"></div></div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">🏆</span><div class="bc-name">World Champ</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">🔟</span><div class="bc-name">10-Day Streak</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">💯</span><div class="bc-name">100 Stars!</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">🦋</span><div class="bc-name">Flutter Fan</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">🐉</span><div class="bc-name">Dragon Tamer</div></div>
+        <div class="badge-cell cat-locked locked"><span class="bc-emoji">👑</span><div class="bc-name">Grand Champ</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEW EARNED -->
+  <div id="screen-earned" class="screen">
+    <div class="scroll-body">
+      <div class="pg-title">New Badges! 🎉</div>
+      <div class="pg-sub">You just unlocked 2 today!</div>
+
+      <div class="new-earned-overlay">
+        <div class="neo-dismiss">✕</div>
+        <span class="neo-emoji">🔥</span>
+        <div class="neo-title">NEW BADGE!</div>
+        <div class="neo-name">On Fire!</div>
+        <div class="neo-desc">Amazing — you quested 5 days in a row! You're unstoppable!</div>
+      </div>
+
+      <div class="new-earned-overlay" style="border-color:#ffd166;background:linear-gradient(135deg,#2a2010,#1a1060)">
+        <div class="neo-dismiss">✕</div>
+        <span class="neo-emoji">🌟</span>
+        <div class="neo-title" style="color:#ffd166">NEW BADGE!</div>
+        <div class="neo-name">First Quest!</div>
+        <div class="neo-desc">You did it — your very first quest complete! The adventure begins!</div>
+      </div>
+
+      <div class="badge-grid">
+        <div class="badge-cell earned cat-quest"><div class="new-dot"></div><span class="bc-emoji">🌟</span><div class="bc-name">First Quest!</div></div>
+        <div class="badge-cell earned cat-world"><span class="bc-emoji">🌲</span><div class="bc-name">Forest Explorer</div></div>
+        <div class="badge-cell earned cat-streak"><div class="new-dot"></div><span class="bc-emoji">🔥</span><div class="bc-name">On Fire!</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div id="screen-progress" class="screen">
+    <div class="scroll-body">
+      <div class="pg-title">So Close! 🔮</div>
+      <div class="pg-sub">Badges you're almost ready to unlock</div>
+      <!-- detailed progress cards -->
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">
+        <div style="background:#1a1060;border:2px solid #ffd166;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:36px">⭐</span>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px">Star Collector</div>
+            <div style="height:8px;background:#2a2060;border-radius:5px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:84%;background:#ffd166;border-radius:5px"></div></div>
+            <div style="font-size:11px;font-weight:700;color:#ffd166">42/50 stars · 8 more to go!</div>
+          </div>
+        </div>
+        <div style="background:#1a1060;border:2px solid #9b72ff;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:36px">💎</span>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px">Crystal Master</div>
+            <div style="height:8px;background:#2a2060;border-radius:5px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:58%;background:#9b72ff;border-radius:5px"></div></div>
+            <div style="font-size:11px;font-weight:700;color:#9b72ff">Node 7/12 done · keep exploring!</div>
+          </div>
+        </div>
+        <div style="background:#1a1060;border:2px solid #50e890;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:36px">🏆</span>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px">World Champion</div>
+            <div style="height:8px;background:#2a2060;border-radius:5px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:67%;background:#50e890;border-radius:5px"></div></div>
+            <div style="font-size:11px;font-weight:700;color:#50e890">2/3 worlds complete · 1 more!</div>
+          </div>
+        </div>
+        <div style="background:#1a1060;border:2px solid #ff9d3b;border-radius:14px;padding:14px;display:flex;align-items:center;gap:12px">
+          <span style="font-size:36px">🔟</span>
+          <div style="flex:1">
+            <div style="font-size:15px;font-weight:900;color:#fff;margin-bottom:4px">10-Day Streak</div>
+            <div style="height:8px;background:#2a2060;border-radius:5px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:50%;background:#ff9d3b;border-radius:5px"></div></div>
+            <div style="font-size:11px;font-weight:700;color:#ff9d3b">5/10 days streak · halfway there!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPEC -->
+  <div id="screen-spec" class="screen">
+    <div class="scroll-body">
+      <div class="spec-section">
+        <div class="spec-title">Grid</div>
+        <div class="spec-row"><span class="spec-key">Columns</span><span class="spec-val">3 per row, auto-height cells</span></div>
+        <div class="spec-row"><span class="spec-key">Earned</span><span class="spec-val">Gradient bg + float animation + NEW dot</span></div>
+        <div class="spec-row"><span class="spec-key">Locked</span><span class="spec-val">30% opacity, no hover</span></div>
+        <div class="spec-row"><span class="spec-key">Progress</span><span class="spec-val">4px progress bar on close badges</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">New Earned overlay</div>
+        <div class="spec-row"><span class="spec-key">Shows</span><span class="spec-val">Above grid on "New Earned" view</span></div>
+        <div class="spec-row"><span class="spec-key">Multiple</span><span class="spec-val">Stacked cards if 2+ earned same session</span></div>
+        <div class="spec-row"><span class="spec-key">Dismiss</span><span class="spec-val">✕ hides that card; badge stays in grid</span></div>
+      </div>
+      <div class="spec-section">
+        <div class="spec-title">Rules</div>
+        <div class="spec-row"><span class="spec-key">Accuracy</span><span class="spec-val">Never triggers badges</span></div>
+        <div class="spec-row"><span class="spec-key">Remove</span><span class="spec-val">Badges never removed</span></div>
+        <div class="spec-row"><span class="spec-key">Progress labels</span><span class="spec-val">Forward-looking ("8 more to go!")</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + tab).classList.add('active');
+}
+document.querySelectorAll('.cs-btn').forEach(b => {
+  b.addEventListener('click', () => { document.querySelectorAll('.cs-btn').forEach(x => x.classList.remove('active')); b.classList.add('active'); });
+});
+document.querySelectorAll('.neo-dismiss').forEach(d => {
+  d.addEventListener('click', () => { d.closest('.new-earned-overlay').style.opacity = '0.3'; });
+});
+</script>
+</body>
+</html>
