@@ -1361,7 +1361,7 @@ export default function PlayClient() {
 
   return (
     <AppFrame audience="kid" currentPath="/child">
-      <main className="page-shell page-shell-split">
+      <main className="page-shell page-shell-split play-page-shell">
         {rewardOverlay ? (
           <button
             aria-label="Reward moment"
@@ -1943,7 +1943,7 @@ export default function PlayClient() {
 
           <div className="play-side">
             <ShellCard
-              className="shell-card-emphasis"
+              className="shell-card-emphasis play-progress-card"
               eyebrow="Session"
               title="Progress right now"
             >
@@ -1967,7 +1967,7 @@ export default function PlayClient() {
               </div>
             </ShellCard>
 
-            <ShellCard eyebrow="Support" title="Adaptive help and recovery">
+            <ShellCard className="play-support-card" eyebrow="Support" title="Adaptive help and recovery">
               {answerState?.needsRetry && answerState.explainer ? (
                 <div className={`status-panel ${earlyLearnerMode ? "guide-panel" : ""}`}>
                   {earlyLearnerMode ? (

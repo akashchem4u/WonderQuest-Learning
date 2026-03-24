@@ -247,3 +247,95 @@ Mark completed items with `[x]`. Pending items stay as `[ ]`.
 218. [ ] `beta-home-practice-summary-v2.html`
 219. [ ] `beta-feedback-resolution-loop-v2.html`
 220. [ ] `beta-final-handoff-board-v2.html`
+
+## Safety, Accessibility, And System Support
+
+221. [ ] `child-accessibility-mode-v2.html`
+222. [ ] `child-high-contrast-mode-v2.html`
+223. [ ] `child-low-motion-mode-v2.html`
+224. [ ] `child-audio-disabled-flow-v2.html`
+225. [ ] `child-slow-voice-toggle-v2.html`
+226. [ ] `child-hear-it-again-panel-v2.html`
+227. [ ] `play-touch-target-accessibility-v2.html`
+228. [ ] `play-visual-only-question-mode-v2.html`
+229. [ ] `play-parent-assist-overlay-v2.html`
+230. [ ] `play-teacher-assist-overlay-v2.html`
+231. [ ] `parent-accessibility-settings-v2.html`
+232. [ ] `parent-audio-settings-v2.html`
+233. [ ] `teacher-classroom-accessibility-strip-v2.html`
+234. [ ] `owner-safety-review-console-v2.html`
+235. [ ] `content-safe-imagery-review-v2.html`
+236. [ ] `content-phonics-audio-review-v2.html`
+237. [ ] `content-age-appropriateness-check-v2.html`
+238. [ ] `system-maintenance-banner-v2.html`
+239. [ ] `system-service-degraded-state-v2.html`
+240. [ ] `system-global-error-recovery-v2.html`
+
+## Reports, Insights, And Comparisons
+
+241. [ ] `parent-progress-report-print-v2.html`
+242. [ ] `parent-age-level-comparison-card-v2.html`
+243. [ ] `parent-grade-level-comparison-card-v2.html`
+244. [ ] `parent-strength-trend-chart-v2.html`
+245. [ ] `parent-support-trend-chart-v2.html`
+246. [ ] `teacher-class-growth-report-v2.html`
+247. [ ] `teacher-skill-mastery-board-v2.html`
+248. [ ] `teacher-intervention-outcome-report-v2.html`
+249. [ ] `owner-adoption-trend-dashboard-v2.html`
+250. [ ] `owner-feedback-burn-down-v2.html`
+251. [ ] `owner-release-milestone-tracker-v2.html`
+252. [ ] `content-coverage-report-v2.html`
+253. [ ] `content-band-density-report-v2.html`
+254. [ ] `beta-tester-feedback-summary-v2.html`
+255. [ ] `beta-family-feedback-summary-v2.html`
+256. [ ] `beta-teacher-feedback-summary-v2.html`
+257. [ ] `beta-owner-summary-board-v2.html`
+258. [ ] `benchmark-disclaimer-panel-v2.html`
+259. [ ] `comparison-methodology-explainer-v2.html`
+260. [ ] `growth-readiness-scorecard-v2.html`
+
+## Voice, Theme, And Personalization
+
+261. [ ] `voice-coach-persona-selector-v2.html`
+262. [ ] `voice-tone-preview-panel-v2.html`
+263. [ ] `voice-speed-selector-v2.html`
+264. [ ] `voice-child-preferences-manager-v2.html`
+265. [ ] `voice-parent-controls-v2.html`
+266. [ ] `theme-interest-capture-v3.html`
+267. [ ] `theme-family-selector-v2.html`
+268. [ ] `theme-sports-pack-v2.html`
+269. [ ] `theme-arts-pack-v2.html`
+270. [ ] `theme-space-pack-v2.html`
+271. [ ] `theme-animal-pack-v2.html`
+272. [ ] `theme-building-pack-v2.html`
+273. [ ] `theme-rotation-panel-v2.html`
+274. [ ] `personalized-home-banner-v2.html`
+275. [ ] `personalized-recommendation-strip-v2.html`
+276. [ ] `personalized-return-journey-v2.html`
+277. [ ] `favorite-things-selector-v2.html`
+278. [ ] `dislikes-filter-panel-v2.html`
+279. [ ] `adaptive-theme-preview-v2.html`
+280. [ ] `learner-preference-profile-v2.html`
+
+## Additional Operational Surfaces
+
+281. [ ] `owner-bug-vs-feedback-classifier-v2.html`
+282. [ ] `owner-enhancement-pipeline-v2.html`
+283. [ ] `owner-feedback-routing-board-v2.html`
+284. [ ] `owner-incident-postmortem-card-v2.html`
+285. [ ] `owner-content-publish-calendar-v2.html`
+286. [ ] `owner-beta-family-roster-v2.html`
+287. [ ] `owner-beta-teacher-roster-v2.html`
+288. [ ] `owner-test-session-observation-board-v2.html`
+289. [ ] `owner-device-coverage-board-v2.html`
+290. [ ] `owner-release-checklist-desktop-v2.html`
+291. [ ] `teacher-assignment-creator-v2.html`
+292. [ ] `teacher-small-group-planner-v2.html`
+293. [ ] `teacher-remediation-ladder-v2.html`
+294. [ ] `parent-home-practice-assignment-v2.html`
+295. [ ] `parent-child-celebration-card-v2.html`
+296. [ ] `child-bonus-round-launcher-v2.html`
+297. [ ] `child-daily-challenge-launcher-v2.html`
+298. [ ] `content-question-template-editor-v2.html`
+299. [ ] `content-explainer-script-review-v2.html`
+300. [ ] `content-image-theme-browser-v2.html`

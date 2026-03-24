@@ -10,6 +10,10 @@ Use this file as the active instruction source for the fast support agent.
 - Do not auto-invent new audiences or product areas.
 - Keep everything child-safe and family-safe.
 - Avoid multiplayer, peer chat, public leaderboards, or social mechanics.
+- Work continuously in batches of `6` files at a time.
+- After each batch of `6`, append to `STATUS.md` and continue immediately into the
+  next unchecked items in `TASK_BACKLOG.md`.
+- Do not wait for another prompt unless engineering explicitly pauses the queue.
 
 ## Current Batch
 
