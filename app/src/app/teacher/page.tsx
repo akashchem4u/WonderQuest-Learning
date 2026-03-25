@@ -3,7 +3,7 @@ import { AppFrame } from "@/components/app-frame";
 import { FeedbackForm } from "@/components/feedback-form";
 import { ShellCard, StatTile } from "@/components/ui";
 import { hasTeacherAccess, isTeacherAccessConfigured } from "@/lib/teacher-access";
-import { getTeacherOverview } from "@/lib/prototype-service";
+import { getTeacherOverview, getTeacherSkillDetail } from "@/lib/prototype-service";
 import TeacherGate from "./teacher-gate";
 
 export const dynamic = "force-dynamic";
@@ -41,6 +41,28 @@ function formatShortDate(value: string) {
     month: "short",
     day: "numeric",
   }).format(parsed);
+}
+
+function formatDateTime(value: string) {
+  const parsed = new Date(value);
+
+  if (Number.isNaN(parsed.getTime())) {
+    return "Recent";
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(parsed);
+}
+
+function formatSessionModeLabel(value: string) {
+  return value
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function getTeacherQueueTier(masteryRate: number): Exclude<TeacherQueueTier, "all"> {
@@ -214,6 +236,18 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
         null
       : null) ??
     null;
+  let selectedSkillDetail:
+    | Awaited<ReturnType<typeof getTeacherSkillDetail>>
+    | null = null;
+
+  if (selectedSkill) {
+    try {
+      selectedSkillDetail = await getTeacherSkillDetail(selectedSkill.skillCode);
+    } catch {
+      selectedSkillDetail = null;
+    }
+  }
+
   const queueNeighbors = dedupeSkills(
     selectedSkill
       ? [
@@ -233,12 +267,55 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
     ? getTeacherQueueTier(selectedSkill.masteryRate)
     : null;
   const selectedSkillTrendLabel = selectedSkill
-    ? selectedSkill.masteryRate >= 80
-      ? "class confidence is building"
-      : selectedSkill.masteryRate >= 60
-        ? "showing mixed consistency"
-        : "still needs guided support"
+    ? selectedSkillDetail?.trendLabel ??
+      (selectedSkill.masteryRate >= 80
+        ? "class confidence is building"
+        : selectedSkill.masteryRate >= 60
+          ? "showing mixed consistency"
+          : "still needs guided support")
     : "waiting for more practice";
+  const selectedSkillTierCounts = selectedSkillDetail?.tierCounts ?? {
+    onTrack: 0,
+    strong: 0,
+    support: 0,
+    watch: 0,
+  };
+  const selectedSkillRecentActivity = selectedSkillDetail?.recentSkillActivity ?? [];
+  const selectedSkillPeer =
+    selectedSkillDetail?.peerSkills.find(
+      (skill) => skill.skillCode !== selectedSkill?.skillCode,
+    ) ?? null;
+  const selectedSkillNextActions = selectedSkill
+    ? [
+        {
+          detail:
+            selectedSkillDetail?.recommendedAction ?? selectedSkill.queueAction,
+          icon: "🎯",
+          kicker: "This cycle",
+          title: "Run the next classroom move",
+        },
+        {
+          detail: `Log what changed after the next ${formatSessionModeLabel(selectedSkillRecentActivity[0]?.sessionMode ?? "guided-practice").toLowerCase()} block so the queue shows whether support is working.`,
+          icon: "📝",
+          kicker: "After class",
+          title: "Capture an intervention note",
+        },
+        {
+          detail: `Share one calm at-home follow-up for ${selectedSkill.displayName.toLowerCase()} so the practice signal stays consistent beyond the classroom.`,
+          icon: "🏠",
+          kicker: "Family handoff",
+          title: "Prep the parent message",
+        },
+        {
+          detail: selectedSkillPeer
+            ? `Use ${selectedSkillPeer.displayName.toLowerCase()} as the confidence anchor before you return to ${selectedSkill.displayName.toLowerCase()}.`
+            : `Lead with one stronger nearby skill before returning to ${selectedSkill.displayName.toLowerCase()}.`,
+          icon: "👥",
+          kicker: selectedSkillPeer?.displayName ?? "Warm-up",
+          title: "Pair with a confidence anchor",
+        },
+      ]
+    : [];
   const supportSignalCount = overview
     ? overview.skillSummary.filter((skill) => skill.masteryRate < 60).length
     : 0;
@@ -568,7 +645,7 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                             {selectedSkillTier ? getTeacherQueueTierLabel(selectedSkillTier) : "Watch"}
                           </span>
                           <strong>{selectedSkill.displayName}</strong>
-                          <p>{selectedSkill.queueAction}</p>
+                          <p>{selectedSkillTrendLabel}</p>
                         </div>
                         <div className="summary-chip-row">
                           <span className="summary-chip">
@@ -581,6 +658,29 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                             {selectedSkill.masteryRate}% mastery
                           </span>
                         </div>
+                      </div>
+
+                      <div className="teacher-tier-grid">
+                        <article className="teacher-tier-card is-support">
+                          <span>Need support</span>
+                          <strong>{selectedSkillTierCounts.support}</strong>
+                          <p>Learners still need explicit guidance on this skill.</p>
+                        </article>
+                        <article className="teacher-tier-card is-watch">
+                          <span>Watch</span>
+                          <strong>{selectedSkillTierCounts.watch}</strong>
+                          <p>Mixed consistency means one more guided pass is useful.</p>
+                        </article>
+                        <article className="teacher-tier-card is-track">
+                          <span>On track</span>
+                          <strong>{selectedSkillTierCounts.onTrack}</strong>
+                          <p>These learners are close enough to stretch with light support.</p>
+                        </article>
+                        <article className="teacher-tier-card is-strong">
+                          <span>Strong</span>
+                          <strong>{selectedSkillTierCounts.strong}</strong>
+                          <p>Confidence anchors you can reuse to open the next block.</p>
+                        </article>
                       </div>
 
                       <div className="teacher-drilldown-metrics">
@@ -608,8 +708,26 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                         <div>
                           <strong>Suggested next move</strong>
                           <p>
-                            {selectedSkill.queueSummary}
+                            {selectedSkillDetail?.recommendedAction ?? selectedSkill.queueSummary}
                           </p>
+                        </div>
+                      </div>
+
+                      <div className="teacher-drilldown-section">
+                        <span className="teacher-drilldown-switcher-label">
+                          What to do next
+                        </span>
+                        <div className="teacher-next-action-grid">
+                          {selectedSkillNextActions.map((action) => (
+                            <article className="teacher-next-action-card" key={action.title}>
+                              <span className="teacher-next-action-icon" aria-hidden="true">
+                                {action.icon}
+                              </span>
+                              <strong>{action.title}</strong>
+                              <p>{action.detail}</p>
+                              <em>{action.kicker}</em>
+                            </article>
+                          ))}
                         </div>
                       </div>
 
@@ -628,6 +746,61 @@ export default async function TeacherPage({ searchParams }: TeacherPageProps) {
                             </Link>
                           ))}
                         </div>
+                      </div>
+
+                      <div className="teacher-drilldown-section">
+                        <span className="teacher-drilldown-switcher-label">
+                          Intervention history
+                        </span>
+                        {selectedSkillRecentActivity.length ? (
+                          <div className="teacher-timeline">
+                            {selectedSkillRecentActivity.map((activity) => {
+                              const icon = activity.firstTry
+                                ? "✓"
+                                : activity.remediationTriggered
+                                  ? "🧭"
+                                  : activity.correct
+                                    ? "🎯"
+                                    : "↺";
+                              const title = activity.firstTry
+                                ? `First-try success in ${formatSessionModeLabel(activity.sessionMode)}`
+                                : activity.remediationTriggered
+                                  ? `Guided support triggered in ${formatSessionModeLabel(activity.sessionMode)}`
+                                  : activity.correct
+                                    ? `Correct after extra support in ${formatSessionModeLabel(activity.sessionMode)}`
+                                    : `Retry still needed in ${formatSessionModeLabel(activity.sessionMode)}`;
+                              const timeSpentSeconds = Math.max(
+                                1,
+                                Math.round(activity.timeSpentMs / 1000),
+                              );
+
+                              return (
+                                <article className="teacher-timeline-row" key={activity.id}>
+                                  <span className="teacher-timeline-dot" aria-hidden="true">
+                                    {icon}
+                                  </span>
+                                  <div className="teacher-timeline-body">
+                                    <strong>{title}</strong>
+                                    <p>
+                                      {activity.launchBandCode} band · {timeSpentSeconds}s response ·{" "}
+                                      {activity.remediationTriggered
+                                        ? "support used"
+                                        : activity.correct
+                                          ? "landed"
+                                          : "still building"}
+                                    </p>
+                                    <small>{formatDateTime(activity.startedAt)}</small>
+                                  </div>
+                                </article>
+                              );
+                            })}
+                          </div>
+                        ) : (
+                          <div className="teacher-empty-state">
+                            <strong>No intervention history yet</strong>
+                            <p>The timeline will populate after more sessions touch this skill.</p>
+                          </div>
+                        )}
                       </div>
                     </div>
                   ) : (
